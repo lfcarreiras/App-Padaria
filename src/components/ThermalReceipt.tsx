@@ -168,11 +168,11 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
 
             <div className="my-3 border-b border-dashed border-black" />
 
-            {/* Rodapé do Talão */}
-            <div className="text-center text-[10px] space-y-0.5">
+            {/* Rodapé do Talão com margem de corte segura */}
+            <div className="text-center text-[10px] space-y-1 pt-1 pb-8">
               <p>Emitido em: {new Date().toLocaleString('pt-PT')}</p>
-              <p className="font-bold mt-1">Obrigado pela sua preferência!</p>
-              <p className="text-[9px] tracking-widest mt-1">*** SISTEMA DE ENCOMENDAS ***</p>
+              <p className="font-bold text-xs mt-1">Obrigado pela sua preferência!</p>
+              <p className="text-[9px] tracking-widest text-gray-700 mt-1">*** SISTEMA DE ENCOMENDAS ***</p>
             </div>
           </div>
         </div>

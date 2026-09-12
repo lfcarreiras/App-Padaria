@@ -16,39 +16,71 @@ body {
 }
 
 /* ==========================================================================
-   ESTILOS DEDICADOS À IMPRESSÃO TÉRMICA DE RECIBOS (80mm e 58mm)
+   ESTILOS CORRIGIDOS PARA IMPRESSÃO (Térmica 80mm, 58mm ou Folha A4/PDF)
    ========================================================================== */
 @media print {
-  /* Ocultar toda a interface de ecrã (menus, botões, modais, fundo) */
+  /* 1. Reset completo do documento para impressão contínua */
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    height: auto !important;
+    min-height: 100% !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* 2. Ocultar todos os elementos por defeito */
   body * {
     visibility: hidden;
   }
 
-  .no-print, header, nav, footer, button {
+  /* 3. Ocultar explicitamente barras, botões e cabeçalhos */
+  .no-print, header, nav, footer, button, select, input {
     display: none !important;
   }
 
-  /* Exibir exclusivamente o contentor do talão térmico */
+  /* 4. Anular qualquer restrição de altura ou overflow dos modais pais */
+  .fixed, .relative, [class*="overflow-"], [class*="max-h-"] {
+    position: static !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    inset: auto !important;
+  }
+
+  /* 5. Exibir exclusivamente o contentor do talão */
   #thermal-print-area, #thermal-print-area * {
-    visibility: visible;
+    visibility: visible !important;
   }
 
   #thermal-print-area {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 78mm; /* Padrão de impressora de talões 80mm com margem de corte */
-    margin: 0;
-    padding: 2mm 3mm;
-    font-family: 'Courier New', Courier, monospace;
-    color: #000 !important;
-    background: #fff !important;
-    font-size: 12px;
-    line-height: 1.25;
+    position: relative !important;
+    display: block !important;
+    width: 78mm !important;
+    max-width: 100% !important;
+    margin: 0 auto !important; /* Centra perfeitamente se impresso em A4/PDF */
+    padding: 4mm 4mm 16mm 4mm !important; /* Margem de segurança inferior contra cortes */
+    font-family: 'Courier New', Courier, monospace !important;
+    color: #000000 !important;
+    background: #ffffff !important;
+    font-size: 11.5px !important;
+    line-height: 1.25 !important;
+    box-sizing: border-box !important;
+    page-break-inside: avoid !important;
+    page-break-after: auto !important;
+    border: none !important;
+    box-shadow: none !important;
   }
 
   @page {
-    size: 80mm auto; /* Rolo contínuo de 80mm */
-    margin: 0;
+    size: auto;
+    margin: 4mm;
   }
 }

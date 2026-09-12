@@ -140,3 +140,19 @@ insert into public.produtos (nome, categoria, preco, unidade, tempo_preparo_minu
   -- Outros
   ('Sumo de Laranja Natural 500ml', 'bebidas_outros', 2.90, 'unidade', 10)
 on conflict do nothing;
+
+-- ==============================================================================
+-- PERMISSÕES DA API (ANON & AUTHENTICATED)
+-- ==============================================================================
+grant usage on schema public to anon, authenticated;
+grant all on all tables in schema public to anon, authenticated;
+grant all on all sequences in schema public to anon, authenticated;
+grant all on all routines in schema public to anon, authenticated;
+
+-- Desativar RLS para permitir operações livres de balcão e KDS
+alter table public.lojas disable row level security;
+alter table public.clientes disable row level security;
+alter table public.produtos disable row level security;
+alter table public.carrinhas disable row level security;
+alter table public.encomendas disable row level security;
+alter table public.itens_encomenda disable row level security;

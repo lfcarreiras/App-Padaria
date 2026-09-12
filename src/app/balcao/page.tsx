@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from '../../components/Navbar';
 import { ThermalReceipt } from '../../components/ThermalReceipt';
 import { 
@@ -9,6 +9,7 @@ import {
   ENCOMENDAS_INICIAIS, 
   CARRINHAS_MOCK 
 } from '../../lib/mockData';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { 
   Produto, 
   ItemEncomenda, 
@@ -31,12 +32,15 @@ import {
   Search, 
   Store,
   Sparkles,
-  ShoppingBag
+  ShoppingBag,
+  Loader2
 } from 'lucide-react';
 
 export default function BalcaoPage() {
   const [selectedLojaId, setSelectedLojaId] = useState<string>('loja-1');
   const [encomendas, setEncomendas] = useState<Encomenda[]>(ENCOMENDAS_INICIAIS);
+  const [produtos, setProdutos] = useState<Produto[]>(PRODUTOS_MOCK);
+  const [aGravar, setAGravar] = useState(false);
 
   // Formulário do Cliente
   const [nomeCliente, setNomeCliente] = useState('');
@@ -67,8 +71,49 @@ export default function BalcaoPage() {
   const lojaAtual = LOJAS_MOCK.find((l) => l.id === selectedLojaId) || LOJAS_MOCK[0];
   const carrinhasDaLoja = CARRINHAS_MOCK.filter((c) => c.loja_id === selectedLojaId);
 
+  // Carregar produtos da base de dados Supabase (se configurada)
+  useEffect(() => {
+    async function carregarCatalogo() {
+      if (!supabase) return;
+      try {
+        const { data, error } = await supabase
+          .from('produtos')
+          .select('*')
+          .eq('ativo', true);
+
+        if (!error && data && data.length > 0) {
+          setProdutos(data);
+        }
+      } catch (e) {
+        console.warn('Catálogo local em uso:', e);
+      }
+    }
+    carregarCatalogo();
+  }, []);
+
+  // Pesquisa automática de cliente por telefone
+  const handleTelefoneChange = async (tel: string) => {
+    setTelefoneCliente(tel);
+    if (!supabase || tel.trim().length < 9) return;
+    try {
+      const { data: cliente } = await supabase
+        .from('clientes')
+        .select('*')
+        .eq('telefone', tel.trim())
+        .maybeSingle();
+
+      if (cliente) {
+        setNomeCliente(cliente.nome);
+        if (cliente.morada) setMoradaCliente(cliente.morada);
+        if (cliente.notas_entrega) setNotasEntrega(cliente.notas_entrega);
+      }
+    } catch (e) {
+      console.warn('Erro ao pesquisar cliente:', e);
+    }
+  };
+
   // Filtragem de Produtos
-  const produtosFiltrados = PRODUTOS_MOCK.filter((p) => {
+  const produtosFiltrados = produtos.filter((p) => {
     const matchCat = categoriaAtiva === 'todas' || p.categoria === categoriaAtiva;
     const matchBusca = p.nome.toLowerCase().includes(buscaProduto.toLowerCase());
     return matchCat && matchBusca;
@@ -132,8 +177,8 @@ export default function BalcaoPage() {
     0
   );
 
-  // Submeter Encomenda
-  const handleGravarEncomenda = (e: React.FormEvent) => {
+  // Submeter Encomenda (grava no Supabase e abre talão)
+  const handleGravarEncomenda = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!nomeCliente || !telefoneCliente) {
@@ -146,46 +191,149 @@ export default function BalcaoPage() {
       return;
     }
 
-    const novaEncomenda: Encomenda = {
-      id: `enc-${Date.now()}`,
-      numero_sequencial: encomendas.length + 101,
-      codigo: `ENC-${lojaAtual.codigo}-${Math.floor(1000 + Math.random() * 9000)}`,
-      loja_id: lojaAtual.id,
-      loja_nome: lojaAtual.nome,
-      cliente: {
-        id: `cli-${Date.now()}`,
-        nome: nomeCliente,
-        telefone: telefoneCliente,
-        morada: tipoEntrega === 'entrega_domicilio' ? moradaCliente : undefined,
-        notas_entrega: tipoEntrega === 'entrega_domicilio' ? notasEntrega : undefined,
-      },
-      tipo: tipoEntrega,
-      carrinha_id: tipoEntrega === 'entrega_domicilio' ? carrinhaId : undefined,
-      carrinha_nome:
-        tipoEntrega === 'entrega_domicilio'
-          ? carrinhasDaLoja.find((c) => c.id === carrinhaId)?.identificador
-          : undefined,
-      data_agendamento: dataAgendamento,
-      hora_agendamento: horaAgendamento,
-      estado: 'pendente',
-      estado_pagamento: estadoPagamento,
-      metodo_pagamento: metodoPagamento,
-      total: totalCarrinho,
-      notas_cliente: notasGerais,
-      itens: carrinho,
-      criado_em: new Date().toISOString(),
-    };
+    setAGravar(true);
 
-    setEncomendas((prev) => [novaEncomenda, ...prev]);
-    setEncomendaParaImprimir(novaEncomenda);
+    try {
+      let clienteId = null;
+      let codigoGerado = `ENC-${lojaAtual.codigo}-${Math.floor(1000 + Math.random() * 9000)}`;
+      let encomendaId = `enc-${Date.now()}`;
 
-    // Limpar formulário
-    setNomeCliente('');
-    setTelefoneCliente('');
-    setMoradaCliente('');
-    setNotasEntrega('');
-    setNotasGerais('');
-    setCarrinho([]);
+      if (supabase) {
+        // 1. Verificar ou Criar Cliente
+        const { data: cliExistente } = await supabase
+          .from('clientes')
+          .select('id')
+          .eq('telefone', telefoneCliente.trim())
+          .maybeSingle();
+
+        if (cliExistente) {
+          clienteId = cliExistente.id;
+        } else {
+          const { data: novoCli, error: errCli } = await supabase
+            .from('clientes')
+            .insert({
+              nome: nomeCliente.trim(),
+              telefone: telefoneCliente.trim(),
+              morada: tipoEntrega === 'entrega_domicilio' ? moradaCliente.trim() : null,
+              notas_entrega: tipoEntrega === 'entrega_domicilio' ? notasEntrega.trim() : null,
+            })
+            .select('id')
+            .single();
+
+          if (errCli) {
+            console.error('Erro ao guardar cliente:', errCli);
+          } else if (novoCli) {
+            clienteId = novoCli.id;
+          }
+        }
+
+        // 2. Obter UUID da loja na base de dados
+        const { data: lojaDb } = await supabase
+          .from('lojas')
+          .select('id')
+          .eq('codigo', lojaAtual.codigo)
+          .maybeSingle();
+
+        const lojaIdFinal = lojaDb?.id || lojaAtual.id;
+
+        // 3. Inserir Encomenda
+        const { data: encDb, error: errEnc } = await supabase
+          .from('encomendas')
+          .insert({
+            codigo: codigoGerado,
+            loja_id: lojaIdFinal,
+            cliente_id: clienteId,
+            tipo: tipoEntrega,
+            carrinha_id: null,
+            data_agendamento: dataAgendamento,
+            hora_agendamento: horaAgendamento,
+            estado: 'pendente',
+            estado_pagamento: estadoPagamento,
+            metodo_pagamento: metodoPagamento,
+            total: totalCarrinho,
+            notas_cliente: notasGerais.trim() || null,
+          })
+          .select('id, codigo')
+          .single();
+
+        if (errEnc) {
+          console.error('Erro ao guardar encomenda:', errEnc);
+        } else if (encDb) {
+          encomendaId = encDb.id;
+          codigoGerado = encDb.codigo;
+
+          // 4. Inserir Itens da Encomenda
+          for (const item of carrinho) {
+            let prodId = item.produto_id;
+            // Se for ID de mock, encontrar o UUID real na tabela produtos pelo nome
+            if (prodId.startsWith('prod-')) {
+              const { data: pDb } = await supabase
+                .from('produtos')
+                .select('id')
+                .eq('nome', item.produto_nome)
+                .maybeSingle();
+              if (pDb) prodId = pDb.id;
+            }
+
+            await supabase.from('itens_encomenda').insert({
+              encomenda_id: encomendaId,
+              produto_id: prodId,
+              setor: item.setor,
+              quantidade: item.quantidade,
+              preco_unitario: item.preco_unitario,
+              notas_personalizacao: item.notas_personalizacao?.trim() || null,
+              estado_producao: 'pendente',
+            });
+          }
+        }
+      }
+
+      const novaEncomenda: Encomenda = {
+        id: encomendaId,
+        numero_sequencial: encomendas.length + 101,
+        codigo: codigoGerado,
+        loja_id: lojaAtual.id,
+        loja_nome: lojaAtual.nome,
+        cliente: {
+          id: clienteId || `cli-${Date.now()}`,
+          nome: nomeCliente,
+          telefone: telefoneCliente,
+          morada: tipoEntrega === 'entrega_domicilio' ? moradaCliente : undefined,
+          notas_entrega: tipoEntrega === 'entrega_domicilio' ? notasEntrega : undefined,
+        },
+        tipo: tipoEntrega,
+        carrinha_id: tipoEntrega === 'entrega_domicilio' ? carrinhaId : undefined,
+        carrinha_nome:
+          tipoEntrega === 'entrega_domicilio'
+            ? carrinhasDaLoja.find((c) => c.id === carrinhaId)?.identificador
+            : undefined,
+        data_agendamento: dataAgendamento,
+        hora_agendamento: horaAgendamento,
+        estado: 'pendente',
+        estado_pagamento: estadoPagamento,
+        metodo_pagamento: metodoPagamento,
+        total: totalCarrinho,
+        notas_cliente: notasGerais,
+        itens: carrinho,
+        criado_em: new Date().toISOString(),
+      };
+
+      setEncomendas((prev) => [novaEncomenda, ...prev]);
+      setEncomendaParaImprimir(novaEncomenda);
+
+      // Limpar formulário
+      setNomeCliente('');
+      setTelefoneCliente('');
+      setMoradaCliente('');
+      setNotasEntrega('');
+      setNotasGerais('');
+      setCarrinho([]);
+    } catch (err: any) {
+      console.error('Erro na submissão:', err);
+      alert(`Aviso: ${err?.message || err}.`);
+    } finally {
+      setAGravar(false);
+    }
   };
 
   return (
@@ -227,7 +375,7 @@ export default function BalcaoPage() {
                     type="tel"
                     placeholder="912 345 678"
                     value={telefoneCliente}
-                    onChange={(e) => setTelefoneCliente(e.target.value)}
+                    onChange={(e) => handleTelefoneChange(e.target.value)}
                     className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-bakery-500 focus:outline-hidden"
                   />
                 </div>
@@ -542,11 +690,20 @@ export default function BalcaoPage() {
                 <button
                   type="button"
                   onClick={handleGravarEncomenda}
-                  disabled={carrinho.length === 0}
+                  disabled={carrinho.length === 0 || aGravar}
                   className="w-full flex items-center justify-center gap-2 rounded-xl bg-bakery-600 py-3.5 px-4 text-sm font-bold text-white shadow-md hover:bg-bakery-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
-                  <Printer className="h-5 w-5" />
-                  Gravar & Imprimir Talão Térmico
+                  {aGravar ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      A gravar na Base de Dados...
+                    </>
+                  ) : (
+                    <>
+                      <Printer className="h-5 w-5" />
+                      Gravar & Imprimir Talão Térmico
+                    </>
+                  )}
                 </button>
                 <p className="text-center text-[11px] text-gray-400 mt-2">
                   Envia imediatamente para o KDS da Cozinha e Carrinhas da loja.
