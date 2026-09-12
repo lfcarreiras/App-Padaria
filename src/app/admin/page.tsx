@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from '../../components/Navbar';
 import { ThermalReceipt } from '../../components/ThermalReceipt';
-import { LOJAS_MOCK, ENCOMENDAS_INICIAIS, PRODUTOS_MOCK } from '../../lib/mockData';
+import { LOJAS_MOCK, PRODUTOS_MOCK } from '../../lib/mockData';
+import { carregarEncomendasSupabase } from '../../lib/encomendasService';
 import { Encomenda } from '../../types';
 import { 
   BarChart3, 
@@ -21,8 +22,17 @@ import {
 
 export default function AdminPage() {
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
-  const [encomendas, setEncomendas] = useState<Encomenda[]>(ENCOMENDAS_INICIAIS);
+  const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
   const [encomendaParaImprimir, setEncomendaParaImprimir] = useState<Encomenda | null>(null);
+
+  // Carregar encomendas reais da base de dados Supabase
+  useEffect(() => {
+    async function carregar() {
+      const dados = await carregarEncomendasSupabase();
+      setEncomendas(dados);
+    }
+    carregar();
+  }, []);
 
   const encomendasFiltradas = selectedLojaId === 'todas'
     ? encomendas

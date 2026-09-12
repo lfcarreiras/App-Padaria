@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from '../../components/Navbar';
-import { LOJAS_MOCK, CARRINHAS_MOCK, ENCOMENDAS_INICIAIS } from '../../lib/mockData';
+import { LOJAS_MOCK, CARRINHAS_MOCK } from '../../lib/mockData';
+import { carregarEncomendasSupabase, atualizarEstadoEncomendaDb } from '../../lib/encomendasService';
 import { Encomenda } from '../../types';
 import { 
   Truck, 
@@ -18,9 +19,18 @@ import {
 } from 'lucide-react';
 
 export default function EntregasPage() {
-  const [selectedLojaId, setSelectedLojaId] = useState<string>('loja-1');
-  const [carrinhaSelecionadaId, setCarrinhaSelecionadaId] = useState<string>('car-1');
-  const [encomendas, setEncomendas] = useState<Encomenda[]>(ENCOMENDAS_INICIAIS);
+  const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
+  const [carrinhaSelecionadaId, setCarrinhaSelecionadaId] = useState<string>('todas');
+  const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
+
+  // Carregar encomendas reais da base de dados Supabase
+  useEffect(() => {
+    async function carregar() {
+      const dados = await carregarEncomendasSupabase();
+      setEncomendas(dados);
+    }
+    carregar();
+  }, []);
 
   const lojaAtual = LOJAS_MOCK.find((l) => l.id === selectedLojaId) || LOJAS_MOCK[0];
   const carrinhasDaLoja = CARRINHAS_MOCK.filter(
@@ -35,8 +45,9 @@ export default function EntregasPage() {
     return isEntrega && matchLoja && matchCarrinha;
   });
 
-  // Concluir entrega
-  const confirmarEntrega = (encomendaId: string) => {
+  // Concluir entrega (em memória e no Supabase)
+  const confirmarEntrega = async (encomendaId: string) => {
+    await atualizarEstadoEncomendaDb(encomendaId, 'entregue');
     setEncomendas((prev) =>
       prev.map((e) =>
         e.id === encomendaId

@@ -1,17 +1,31 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from '../../components/Navbar';
 import { ThermalReceipt } from '../../components/ThermalReceipt';
-import { LOJAS_MOCK, ENCOMENDAS_INICIAIS } from '../../lib/mockData';
+import { LOJAS_MOCK } from '../../lib/mockData';
+import { 
+  carregarEncomendasSupabase, 
+  atualizarEstadoItemDb, 
+  atualizarEstadoEncomendaDb 
+} from '../../lib/encomendasService';
 import { Encomenda, SetorProducao, EstadoProducaoItem } from '../../types';
 import { ChefHat, Clock, CheckCircle2, AlertTriangle, Printer, Sparkles, Flame, Store } from 'lucide-react';
 
 export default function ProducaoPage() {
-  const [selectedLojaId, setSelectedLojaId] = useState<string>('loja-1');
+  const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
   const [setorAtivo, setSetorAtivo] = useState<SetorProducao | 'todos'>('todos');
-  const [encomendas, setEncomendas] = useState<Encomenda[]>(ENCOMENDAS_INICIAIS);
+  const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
   const [encomendaParaImprimir, setEncomendaParaImprimir] = useState<Encomenda | null>(null);
+
+  // Carregar encomendas reais da base de dados Supabase
+  useEffect(() => {
+    async function carregar() {
+      const dados = await carregarEncomendasSupabase();
+      setEncomendas(dados);
+    }
+    carregar();
+  }, []);
 
   const lojaAtual = LOJAS_MOCK.find((l) => l.id === selectedLojaId) || LOJAS_MOCK[0];
 
@@ -25,8 +39,12 @@ export default function ProducaoPage() {
     return matchLoja && temItensDoSetor;
   });
 
-  // Atualizar estado de produção de um item
-  const atualizarEstadoItem = (encomendaId: string, itemId: string, novoEstado: EstadoProducaoItem) => {
+  // Atualizar estado de produção de um item (em memória e no Supabase)
+  const atualizarEstadoItem = async (encomendaId: string, itemId: string, novoEstado: EstadoProducaoItem) => {
+    // 1. Atualizar base de dados
+    await atualizarEstadoItemDb(itemId, novoEstado);
+
+    // 2. Atualizar estado local
     setEncomendas((prev) =>
       prev.map((enc) => {
         if (enc.id !== encomendaId) return enc;
@@ -35,6 +53,9 @@ export default function ProducaoPage() {
         );
         // Se todos os itens estiverem prontos, marcar a encomenda como pronta para loja/entrega
         const todosProntos = novosItens.every((i) => i.estado_producao === 'pronto');
+        if (todosProntos) {
+          atualizarEstadoEncomendaDb(encomendaId, 'pronto_loja');
+        }
         return {
           ...enc,
           itens: novosItens,

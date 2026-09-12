@@ -8,8 +8,8 @@ import {
   PRODUTOS_MOCK, 
   ENCOMENDAS_INICIAIS, 
   CARRINHAS_MOCK 
-} from '../../lib/mockData';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { carregarEncomendasSupabase } from '../../lib/encomendasService';
 import { 
   Produto, 
   ItemEncomenda, 
@@ -71,9 +71,9 @@ export default function BalcaoPage() {
   const lojaAtual = LOJAS_MOCK.find((l) => l.id === selectedLojaId) || LOJAS_MOCK[0];
   const carrinhasDaLoja = CARRINHAS_MOCK.filter((c) => c.loja_id === selectedLojaId);
 
-  // Carregar produtos da base de dados Supabase (se configurada)
+  // Carregar produtos e encomendas reais da base de dados Supabase
   useEffect(() => {
-    async function carregarCatalogo() {
+    async function carregarDadosIniciais() {
       if (!supabase) return;
       try {
         const { data, error } = await supabase
@@ -84,11 +84,14 @@ export default function BalcaoPage() {
         if (!error && data && data.length > 0) {
           setProdutos(data);
         }
+
+        const encsReais = await carregarEncomendasSupabase();
+        setEncomendas(encsReais);
       } catch (e) {
-        console.warn('Catálogo local em uso:', e);
+        console.warn('Dados locais em uso:', e);
       }
     }
-    carregarCatalogo();
+    carregarDadosIniciais();
   }, []);
 
   // Pesquisa automática de cliente por telefone

@@ -1,17 +1,28 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Navbar } from '../components/Navbar';
 import { ShoppingBag, ChefHat, Truck, BarChart3, ArrowRight, Store, Clock, Printer } from 'lucide-react';
-import { LOJAS_MOCK, ENCOMENDAS_INICIAIS } from '../lib/mockData';
+import { LOJAS_MOCK } from '../lib/mockData';
+import { carregarEncomendasSupabase } from '../lib/encomendasService';
+import { Encomenda } from '../types';
 
 export default function HomePage() {
   const [selectedLojaId, setSelectedLojaId] = useState('todas');
+  const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
+
+  useEffect(() => {
+    async function carregar() {
+      const dados = await carregarEncomendasSupabase();
+      setEncomendas(dados);
+    }
+    carregar();
+  }, []);
 
   const encomendasFiltradas = selectedLojaId === 'todas'
-    ? ENCOMENDAS_INICIAIS
-    : ENCOMENDAS_INICIAIS.filter((e) => e.loja_id === selectedLojaId);
+    ? encomendas
+    : encomendas.filter((e) => e.loja_id === selectedLojaId);
 
   const totalHoje = encomendasFiltradas.reduce((acc, curr) => acc + curr.total, 0);
   const totalEntregas = encomendasFiltradas.filter((e) => e.tipo === 'entrega_domicilio').length;
