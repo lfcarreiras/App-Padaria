@@ -477,7 +477,7 @@ export default function EncomendasPage() {
                     type="text"
                     value={buscaProduto}
                     onChange={(e) => setBuscaProduto(e.target.value)}
-                    placeholder="Pesquisar pão, bolo, pastel..."
+                    placeholder={t.searchProductPlaceholder}
                     className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-gray-200 focus:outline-hidden focus:border-bakery-500"
                   />
                 </div>
@@ -494,7 +494,7 @@ export default function EncomendasPage() {
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
-                      {cat === 'todas' ? 'Todos' : cat}
+                      {cat === 'todas' ? t.allCategories : cat === 'padaria' ? t.categoryBakery : t.categoryPastry}
                     </button>
                   ))}
                 </div>
@@ -700,17 +700,17 @@ export default function EncomendasPage() {
                     <select
                       value={metodoPagamento}
                       onChange={(e) => setMetodoPagamento(e.target.value as MetodoPagamento)}
-                      className="text-xs font-bold border border-gray-200 rounded-lg px-2 py-1 bg-white"
+                      className="text-xs font-bold border border-gray-200 rounded-lg px-2 py-1 bg-white cursor-pointer"
                     >
-                      <option value="multibanco">Multibanco</option>
-                      <option value="dinheiro">Dinheiro</option>
-                      <option value="mbway">MBWay</option>
-                      <option value="transferencia">Transferência</option>
+                      <option value="multibanco">{t.card}</option>
+                      <option value="dinheiro">{t.cash}</option>
+                      <option value="mbway">{t.mbway}</option>
+                      <option value="transferencia">{t.transfer}</option>
                     </select>
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">Cobrança:</span>
+                    <span className="text-xs text-gray-600">{t.receiptPaymentStatus}:</span>
                     <button
                       type="button"
                       onClick={() => setEstadoPagamento(estadoPagamento === 'pago' ? 'pendente' : 'pago')}

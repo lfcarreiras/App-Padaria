@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'atendente' | 'operador_padaria' | 'operador_pastelaria' | 'motorista';
+export type Role = 'admin' | 'gerente_loja' | 'atendente' | 'operador_padaria' | 'operador_pastelaria' | 'motorista';
 
 export type CategoriaProduto = 'padaria' | 'pastelaria' | 'bebidas_outros';
 export type SetorProducao = 'padaria' | 'pastelaria';
@@ -78,4 +78,21 @@ export interface Encomenda {
   notas_cliente?: string;
   itens: ItemEncomenda[];
   criado_em: string;
+}
+
+export interface PerfilUtilizador {
+  id: string;
+  nome: string;
+  telefone: string;
+  email?: string;
+  role: Role;
+  loja_id?: string;
+  loja_nome?: string;
+  painel_encomendas: boolean;
+  painel_producao: boolean;
+  painel_loja: boolean;
+  painel_entregas: boolean;
+  painel_gestao: boolean;
+  ativo: boolean;
+  atualizado_em?: string;
 }

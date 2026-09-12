@@ -140,7 +140,7 @@ export default function EntregasPage() {
                 onChange={(e) => setCarrinhaSelecionadaId(e.target.value)}
                 className="bg-transparent text-xs font-bold text-blue-950 focus:outline-hidden cursor-pointer"
               >
-                <option value="todas">Todas as Carrinhas</option>
+                <option value="todas">{t.allVans}</option>
                 {carrinhasDaLoja.map((car) => (
                   <option key={car.id} value={car.id}>
                     {car.identificador} ({car.matricula})
@@ -155,8 +155,8 @@ export default function EntregasPage() {
         {entregas.length === 0 ? (
           <div className="rounded-2xl bg-white border border-gray-200 p-12 text-center">
             <PackageCheck className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-            <h3 className="text-sm font-bold text-gray-800">Sem entregas agendadas nesta rota</h3>
-            <p className="text-xs text-gray-500 mt-1">Todas as encomendas desta carrinha já foram concluídas ou não existem pedidos de entrega pendentes.</p>
+            <h3 className="text-sm font-bold text-gray-800">{t.noDeliveriesFound}</h3>
+            <p className="text-xs text-gray-500 mt-1">{t.noOrdersFound}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -226,7 +226,7 @@ export default function EntregasPage() {
 
                     {/* Resumo de Artigos no Carrinho */}
                     <div className="rounded-xl bg-gray-50 p-3 text-xs border border-gray-100">
-                      <p className="text-[11px] font-bold text-gray-500 uppercase mb-1.5">Artigos a Descarregar:</p>
+                      <p className="text-[11px] font-bold text-gray-500 uppercase mb-1.5">{t.itemsToDeliver}</p>
                       <ul className="space-y-1">
                         {enc.itens.map((item) => (
                           <li key={item.id} className="flex justify-between font-medium text-gray-800">
@@ -246,19 +246,19 @@ export default function EntregasPage() {
 
                     {/* Estado do Pagamento */}
                     <div className="flex items-center justify-between pt-1 text-xs">
-                      <span className="text-gray-500">Valor da Encomenda:</span>
+                      <span className="text-gray-500">{t.total}:</span>
                       <span className="font-black text-sm text-gray-900">{enc.total.toFixed(2)} €</span>
                     </div>
 
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-500">Cobrança no Local:</span>
+                      <span className="text-gray-500">{t.paymentMethod}:</span>
                       {enc.estado_pagamento === 'pago' ? (
                         <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                          <CheckCircle2 className="h-3 w-3" /> Já Pago ({enc.metodo_pagamento || 'MBWay'})
+                          <CheckCircle2 className="h-3 w-3" /> {t.paid} ({enc.metodo_pagamento || 'MBWay'})
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 font-bold text-red-700 bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200">
-                          <DollarSign className="h-3 w-3" /> Cobrar no Ato: {enc.total.toFixed(2)} €
+                          <DollarSign className="h-3 w-3" /> {t.toPay}: {enc.total.toFixed(2)} €
                         </span>
                       )}
                     </div>
@@ -290,13 +290,13 @@ export default function EntregasPage() {
                         title="Converter em levantamento em loja"
                       >
                         <Store className="h-4 w-4 text-amber-600" />
-                        + Loja
+                        + {t.pickupStore}
                       </button>
 
                       <div>
                         {jaEntregue ? (
                           <div className="flex items-center justify-center gap-1 h-full rounded-xl bg-emerald-100 text-emerald-800 py-2.5">
-                            <CheckCircle2 className="h-4 w-4" /> Entregue
+                            <CheckCircle2 className="h-4 w-4" /> {t.stopDeliveryCompleted}
                           </div>
                         ) : (
                           <button

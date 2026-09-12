@@ -1,20 +1,20 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Navbar } from '../../components/Navbar';
 import { ThermalReceipt } from '../../components/ThermalReceipt';
 import { LOJAS_MOCK, PRODUTOS_MOCK, CARRINHAS_MOCK } from '../../lib/mockData';
-import { supabase } from '../../lib/supabase';
 import { 
   carregarEncomendasSupabase, 
   carregarClientesSupabase, 
-  salvarClienteDb,
   carregarProdutosSupabase,
-  salvarProdutoDb,
   carregarLojasSupabase,
   salvarLojaDb,
   carregarCarrinhasSupabase,
   salvarCarrinhaDb,
+  carregarPerfisAcessoSupabase,
+  salvarPerfilAcessoDb,
+  eliminarPerfilAcessoDb,
   upsertClientesEmLote,
   upsertProdutosEmLote
 } from '../../lib/encomendasService';
@@ -24,50 +24,54 @@ import {
   saveReceiptConfig, 
   DEFAULT_RECEIPT_CONFIG 
 } from '../../lib/receiptConfig';
-import { Encomenda, Cliente, Produto, Loja, Carrinha } from '../../types';
+import { Encomenda, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, Role } from '../../types';
 import { useTranslation } from '../../lib/i18n';
 import { 
   BarChart3, 
   Store, 
   Truck, 
-  Database, 
   FileSpreadsheet, 
   Printer, 
-  KeyRound, 
-  CheckCircle2, 
+  Users, 
   Download, 
   Upload, 
   RefreshCw, 
   Edit3, 
   Plus, 
-  ExternalLink,
-  ShieldCheck,
-  TrendingUp,
+  Trash2,
+  Calendar,
   Layers,
-  Search,
-  Filter
+  Filter,
+  Check,
+  ShieldCheck,
+  UserCheck
 } from 'lucide-react';
 
 export default function AdminPage() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
   const [activeTab, setActiveTab] = useState<'metricas' | 'lojas_carrinhas' | 'database' | 'talao' | 'acessos'>('metricas');
 
-  // Dados
+  // Filtros Temporais e Formato de Entrega
+  const [periodoSelecionado, setPeriodoSelecionado] = useState<'dia' | 'semana' | 'mes' | 'ano' | 'todos'>('todos');
+  const [formatoEntrega, setFormatoEntrega] = useState<'todos' | 'levantamento_loja' | 'entrega_domicilio'>('todos');
+
+  // Dados Globais
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [produtos, setProdutos] = useState<Produto[]>(PRODUTOS_MOCK);
   const [lojas, setLojas] = useState<Loja[]>(LOJAS_MOCK);
   const [carrinhas, setCarrinhas] = useState<Carrinha[]>(CARRINHAS_MOCK);
-  const [carregando, setCarregando] = useState(true);
+  const [perfis, setPerfis] = useState<PerfilUtilizador[]>([]);
 
   // Configuração do Talão
   const [receiptConfig, setReceiptConfig] = useState<ReceiptConfig>(DEFAULT_RECEIPT_CONFIG);
   const [encomendaTesteTalão, setEncomendaTesteTalão] = useState<Encomenda | null>(null);
 
-  // Edição de Lojas / Carrinhas
+  // Edição de Lojas / Carrinhas / Utilizadores
   const [lojaEmEdicao, setLojaEmEdicao] = useState<Partial<Loja> | null>(null);
   const [carrinhaEmEdicao, setCarrinhaEmEdicao] = useState<Partial<Carrinha> | null>(null);
+  const [perfilEmEdicao, setPerfilEmEdicao] = useState<Partial<PerfilUtilizador> | null>(null);
 
   // Importação Massiva Excel/CSV
   const [tabelaImportacao, setTabelaImportacao] = useState<'clientes' | 'produtos'>('clientes');
@@ -79,37 +83,73 @@ export default function AdminPage() {
   // Carregamento Inicial
   useEffect(() => {
     async function carregar() {
-      setCarregando(true);
-      const [encs, clis, prods, ljs, cars] = await Promise.all([
+      const [encs, clis, prods, ljs, cars, pfs] = await Promise.all([
         carregarEncomendasSupabase(),
         carregarClientesSupabase(),
         carregarProdutosSupabase(),
         carregarLojasSupabase(),
         carregarCarrinhasSupabase(),
+        carregarPerfisAcessoSupabase(),
       ]);
       setEncomendas(encs);
       if (clis.length) setClientes(clis);
       if (prods.length) setProdutos(prods);
       if (ljs.length) setLojas(ljs);
       if (cars.length) setCarrinhas(cars);
+      if (pfs.length) setPerfis(pfs);
       setReceiptConfig(getReceiptConfig());
-      setCarregando(false);
     }
     carregar();
   }, []);
 
-  // Encomendas Filtradas
-  const encomendasFiltradas = selectedLojaId === 'todas'
-    ? encomendas
-    : encomendas.filter((e) => e.loja_id === selectedLojaId);
+  // Filtragem Reativa de Encomendas (Tempo + Loja + Formato de Entrega)
+  const encomendasFiltradas = useMemo(() => {
+    const hoje = new Date();
+    const hojeStr = hoje.toISOString().split('T')[0];
 
-  // Indicadores Chave
+    // Cálculo da semana corrente (últimos 7 dias)
+    const seteDiasAtras = new Date(hoje);
+    seteDiasAtras.setDate(hoje.getDate() - 7);
+    const seteDiasStr = seteDiasAtras.toISOString().split('T')[0];
+
+    // Cálculo do mês corrente (a partir do dia 1)
+    const mesInicioStr = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-01`;
+
+    // Cálculo do ano corrente (a partir de 1 de janeiro)
+    const anoInicioStr = `${hoje.getFullYear()}-01-01`;
+
+    return encomendas.filter((e) => {
+      // 1. Filtro de Loja
+      const matchLoja = selectedLojaId === 'todas' || e.loja_id === selectedLojaId;
+
+      // 2. Filtro de Formato de Entrega
+      const matchFormato = formatoEntrega === 'todos' || e.tipo === formatoEntrega;
+
+      // 3. Filtro Temporal
+      let matchTempo = true;
+      const dataEnc = e.data_agendamento;
+
+      if (periodoSelecionado === 'dia') {
+        matchTempo = dataEnc === hojeStr;
+      } else if (periodoSelecionado === 'semana') {
+        matchTempo = dataEnc >= seteDiasStr && dataEnc <= hojeStr;
+      } else if (periodoSelecionado === 'mes') {
+        matchTempo = dataEnc >= mesInicioStr;
+      } else if (periodoSelecionado === 'ano') {
+        matchTempo = dataEnc >= anoInicioStr;
+      }
+
+      return matchLoja && matchFormato && matchTempo;
+    });
+  }, [encomendas, selectedLojaId, formatoEntrega, periodoSelecionado]);
+
+  // Cálculos de Indicadores
   const totalFaturado = encomendasFiltradas.reduce((acc, curr) => acc + curr.total, 0);
   const totalEntregas = encomendasFiltradas.filter((e) => e.tipo === 'entrega_domicilio').length;
   const totalLevantamentos = encomendasFiltradas.filter((e) => e.tipo === 'levantamento_loja').length;
   const ticketMedio = encomendasFiltradas.length > 0 ? totalFaturado / encomendasFiltradas.length : 0;
 
-  // Necessidades Consolidadas de Produção
+  // Necessidades Consolidadas de Produção com o filtro ativo
   const mapaProducao: { [nome: string]: { quantidade: number; setor: string; unidade: string } } = {};
   encomendasFiltradas.forEach((enc) => {
     enc.itens.forEach((item) => {
@@ -126,14 +166,14 @@ export default function AdminPage() {
   });
   const itensProducaoConsolidados = Object.entries(mapaProducao).sort((a, b) => b[1].quantidade - a[1].quantidade);
 
-  // Guardar Configuração do Talão
+  // Ações de Talão
   const handleSalvarConfigTalao = (e: React.FormEvent) => {
     e.preventDefault();
     saveReceiptConfig(receiptConfig);
-    alert('Configuração do talão guardada com sucesso!');
+    alert(t.success);
   };
 
-  // Guardar Loja
+  // Ações de Lojas e Carrinhas
   const handleSalvarLoja = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!lojaEmEdicao || !lojaEmEdicao.nome || !lojaEmEdicao.codigo) return;
@@ -142,11 +182,10 @@ export default function AdminPage() {
       const ljs = await carregarLojasSupabase();
       setLojas(ljs);
       setLojaEmEdicao(null);
-      alert('Loja guardada no Supabase!');
+      alert(t.success);
     }
   };
 
-  // Guardar Carrinha
   const handleSalvarCarrinha = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!carrinhaEmEdicao || !carrinhaEmEdicao.identificador || !carrinhaEmEdicao.loja_id) return;
@@ -155,26 +194,79 @@ export default function AdminPage() {
       const cars = await carregarCarrinhasSupabase();
       setCarrinhas(cars);
       setCarrinhaEmEdicao(null);
-      alert('Carrinha guardada no Supabase!');
+      alert(t.success);
     }
   };
 
-  // ---------------- EXPORTAÇÃO EXCEL (CSV com UTF-8 BOM e ponto e vírgula) ---------------- //
+  // Ações de Gestão de Acessos
+  const aplicarPredefinicoesCargo = (cargo: Role) => {
+    if (!perfilEmEdicao) return;
+    let panels = {
+      painel_encomendas: true,
+      painel_producao: false,
+      painel_loja: true,
+      painel_entregas: false,
+      painel_gestao: false,
+    };
+
+    if (cargo === 'admin') {
+      panels = { painel_encomendas: true, painel_producao: true, painel_loja: true, painel_entregas: true, painel_gestao: true };
+    } else if (cargo === 'gerente_loja') {
+      panels = { painel_encomendas: true, painel_producao: true, painel_loja: true, painel_entregas: true, painel_gestao: false };
+    } else if (cargo === 'operador_padaria' || cargo === 'operador_pastelaria') {
+      panels = { painel_encomendas: false, painel_producao: true, painel_loja: false, painel_entregas: false, painel_gestao: false };
+    } else if (cargo === 'motorista') {
+      panels = { painel_encomendas: false, painel_producao: false, painel_loja: false, painel_entregas: true, painel_gestao: false };
+    }
+
+    setPerfilEmEdicao({
+      ...perfilEmEdicao,
+      role: cargo,
+      ...panels,
+    });
+  };
+
+  const handleSalvarPerfil = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!perfilEmEdicao || !perfilEmEdicao.nome) return;
+
+    const perfilParaGravar: PerfilUtilizador = {
+      id: perfilEmEdicao.id || `user-${Date.now()}`,
+      nome: perfilEmEdicao.nome.trim(),
+      telefone: perfilEmEdicao.telefone?.trim() || '9xxxxxxxx',
+      email: perfilEmEdicao.email?.trim() || '',
+      role: (perfilEmEdicao.role as Role) || 'atendente',
+      loja_id: perfilEmEdicao.loja_id || undefined,
+      painel_encomendas: perfilEmEdicao.painel_encomendas ?? true,
+      painel_producao: perfilEmEdicao.painel_producao ?? false,
+      painel_loja: perfilEmEdicao.painel_loja ?? true,
+      painel_entregas: perfilEmEdicao.painel_entregas ?? false,
+      painel_gestao: perfilEmEdicao.painel_gestao ?? false,
+      ativo: perfilEmEdicao.ativo ?? true,
+    };
+
+    const novaLista = await salvarPerfilAcessoDb(perfilParaGravar);
+    setPerfis(novaLista);
+    setPerfilEmEdicao(null);
+    alert(t.success);
+  };
+
+  const handleEliminarPerfil = async (id: string) => {
+    if (!window.confirm('Tem a certeza de que deseja remover este utilizador?')) return;
+    const novaLista = await eliminarPerfilAcessoDb(id);
+    setPerfis(novaLista);
+  };
+
+  // Exportação CSV com UTF-8 BOM
   const exportarCSV = (nomeFicheiro: string, colunas: string[], linhas: (string | number)[][]) => {
     const separador = ';';
     const conteudo = [
       colunas.join(separador),
       ...linhas.map((l) =>
-        l
-          .map((c) => {
-            const str = String(c ?? '').replace(/"/g, '""');
-            return `"${str}"`;
-          })
-          .join(separador)
+        l.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(separador)
       ),
     ].join('\r\n');
 
-    // UTF-8 BOM para o Excel abrir sem quebrar acentos portugueses
     const blob = new Blob(['\uFEFF' + conteudo], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -185,53 +277,29 @@ export default function AdminPage() {
   };
 
   const exportarClientes = () => {
-    const colunas = ['Nome', 'Telefone', 'Morada', 'Codigo_Postal', 'Notas_Entrega', 'Email'];
-    const linhas = clientes.map((c) => [
-      c.nome,
-      c.telefone,
-      c.morada || '',
-      c.codigo_postal || '',
-      c.notas_entrega || '',
-      c.email || '',
-    ]);
-    exportarCSV('clientes_padaria', colunas, linhas);
+    exportarCSV('clientes_padaria', ['Nome', 'Telefone', 'Morada', 'Codigo_Postal', 'Notas_Entrega', 'Email'], clientes.map((c) => [
+      c.nome, c.telefone, c.morada || '', c.codigo_postal || '', c.notas_entrega || '', c.email || ''
+    ]));
   };
 
   const exportarProdutos = () => {
-    const colunas = ['Nome', 'Categoria', 'Preco', 'Unidade', 'Ativo'];
-    const linhas = produtos.map((p) => [
-      p.nome,
-      p.categoria,
-      p.preco,
-      p.unidade,
-      p.ativo ? 'SIM' : 'NAO',
-    ]);
-    exportarCSV('produtos_padaria', colunas, linhas);
+    exportarCSV('produtos_padaria', ['Nome', 'Categoria', 'Preco', 'Unidade', 'Ativo'], produtos.map((p) => [
+      p.nome, p.categoria, p.preco, p.unidade, p.ativo ? 'SIM' : 'NAO'
+    ]));
   };
 
   const exportarEncomendas = () => {
-    const colunas = ['Codigo', 'Loja', 'Cliente', 'Telefone', 'Tipo', 'Data', 'Hora', 'Total', 'Estado', 'Pagamento'];
-    const linhas = encomendas.map((e) => [
-      e.codigo,
-      e.loja_nome || '',
-      e.cliente.nome,
-      e.cliente.telefone,
-      e.tipo,
-      e.data_agendamento,
-      e.hora_agendamento,
-      e.total,
-      e.estado,
-      e.estado_pagamento,
-    ]);
-    exportarCSV('encomendas_padaria', colunas, linhas);
+    exportarCSV('encomendas_padaria', ['Codigo', 'Loja', 'Cliente', 'Telefone', 'Tipo', 'Data', 'Hora', 'Total', 'Estado', 'Pagamento'], encomendas.map((e) => [
+      e.codigo, e.loja_nome || '', e.cliente.nome, e.cliente.telefone, e.tipo, e.data_agendamento, e.hora_agendamento, e.total, e.estado, e.estado_pagamento
+    ]));
   };
 
   // Download de Templates
   const descarregarTemplate = (tipo: 'clientes' | 'produtos') => {
     if (tipo === 'clientes') {
       exportarCSV('template_clientes', ['Nome', 'Telefone', 'Morada', 'Codigo_Postal', 'Notas_Entrega', 'Email'], [
-        ['Manuel Ferreira', '912345678', 'Rua das Flores 10, Lisboa', '1000-001', 'Tocar na campainha do 2º Dto', 'manuel@exemplo.pt'],
-        ['Maria Santos', '933221100', 'Av. da Liberdade 200, Lisboa', '1250-096', 'Portão de vidro lateral', 'maria@exemplo.pt'],
+        ['Manuel Ferreira', '912345678', 'Rua das Flores 10, Lisboa', '1000-001', 'Campainha 2º Dto', 'manuel@exemplo.pt'],
+        ['Maria Santos', '933221100', 'Av. da Liberdade 200, Lisboa', '1250-096', 'Portão lateral', 'maria@exemplo.pt'],
       ]);
     } else {
       exportarCSV('template_produtos', ['Nome', 'Categoria', 'Preco', 'Unidade', 'Ativo'], [
@@ -241,7 +309,6 @@ export default function AdminPage() {
     }
   };
 
-  // Leitura do ficheiro carregado
   const handleFicheiroSelecionado = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -251,8 +318,6 @@ export default function AdminPage() {
     reader.onload = (event) => {
       const text = event.target?.result as string;
       if (!text) return;
-
-      // Suporte para separador ; ou ,
       const linhas = text.split(/\r?\n/).filter((l) => l.trim() !== '');
       if (linhas.length < 2) return;
 
@@ -268,17 +333,15 @@ export default function AdminPage() {
         });
         parsed.push(item);
       }
-
       setLinhasPreview(parsed);
     };
     reader.readAsText(file, 'UTF-8');
   };
 
-  // Executar Importação Massiva
   const handleExecutarImportacao = async () => {
     if (!linhasPreview.length) return;
     setProcessandoImportacao(true);
-    setStatusImportacao('A importar para o Supabase...');
+    setStatusImportacao(t.loading);
 
     try {
       if (tabelaImportacao === 'clientes') {
@@ -292,7 +355,7 @@ export default function AdminPage() {
         }));
 
         const res = await upsertClientesEmLote(listaMapeada);
-        setStatusImportacao(`Sucesso! ${res.sucesso} clientes atualizados/inseridos no Supabase.`);
+        setStatusImportacao(`${t.success} ${res.sucesso} registos.`);
         const clis = await carregarClientesSupabase();
         setClientes(clis);
       } else {
@@ -305,64 +368,16 @@ export default function AdminPage() {
         }));
 
         const res = await upsertProdutosEmLote(listaMapeada);
-        setStatusImportacao(`Sucesso! ${res.sucesso} produtos atualizados/inseridos no Supabase.`);
+        setStatusImportacao(`${t.success} ${res.sucesso} registos.`);
         const prods = await carregarProdutosSupabase();
         setProdutos(prods);
       }
     } catch (err: any) {
-      setStatusImportacao(`Erro na importação: ${err.message}`);
+      setStatusImportacao(`${t.error}: ${err.message}`);
     } finally {
       setProcessandoImportacao(false);
     }
   };
-
-  // Exemplo de Encomenda para Teste do Talão
-  const gerarEncomendaTeste = (): Encomenda => ({
-    id: 'enc-teste',
-    numero_sequencial: 999,
-    codigo: 'ENC-TESTE-8888',
-    loja_id: 'loja-1',
-    loja_nome: 'Padaria Central (Matriz)',
-    cliente: {
-      id: 'cli-teste',
-      nome: 'Cliente Exemplo',
-      telefone: '912 345 678',
-      morada: 'Av. da Liberdade 125, 3º Dto, Lisboa',
-      notas_entrega: 'Portão verde, tocar na campainha do 3º',
-    },
-    tipo: 'entrega_domicilio',
-    carrinha_nome: 'Carrinha 1 - Matriz',
-    data_agendamento: new Date().toISOString().split('T')[0],
-    hora_agendamento: '10:30',
-    estado: 'pendente',
-    estado_pagamento: 'pago',
-    metodo_pagamento: 'mbway',
-    total: 25.40,
-    itens: [
-      {
-        id: 'item-1',
-        encomenda_id: 'enc-teste',
-        produto_id: 'prod-1',
-        produto_nome: 'Pão Alentejano Tradicional',
-        setor: 'padaria',
-        quantidade: 2,
-        preco_unitario: 1.60,
-        estado_producao: 'pronto',
-      },
-      {
-        id: 'item-2',
-        encomenda_id: 'enc-teste',
-        produto_id: 'prod-8',
-        produto_nome: 'Bolo de Aniversário Personalizado',
-        setor: 'pastelaria',
-        quantidade: 1.2,
-        preco_unitario: 18.50,
-        notas_personalizacao: 'Massa folhada, ovos moles, frase: Parabéns Mãe!',
-        estado_producao: 'em_preparo',
-      },
-    ],
-    criado_em: new Date().toISOString(),
-  });
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50/70">
@@ -377,11 +392,11 @@ export default function AdminPage() {
               {t.managementTitle}
             </h2>
             <p className="text-xs sm:text-sm text-gray-500">
-              Métricas executivas, configuração de lojas/frota, gestão de talões e integração com Supabase.
+              {t.managementSubtitle}
             </p>
           </div>
 
-          {/* Seletor de Loja para Métricas */}
+          {/* Seletor Rápido de Loja para Métricas */}
           <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs">
             <Filter className="h-4 w-4 text-bakery-600" />
             <select
@@ -389,7 +404,7 @@ export default function AdminPage() {
               onChange={(e) => setSelectedLojaId(e.target.value)}
               className="text-xs font-bold text-gray-900 bg-transparent focus:outline-hidden cursor-pointer"
             >
-              <option value="todas">Consolidado (Todas as Lojas)</option>
+              <option value="todas">{t.allStores}</option>
               {lojas.map((l) => (
                 <option key={l.id} value={l.id}>{l.nome}</option>
               ))}
@@ -397,7 +412,7 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Abas Executivas */}
+        {/* Abas de Navegação do Painel de Gestão */}
         <div className="flex bg-white p-1 rounded-2xl border border-gray-200 shadow-2xs mb-6 overflow-x-auto">
           <button
             onClick={() => setActiveTab('metricas')}
@@ -445,40 +460,87 @@ export default function AdminPage() {
               activeTab === 'acessos' ? 'bg-bakery-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            <KeyRound className="h-4 w-4" />
-            {t.tabAccess}
+            <Users className="h-4 w-4" />
+            {t.tabAccess} ({perfis.length})
           </button>
         </div>
 
-        {/* ----------------- ABA 1: MÉTRICAS & RELATÓRIOS ----------------- */}
+        {/* ----------------- ABA 1: MÉTRICAS & REPORTS COM FILTROS TEMPORAIS ----------------- */}
         {activeTab === 'metricas' && (
           <div className="space-y-6">
+            {/* Barra de Filtros Combinados: Período Temporal + Formato de Entrega */}
+            <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              {/* Seleção do Período */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-xs font-bold text-gray-500 mr-1 flex items-center gap-1">
+                  <Calendar className="h-3.5 w-3.5 text-bakery-600" />
+                  {t.timePeriod}:
+                </span>
+                {[
+                  { id: 'dia', label: t.periodToday },
+                  { id: 'semana', label: t.periodWeek },
+                  { id: 'mes', label: t.periodMonth },
+                  { id: 'ano', label: t.periodYear },
+                  { id: 'todos', label: t.periodAll },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setPeriodoSelecionado(item.id as any)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                      periodoSelecionado === item.id
+                        ? 'bg-bakery-600 text-white shadow-2xs'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Seleção de Formato de Entrega */}
+              <div className="flex items-center gap-1.5 bg-gray-50 p-1 rounded-xl border border-gray-200">
+                <span className="text-xs font-bold text-gray-500 px-2">{t.deliveryFormat}:</span>
+                <select
+                  value={formatoEntrega}
+                  onChange={(e) => setFormatoEntrega(e.target.value as any)}
+                  className="bg-white border border-gray-200 text-xs font-bold rounded-lg px-2.5 py-1 text-gray-900 focus:outline-hidden cursor-pointer"
+                >
+                  <option value="todos">{t.allFormats}</option>
+                  <option value="levantamento_loja">{t.pickupStore}</option>
+                  <option value="entrega_domicilio">{t.deliveryHome}</option>
+                </select>
+              </div>
+            </div>
+
             {/* Cartões de Indicadores */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
+              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
                 <span className="text-xs text-gray-500 font-bold uppercase">{t.totalRevenue}</span>
                 <p className="text-2xl font-black text-gray-900 mt-1">{totalFaturado.toFixed(2)} €</p>
                 <span className="text-[11px] text-emerald-600 font-bold mt-1 block">
-                  {encomendasFiltradas.length} pedidos registados
+                  {encomendasFiltradas.length} {t.totalOrders.toLowerCase()}
                 </span>
               </div>
 
-              <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
+              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
                 <span className="text-xs text-gray-500 font-bold uppercase">{t.avgTicket}</span>
                 <p className="text-2xl font-black text-gray-900 mt-1">{ticketMedio.toFixed(2)} €</p>
-                <span className="text-[11px] text-gray-400 font-medium mt-1 block">Por encomenda</span>
+                <span className="text-[11px] text-gray-400 font-medium mt-1 block">
+                  {periodoSelecionado === 'todos' ? t.periodAll : t.timePeriod}
+                </span>
               </div>
 
-              <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
-                <span className="text-xs text-gray-500 font-bold uppercase">Entregas ao Domicílio</span>
+              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
+                <span className="text-xs text-gray-500 font-bold uppercase">{t.deliveryHome}</span>
                 <p className="text-2xl font-black text-blue-700 mt-1">{totalEntregas}</p>
                 <span className="text-[11px] text-blue-600 font-bold mt-1 block">
                   {encomendasFiltradas.length > 0 ? ((totalEntregas / encomendasFiltradas.length) * 100).toFixed(0) : 0}% do volume
                 </span>
               </div>
 
-              <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
-                <span className="text-xs text-gray-500 font-bold uppercase">Levantamento em Loja</span>
+              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
+                <span className="text-xs text-gray-500 font-bold uppercase">{t.pickupStore}</span>
                 <p className="text-2xl font-black text-amber-700 mt-1">{totalLevantamentos}</p>
                 <span className="text-[11px] text-amber-600 font-bold mt-1 block">
                   {encomendasFiltradas.length > 0 ? ((totalLevantamentos / encomendasFiltradas.length) * 100).toFixed(0) : 0}% do volume
@@ -488,16 +550,16 @@ export default function AdminPage() {
 
             {/* Comparativo de Lojas & Necessidades de Produção */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Vendas por Loja */}
+              {/* Desempenho por Loja */}
               <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
                 <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                   <Store className="h-4 w-4 text-bakery-600" />
-                  Desempenho por Loja
+                  {t.storePerformance}
                 </h3>
 
                 <div className="space-y-3">
                   {lojas.map((l) => {
-                    const encsLoja = encomendas.filter((e) => e.loja_id === l.id);
+                    const encsLoja = encomendasFiltradas.filter((e) => e.loja_id === l.id);
                     const totalLoja = encsLoja.reduce((acc, curr) => acc + curr.total, 0);
                     const pct = totalFaturado > 0 ? (totalLoja / totalFaturado) * 100 : 0;
 
@@ -510,7 +572,7 @@ export default function AdminPage() {
                         <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
                           <div
                             className="bg-bakery-600 h-2 rounded-full transition-all duration-500"
-                            style={{ width: `${Math.min(100, Math.max(5, pct))}%` }}
+                            style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
                           />
                         </div>
                       </div>
@@ -523,19 +585,19 @@ export default function AdminPage() {
               <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
                 <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                   <Layers className="h-4 w-4 text-amber-600" />
-                  Necessidades Consolidadas de Fabrico
+                  {t.consolidatedNeeds}
                 </h3>
 
-                <div className="max-h-60 overflow-y-auto space-y-2 pr-1 text-xs">
+                <div className="max-h-64 overflow-y-auto space-y-2 pr-1 text-xs">
                   {itensProducaoConsolidados.length === 0 ? (
-                    <p className="text-gray-400 italic py-4 text-center">Sem produtos agendados para produção.</p>
+                    <p className="text-gray-400 italic py-4 text-center">{t.noProductionItems}</p>
                   ) : (
                     itensProducaoConsolidados.map(([nome, dados]) => (
-                      <div key={nome} className="flex items-center justify-between p-2 rounded-xl bg-gray-50 border border-gray-100">
+                      <div key={nome} className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 border border-gray-100">
                         <div>
                           <span className="font-bold text-gray-900">{nome}</span>
                           <span className="text-[10px] text-gray-500 block uppercase">
-                            {dados.setor === 'padaria' ? '🥖 Padaria' : '🎂 Pastelaria'}
+                            {dados.setor === 'padaria' ? `🥖 ${t.categoryBakery}` : `🎂 ${t.categoryPastry}`}
                           </span>
                         </div>
                         <span className="font-black text-sm text-bakery-800">
@@ -555,14 +617,12 @@ export default function AdminPage() {
           <div className="space-y-6">
             {/* Secção de Lojas */}
             <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
-              <div className="flex items-center justify-between border-b pb-3">
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                    <Store className="h-4 w-4 text-bakery-600" />
-                    Lojas de Padaria & Pastelaria
-                  </h3>
-                  <p className="text-xs text-gray-500">Configuração de moradas, telefones e NIFs de cada ponto de venda.</p>
-                </div>
+              <div className="border-b pb-3">
+                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                  <Store className="h-4 w-4 text-bakery-600" />
+                  {t.storesSectionTitle}
+                </h3>
+                <p className="text-xs text-gray-500">{t.storesSectionDesc}</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -576,14 +636,14 @@ export default function AdminPage() {
                         onClick={() => setLojaEmEdicao(l)}
                         className="flex items-center gap-1 font-bold text-blue-600 hover:text-blue-800 bg-white px-2 py-1 rounded-lg border border-gray-200 shadow-2xs"
                       >
-                        <Edit3 className="h-3 w-3" /> Editar
+                        <Edit3 className="h-3 w-3" /> {t.edit}
                       </button>
                     </div>
 
                     <h4 className="font-bold text-sm text-gray-900">{l.nome}</h4>
-                    <p className="text-gray-600">Morada: {l.morada}</p>
-                    <p className="text-gray-600">Telefone: {l.telefone}</p>
-                    {l.nif && <p className="text-gray-600">NIF: {l.nif}</p>}
+                    <p className="text-gray-600">{t.address}: {l.morada}</p>
+                    <p className="text-gray-600">{t.phone}: {l.telefone}</p>
+                    {l.nif && <p className="text-gray-600">{t.nif}: {l.nif}</p>}
                   </div>
                 ))}
               </div>
@@ -595,9 +655,9 @@ export default function AdminPage() {
                 <div>
                   <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                     <Truck className="h-4 w-4 text-blue-600" />
-                    Frota de Carrinhas de Entrega
+                    {t.vansSectionTitle}
                   </h3>
-                  <p className="text-xs text-gray-500">Gestão das viaturas afetas a cada loja e matrículas.</p>
+                  <p className="text-xs text-gray-500">{t.vansSectionDesc}</p>
                 </div>
 
                 <button
@@ -605,7 +665,7 @@ export default function AdminPage() {
                   onClick={() => setCarrinhaEmEdicao({ identificador: '', matricula: '', loja_id: lojas[0]?.id || '' })}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition"
                 >
-                  <Plus className="h-3.5 w-3.5" /> Adicionar Carrinha
+                  <Plus className="h-3.5 w-3.5" /> {t.addVan}
                 </button>
               </div>
 
@@ -622,12 +682,12 @@ export default function AdminPage() {
                           onClick={() => setCarrinhaEmEdicao(c)}
                           className="flex items-center gap-1 font-bold text-blue-700 hover:text-blue-900 bg-white px-2 py-1 rounded-lg border border-blue-200"
                         >
-                          <Edit3 className="h-3 w-3" /> Editar
+                          <Edit3 className="h-3 w-3" /> {t.edit}
                         </button>
                       </div>
 
                       <h4 className="font-bold text-gray-900">{c.identificador}</h4>
-                      <p className="text-gray-600">Afeta a: <b>{lj?.nome || 'Loja Central'}</b></p>
+                      <p className="text-gray-600">{t.assignedStore}: <b>{lj?.nome || 'Loja Central'}</b></p>
                     </div>
                   );
                 })}
@@ -639,14 +699,13 @@ export default function AdminPage() {
         {/* ----------------- ABA 3: BASES DE DADOS & EXCEL ----------------- */}
         {activeTab === 'database' && (
           <div className="space-y-6">
-            {/* Exportação */}
             <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
               <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                 <Download className="h-4 w-4 text-emerald-600" />
                 {t.exportExcel}
               </h3>
               <p className="text-xs text-gray-500">
-                Descarregue ficheiros compatíveis com o Microsoft Excel (formato UTF-8 com BOM e pontuação portuguesa).
+                Ficheiros compatíveis com o Microsoft Excel (formato UTF-8 com BOM e pontuação portuguesa).
               </p>
 
               <div className="flex flex-wrap gap-3">
@@ -676,7 +735,6 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Importação Massiva */}
             <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
               <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                 <Upload className="h-4 w-4 text-blue-600" />
@@ -686,7 +744,6 @@ export default function AdminPage() {
                 {t.bulkUploadDesc}
               </p>
 
-              {/* Seletor de Tabela e Templates */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gray-50 p-3 rounded-xl border border-gray-200">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-gray-700">Tabela Destino:</span>
@@ -712,7 +769,6 @@ export default function AdminPage() {
                 </button>
               </div>
 
-              {/* Upload Input */}
               <div className="border-2 border-dashed border-gray-300 rounded-2xl p-6 text-center hover:border-blue-500 transition bg-gray-50/50">
                 <input
                   type="file"
@@ -730,12 +786,11 @@ export default function AdminPage() {
                 </label>
               </div>
 
-              {/* Pré-visualização da Importação */}
               {linhasPreview.length > 0 && (
                 <div className="space-y-3 pt-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-gray-700">
-                      Linhas Detetadas para Importação: <b>{linhasPreview.length}</b>
+                      Linhas Detetadas: <b>{linhasPreview.length}</b>
                     </span>
                     <button
                       onClick={handleExecutarImportacao}
@@ -743,7 +798,7 @@ export default function AdminPage() {
                       className="px-4 py-2 rounded-xl bg-blue-600 text-white font-bold text-xs hover:bg-blue-700 disabled:opacity-50 transition shadow-xs flex items-center gap-1.5"
                     >
                       <RefreshCw className={`h-3.5 w-3.5 ${processandoImportacao ? 'animate-spin' : ''}`} />
-                      {processandoImportacao ? 'A processar...' : 'Gravar no Supabase'}
+                      {processandoImportacao ? t.loading : t.save}
                     </button>
                   </div>
 
@@ -752,28 +807,6 @@ export default function AdminPage() {
                       {statusImportacao}
                     </div>
                   )}
-
-                  {/* Amostra das primeiras 5 linhas */}
-                  <div className="overflow-x-auto border border-gray-200 rounded-xl max-h-48">
-                    <table className="w-full text-left text-[11px]">
-                      <thead className="bg-gray-100 font-bold uppercase text-gray-600">
-                        <tr>
-                          {Object.keys(linhasPreview[0] || {}).map((k) => (
-                            <th key={k} className="p-2 border-b">{k}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {linhasPreview.slice(0, 5).map((row, idx) => (
-                          <tr key={idx} className="hover:bg-gray-50">
-                            {Object.values(row).map((v: any, cidx) => (
-                              <td key={cidx} className="p-2 truncate max-w-xs">{String(v)}</td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
                 </div>
               )}
             </div>
@@ -783,11 +816,10 @@ export default function AdminPage() {
         {/* ----------------- ABA 4: CONFIGURADOR DE TALÃO ----------------- */}
         {activeTab === 'talao' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Formulário de Configuração */}
             <form onSubmit={handleSalvarConfigTalao} className="lg:col-span-7 bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4 text-xs">
               <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 border-b pb-3">
                 <Printer className="h-4 w-4 text-bakery-600" />
-                Opções de Layout e Conteúdo do Talão Térmico
+                {t.tabReceiptConfig}
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -797,7 +829,7 @@ export default function AdminPage() {
                     type="text"
                     value={receiptConfig.storeNameOverride}
                     onChange={(e) => setReceiptConfig({ ...receiptConfig, storeNameOverride: e.target.value })}
-                    placeholder="Padaria & Pastelaria Central"
+                    placeholder="Padaria & Pastelaria"
                     className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
                   />
                 </div>
@@ -814,7 +846,6 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Formato do Papel */}
               <div className="grid grid-cols-2 gap-3 bg-gray-50 p-3 rounded-xl border border-gray-200">
                 <div>
                   <label className="block font-bold text-gray-700 mb-1">Largura da Bobina Térmica</label>
@@ -835,14 +866,13 @@ export default function AdminPage() {
                     onChange={(e) => setReceiptConfig({ ...receiptConfig, fontSize: e.target.value as any })}
                     className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold"
                   >
-                    <option value="compact">Compacto (Mais linhas)</option>
+                    <option value="compact">Compacto</option>
                     <option value="normal">Normal</option>
-                    <option value="large">Grande (Alta legibilidade)</option>
+                    <option value="large">Grande</option>
                   </select>
                 </div>
               </div>
 
-              {/* Secções e Visibilidade */}
               <div className="space-y-2 pt-2 border-t border-gray-100">
                 <span className="font-bold text-gray-800 block mb-1">Secções a Imprimir:</span>
                 
@@ -863,7 +893,7 @@ export default function AdminPage() {
                     onChange={(e) => setReceiptConfig({ ...receiptConfig, highlightCakeNotes: e.target.checked })}
                     className="rounded text-bakery-600"
                   />
-                  <span>Destacar notas de personalização de bolos em caixa escura</span>
+                  <span>Destacar notas de personalização de bolos em caixa de destaque</span>
                 </label>
 
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -893,12 +923,12 @@ export default function AdminPage() {
                     onChange={(e) => setReceiptConfig({ ...receiptConfig, showQrCode: e.target.checked })}
                     className="rounded text-bakery-600"
                   />
-                  <span>Imprimir QR Code / Código de Validação no rodapé</span>
+                  <span>Imprimir QR Code no rodapé</span>
                 </label>
               </div>
 
               <div>
-                <label className="block font-bold text-gray-700 mb-1">Mensagem de Agradecimento no Rodapé</label>
+                <label className="block font-bold text-gray-700 mb-1">Mensagem de Rodapé</label>
                 <input
                   type="text"
                   value={receiptConfig.footerMessage}
@@ -908,28 +938,20 @@ export default function AdminPage() {
                 />
               </div>
 
-              <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => setEncomendaTesteTalão(gerarEncomendaTeste())}
-                  className="px-4 py-2 rounded-xl bg-gray-100 text-gray-800 font-bold hover:bg-gray-200 transition"
-                >
-                  Pré-visualizar / Testar Impressão
-                </button>
-
+              <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-2">
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-bakery-600 text-white font-black shadow-xs hover:bg-bakery-700 transition"
                 >
-                  Guardar Configuração
+                  {t.save}
                 </button>
               </div>
             </form>
 
-            {/* Pré-visualização Estática em Direto */}
+            {/* Pré-visualização Estática */}
             <div className="lg:col-span-5 bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex flex-col items-center">
               <span className="text-xs font-bold text-gray-500 uppercase mb-3">
-                Pré-visualização em Direto ({receiptConfig.paperWidth})
+                Pré-visualização ({receiptConfig.paperWidth})
               </span>
 
               <div
@@ -950,26 +972,26 @@ export default function AdminPage() {
                 <div className="my-2 border-b border-dashed border-black" />
                 <div className="text-center">
                   <p className="font-black text-sm">ENC-LOJA-1-0001</p>
-                  <p className="text-[9px] font-bold uppercase mt-0.5">LEVANTAMENTO EM LOJA</p>
+                  <p className="text-[9px] font-bold uppercase mt-0.5">{t.pickupStore}</p>
                 </div>
                 <div className="my-2 border-b border-dashed border-black" />
 
                 <div className="space-y-0.5">
-                  <p>DATA: <b>Hoje</b> | HORA: <b>10:30</b></p>
-                  <p>CLIENTE: <b>Ana Silva</b></p>
+                  <p>{t.date}: <b>Hoje</b> | {t.time}: <b>10:30</b></p>
+                  <p>{t.client}: <b>Ana Silva</b></p>
                 </div>
 
                 <div className="my-2 border-b border-dashed border-black" />
 
                 {receiptConfig.showSectionSeparation ? (
                   <>
-                    <p className="font-bold text-[10px]">[ PADARIA ]</p>
+                    <p className="font-bold text-[10px]">{t.receiptBakerySection}</p>
                     <div className="flex justify-between">
                       <span>2x Pão Alentejano</span>
                       <span>3.20 €</span>
                     </div>
 
-                    <p className="font-bold text-[10px] mt-2">[ PASTELARIA ]</p>
+                    <p className="font-bold text-[10px] mt-2">{t.receiptPastrySection}</p>
                     <div className="flex justify-between">
                       <span>1x Bolo Aniversário</span>
                       <span>18.50 €</span>
@@ -996,7 +1018,7 @@ export default function AdminPage() {
 
                 <div className="my-2 border-b border-dashed border-black" />
                 <div className="flex justify-between font-black">
-                  <span>TOTAL:</span>
+                  <span>{t.total}:</span>
                   <span>21.70 €</span>
                 </div>
 
@@ -1009,55 +1031,313 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ----------------- ABA 5: ACESSOS & DIAGNÓSTICO ----------------- */}
+        {/* ----------------- ABA 5: GESTÃO DE ACESSOS & UTILIZADORES (100% NA APP) ----------------- */}
         {activeTab === 'acessos' && (
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-xs space-y-6">
-            <div className="flex items-center justify-between border-b pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200">
-                  <ShieldCheck className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-gray-900">Estado da Ligação Supabase</h3>
-                  <p className="text-xs text-emerald-700 font-bold">🟢 Conexão Ativa & Sincronizada em Tempo Real</p>
-                </div>
+          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
+              <div>
+                <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                  <ShieldCheck className="h-5 w-5 text-bakery-600" />
+                  {t.panelAccessManagement}
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {t.panelAccessDesc}
+                </p>
               </div>
 
-              <a
-                href="https://supabase.com/dashboard/project/hlcxvkcwhdndiglbytxk"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-stone-900 text-white text-xs font-bold hover:bg-stone-800 transition shadow-xs"
+              <button
+                type="button"
+                onClick={() => {
+                  setPerfilEmEdicao({
+                    nome: '',
+                    telefone: '',
+                    email: '',
+                    role: 'atendente',
+                    loja_id: lojas[0]?.id,
+                    painel_encomendas: true,
+                    painel_producao: false,
+                    painel_loja: true,
+                    painel_entregas: false,
+                    painel_gestao: false,
+                    ativo: true,
+                  });
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-bakery-600 text-white text-xs font-bold hover:bg-bakery-700 transition shadow-xs"
               >
-                <ExternalLink className="h-4 w-4" /> Abrir Painel Supabase
-              </a>
+                <Plus className="h-4 w-4" />
+                {t.newUser}
+              </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-1 font-mono">
-                <span className="text-gray-500 text-[11px] font-sans font-bold block">URL DO PROJETO:</span>
-                <span className="text-gray-900 font-bold">https://hlcxvkcwhdndiglbytxk.supabase.co</span>
-              </div>
+            {/* Tabela de Utilizadores & Permissões */}
+            <div className="overflow-x-auto border border-gray-200 rounded-xl">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-gray-50 text-gray-600 font-bold uppercase text-[10px] border-b border-gray-200">
+                  <tr>
+                    <th className="p-3.5">Colaborador</th>
+                    <th className="p-3.5">{t.role}</th>
+                    <th className="p-3.5">{t.store}</th>
+                    <th className="p-3.5">{t.allowedPanels}</th>
+                    <th className="p-3.5">{t.status}</th>
+                    <th className="p-3.5 text-right">{t.actions}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 font-medium text-gray-800">
+                  {perfis.map((p) => {
+                    const lojaNome = lojas.find((l) => l.id === p.loja_id)?.nome || t.allStores;
+                    const roleLabel =
+                      p.role === 'admin' ? t.roleAdmin :
+                      p.role === 'gerente_loja' ? t.roleStoreManager :
+                      p.role === 'operador_padaria' || p.role === 'operador_pastelaria' ? t.roleBaker :
+                      p.role === 'motorista' ? t.roleDriver : t.roleCounter;
 
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-1 font-mono">
-                <span className="text-gray-500 text-[11px] font-sans font-bold block">CHAVE PÚBLICA ANON:</span>
-                <span className="text-gray-900 truncate block">sb_publishable_qs7UzBoyK9YvMfhvxrdOCQ_GJ7QRHvE</span>
-              </div>
-            </div>
+                    return (
+                      <tr key={p.id} className="hover:bg-gray-50/70 transition">
+                        <td className="p-3.5">
+                          <p className="font-bold text-gray-900">{p.nome}</p>
+                          <p className="text-[11px] text-gray-500">{p.telefone} {p.email ? `• ${p.email}` : ''}</p>
+                        </td>
 
-            <div className="border-t pt-4">
-              <h4 className="text-xs font-bold text-gray-800 mb-2">Tabelas Criadas & Integradas no PostgreSQL:</h4>
-              <div className="flex flex-wrap gap-2 text-xs">
-                {['public.lojas', 'public.perfis', 'public.clientes', 'public.produtos', 'public.carrinhas', 'public.encomendas', 'public.itens_encomenda'].map((tb) => (
-                  <span key={tb} className="bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-1 rounded-lg font-mono font-bold">
-                    ✓ {tb}
-                  </span>
-                ))}
-              </div>
+                        <td className="p-3.5">
+                          <span className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                            p.role === 'admin' ? 'bg-purple-50 text-purple-800 border border-purple-200' :
+                            p.role === 'gerente_loja' ? 'bg-blue-50 text-blue-800 border border-blue-200' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {roleLabel}
+                          </span>
+                        </td>
+
+                        <td className="p-3.5 text-gray-600 font-bold">
+                          {lojaNome}
+                        </td>
+
+                        <td className="p-3.5">
+                          <div className="flex flex-wrap gap-1">
+                            {p.painel_encomendas && (
+                              <span className="bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                                {t.navEncomendas}
+                              </span>
+                            )}
+                            {p.painel_producao && (
+                              <span className="bg-rose-50 text-rose-800 border border-rose-200 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                                {t.navProducao}
+                              </span>
+                            )}
+                            {p.painel_loja && (
+                              <span className="bg-yellow-50 text-yellow-800 border border-yellow-200 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                                {t.navLoja}
+                              </span>
+                            )}
+                            {p.painel_entregas && (
+                              <span className="bg-blue-50 text-blue-800 border border-blue-200 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                                {t.navEntregas}
+                              </span>
+                            )}
+                            {p.painel_gestao && (
+                              <span className="bg-purple-50 text-purple-800 border border-purple-200 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                                {t.navGestao}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="p-3.5">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            p.ativo ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
+                          }`}>
+                            {p.ativo ? t.userActive : t.userInactive}
+                          </span>
+                        </td>
+
+                        <td className="p-3.5 text-right space-x-1.5 whitespace-nowrap">
+                          <button
+                            onClick={() => setPerfilEmEdicao(p)}
+                            className="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-[11px] transition"
+                          >
+                            {t.edit}
+                          </button>
+                          {p.role !== 'admin' && (
+                            <button
+                              onClick={() => handleEliminarPerfil(p.id)}
+                              className="px-2 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-bold text-[11px] transition"
+                            >
+                              <Trash2 className="h-3.5 w-3.5 inline" />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
       </main>
+
+      {/* MODAL DE EDIÇÃO / CRIAÇÃO DE COLABORADOR */}
+      {perfilEmEdicao && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl border border-gray-200 space-y-4 text-xs">
+            <h3 className="text-sm font-bold text-gray-900 border-b pb-2 flex items-center gap-2">
+              <UserCheck className="h-4 w-4 text-bakery-600" />
+              {perfilEmEdicao.id ? t.editUser : t.newUser}
+            </h3>
+
+            <form onSubmit={handleSalvarPerfil} className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Nome do Colaborador *</label>
+                  <input
+                    type="text"
+                    required
+                    value={perfilEmEdicao.nome || ''}
+                    onChange={(e) => setPerfilEmEdicao({ ...perfilEmEdicao, nome: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Telefone *</label>
+                  <input
+                    type="tel"
+                    required
+                    value={perfilEmEdicao.telefone || ''}
+                    onChange={(e) => setPerfilEmEdicao({ ...perfilEmEdicao, telefone: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={perfilEmEdicao.email || ''}
+                    onChange={(e) => setPerfilEmEdicao({ ...perfilEmEdicao, email: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Loja Afeta</label>
+                  <select
+                    value={perfilEmEdicao.loja_id || 'todas'}
+                    onChange={(e) => setPerfilEmEdicao({ ...perfilEmEdicao, loja_id: e.target.value === 'todas' ? undefined : e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold"
+                  >
+                    <option value="todas">{t.allStores}</option>
+                    {lojas.map((l) => (
+                      <option key={l.id} value={l.id}>{l.nome}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">{t.role}</label>
+                <select
+                  value={perfilEmEdicao.role || 'atendente'}
+                  onChange={(e) => aplicarPredefinicoesCargo(e.target.value as Role)}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold text-gray-900"
+                >
+                  <option value="admin">{t.roleAdmin}</option>
+                  <option value="gerente_loja">{t.roleStoreManager}</option>
+                  <option value="atendente">{t.roleCounter}</option>
+                  <option value="operador_padaria">{t.roleBaker} (Padaria)</option>
+                  <option value="operador_pastelaria">{t.roleBaker} (Pastelaria)</option>
+                  <option value="motorista">{t.roleDriver}</option>
+                </select>
+              </div>
+
+              {/* Caixas de Seleção Granulares de Painéis */}
+              <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 space-y-2">
+                <span className="font-bold text-gray-800 block mb-1">Permissões de Acesso aos Painéis:</span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <label className="flex items-center gap-2 cursor-pointer font-medium">
+                    <input
+                      type="checkbox"
+                      checked={perfilEmEdicao.painel_encomendas ?? true}
+                      onChange={(e) => setPerfilEmEdicao({ ...perfilEmEdicao, painel_encomendas: e.target.checked })}
+                      className="rounded text-bakery-600"
+                    />
+                    <span>{t.navEncomendas}</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer font-medium">
+                    <input
+                      type="checkbox"
+                      checked={perfilEmEdicao.painel_producao ?? false}
+                      onChange={(e) => setPerfilEmEdicao({ ...perfilEmEdicao, painel_producao: e.target.checked })}
+                      className="rounded text-bakery-600"
+                    />
+                    <span>{t.navProducao}</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer font-medium">
+                    <input
+                      type="checkbox"
+                      checked={perfilEmEdicao.painel_loja ?? true}
+                      onChange={(e) => setPerfilEmEdicao({ ...perfilEmEdicao, painel_loja: e.target.checked })}
+                      className="rounded text-bakery-600"
+                    />
+                    <span>{t.navLoja}</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer font-medium">
+                    <input
+                      type="checkbox"
+                      checked={perfilEmEdicao.painel_entregas ?? false}
+                      onChange={(e) => setPerfilEmEdicao({ ...perfilEmEdicao, painel_entregas: e.target.checked })}
+                      className="rounded text-bakery-600"
+                    />
+                    <span>{t.navEntregas}</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer font-medium col-span-2 text-purple-900 font-bold">
+                    <input
+                      type="checkbox"
+                      checked={perfilEmEdicao.painel_gestao ?? false}
+                      onChange={(e) => setPerfilEmEdicao({ ...perfilEmEdicao, painel_gestao: e.target.checked })}
+                      className="rounded text-purple-600"
+                    />
+                    <span>{t.navGestao} (Métricas, Lojas, Frota e Acessos)</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={perfilEmEdicao.ativo ?? true}
+                    onChange={(e) => setPerfilEmEdicao({ ...perfilEmEdicao, ativo: e.target.checked })}
+                    className="rounded text-emerald-600"
+                  />
+                  <span>{t.userActive}</span>
+                </label>
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPerfilEmEdicao(null)}
+                    className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700"
+                  >
+                    {t.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded-lg bg-bakery-600 font-bold text-white shadow-xs"
+                  >
+                    {t.saveUser}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* MODAL DE EDIÇÃO DE LOJA */}
       {lojaEmEdicao && (
@@ -1066,7 +1346,7 @@ export default function AdminPage() {
             <h3 className="text-sm font-bold text-gray-900 border-b pb-2">Editar Dados da Loja</h3>
             <form onSubmit={handleSalvarLoja} className="space-y-3">
               <div>
-                <label className="block font-bold text-gray-700 mb-1">Código da Loja</label>
+                <label className="block font-bold text-gray-700 mb-1">{t.storeCode}</label>
                 <input
                   type="text"
                   required
@@ -1077,7 +1357,7 @@ export default function AdminPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-gray-700 mb-1">Nome da Loja</label>
+                <label className="block font-bold text-gray-700 mb-1">{t.storeName}</label>
                 <input
                   type="text"
                   required
@@ -1088,7 +1368,7 @@ export default function AdminPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-gray-700 mb-1">Morada</label>
+                <label className="block font-bold text-gray-700 mb-1">{t.address}</label>
                 <input
                   type="text"
                   required
@@ -1100,7 +1380,7 @@ export default function AdminPage() {
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block font-bold text-gray-700 mb-1">Telefone</label>
+                  <label className="block font-bold text-gray-700 mb-1">{t.phone}</label>
                   <input
                     type="text"
                     required
@@ -1110,7 +1390,7 @@ export default function AdminPage() {
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-gray-700 mb-1">NIF</label>
+                  <label className="block font-bold text-gray-700 mb-1">{t.nif}</label>
                   <input
                     type="text"
                     value={lojaEmEdicao.nif || ''}
@@ -1126,13 +1406,13 @@ export default function AdminPage() {
                   onClick={() => setLojaEmEdicao(null)}
                   className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700"
                 >
-                  Cancelar
+                  {t.cancel}
                 </button>
                 <button
                   type="submit"
                   className="px-4 py-1.5 rounded-lg bg-bakery-600 font-bold text-white shadow-xs"
                 >
-                  Guardar Loja
+                  {t.save}
                 </button>
               </div>
             </form>
@@ -1144,10 +1424,10 @@ export default function AdminPage() {
       {carrinhaEmEdicao && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
           <div className="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-gray-200 space-y-4 text-xs">
-            <h3 className="text-sm font-bold text-gray-900 border-b pb-2">Editar Carrinha de Entrega</h3>
+            <h3 className="text-sm font-bold text-gray-900 border-b pb-2">{t.vansSectionTitle}</h3>
             <form onSubmit={handleSalvarCarrinha} className="space-y-3">
               <div>
-                <label className="block font-bold text-gray-700 mb-1">Identificador / Nome</label>
+                <label className="block font-bold text-gray-700 mb-1">{t.vanName}</label>
                 <input
                   type="text"
                   required
@@ -1159,7 +1439,7 @@ export default function AdminPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-gray-700 mb-1">Matrícula</label>
+                <label className="block font-bold text-gray-700 mb-1">{t.licensePlate}</label>
                 <input
                   type="text"
                   required
@@ -1171,7 +1451,7 @@ export default function AdminPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-gray-700 mb-1">Loja Afeta</label>
+                <label className="block font-bold text-gray-700 mb-1">{t.assignedStore}</label>
                 <select
                   value={carrinhaEmEdicao.loja_id || ''}
                   onChange={(e) => setCarrinhaEmEdicao({ ...carrinhaEmEdicao, loja_id: e.target.value })}
@@ -1189,13 +1469,13 @@ export default function AdminPage() {
                   onClick={() => setCarrinhaEmEdicao(null)}
                   className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700"
                 >
-                  Cancelar
+                  {t.cancel}
                 </button>
                 <button
                   type="submit"
                   className="px-4 py-1.5 rounded-lg bg-blue-600 font-bold text-white shadow-xs"
                 >
-                  Guardar Carrinha
+                  {t.save}
                 </button>
               </div>
             </form>

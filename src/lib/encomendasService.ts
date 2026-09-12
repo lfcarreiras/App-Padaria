@@ -431,3 +431,180 @@ export async function upsertProdutosEmLote(produtos: any[]) {
 
   return { sucesso, erros };
 }
+
+// ---------------- GESTÃO DE ACESSOS & UTILIZADORES ---------------- //
+
+export const PERFIS_INICIAIS: PerfilUtilizador[] = [
+  {
+    id: 'user-admin',
+    nome: 'Administrador Geral',
+    telefone: '910 000 001',
+    email: 'admin@padaria.pt',
+    role: 'admin',
+    loja_id: undefined,
+    loja_nome: 'Todas as Lojas',
+    painel_encomendas: true,
+    painel_producao: true,
+    painel_loja: true,
+    painel_entregas: true,
+    painel_gestao: true,
+    ativo: true,
+  },
+  {
+    id: 'user-gerente',
+    nome: 'António Silva (Gerente)',
+    telefone: '910 000 002',
+    email: 'antonio.silva@padaria.pt',
+    role: 'gerente_loja',
+    loja_id: 'loja-1',
+    loja_nome: 'Padaria Central (Matriz)',
+    painel_encomendas: true,
+    painel_producao: true,
+    painel_loja: true,
+    painel_entregas: true,
+    painel_gestao: false,
+    ativo: true,
+  },
+  {
+    id: 'user-balcao',
+    nome: 'Marta Santos (Atendente Balcão)',
+    telefone: '910 000 003',
+    email: 'marta.santos@padaria.pt',
+    role: 'atendente',
+    loja_id: 'loja-1',
+    loja_nome: 'Padaria Central (Matriz)',
+    painel_encomendas: true,
+    painel_producao: false,
+    painel_loja: true,
+    painel_entregas: false,
+    painel_gestao: false,
+    ativo: true,
+  },
+  {
+    id: 'user-padeiro',
+    nome: 'Carlos Ferreira (Chefe Padeiro)',
+    telefone: '910 000 004',
+    email: 'carlos.padeiro@padaria.pt',
+    role: 'operador_padaria',
+    loja_id: 'loja-1',
+    loja_nome: 'Padaria Central (Matriz)',
+    painel_encomendas: false,
+    painel_producao: true,
+    painel_loja: false,
+    painel_entregas: false,
+    painel_gestao: false,
+    ativo: true,
+  },
+  {
+    id: 'user-motorista',
+    nome: 'Rui Oliveira (Motorista Carrinha 1)',
+    telefone: '910 000 005',
+    email: 'rui.motorista@padaria.pt',
+    role: 'motorista',
+    loja_id: 'loja-1',
+    loja_nome: 'Carrinha 1 - Matriz',
+    painel_encomendas: false,
+    painel_producao: false,
+    painel_loja: false,
+    painel_entregas: true,
+    painel_gestao: false,
+    ativo: true,
+  },
+];
+
+const CONFIG_PHONE_KEY = '000000000';
+
+export async function carregarPerfisAcessoSupabase(): Promise<PerfilUtilizador[]> {
+  if (typeof window !== 'undefined') {
+    const cached = localStorage.getItem('app_perfis_utilizadores');
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+  }
+
+  if (!supabase) return PERFIS_INICIAIS;
+
+  try {
+    const { data } = await supabase
+      .from('clientes')
+      .select('notas_entrega')
+      .eq('telefone', CONFIG_PHONE_KEY)
+      .maybeSingle();
+
+    if (data && data.notas_entrega) {
+      const parsed = JSON.parse(data.notas_entrega);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('app_perfis_utilizadores', JSON.stringify(parsed));
+        }
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.warn('Usando perfis predefinidos:', err);
+  }
+
+  return PERFIS_INICIAIS;
+}
+
+export async function salvarTodosPerfisSupabase(perfis: PerfilUtilizador[]) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('app_perfis_utilizadores', JSON.stringify(perfis));
+  }
+
+  if (!supabase) return;
+
+  try {
+    const jsonStr = JSON.stringify(perfis);
+    const { data: existente } = await supabase
+      .from('clientes')
+      .select('id')
+      .eq('telefone', CONFIG_PHONE_KEY)
+      .maybeSingle();
+
+    if (existente) {
+      await supabase
+        .from('clientes')
+        .update({
+          nome: '[SISTEMA_ACESSOS_UTILIZADORES]',
+          notas_entrega: jsonStr,
+        })
+        .eq('id', existente.id);
+    } else {
+      await supabase
+        .from('clientes')
+        .insert({
+          nome: '[SISTEMA_ACESSOS_UTILIZADORES]',
+          telefone: CONFIG_PHONE_KEY,
+          notas_entrega: jsonStr,
+        });
+    }
+  } catch (err) {
+    console.error('Erro ao sincronizar perfis no Supabase:', err);
+  }
+}
+
+export async function salvarPerfilAcessoDb(perfil: PerfilUtilizador): Promise<PerfilUtilizador[]> {
+  const listaAtual = await carregarPerfisAcessoSupabase();
+  let novaLista: PerfilUtilizador[] = [];
+
+  const idx = listaAtual.findIndex((p) => p.id === perfil.id);
+  if (idx >= 0) {
+    novaLista = listaAtual.map((p) => (p.id === perfil.id ? { ...perfil, atualizado_em: new Date().toISOString() } : p));
+  } else {
+    novaLista = [...listaAtual, { ...perfil, id: `user-${Date.now()}`, atualizado_em: new Date().toISOString() }];
+  }
+
+  await salvarTodosPerfisSupabase(novaLista);
+  return novaLista;
+}
+
+export async function eliminarPerfilAcessoDb(perfilId: string): Promise<PerfilUtilizador[]> {
+  const listaAtual = await carregarPerfisAcessoSupabase();
+  const novaLista = listaAtual.filter((p) => p.id !== perfilId);
+  await salvarTodosPerfisSupabase(novaLista);
+  return novaLista;
+}

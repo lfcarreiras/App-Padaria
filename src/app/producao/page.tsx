@@ -81,7 +81,7 @@ export default function ProducaoPage() {
                   {t.productionTitle} ({selectedLojaId === 'todas' ? t.allStores : lojaAtual.nome})
                 </h2>
                 <p className="text-xs text-gray-500">
-                  Fila tátil de fabrico em tempo real para os padeiros e pasteleiros da loja.
+                  {t.productionSubtitle}
                 </p>
               </div>
             </div>
@@ -97,7 +97,7 @@ export default function ProducaoPage() {
                   : 'text-gray-500 hover:text-gray-800'
               }`}
             >
-              Todos os Setores
+              {t.allDepartments}
             </button>
             <button
               onClick={() => setSetorAtivo('padaria')}
@@ -128,8 +128,8 @@ export default function ProducaoPage() {
         {encomendasDaLoja.length === 0 ? (
           <div className="rounded-2xl bg-white border border-gray-200 p-12 text-center">
             <ChefHat className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-            <h3 className="text-base font-bold text-gray-800">Sem pedidos em fila de produção</h3>
-            <p className="text-xs text-gray-500 mt-1">Nenhuma encomenda pendente para fabrico com estes filtros.</p>
+            <h3 className="text-base font-bold text-gray-800">{t.noProductionItems}</h3>
+            <p className="text-xs text-gray-500 mt-1">{t.noOrdersFound}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -190,7 +190,7 @@ export default function ProducaoPage() {
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <span className="text-xs font-black text-stone-500 uppercase block mb-0.5">
-                              {item.setor === 'padaria' ? '🥖 Padaria' : '🎂 Pastelaria'}
+                              {item.setor === 'padaria' ? `🥖 ${t.bakeryTab}` : `🎂 ${t.pastryTab}`}
                             </span>
                             <h4 className="text-sm font-black text-gray-900 leading-tight">
                               <span className="text-amber-700 mr-1.5">{item.quantidade}x</span>
@@ -205,7 +205,7 @@ export default function ProducaoPage() {
                               ? 'bg-amber-200 text-amber-900 border-amber-400'
                               : 'bg-stone-200 text-stone-700 border-stone-300'
                           }`}>
-                            {item.estado_producao}
+                            {item.estado_producao === 'pronto' ? t.readyPrep : item.estado_producao === 'em_preparo' ? t.inPrep : t.pendingPrep}
                           </span>
                         </div>
 
@@ -215,7 +215,7 @@ export default function ProducaoPage() {
                             <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
                             <div>
                               <span className="font-black text-[11px] uppercase block tracking-wider text-red-800">
-                                Personalização / Mensagem:
+                                {t.customizationNotes}
                               </span>
                               <p className="font-bold">{item.notas_personalizacao}</p>
                             </div>
@@ -263,10 +263,10 @@ export default function ProducaoPage() {
                   {/* Rodapé do Cartão */}
                   <div className="p-3 bg-stone-100 border-t border-stone-200 flex items-center justify-between text-xs text-stone-600">
                     <span className="font-semibold">
-                      Destino: {enc.tipo === 'entrega_domicilio' ? 'Carrinha de Entrega' : 'Balcão da Loja'}
+                      {t.destination}: {enc.tipo === 'entrega_domicilio' ? t.destinationVan : t.destinationStore}
                     </span>
                     <span className="font-bold text-stone-800">
-                      {enc.itens.filter((i) => i.estado_producao === 'pronto').length} de {enc.itens.length} prontos
+                      {enc.itens.filter((i) => i.estado_producao === 'pronto').length} / {enc.itens.length} {t.readyPrep}
                     </span>
                   </div>
                 </div>

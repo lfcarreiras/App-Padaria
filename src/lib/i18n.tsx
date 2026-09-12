@@ -38,6 +38,23 @@ export interface Translations {
   print: string;
   success: string;
   error: string;
+  confirm: string;
+  all: string;
+
+  // Filtros Temporais & Formato de Entrega
+  timePeriod: string;
+  periodToday: string;
+  periodWeek: string;
+  periodMonth: string;
+  periodYear: string;
+  periodAll: string;
+  deliveryFormat: string;
+  allFormats: string;
+
+  // Categorias de Produtos
+  allCategories: string;
+  categoryBakery: string;
+  categoryPastry: string;
 
   // Estados
   statusPending: string;
@@ -73,15 +90,26 @@ export interface Translations {
   editClient: string;
   deliveryAddress: string;
   accessNotes: string;
+  searchProductPlaceholder: string;
+  searchClientPlaceholder: string;
+  noClientsFound: string;
+  noOrdersFound: string;
 
   // Módulo Produção
   productionTitle: string;
+  productionSubtitle: string;
+  allDepartments: string;
   bakeryTab: string;
   pastryTab: string;
   pendingPrep: string;
   inPrep: string;
   readyPrep: string;
   markReady: string;
+  noProductionItems: string;
+  customizationNotes: string;
+  destination: string;
+  destinationStore: string;
+  destinationVan: string;
 
   // Módulo Entrega em Loja
   storePickupTitle: string;
@@ -90,18 +118,26 @@ export interface Translations {
   completedPickups: string;
   completePickup: string;
   reprintTicket: string;
+  noPickupsFound: string;
+  pickupCollected: string;
+  itemsToDeliver: string;
+  searchPickupPlaceholder: string;
 
   // Módulo Entregas ao Domicílio
   deliveriesTitle: string;
   deliveriesDesc: string;
+  allVans: string;
   vanRoute: string;
   callClient: string;
   openGps: string;
   completeDelivery: string;
   changeAddress: string;
+  noDeliveriesFound: string;
+  stopDeliveryCompleted: string;
 
   // Módulo Gestão
   managementTitle: string;
+  managementSubtitle: string;
   tabMetrics: string;
   tabStoresVans: string;
   tabDatabase: string;
@@ -111,9 +147,62 @@ export interface Translations {
   avgTicket: string;
   totalOrders: string;
   deliveriesRatio: string;
+  storePerformance: string;
+  consolidatedNeeds: string;
   exportExcel: string;
   importExcel: string;
   bulkUploadDesc: string;
+
+  // Gestão de Lojas e Carrinhas
+  storesSectionTitle: string;
+  storesSectionDesc: string;
+  vansSectionTitle: string;
+  vansSectionDesc: string;
+  addVan: string;
+  storeCode: string;
+  storeName: string;
+  nif: string;
+  licensePlate: string;
+  vanName: string;
+  assignedStore: string;
+
+  // Gestão de Acessos & Utilizadores
+  panelAccessManagement: string;
+  panelAccessDesc: string;
+  newUser: string;
+  editUser: string;
+  role: string;
+  roleAdmin: string;
+  roleStoreManager: string;
+  roleCounter: string;
+  roleBaker: string;
+  roleDriver: string;
+  allowedPanels: string;
+  userActive: string;
+  userInactive: string;
+  saveUser: string;
+
+  // Talão Térmico
+  receiptTitle: string;
+  receiptOrderNumber: string;
+  receiptPickup: string;
+  receiptHomeDelivery: string;
+  receiptCustomer: string;
+  receiptPhone: string;
+  receiptDeliveryAddress: string;
+  receiptRoute: string;
+  receiptObs: string;
+  receiptBakerySection: string;
+  receiptPastrySection: string;
+  receiptAllItemsSection: string;
+  receiptTotalToPay: string;
+  receiptPaymentStatus: string;
+  receiptPaid: string;
+  receiptToCollect: string;
+  receiptGeneralNotes: string;
+  receiptIssuedAt: string;
+  receiptThankYou: string;
+  receiptSystemNotice: string;
 }
 
 const translations: Record<Language, Translations> = {
@@ -149,6 +238,21 @@ const translations: Record<Language, Translations> = {
     print: 'Imprimir',
     success: 'Gravado com sucesso!',
     error: 'Ocorreu um erro.',
+    confirm: 'Confirmar',
+    all: 'Todos',
+
+    timePeriod: 'Período de Análise',
+    periodToday: 'Hoje (Dia)',
+    periodWeek: 'Esta Semana',
+    periodMonth: 'Este Mês',
+    periodYear: 'Este Ano',
+    periodAll: 'Consolidado (Histórico)',
+    deliveryFormat: 'Formato de Entrega',
+    allFormats: 'Todos os Formatos',
+
+    allCategories: 'Todos os Artigos',
+    categoryBakery: 'Padaria',
+    categoryPastry: 'Pastelaria',
 
     statusPending: 'Pendente',
     statusInProduction: 'Em Produção',
@@ -168,7 +272,7 @@ const translations: Record<Language, Translations> = {
     clientManagement: 'Gestão de Clientes',
     ordersHistory: 'Histórico de Encomendas',
     addToCart: 'Adicionar',
-    cartEmpty: 'Nenhum artigo adicionado.',
+    cartEmpty: 'Nenhum artigo adicionado ao carrinho.',
     itemsInCart: 'Artigos no Pedido',
     paymentMethod: 'Método de Pagamento',
     cash: 'Dinheiro',
@@ -181,14 +285,25 @@ const translations: Record<Language, Translations> = {
     editClient: 'Editar Dados do Cliente',
     deliveryAddress: 'Morada de Entrega',
     accessNotes: 'Instruções de Acesso / Notas de Entrega',
+    searchProductPlaceholder: 'Pesquisar pão, bolo, pastel...',
+    searchClientPlaceholder: 'Pesquisar por nome, telefone ou morada...',
+    noClientsFound: 'Nenhum cliente encontrado.',
+    noOrdersFound: 'Nenhuma encomenda registada com estes filtros.',
 
     productionTitle: 'Ecrã de Produção (KDS)',
+    productionSubtitle: 'Fila tátil de fabrico em tempo real para os padeiros e pasteleiros da loja.',
+    allDepartments: 'Todos os Setores',
     bakeryTab: 'Padaria (Pão & Forno)',
     pastryTab: 'Pastelaria & Bolos',
     pendingPrep: 'Por Iniciar',
     inPrep: 'A Preparar',
     readyPrep: 'Pronto',
     markReady: 'Marcar Pronto',
+    noProductionItems: 'Sem pedidos em fila de produção.',
+    customizationNotes: 'Personalização / Mensagem:',
+    destination: 'Destino',
+    destinationStore: 'Balcão da Loja',
+    destinationVan: 'Carrinha de Entrega',
 
     storePickupTitle: 'Balcão de Entrega em Loja',
     storePickupDesc: 'Gestão de encomendas para recolha presencial na loja.',
@@ -196,28 +311,86 @@ const translations: Record<Language, Translations> = {
     completedPickups: 'Já Levantados',
     completePickup: 'Concluir Levantamento',
     reprintTicket: 'Reimprimir Talão',
+    noPickupsFound: 'Sem encomendas pendentes de recolha nesta loja.',
+    pickupCollected: 'Já Levantado',
+    itemsToDeliver: 'Artigos a Entregar:',
+    searchPickupPlaceholder: 'Pesquisar por cliente, telefone ou código...',
 
     deliveriesTitle: 'Painel da Carrinha de Entregas',
     deliveriesDesc: 'Rota de entregas ao domicílio com paragens ordenadas.',
+    allVans: 'Todas as Carrinhas',
     vanRoute: 'Rota da Carrinha',
     callClient: 'Ligar',
     openGps: 'GPS Maps',
     completeDelivery: 'Concluir Entrega',
     changeAddress: 'Alterar Morada',
+    noDeliveriesFound: 'Sem entregas agendadas nesta rota.',
+    stopDeliveryCompleted: 'Entregue',
 
     managementTitle: 'Painel Executivo de Gestão',
+    managementSubtitle: 'Métricas, configuração de lojas e frota, permissões e personalização de talão.',
     tabMetrics: 'Métricas & Relatórios',
     tabStoresVans: 'Lojas & Carrinhas',
     tabDatabase: 'Bases de Dados & Excel',
     tabReceiptConfig: 'Configurar Talão',
-    tabAccess: 'Acessos & Diagnóstico',
+    tabAccess: 'Gestão de Acessos',
     totalRevenue: 'Faturação Total',
     avgTicket: 'Ticket Médio',
     totalOrders: 'Total de Encomendas',
     deliveriesRatio: 'Entregas vs Loja',
+    storePerformance: 'Desempenho por Loja',
+    consolidatedNeeds: 'Necessidades Consolidadas de Fabrico',
     exportExcel: 'Exportar para Excel / CSV',
     importExcel: 'Importação Massiva (Excel/CSV)',
     bulkUploadDesc: 'Carregue um ficheiro CSV/Excel para atualizar em lote clientes ou produtos no Supabase.',
+
+    storesSectionTitle: 'Lojas de Padaria & Pastelaria',
+    storesSectionDesc: 'Configuração de moradas, telefones e NIFs de cada ponto de venda.',
+    vansSectionTitle: 'Frota de Carrinhas de Entrega',
+    vansSectionDesc: 'Gestão das viaturas afetas a cada loja e matrículas.',
+    addVan: 'Adicionar Carrinha',
+    storeCode: 'Código da Loja',
+    storeName: 'Nome da Loja',
+    nif: 'NIF',
+    licensePlate: 'Matrícula',
+    vanName: 'Identificador / Nome',
+    assignedStore: 'Loja Afeta',
+
+    panelAccessManagement: 'Gestão de Acessos & Utilizadores',
+    panelAccessDesc: 'Defina os colaboradores e os painéis a que cada função tem permissão de aceder na aplicação.',
+    newUser: 'Novo Colaborador',
+    editUser: 'Editar Colaborador',
+    role: 'Função / Cargo',
+    roleAdmin: 'Administrador Geral',
+    roleStoreManager: 'Gerente de Loja',
+    roleCounter: 'Atendente de Balcão',
+    roleBaker: 'Padeiro / Pasteleiro',
+    roleDriver: 'Motorista / Distribuidor',
+    allowedPanels: 'Painéis Autorizados',
+    userActive: 'Ativo',
+    userInactive: 'Inativo',
+    saveUser: 'Guardar Utilizador',
+
+    receiptTitle: 'Talão de Encomenda',
+    receiptOrderNumber: 'Número de Encomenda',
+    receiptPickup: 'LEVANTAMENTO EM LOJA',
+    receiptHomeDelivery: '>> ENTREGA AO DOMICÍLIO <<',
+    receiptCustomer: 'CLIENTE',
+    receiptPhone: 'TEL',
+    receiptDeliveryAddress: 'MORADA DE ENTREGA',
+    receiptRoute: 'ROTA',
+    receiptObs: 'Obs',
+    receiptBakerySection: '[ SETOR PADARIA ]',
+    receiptPastrySection: '[ SETOR PASTELARIA ]',
+    receiptAllItemsSection: '[ ARTIGOS DO PEDIDO ]',
+    receiptTotalToPay: 'TOTAL A PAGAR',
+    receiptPaymentStatus: 'ESTADO',
+    receiptPaid: 'PAGO',
+    receiptToCollect: 'A COBRAR NO ATO',
+    receiptGeneralNotes: 'NOTAS GERAIS',
+    receiptIssuedAt: 'Emitido em',
+    receiptThankYou: 'Obrigado pela sua preferência!',
+    receiptSystemNotice: '*** SISTEMA DE ENCOMENDAS ***',
   },
   en: {
     appTitle: 'Bakeries & Pastries',
@@ -251,13 +424,28 @@ const translations: Record<Language, Translations> = {
     print: 'Print',
     success: 'Saved successfully!',
     error: 'An error occurred.',
+    confirm: 'Confirm',
+    all: 'All',
+
+    timePeriod: 'Time Period',
+    periodToday: 'Today (Daily)',
+    periodWeek: 'This Week',
+    periodMonth: 'This Month',
+    periodYear: 'This Year',
+    periodAll: 'All Time (Consolidated)',
+    deliveryFormat: 'Delivery Format',
+    allFormats: 'All Formats',
+
+    allCategories: 'All Products',
+    categoryBakery: 'Bakery',
+    categoryPastry: 'Pastry',
 
     statusPending: 'Pending',
     statusInProduction: 'In Production',
     statusReady: 'Ready',
     statusDelivered: 'Delivered / Completed',
     statusCanceled: 'Canceled',
-    paid: 'Already Paid',
+    paid: 'Paid',
     toPay: 'To Collect on Delivery',
 
     pickupStore: 'Store Pickup',
@@ -270,7 +458,7 @@ const translations: Record<Language, Translations> = {
     clientManagement: 'Customer Management',
     ordersHistory: 'Orders History',
     addToCart: 'Add',
-    cartEmpty: 'No items added.',
+    cartEmpty: 'No items in order cart.',
     itemsInCart: 'Order Items',
     paymentMethod: 'Payment Method',
     cash: 'Cash',
@@ -278,48 +466,117 @@ const translations: Record<Language, Translations> = {
     mbway: 'MBWay',
     transfer: 'Bank Transfer',
     registerOrder: 'Submit Order & Print Receipt',
-    customNotes: 'Custom notes (e.g. text on cake)',
+    customNotes: 'Notes / Customization (e.g. cake text)',
     newClient: 'New Customer',
-    editClient: 'Edit Customer Data',
+    editClient: 'Edit Customer Details',
     deliveryAddress: 'Delivery Address',
-    accessNotes: 'Delivery / Access Instructions',
+    accessNotes: 'Delivery & Access Notes',
+    searchProductPlaceholder: 'Search bread, cake, pastry...',
+    searchClientPlaceholder: 'Search by name, phone or address...',
+    noClientsFound: 'No customers found.',
+    noOrdersFound: 'No orders recorded matching these filters.',
 
     productionTitle: 'Production Display (KDS)',
+    productionSubtitle: 'Real-time touch queue for bakery and pastry shop floor staff.',
+    allDepartments: 'All Departments',
     bakeryTab: 'Bakery (Breads & Oven)',
     pastryTab: 'Pastry & Cakes',
     pendingPrep: 'Pending',
     inPrep: 'Preparing',
     readyPrep: 'Ready',
     markReady: 'Mark Ready',
+    noProductionItems: 'No items currently in the production queue.',
+    customizationNotes: 'Customization / Message:',
+    destination: 'Destination',
+    destinationStore: 'Store Counter',
+    destinationVan: 'Delivery Van',
 
     storePickupTitle: 'Store Pickup Counter',
-    storePickupDesc: 'Management of orders for customer pickup in-store.',
+    storePickupDesc: 'Management of customer in-store pickup orders.',
     pendingPickups: 'To Pick Up',
     completedPickups: 'Collected',
     completePickup: 'Complete Pickup',
     reprintTicket: 'Reprint Receipt',
+    noPickupsFound: 'No orders pending pickup at this store.',
+    pickupCollected: 'Collected',
+    itemsToDeliver: 'Items to Deliver:',
+    searchPickupPlaceholder: 'Search by customer, phone or code...',
 
     deliveriesTitle: 'Delivery Van Dashboard',
     deliveriesDesc: 'Home delivery route with scheduled stops.',
+    allVans: 'All Vans',
     vanRoute: 'Van Route',
     callClient: 'Call',
     openGps: 'GPS Maps',
     completeDelivery: 'Complete Delivery',
     changeAddress: 'Change Address',
+    noDeliveriesFound: 'No deliveries scheduled on this route.',
+    stopDeliveryCompleted: 'Delivered',
 
     managementTitle: 'Executive Management Dashboard',
+    managementSubtitle: 'Metrics, store and fleet config, permissions, and receipt settings.',
     tabMetrics: 'Metrics & Reports',
     tabStoresVans: 'Stores & Vans',
     tabDatabase: 'Databases & Excel',
     tabReceiptConfig: 'Receipt Settings',
-    tabAccess: 'Access & Diagnostics',
+    tabAccess: 'Access Management',
     totalRevenue: 'Total Revenue',
     avgTicket: 'Average Ticket',
     totalOrders: 'Total Orders',
     deliveriesRatio: 'Deliveries vs Pickup',
+    storePerformance: 'Performance by Store',
+    consolidatedNeeds: 'Consolidated Production Needs',
     exportExcel: 'Export to Excel / CSV',
     importExcel: 'Bulk Import (Excel/CSV)',
     bulkUploadDesc: 'Upload a CSV/Excel file to update customers or products in bulk in Supabase.',
+
+    storesSectionTitle: 'Bakery & Pastry Stores',
+    storesSectionDesc: 'Address, phone, and tax ID configuration for each retail branch.',
+    vansSectionTitle: 'Delivery Van Fleet',
+    vansSectionDesc: 'Manage delivery vehicles, branch allocations, and license plates.',
+    addVan: 'Add Delivery Van',
+    storeCode: 'Store Code',
+    storeName: 'Store Name',
+    nif: 'Tax ID / NIF',
+    licensePlate: 'License Plate',
+    vanName: 'Identifier / Name',
+    assignedStore: 'Assigned Store',
+
+    panelAccessManagement: 'User Access & Permissions',
+    panelAccessDesc: 'Define team members and assign panel permissions according to company roles.',
+    newUser: 'New Team Member',
+    editUser: 'Edit Team Member',
+    role: 'Role / Position',
+    roleAdmin: 'General Administrator',
+    roleStoreManager: 'Store Manager',
+    roleCounter: 'Counter Staff',
+    roleBaker: 'Baker / Pastry Chef',
+    roleDriver: 'Delivery Driver',
+    allowedPanels: 'Allowed Panels',
+    userActive: 'Active',
+    userInactive: 'Inactive',
+    saveUser: 'Save User',
+
+    receiptTitle: 'Order Receipt',
+    receiptOrderNumber: 'Order Number',
+    receiptPickup: 'STORE PICKUP',
+    receiptHomeDelivery: '>> HOME DELIVERY <<',
+    receiptCustomer: 'CUSTOMER',
+    receiptPhone: 'TEL',
+    receiptDeliveryAddress: 'DELIVERY ADDRESS',
+    receiptRoute: 'ROUTE',
+    receiptObs: 'Notes',
+    receiptBakerySection: '[ BAKERY DEPARTMENT ]',
+    receiptPastrySection: '[ PASTRY DEPARTMENT ]',
+    receiptAllItemsSection: '[ ORDER ITEMS ]',
+    receiptTotalToPay: 'TOTAL TO PAY',
+    receiptPaymentStatus: 'STATUS',
+    receiptPaid: 'PAID',
+    receiptToCollect: 'TO COLLECT ON DELIVERY',
+    receiptGeneralNotes: 'GENERAL NOTES',
+    receiptIssuedAt: 'Issued at',
+    receiptThankYou: 'Thank you for your business!',
+    receiptSystemNotice: '*** ORDER MANAGEMENT SYSTEM ***',
   },
 };
 
