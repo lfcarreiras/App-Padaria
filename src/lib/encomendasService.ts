@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from './supabase';
+import { supabase } from './supabase';
 import { Encomenda, ItemEncomenda, EstadoEncomenda, EstadoProducaoItem } from '../types';
 
 export function parseEncomendasFromDb(data: any[]): Encomenda[] {

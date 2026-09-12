@@ -8,7 +8,8 @@ import {
   PRODUTOS_MOCK, 
   ENCOMENDAS_INICIAIS, 
   CARRINHAS_MOCK 
-import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+} from '../../lib/mockData';
+import { supabase } from '../../lib/supabase';
 import { carregarEncomendasSupabase } from '../../lib/encomendasService';
 import { 
   Produto, 
