@@ -11,6 +11,7 @@ import {
 } from '../../lib/encomendasService';
 import { Encomenda } from '../../types';
 import { useTranslation } from '../../lib/i18n';
+import { useAuth } from '../../lib/authContext';
 import { 
   Store, 
   Clock, 
@@ -21,11 +22,14 @@ import {
   Search, 
   DollarSign, 
   PackageCheck,
-  AlertCircle
+  AlertCircle,
+  Eye
 } from 'lucide-react';
 
 export default function EntregaLojaPage() {
   const { t } = useTranslation();
+  const { podeEditar } = useAuth();
+  const temPermissaoEdicao = podeEditar('loja');
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
   const [filtroEstado, setFiltroEstado] = useState<'pendentes' | 'concluidos'>('pendentes');
@@ -95,6 +99,17 @@ export default function EntregaLojaPage() {
       <Navbar selectedLojaId={selectedLojaId} onSelectLoja={setSelectedLojaId} />
 
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-6 sm:px-6">
+        {/* Aviso de Modo de Apenas Leitura */}
+        {!temPermissaoEdicao && (
+          <div className="mb-6 rounded-2xl bg-amber-50 border border-amber-300 p-4 flex items-center gap-3 text-amber-900 text-xs shadow-xs">
+            <Eye className="h-5 w-5 text-amber-700 shrink-0" />
+            <div>
+              <p className="font-bold">{t.readOnlyNotice}</p>
+              <p className="text-amber-800/80 mt-0.5">O seu perfil de utilizador tem apenas permissão de consulta neste painel. As ações de alteração de entrega e conclusão estão desativadas.</p>
+            </div>
+          </div>
+        )}
+
         {/* Cabeçalho do Balcão */}
         <div className="rounded-2xl bg-white p-5 border border-amber-200 shadow-xs mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -256,9 +271,14 @@ export default function EntregaLojaPage() {
 
                       <button
                         type="button"
-                        onClick={() => handleMudarParaDomicilio(enc)}
-                        className="flex items-center justify-center gap-1.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition"
-                        title="Converter em entrega ao domicílio"
+                        onClick={() => temPermissaoEdicao && handleMudarParaDomicilio(enc)}
+                        disabled={!temPermissaoEdicao}
+                        className={`flex items-center justify-center gap-1.5 rounded-xl py-2 px-3 transition ${
+                          temPermissaoEdicao
+                            ? 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'
+                            : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-60'
+                        }`}
+                        title={temPermissaoEdicao ? "Converter em entrega ao domicílio" : "Apenas leitura"}
                       >
                         <Truck className="h-4 w-4 text-blue-600" />
                         + {t.deliveryHome}
@@ -272,8 +292,13 @@ export default function EntregaLojaPage() {
                         ) : (
                           <button
                             type="button"
-                            onClick={() => handleConcluirLevantamento(enc.id)}
-                            className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-amber-600 py-2 px-3 text-white shadow-xs hover:bg-amber-700 transition"
+                            onClick={() => temPermissaoEdicao && handleConcluirLevantamento(enc.id)}
+                            disabled={!temPermissaoEdicao}
+                            className={`w-full flex items-center justify-center gap-1.5 rounded-xl py-2 px-3 text-white shadow-xs transition ${
+                              temPermissaoEdicao
+                                ? 'bg-amber-600 hover:bg-amber-700'
+                                : 'bg-gray-400 cursor-not-allowed opacity-60'
+                            }`}
                           >
                             <CheckCircle2 className="h-4 w-4" /> {t.completePickup}
                           </button>

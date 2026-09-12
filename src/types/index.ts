@@ -80,19 +80,29 @@ export interface Encomenda {
   criado_em: string;
 }
 
+export type NivelAcesso = 'sem_acesso' | 'leitura' | 'edicao';
+
 export interface PerfilUtilizador {
   id: string;
   nome: string;
   telefone: string;
   email?: string;
+  password?: string;
   role: Role;
   loja_id?: string;
   loja_nome?: string;
-  painel_encomendas: boolean;
-  painel_producao: boolean;
-  painel_loja: boolean;
-  painel_entregas: boolean;
-  painel_gestao: boolean;
+  acesso_encomendas: NivelAcesso;
+  acesso_producao: NivelAcesso;
+  acesso_loja: NivelAcesso;
+  acesso_entregas: NivelAcesso;
+  acesso_gestao: NivelAcesso;
+  // Compatibilidade legada
+  painel_encomendas?: boolean;
+  painel_producao?: boolean;
+  painel_loja?: boolean;
+  painel_entregas?: boolean;
+  painel_gestao?: boolean;
   ativo: boolean;
   atualizado_em?: string;
 }
+

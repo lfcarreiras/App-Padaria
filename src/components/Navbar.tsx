@@ -2,10 +2,11 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Store, ShoppingBag, ChefHat, Truck, BarChart3, Globe } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Store, ShoppingBag, ChefHat, Truck, BarChart3, Globe, LogOut, UserCheck, Eye } from 'lucide-react';
 import { LOJAS_MOCK } from '../lib/mockData';
 import { useTranslation } from '../lib/i18n';
+import { useAuth, PainelApp } from '../lib/authContext';
 
 interface NavbarProps {
   selectedLojaId: string;
@@ -14,22 +15,35 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId, onSelectLoja }) => {
   const pathname = usePathname();
+  const router = useRouter();
   const { language, setLanguage, t } = useTranslation();
+  const { usuario, logout, getNivelAcesso } = useAuth();
 
-  const links = [
-    { href: '/encomendas', label: t.navEncomendas, icon: ShoppingBag, aliases: ['/balcao', '/'] },
-    { href: '/producao', label: t.navProducao, icon: ChefHat },
-    { href: '/loja', label: t.navLoja, icon: Store },
-    { href: '/entregas', label: t.navEntregas, icon: Truck },
-    { href: '/admin', label: t.navGestao, icon: BarChart3 },
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
+
+  const allLinks: { href: string; label: string; icon: any; panel: PainelApp; aliases?: string[] }[] = [
+    { href: '/encomendas', label: t.navEncomendas, icon: ShoppingBag, panel: 'encomendas', aliases: ['/balcao'] },
+    { href: '/producao', label: t.navProducao, icon: ChefHat, panel: 'producao' },
+    { href: '/loja', label: t.navLoja, icon: Store, panel: 'loja' },
+    { href: '/entregas', label: t.navEntregas, icon: Truck, panel: 'entregas' },
+    { href: '/admin', label: t.navGestao, icon: BarChart3, panel: 'gestao' },
   ];
+
+  // Filtrar apenas os painéis onde o colaborador tem acesso
+  const links = allLinks.filter((item) => {
+    const nivel = getNivelAcesso(item.panel);
+    return nivel !== 'sem_acesso';
+  });
 
   return (
     <header className="no-print sticky top-0 z-40 w-full border-b border-bakery-200 bg-white/95 backdrop-blur shadow-xs">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-3 py-2.5 sm:px-6">
         {/* Identidade e Seletor de Loja */}
         <div className="flex items-center gap-3">
-          <Link href="/encomendas" className="flex items-center gap-2">
+          <Link href={links[0]?.href || '/login'} className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-bakery-600 text-white shadow-sm text-base">
               🥖
             </div>
@@ -69,6 +83,8 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId, onSelectLoja }) 
             const isExact = pathname === item.href;
             const isAlias = item.aliases && item.aliases.includes(pathname);
             const isActive = isExact || isAlias;
+            const nivel = getNivelAcesso(item.panel);
+            const isReadOnly = nivel === 'leitura';
 
             return (
               <Link
@@ -82,21 +98,67 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId, onSelectLoja }) 
               >
                 <Icon className="h-4 w-4 shrink-0" />
                 <span className="hidden md:inline">{item.label}</span>
+                {isReadOnly && (
+                  <span
+                    className={`inline-flex items-center gap-0.5 px-1 py-0.2 text-[9px] font-extrabold uppercase rounded ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-800'
+                    }`}
+                    title={t.readOnlyMode}
+                  >
+                    <Eye className="h-2.5 w-2.5" />
+                    <span className="hidden xl:inline">Leitura</span>
+                  </span>
+                )}
               </Link>
             );
           })}
         </nav>
 
-        {/* Seletor de Idioma (PT / EN) */}
-        <div className="flex items-center gap-1 pl-1 sm:pl-2 border-l border-gray-200">
+        {/* Área do Utilizador & Idioma */}
+        <div className="flex items-center gap-2 pl-1 sm:pl-2 border-l border-gray-200">
+          {usuario ? (
+            <div className="flex items-center gap-2">
+              <div className="hidden sm:block text-right">
+                <span className="text-xs font-bold text-gray-900 block leading-tight truncate max-w-[130px]">
+                  {usuario.nome}
+                </span>
+                <span className="text-[10px] text-gray-500 font-semibold block capitalize leading-tight">
+                  {usuario.role === 'admin' ? t.roleAdmin :
+                   usuario.role === 'gerente_loja' ? t.roleStoreManager :
+                   usuario.role === 'motorista' ? t.roleDriver :
+                   usuario.role === 'operador_padaria' || usuario.role === 'operador_pastelaria' ? t.roleBaker : t.roleCounter}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 transition"
+                title={t.logout}
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{t.logout}</span>
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-bakery-600 hover:bg-bakery-700 shadow-xs transition"
+            >
+              <UserCheck className="h-3.5 w-3.5" />
+              <span>{t.loginButton}</span>
+            </Link>
+          )}
+
+          {/* Seletor de Idioma (PT / EN) */}
           <button
             type="button"
             onClick={() => setLanguage(language === 'pt' ? 'en' : 'pt')}
-            className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition border border-gray-200"
+            className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition border border-gray-200"
             title={language === 'pt' ? 'Mudar para Inglês' : 'Switch to Portuguese'}
           >
             <Globe className="h-3.5 w-3.5 text-bakery-600" />
-            <span>{language === 'pt' ? '🇵🇹 PT' : '🇬🇧 EN'}</span>
+            <span className="text-[11px] font-bold">{language === 'pt' ? '🇵🇹 PT' : '🇬🇧 EN'}</span>
           </button>
         </div>
       </div>

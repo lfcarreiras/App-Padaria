@@ -203,6 +203,27 @@ export interface Translations {
   receiptIssuedAt: string;
   receiptThankYou: string;
   receiptSystemNotice: string;
+
+  // Autenticação e Níveis de Acesso
+  loginTitle: string;
+  loginSubtitle: string;
+  loginIdentifierLabel: string;
+  loginIdentifierPlaceholder: string;
+  loginPasswordLabel: string;
+  loginPasswordPlaceholder: string;
+  loginButton: string;
+  loginInvalidCredentials: string;
+  loginDemoAccess: string;
+  logout: string;
+  activeUser: string;
+  readOnlyMode: string;
+  readOnlyNotice: string;
+  noAccessNotice: string;
+  accessLevel: string;
+  levelNoAccess: string;
+  levelReadOnly: string;
+  levelFullEdit: string;
+  password: string;
 }
 
 const translations: Record<Language, Translations> = {
@@ -391,6 +412,27 @@ const translations: Record<Language, Translations> = {
     receiptIssuedAt: 'Emitido em',
     receiptThankYou: 'Obrigado pela sua preferência!',
     receiptSystemNotice: '*** SISTEMA DE ENCOMENDAS ***',
+
+    // Autenticação e Níveis de Acesso
+    loginTitle: 'Autenticação de Colaborador',
+    loginSubtitle: 'Introduza as suas credenciais para aceder ao sistema de gestão e operação.',
+    loginIdentifierLabel: 'Utilizador / Email / Telefone',
+    loginIdentifierPlaceholder: 'ex: admin@padaria.pt ou 910000001',
+    loginPasswordLabel: 'Palavra-passe',
+    loginPasswordPlaceholder: '••••••••',
+    loginButton: 'Entrar no Sistema',
+    loginInvalidCredentials: 'Credenciais inválidas ou utilizador desativado. Verifique os dados.',
+    loginDemoAccess: 'Acesso Rápido de Teste (1 Clique):',
+    logout: 'Sair',
+    activeUser: 'Colaborador Ativo',
+    readOnlyMode: 'Modo de Leitura',
+    readOnlyNotice: 'Perfil em modo de consulta. As ações de edição e gravação estão desativadas.',
+    noAccessNotice: 'Não tem permissão para aceder a este painel.',
+    accessLevel: 'Nível de Acesso',
+    levelNoAccess: 'Sem Acesso',
+    levelReadOnly: 'Apenas Leitura',
+    levelFullEdit: 'Edição Completa',
+    password: 'Palavra-passe',
   },
   en: {
     appTitle: 'Bakeries & Pastries',
@@ -577,6 +619,27 @@ const translations: Record<Language, Translations> = {
     receiptIssuedAt: 'Issued at',
     receiptThankYou: 'Thank you for your business!',
     receiptSystemNotice: '*** ORDER MANAGEMENT SYSTEM ***',
+
+    // Autenticação e Níveis de Acesso
+    loginTitle: 'Staff Sign In',
+    loginSubtitle: 'Enter your credentials to access the bakery management and operations system.',
+    loginIdentifierLabel: 'Username / Email / Phone',
+    loginIdentifierPlaceholder: 'e.g. admin@padaria.pt or 910000001',
+    loginPasswordLabel: 'Password',
+    loginPasswordPlaceholder: '••••••••',
+    loginButton: 'Sign In',
+    loginInvalidCredentials: 'Invalid credentials or inactive account. Please check your input.',
+    loginDemoAccess: 'Quick Demo Access (1 Click):',
+    logout: 'Sign Out',
+    activeUser: 'Active Staff',
+    readOnlyMode: 'Read-only Mode',
+    readOnlyNotice: 'Read-only access. Editing and submission actions are restricted.',
+    noAccessNotice: 'You do not have permission to access this panel.',
+    accessLevel: 'Access Level',
+    levelNoAccess: 'No Access',
+    levelReadOnly: 'Read-only',
+    levelFullEdit: 'Full Edit',
+    password: 'Password',
   },
 };
 

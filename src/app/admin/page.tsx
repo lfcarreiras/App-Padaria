@@ -24,8 +24,9 @@ import {
   saveReceiptConfig, 
   DEFAULT_RECEIPT_CONFIG 
 } from '../../lib/receiptConfig';
-import { Encomenda, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, Role } from '../../types';
+import { Encomenda, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, Role, NivelAcesso } from '../../types';
 import { useTranslation } from '../../lib/i18n';
+import { useAuth } from '../../lib/authContext';
 import { 
   BarChart3, 
   Store, 
@@ -44,11 +45,16 @@ import {
   Filter,
   Check,
   ShieldCheck,
-  UserCheck
+  UserCheck,
+  Eye,
+  Lock,
+  AlertTriangle
 } from 'lucide-react';
 
 export default function AdminPage() {
   const { t, language } = useTranslation();
+  const { podeEditar } = useAuth();
+  const temPermissaoEdicaoGestao = podeEditar('gestao');
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
   const [activeTab, setActiveTab] = useState<'metricas' | 'lojas_carrinhas' | 'database' | 'talao' | 'acessos'>('metricas');
 
@@ -201,28 +207,63 @@ export default function AdminPage() {
   // Ações de Gestão de Acessos
   const aplicarPredefinicoesCargo = (cargo: Role) => {
     if (!perfilEmEdicao) return;
-    let panels = {
-      painel_encomendas: true,
-      painel_producao: false,
-      painel_loja: true,
-      painel_entregas: false,
-      painel_gestao: false,
+    let accessLevels: {
+      acesso_encomendas: NivelAcesso;
+      acesso_producao: NivelAcesso;
+      acesso_loja: NivelAcesso;
+      acesso_entregas: NivelAcesso;
+      acesso_gestao: NivelAcesso;
+    } = {
+      acesso_encomendas: 'edicao',
+      acesso_producao: 'leitura',
+      acesso_loja: 'edicao',
+      acesso_entregas: 'sem_acesso',
+      acesso_gestao: 'sem_acesso',
     };
 
     if (cargo === 'admin') {
-      panels = { painel_encomendas: true, painel_producao: true, painel_loja: true, painel_entregas: true, painel_gestao: true };
+      accessLevels = {
+        acesso_encomendas: 'edicao',
+        acesso_producao: 'edicao',
+        acesso_loja: 'edicao',
+        acesso_entregas: 'edicao',
+        acesso_gestao: 'edicao',
+      };
     } else if (cargo === 'gerente_loja') {
-      panels = { painel_encomendas: true, painel_producao: true, painel_loja: true, painel_entregas: true, painel_gestao: false };
+      accessLevels = {
+        acesso_encomendas: 'edicao',
+        acesso_producao: 'edicao',
+        acesso_loja: 'edicao',
+        acesso_entregas: 'edicao',
+        acesso_gestao: 'leitura',
+      };
     } else if (cargo === 'operador_padaria' || cargo === 'operador_pastelaria') {
-      panels = { painel_encomendas: false, painel_producao: true, painel_loja: false, painel_entregas: false, painel_gestao: false };
+      accessLevels = {
+        acesso_encomendas: 'leitura',
+        acesso_producao: 'edicao',
+        acesso_loja: 'sem_acesso',
+        acesso_entregas: 'sem_acesso',
+        acesso_gestao: 'sem_acesso',
+      };
     } else if (cargo === 'motorista') {
-      panels = { painel_encomendas: false, painel_producao: false, painel_loja: false, painel_entregas: true, painel_gestao: false };
+      accessLevels = {
+        acesso_encomendas: 'sem_acesso',
+        acesso_producao: 'sem_acesso',
+        acesso_loja: 'leitura',
+        acesso_entregas: 'edicao',
+        acesso_gestao: 'sem_acesso',
+      };
     }
 
     setPerfilEmEdicao({
       ...perfilEmEdicao,
       role: cargo,
-      ...panels,
+      ...accessLevels,
+      painel_encomendas: accessLevels.acesso_encomendas !== 'sem_acesso',
+      painel_producao: accessLevels.acesso_producao !== 'sem_acesso',
+      painel_loja: accessLevels.acesso_loja !== 'sem_acesso',
+      painel_entregas: accessLevels.acesso_entregas !== 'sem_acesso',
+      painel_gestao: accessLevels.acesso_gestao !== 'sem_acesso',
     });
   };
 
@@ -230,18 +271,30 @@ export default function AdminPage() {
     e.preventDefault();
     if (!perfilEmEdicao || !perfilEmEdicao.nome) return;
 
+    const encNivel: NivelAcesso = perfilEmEdicao.acesso_encomendas || (perfilEmEdicao.painel_encomendas ? 'edicao' : 'sem_acesso');
+    const prodNivel: NivelAcesso = perfilEmEdicao.acesso_producao || (perfilEmEdicao.painel_producao ? 'edicao' : 'sem_acesso');
+    const lojaNivel: NivelAcesso = perfilEmEdicao.acesso_loja || (perfilEmEdicao.painel_loja ? 'edicao' : 'sem_acesso');
+    const entNivel: NivelAcesso = perfilEmEdicao.acesso_entregas || (perfilEmEdicao.painel_entregas ? 'edicao' : 'sem_acesso');
+    const gestNivel: NivelAcesso = perfilEmEdicao.acesso_gestao || (perfilEmEdicao.painel_gestao ? 'edicao' : 'sem_acesso');
+
     const perfilParaGravar: PerfilUtilizador = {
       id: perfilEmEdicao.id || `user-${Date.now()}`,
       nome: perfilEmEdicao.nome.trim(),
       telefone: perfilEmEdicao.telefone?.trim() || '9xxxxxxxx',
       email: perfilEmEdicao.email?.trim() || '',
+      password: perfilEmEdicao.password?.trim() || (perfilEmEdicao.role === 'admin' ? 'admin' : '123'),
       role: (perfilEmEdicao.role as Role) || 'atendente',
       loja_id: perfilEmEdicao.loja_id || undefined,
-      painel_encomendas: perfilEmEdicao.painel_encomendas ?? true,
-      painel_producao: perfilEmEdicao.painel_producao ?? false,
-      painel_loja: perfilEmEdicao.painel_loja ?? true,
-      painel_entregas: perfilEmEdicao.painel_entregas ?? false,
-      painel_gestao: perfilEmEdicao.painel_gestao ?? false,
+      acesso_encomendas: encNivel,
+      acesso_producao: prodNivel,
+      acesso_loja: lojaNivel,
+      acesso_entregas: entNivel,
+      acesso_gestao: gestNivel,
+      painel_encomendas: encNivel !== 'sem_acesso',
+      painel_producao: prodNivel !== 'sem_acesso',
+      painel_loja: lojaNivel !== 'sem_acesso',
+      painel_entregas: entNivel !== 'sem_acesso',
+      painel_gestao: gestNivel !== 'sem_acesso',
       ativo: perfilEmEdicao.ativo ?? true,
     };
 
@@ -384,6 +437,14 @@ export default function AdminPage() {
       <Navbar selectedLojaId={selectedLojaId} onSelectLoja={setSelectedLojaId} />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 sm:px-6">
+        {/* Aviso de Modo de Leitura na Gestão */}
+        {!temPermissaoEdicaoGestao && (
+          <div className="mb-6 p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold flex items-center gap-2.5 shadow-2xs">
+            <Eye className="h-4 w-4 text-amber-600 shrink-0" />
+            <span>{t.readOnlyNotice}</span>
+          </div>
+        )}
+
         {/* Cabeçalho de Gestão */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
@@ -632,12 +693,14 @@ export default function AdminPage() {
                       <span className="font-mono font-bold text-bakery-700 bg-bakery-50 px-2 py-0.5 rounded border border-bakery-200">
                         {l.codigo}
                       </span>
-                      <button
-                        onClick={() => setLojaEmEdicao(l)}
-                        className="flex items-center gap-1 font-bold text-blue-600 hover:text-blue-800 bg-white px-2 py-1 rounded-lg border border-gray-200 shadow-2xs"
-                      >
-                        <Edit3 className="h-3 w-3" /> {t.edit}
-                      </button>
+                      {temPermissaoEdicaoGestao && (
+                        <button
+                          onClick={() => setLojaEmEdicao(l)}
+                          className="flex items-center gap-1 font-bold text-blue-600 hover:text-blue-800 bg-white px-2 py-1 rounded-lg border border-gray-200 shadow-2xs"
+                        >
+                          <Edit3 className="h-3 w-3" /> {t.edit}
+                        </button>
+                      )}
                     </div>
 
                     <h4 className="font-bold text-sm text-gray-900">{l.nome}</h4>
@@ -660,13 +723,15 @@ export default function AdminPage() {
                   <p className="text-xs text-gray-500">{t.vansSectionDesc}</p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setCarrinhaEmEdicao({ identificador: '', matricula: '', loja_id: lojas[0]?.id || '' })}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition"
-                >
-                  <Plus className="h-3.5 w-3.5" /> {t.addVan}
-                </button>
+                {temPermissaoEdicaoGestao && (
+                  <button
+                    type="button"
+                    onClick={() => setCarrinhaEmEdicao({ identificador: '', matricula: '', loja_id: lojas[0]?.id || '' })}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> {t.addVan}
+                  </button>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -678,12 +743,14 @@ export default function AdminPage() {
                         <span className="font-mono font-black text-gray-900 bg-white px-2 py-0.5 rounded border border-gray-300">
                           {c.matricula}
                         </span>
-                        <button
-                          onClick={() => setCarrinhaEmEdicao(c)}
-                          className="flex items-center gap-1 font-bold text-blue-700 hover:text-blue-900 bg-white px-2 py-1 rounded-lg border border-blue-200"
-                        >
-                          <Edit3 className="h-3 w-3" /> {t.edit}
-                        </button>
+                        {temPermissaoEdicaoGestao && (
+                          <button
+                            onClick={() => setCarrinhaEmEdicao(c)}
+                            className="flex items-center gap-1 font-bold text-blue-700 hover:text-blue-900 bg-white px-2 py-1 rounded-lg border border-blue-200"
+                          >
+                            <Edit3 className="h-3 w-3" /> {t.edit}
+                          </button>
+                        )}
                       </div>
 
                       <h4 className="font-bold text-gray-900">{c.identificador}</h4>
@@ -769,18 +836,23 @@ export default function AdminPage() {
                 </button>
               </div>
 
-              <div className="border-2 border-dashed border-gray-300 rounded-2xl p-6 text-center hover:border-blue-500 transition bg-gray-50/50">
+              <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition ${
+                temPermissaoEdicaoGestao
+                  ? 'border-gray-300 hover:border-blue-500 bg-gray-50/50 cursor-pointer'
+                  : 'border-gray-200 bg-gray-100/70 cursor-not-allowed opacity-75'
+              }`}>
                 <input
                   type="file"
                   accept=".csv,.txt"
                   id="excel-upload"
+                  disabled={!temPermissaoEdicaoGestao}
                   onChange={handleFicheiroSelecionado}
                   className="hidden"
                 />
-                <label htmlFor="excel-upload" className="cursor-pointer flex flex-col items-center">
+                <label htmlFor={temPermissaoEdicaoGestao ? "excel-upload" : undefined} className={`flex flex-col items-center ${temPermissaoEdicaoGestao ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
                   <FileSpreadsheet className="h-10 w-10 text-gray-400 mb-2" />
                   <span className="text-xs font-bold text-gray-800">
-                    {arquivoImportado ? `Ficheiro: ${arquivoImportado}` : 'Clique para selecionar ficheiro CSV / Excel'}
+                    {!temPermissaoEdicaoGestao ? `🚫 ${t.readOnlyMode} - ${t.importExcel}` : arquivoImportado ? `Ficheiro: ${arquivoImportado}` : 'Clique para selecionar ficheiro CSV / Excel'}
                   </span>
                   <span className="text-[11px] text-gray-400 mt-1">Ficheiros .CSV exportados do Excel</span>
                 </label>
@@ -794,11 +866,11 @@ export default function AdminPage() {
                     </span>
                     <button
                       onClick={handleExecutarImportacao}
-                      disabled={processandoImportacao}
+                      disabled={processandoImportacao || !temPermissaoEdicaoGestao}
                       className="px-4 py-2 rounded-xl bg-blue-600 text-white font-bold text-xs hover:bg-blue-700 disabled:opacity-50 transition shadow-xs flex items-center gap-1.5"
                     >
                       <RefreshCw className={`h-3.5 w-3.5 ${processandoImportacao ? 'animate-spin' : ''}`} />
-                      {processandoImportacao ? t.loading : t.save}
+                      {processandoImportacao ? t.loading : !temPermissaoEdicaoGestao ? t.levelReadOnly : t.save}
                     </button>
                   </div>
 
@@ -939,12 +1011,18 @@ export default function AdminPage() {
               </div>
 
               <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-2">
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-bakery-600 text-white font-black shadow-xs hover:bg-bakery-700 transition"
-                >
-                  {t.save}
-                </button>
+                {temPermissaoEdicaoGestao ? (
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-bakery-600 text-white font-black shadow-xs hover:bg-bakery-700 transition"
+                  >
+                    {t.save}
+                  </button>
+                ) : (
+                  <span className="text-xs font-bold text-gray-400 italic">
+                    {t.levelReadOnly}
+                  </span>
+                )}
               </div>
             </form>
 
@@ -1045,28 +1123,31 @@ export default function AdminPage() {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setPerfilEmEdicao({
-                    nome: '',
-                    telefone: '',
-                    email: '',
-                    role: 'atendente',
-                    loja_id: lojas[0]?.id,
-                    painel_encomendas: true,
-                    painel_producao: false,
-                    painel_loja: true,
-                    painel_entregas: false,
-                    painel_gestao: false,
-                    ativo: true,
-                  });
-                }}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-bakery-600 text-white text-xs font-bold hover:bg-bakery-700 transition shadow-xs"
-              >
-                <Plus className="h-4 w-4" />
-                {t.newUser}
-              </button>
+              {temPermissaoEdicaoGestao && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPerfilEmEdicao({
+                      nome: '',
+                      telefone: '',
+                      email: '',
+                      password: '123',
+                      role: 'atendente',
+                      loja_id: lojas[0]?.id,
+                      acesso_encomendas: 'edicao',
+                      acesso_producao: 'leitura',
+                      acesso_loja: 'edicao',
+                      acesso_entregas: 'sem_acesso',
+                      acesso_gestao: 'sem_acesso',
+                      ativo: true,
+                    });
+                  }}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-bakery-600 text-white text-xs font-bold hover:bg-bakery-700 transition shadow-xs"
+                >
+                  <Plus className="h-4 w-4" />
+                  {t.newUser}
+                </button>
+              )}
             </div>
 
             {/* Tabela de Utilizadores & Permissões */}
@@ -1091,6 +1172,14 @@ export default function AdminPage() {
                       p.role === 'operador_padaria' || p.role === 'operador_pastelaria' ? t.roleBaker :
                       p.role === 'motorista' ? t.roleDriver : t.roleCounter;
 
+                    const paineisUtilizador = [
+                      { key: 'acesso_encomendas', label: t.navEncomendas, nivel: p.acesso_encomendas || (p.painel_encomendas ? 'edicao' : 'sem_acesso') },
+                      { key: 'acesso_producao', label: t.navProducao, nivel: p.acesso_producao || (p.painel_producao ? 'edicao' : 'sem_acesso') },
+                      { key: 'acesso_loja', label: t.navLoja, nivel: p.acesso_loja || (p.painel_loja ? 'edicao' : 'sem_acesso') },
+                      { key: 'acesso_entregas', label: t.navEntregas, nivel: p.acesso_entregas || (p.painel_entregas ? 'edicao' : 'sem_acesso') },
+                      { key: 'acesso_gestao', label: t.navGestao, nivel: p.acesso_gestao || (p.painel_gestao ? 'edicao' : 'sem_acesso') },
+                    ];
+
                     return (
                       <tr key={p.id} className="hover:bg-gray-50/70 transition">
                         <td className="p-3.5">
@@ -1113,32 +1202,25 @@ export default function AdminPage() {
                         </td>
 
                         <td className="p-3.5">
-                          <div className="flex flex-wrap gap-1">
-                            {p.painel_encomendas && (
-                              <span className="bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded text-[10px] font-bold">
-                                {t.navEncomendas}
-                              </span>
-                            )}
-                            {p.painel_producao && (
-                              <span className="bg-rose-50 text-rose-800 border border-rose-200 px-1.5 py-0.5 rounded text-[10px] font-bold">
-                                {t.navProducao}
-                              </span>
-                            )}
-                            {p.painel_loja && (
-                              <span className="bg-yellow-50 text-yellow-800 border border-yellow-200 px-1.5 py-0.5 rounded text-[10px] font-bold">
-                                {t.navLoja}
-                              </span>
-                            )}
-                            {p.painel_entregas && (
-                              <span className="bg-blue-50 text-blue-800 border border-blue-200 px-1.5 py-0.5 rounded text-[10px] font-bold">
-                                {t.navEntregas}
-                              </span>
-                            )}
-                            {p.painel_gestao && (
-                              <span className="bg-purple-50 text-purple-800 border border-purple-200 px-1.5 py-0.5 rounded text-[10px] font-bold">
-                                {t.navGestao}
-                              </span>
-                            )}
+                          <div className="flex flex-wrap gap-1.5">
+                            {paineisUtilizador.map((item) => {
+                              if (item.nivel === 'sem_acesso') return null;
+                              const isLeitura = item.nivel === 'leitura';
+                              return (
+                                <span
+                                  key={item.key}
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${
+                                    isLeitura
+                                      ? 'bg-blue-50 text-blue-800 border-blue-200'
+                                      : 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                  }`}
+                                  title={isLeitura ? t.levelReadOnly : t.levelFullEdit}
+                                >
+                                  {isLeitura ? <Eye className="h-2.5 w-2.5 text-blue-600" /> : <Edit3 className="h-2.5 w-2.5 text-emerald-600" />}
+                                  {item.label} ({isLeitura ? t.levelReadOnly : t.levelFullEdit})
+                                </span>
+                              );
+                            })}
                           </div>
                         </td>
 
@@ -1151,19 +1233,27 @@ export default function AdminPage() {
                         </td>
 
                         <td className="p-3.5 text-right space-x-1.5 whitespace-nowrap">
-                          <button
-                            onClick={() => setPerfilEmEdicao(p)}
-                            className="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-[11px] transition"
-                          >
-                            {t.edit}
-                          </button>
-                          {p.role !== 'admin' && (
-                            <button
-                              onClick={() => handleEliminarPerfil(p.id)}
-                              className="px-2 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-bold text-[11px] transition"
-                            >
-                              <Trash2 className="h-3.5 w-3.5 inline" />
-                            </button>
+                          {temPermissaoEdicaoGestao ? (
+                            <>
+                              <button
+                                onClick={() => setPerfilEmEdicao(p)}
+                                className="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-[11px] transition"
+                              >
+                                {t.edit}
+                              </button>
+                              {p.role !== 'admin' && (
+                                <button
+                                  onClick={() => handleEliminarPerfil(p.id)}
+                                  className="px-2 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-bold text-[11px] transition"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 inline" />
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-[11px] text-gray-400 font-semibold italic">
+                              {t.levelReadOnly}
+                            </span>
                           )}
                         </td>
                       </tr>
@@ -1209,7 +1299,7 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block font-bold text-gray-700 mb-1">Email</label>
                   <input
@@ -1217,6 +1307,17 @@ export default function AdminPage() {
                     value={perfilEmEdicao.email || ''}
                     onChange={(e) => setPerfilEmEdicao({ ...perfilEmEdicao, email: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">{t.password} *</label>
+                  <input
+                    type="text"
+                    required
+                    value={perfilEmEdicao.password || ''}
+                    onChange={(e) => setPerfilEmEdicao({ ...perfilEmEdicao, password: e.target.value })}
+                    placeholder="••••"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden font-mono text-gray-800"
                   />
                 </div>
                 <div>
@@ -1250,61 +1351,66 @@ export default function AdminPage() {
                 </select>
               </div>
 
-              {/* Caixas de Seleção Granulares de Painéis */}
-              <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 space-y-2">
-                <span className="font-bold text-gray-800 block mb-1">Permissões de Acesso aos Painéis:</span>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <label className="flex items-center gap-2 cursor-pointer font-medium">
-                    <input
-                      type="checkbox"
-                      checked={perfilEmEdicao.painel_encomendas ?? true}
-                      onChange={(e) => setPerfilEmEdicao({ ...perfilEmEdicao, painel_encomendas: e.target.checked })}
-                      className="rounded text-bakery-600"
-                    />
-                    <span>{t.navEncomendas}</span>
-                  </label>
-
-                  <label className="flex items-center gap-2 cursor-pointer font-medium">
-                    <input
-                      type="checkbox"
-                      checked={perfilEmEdicao.painel_producao ?? false}
-                      onChange={(e) => setPerfilEmEdicao({ ...perfilEmEdicao, painel_producao: e.target.checked })}
-                      className="rounded text-bakery-600"
-                    />
-                    <span>{t.navProducao}</span>
-                  </label>
-
-                  <label className="flex items-center gap-2 cursor-pointer font-medium">
-                    <input
-                      type="checkbox"
-                      checked={perfilEmEdicao.painel_loja ?? true}
-                      onChange={(e) => setPerfilEmEdicao({ ...perfilEmEdicao, painel_loja: e.target.checked })}
-                      className="rounded text-bakery-600"
-                    />
-                    <span>{t.navLoja}</span>
-                  </label>
-
-                  <label className="flex items-center gap-2 cursor-pointer font-medium">
-                    <input
-                      type="checkbox"
-                      checked={perfilEmEdicao.painel_entregas ?? false}
-                      onChange={(e) => setPerfilEmEdicao({ ...perfilEmEdicao, painel_entregas: e.target.checked })}
-                      className="rounded text-bakery-600"
-                    />
-                    <span>{t.navEntregas}</span>
-                  </label>
-
-                  <label className="flex items-center gap-2 cursor-pointer font-medium col-span-2 text-purple-900 font-bold">
-                    <input
-                      type="checkbox"
-                      checked={perfilEmEdicao.painel_gestao ?? false}
-                      onChange={(e) => setPerfilEmEdicao({ ...perfilEmEdicao, painel_gestao: e.target.checked })}
-                      className="rounded text-purple-600"
-                    />
-                    <span>{t.navGestao} (Métricas, Lojas, Frota e Acessos)</span>
-                  </label>
+              {/* Seletores Granulares de Acesso aos 5 Painéis (Sem Acesso / Leitura / Edição) */}
+              <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 space-y-2.5">
+                <div className="flex items-center justify-between border-b border-gray-200 pb-1.5">
+                  <span className="font-bold text-gray-900 block">{t.allowedPanels}:</span>
+                  <span className="text-[10px] text-gray-500 italic">Defina se tem acesso de Leitura ou Edição</span>
                 </div>
+
+                {[
+                  { key: 'acesso_encomendas', label: t.navEncomendas },
+                  { key: 'acesso_producao', label: t.navProducao },
+                  { key: 'acesso_loja', label: t.navLoja },
+                  { key: 'acesso_entregas', label: t.navEntregas },
+                  { key: 'acesso_gestao', label: `${t.navGestao} (Métricas, Lojas, Frota e Acessos)` },
+                ].map((item) => {
+                  const nivelAtual: NivelAcesso =
+                    (perfilEmEdicao as any)[item.key] ||
+                    (perfilEmEdicao as any)[item.key.replace('acesso_', 'painel_')] ? 'edicao' : 'sem_acesso';
+
+                  return (
+                    <div key={item.key} className="p-2 rounded-xl bg-white border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <span className="font-bold text-gray-800">{item.label}</span>
+
+                      <div className="flex bg-gray-100 p-0.5 rounded-lg text-[10px] font-bold shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setPerfilEmEdicao({ ...perfilEmEdicao, [item.key]: 'sem_acesso' })}
+                          className={`px-2 py-1 rounded-md transition ${
+                            nivelAtual === 'sem_acesso'
+                              ? 'bg-red-600 text-white shadow-2xs font-black'
+                              : 'text-gray-500 hover:text-gray-900'
+                          }`}
+                        >
+                          🚫 {t.levelNoAccess}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPerfilEmEdicao({ ...perfilEmEdicao, [item.key]: 'leitura' })}
+                          className={`px-2 py-1 rounded-md transition ${
+                            nivelAtual === 'leitura'
+                              ? 'bg-blue-600 text-white shadow-2xs font-black'
+                              : 'text-gray-500 hover:text-gray-900'
+                          }`}
+                        >
+                          👁️ {t.levelReadOnly}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPerfilEmEdicao({ ...perfilEmEdicao, [item.key]: 'edicao' })}
+                          className={`px-2 py-1 rounded-md transition ${
+                            nivelAtual === 'edicao'
+                              ? 'bg-emerald-600 text-white shadow-2xs font-black'
+                              : 'text-gray-500 hover:text-gray-900'
+                          }`}
+                        >
+                          ✏️ {t.levelFullEdit}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               <div className="flex items-center justify-between pt-2 border-t">

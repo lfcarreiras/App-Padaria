@@ -11,10 +11,13 @@ import {
 } from '../../lib/encomendasService';
 import { Encomenda, SetorProducao, EstadoProducaoItem } from '../../types';
 import { useTranslation } from '../../lib/i18n';
-import { ChefHat, Clock, CheckCircle2, AlertTriangle, Printer, Sparkles, Flame, Store } from 'lucide-react';
+import { useAuth } from '../../lib/authContext';
+import { ChefHat, Clock, CheckCircle2, AlertTriangle, Printer, Sparkles, Flame, Store, Eye } from 'lucide-react';
 
 export default function ProducaoPage() {
   const { t } = useTranslation();
+  const { podeEditar } = useAuth();
+  const temPermissaoEdicao = podeEditar('producao');
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
   const [setorAtivo, setSetorAtivo] = useState<SetorProducao | 'todos'>('todos');
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
@@ -69,6 +72,14 @@ export default function ProducaoPage() {
       <Navbar selectedLojaId={selectedLojaId} onSelectLoja={setSelectedLojaId} />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 sm:px-6">
+        {/* Aviso de Modo de Leitura */}
+        {!temPermissaoEdicao && (
+          <div className="mb-6 p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold flex items-center gap-2.5 shadow-2xs">
+            <Eye className="h-4 w-4 text-amber-600 shrink-0" />
+            <span>{t.readOnlyNotice}</span>
+          </div>
+        )}
+
         {/* Barra Superior do KDS */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
           <div>
@@ -225,8 +236,11 @@ export default function ProducaoPage() {
                         {/* Botões Táteis de Mudança de Estado */}
                         <div className="mt-3 pt-2 border-t border-stone-200/60 grid grid-cols-3 gap-1.5 text-xs font-bold">
                           <button
+                            disabled={!temPermissaoEdicao}
                             onClick={() => atualizarEstadoItem(enc.id, item.id, 'pendente')}
                             className={`py-1.5 rounded-lg border transition ${
+                              !temPermissaoEdicao ? 'opacity-60 cursor-not-allowed' : ''
+                            } ${
                               item.estado_producao === 'pendente'
                                 ? 'bg-stone-800 text-white border-stone-800'
                                 : 'bg-white text-stone-600 hover:bg-stone-100 border-stone-300'
@@ -235,8 +249,11 @@ export default function ProducaoPage() {
                             {t.pendingPrep}
                           </button>
                           <button
+                            disabled={!temPermissaoEdicao}
                             onClick={() => atualizarEstadoItem(enc.id, item.id, 'em_preparo')}
                             className={`py-1.5 rounded-lg border transition ${
+                              !temPermissaoEdicao ? 'opacity-60 cursor-not-allowed' : ''
+                            } ${
                               item.estado_producao === 'em_preparo'
                                 ? 'bg-amber-600 text-white border-amber-600'
                                 : 'bg-white text-stone-600 hover:bg-amber-100 border-stone-300'
@@ -245,8 +262,11 @@ export default function ProducaoPage() {
                             {t.inPrep}
                           </button>
                           <button
+                            disabled={!temPermissaoEdicao}
                             onClick={() => atualizarEstadoItem(enc.id, item.id, 'pronto')}
                             className={`py-1.5 rounded-lg border transition flex items-center justify-center gap-1 ${
+                              !temPermissaoEdicao ? 'opacity-60 cursor-not-allowed' : ''
+                            } ${
                               item.estado_producao === 'pronto'
                                 ? 'bg-emerald-600 text-white border-emerald-600'
                                 : 'bg-white text-stone-600 hover:bg-emerald-100 border-stone-300'

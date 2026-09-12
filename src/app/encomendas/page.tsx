@@ -13,6 +13,7 @@ import {
 } from '../../lib/encomendasService';
 import { Encomenda, Produto, ItemEncomenda, TipoEntrega, MetodoPagamento, Cliente } from '../../types';
 import { useTranslation } from '../../lib/i18n';
+import { useAuth } from '../../lib/authContext';
 import { 
   ShoppingBag, 
   Search, 
@@ -30,11 +31,14 @@ import {
   Calendar,
   Phone,
   MapPin,
-  X
+  X,
+  Eye
 } from 'lucide-react';
 
 export default function EncomendasPage() {
   const { t, language } = useTranslation();
+  const { podeEditar } = useAuth();
+  const temPermissaoEdicao = podeEditar('encomendas');
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
   const [activeTab, setActiveTab] = useState<'novo' | 'clientes' | 'historico'>('novo');
 
@@ -414,6 +418,14 @@ export default function EncomendasPage() {
       <Navbar selectedLojaId={selectedLojaId} onSelectLoja={setSelectedLojaId} />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 sm:px-6">
+        {/* Aviso de Modo de Leitura */}
+        {!temPermissaoEdicao && (
+          <div className="mb-6 p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold flex items-center gap-2.5 shadow-2xs">
+            <Eye className="h-4 w-4 text-amber-600 shrink-0" />
+            <span>{t.readOnlyNotice}</span>
+          </div>
+        )}
+
         {/* Barra Superior com Título e Seletor de Abas */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
@@ -733,11 +745,11 @@ export default function EncomendasPage() {
                 {/* Botão Submeter */}
                 <button
                   type="submit"
-                  disabled={aGravar || carrinho.length === 0}
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-bakery-600 text-white font-black text-sm shadow-md hover:bg-bakery-700 disabled:opacity-50 transition"
+                  disabled={aGravar || carrinho.length === 0 || !temPermissaoEdicao}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-bakery-600 text-white font-black text-sm shadow-md hover:bg-bakery-700 disabled:opacity-50 transition cursor-pointer"
                 >
                   <Printer className="h-4 w-4" />
-                  {aGravar ? 'A registar...' : t.registerOrder}
+                  {aGravar ? 'A registar...' : !temPermissaoEdicao ? `🚫 ${t.readOnlyMode}` : t.registerOrder}
                 </button>
               </form>
             </div>
@@ -759,14 +771,16 @@ export default function EncomendasPage() {
                 />
               </div>
 
-              <button
-                type="button"
-                onClick={() => setClienteModal({ nome: '', telefone: '', morada: '', notas_entrega: '' })}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-bakery-600 text-white text-xs font-bold shadow-xs hover:bg-bakery-700 transition"
-              >
-                <Plus className="h-4 w-4" />
-                {t.newClient}
-              </button>
+              {temPermissaoEdicao && (
+                <button
+                  type="button"
+                  onClick={() => setClienteModal({ nome: '', telefone: '', morada: '', notas_entrega: '' })}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-bakery-600 text-white text-xs font-bold shadow-xs hover:bg-bakery-700 transition"
+                >
+                  <Plus className="h-4 w-4" />
+                  {t.newClient}
+                </button>
+              )}
             </div>
 
             {/* Tabela de Clientes */}
@@ -959,12 +973,18 @@ export default function EncomendasPage() {
                 >
                   {t.cancel}
                 </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-xl bg-bakery-600 font-bold text-white shadow-xs hover:bg-bakery-700 transition"
-                >
-                  {t.save}
-                </button>
+                {temPermissaoEdicao ? (
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-xl bg-bakery-600 font-bold text-white shadow-xs hover:bg-bakery-700 transition"
+                  >
+                    {t.save}
+                  </button>
+                ) : (
+                  <span className="text-xs font-bold text-gray-400 italic">
+                    {t.levelReadOnly}
+                  </span>
+                )}
               </div>
             </form>
           </div>

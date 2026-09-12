@@ -434,15 +434,52 @@ export async function upsertProdutosEmLote(produtos: any[]) {
 
 // ---------------- GESTÃO DE ACESSOS & UTILIZADORES ---------------- //
 
+export function normalizarPerfil(p: any): PerfilUtilizador {
+  const acessoEnc = p.acesso_encomendas || (p.painel_encomendas ? 'edicao' : 'sem_acesso');
+  const acessoProd = p.acesso_producao || (p.painel_producao ? 'edicao' : 'sem_acesso');
+  const acessoLoja = p.acesso_loja || (p.painel_loja ? 'edicao' : 'sem_acesso');
+  const acessoEnt = p.acesso_entregas || (p.painel_entregas ? 'edicao' : 'sem_acesso');
+  const acessoGest = p.acesso_gestao || (p.painel_gestao ? 'edicao' : 'sem_acesso');
+
+  return {
+    id: p.id || `user-${Date.now()}`,
+    nome: p.nome || 'Colaborador',
+    telefone: p.telefone || '',
+    email: p.email || '',
+    password: p.password || (p.role === 'admin' ? 'admin' : '123'),
+    role: p.role || 'atendente',
+    loja_id: p.loja_id,
+    loja_nome: p.loja_nome,
+    acesso_encomendas: acessoEnc,
+    acesso_producao: acessoProd,
+    acesso_loja: acessoLoja,
+    acesso_entregas: acessoEnt,
+    acesso_gestao: acessoGest,
+    painel_encomendas: acessoEnc !== 'sem_acesso',
+    painel_producao: acessoProd !== 'sem_acesso',
+    painel_loja: acessoLoja !== 'sem_acesso',
+    painel_entregas: acessoEnt !== 'sem_acesso',
+    painel_gestao: acessoGest !== 'sem_acesso',
+    ativo: p.ativo !== undefined ? Boolean(p.ativo) : true,
+    atualizado_em: p.atualizado_em,
+  };
+}
+
 export const PERFIS_INICIAIS: PerfilUtilizador[] = [
   {
     id: 'user-admin',
     nome: 'Administrador Geral',
     telefone: '910 000 001',
     email: 'admin@padaria.pt',
+    password: 'admin',
     role: 'admin',
     loja_id: undefined,
     loja_nome: 'Todas as Lojas',
+    acesso_encomendas: 'edicao',
+    acesso_producao: 'edicao',
+    acesso_loja: 'edicao',
+    acesso_entregas: 'edicao',
+    acesso_gestao: 'edicao',
     painel_encomendas: true,
     painel_producao: true,
     painel_loja: true,
@@ -455,14 +492,20 @@ export const PERFIS_INICIAIS: PerfilUtilizador[] = [
     nome: 'António Silva (Gerente)',
     telefone: '910 000 002',
     email: 'antonio.silva@padaria.pt',
+    password: '123',
     role: 'gerente_loja',
     loja_id: 'loja-1',
     loja_nome: 'Padaria Central (Matriz)',
+    acesso_encomendas: 'edicao',
+    acesso_producao: 'edicao',
+    acesso_loja: 'edicao',
+    acesso_entregas: 'edicao',
+    acesso_gestao: 'leitura',
     painel_encomendas: true,
     painel_producao: true,
     painel_loja: true,
     painel_entregas: true,
-    painel_gestao: false,
+    painel_gestao: true,
     ativo: true,
   },
   {
@@ -470,11 +513,17 @@ export const PERFIS_INICIAIS: PerfilUtilizador[] = [
     nome: 'Marta Santos (Atendente Balcão)',
     telefone: '910 000 003',
     email: 'marta.santos@padaria.pt',
+    password: '123',
     role: 'atendente',
     loja_id: 'loja-1',
     loja_nome: 'Padaria Central (Matriz)',
+    acesso_encomendas: 'edicao',
+    acesso_producao: 'leitura',
+    acesso_loja: 'edicao',
+    acesso_entregas: 'sem_acesso',
+    acesso_gestao: 'sem_acesso',
     painel_encomendas: true,
-    painel_producao: false,
+    painel_producao: true,
     painel_loja: true,
     painel_entregas: false,
     painel_gestao: false,
@@ -485,10 +534,16 @@ export const PERFIS_INICIAIS: PerfilUtilizador[] = [
     nome: 'Carlos Ferreira (Chefe Padeiro)',
     telefone: '910 000 004',
     email: 'carlos.padeiro@padaria.pt',
+    password: '123',
     role: 'operador_padaria',
     loja_id: 'loja-1',
     loja_nome: 'Padaria Central (Matriz)',
-    painel_encomendas: false,
+    acesso_encomendas: 'leitura',
+    acesso_producao: 'edicao',
+    acesso_loja: 'sem_acesso',
+    acesso_entregas: 'sem_acesso',
+    acesso_gestao: 'sem_acesso',
+    painel_encomendas: true,
     painel_producao: true,
     painel_loja: false,
     painel_entregas: false,
@@ -500,12 +555,18 @@ export const PERFIS_INICIAIS: PerfilUtilizador[] = [
     nome: 'Rui Oliveira (Motorista Carrinha 1)',
     telefone: '910 000 005',
     email: 'rui.motorista@padaria.pt',
+    password: '123',
     role: 'motorista',
     loja_id: 'loja-1',
     loja_nome: 'Carrinha 1 - Matriz',
+    acesso_encomendas: 'sem_acesso',
+    acesso_producao: 'sem_acesso',
+    acesso_loja: 'leitura',
+    acesso_entregas: 'edicao',
+    acesso_gestao: 'sem_acesso',
     painel_encomendas: false,
     painel_producao: false,
-    painel_loja: false,
+    painel_loja: true,
     painel_entregas: true,
     painel_gestao: false,
     ativo: true,
@@ -520,12 +581,14 @@ export async function carregarPerfisAcessoSupabase(): Promise<PerfilUtilizador[]
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map(normalizarPerfil);
+        }
       } catch (e) {}
     }
   }
 
-  if (!supabase) return PERFIS_INICIAIS;
+  if (!supabase) return PERFIS_INICIAIS.map(normalizarPerfil);
 
   try {
     const { data } = await supabase
@@ -537,17 +600,18 @@ export async function carregarPerfisAcessoSupabase(): Promise<PerfilUtilizador[]
     if (data && data.notas_entrega) {
       const parsed = JSON.parse(data.notas_entrega);
       if (Array.isArray(parsed) && parsed.length > 0) {
+        const normalizados = parsed.map(normalizarPerfil);
         if (typeof window !== 'undefined') {
-          localStorage.setItem('app_perfis_utilizadores', JSON.stringify(parsed));
+          localStorage.setItem('app_perfis_utilizadores', JSON.stringify(normalizados));
         }
-        return parsed;
+        return normalizados;
       }
     }
   } catch (err) {
     console.warn('Usando perfis predefinidos:', err);
   }
 
-  return PERFIS_INICIAIS;
+  return PERFIS_INICIAIS.map(normalizarPerfil);
 }
 
 export async function salvarTodosPerfisSupabase(perfis: PerfilUtilizador[]) {

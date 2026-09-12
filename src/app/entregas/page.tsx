@@ -12,6 +12,7 @@ import {
 } from '../../lib/encomendasService';
 import { Encomenda } from '../../types';
 import { useTranslation } from '../../lib/i18n';
+import { useAuth } from '../../lib/authContext';
 import { 
   Truck, 
   MapPin, 
@@ -23,11 +24,14 @@ import {
   DollarSign,
   Edit3,
   Store,
-  Printer
+  Printer,
+  Eye
 } from 'lucide-react';
 
 export default function EntregasPage() {
   const { t } = useTranslation();
+  const { podeEditar } = useAuth();
+  const temPermissaoEdicao = podeEditar('entregas');
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
   const [carrinhaSelecionadaId, setCarrinhaSelecionadaId] = useState<string>('todas');
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
@@ -114,6 +118,17 @@ export default function EntregasPage() {
       <Navbar selectedLojaId={selectedLojaId} onSelectLoja={setSelectedLojaId} />
 
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-6 sm:px-6">
+        {/* Aviso de Modo de Apenas Leitura */}
+        {!temPermissaoEdicao && (
+          <div className="mb-6 rounded-2xl bg-blue-50 border border-blue-300 p-4 flex items-center gap-3 text-blue-950 text-xs shadow-xs">
+            <Eye className="h-5 w-5 text-blue-700 shrink-0" />
+            <div>
+              <p className="font-bold">{t.readOnlyNotice}</p>
+              <p className="text-blue-900/80 mt-0.5">O seu perfil de utilizador tem apenas permissão de consulta neste painel. As ações de alteração de morada, tipo de entrega e conclusão estão desativadas.</p>
+            </div>
+          </div>
+        )}
+
         {/* Cabeçalho do Motorista */}
         <div className="rounded-2xl bg-white p-5 border border-blue-200 shadow-xs mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -213,15 +228,17 @@ export default function EntregasPage() {
                           )}
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleEditarMorada(enc)}
-                        className="flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg border border-blue-200 shrink-0 transition"
-                        title="Alterar Morada de Entrega"
-                      >
-                        <Edit3 className="h-3 w-3" />
-                        {t.changeAddress}
-                      </button>
+                      {temPermissaoEdicao && (
+                        <button
+                          type="button"
+                          onClick={() => handleEditarMorada(enc)}
+                          className="flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg border border-blue-200 shrink-0 transition"
+                          title="Alterar Morada de Entrega"
+                        >
+                          <Edit3 className="h-3 w-3" />
+                          {t.changeAddress}
+                        </button>
+                      )}
                     </div>
 
                     {/* Resumo de Artigos no Carrinho */}
@@ -285,9 +302,14 @@ export default function EntregasPage() {
 
                       <button
                         type="button"
-                        onClick={() => handleMudarParaLoja(enc)}
-                        className="flex items-center justify-center gap-1.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 transition text-[11px]"
-                        title="Converter em levantamento em loja"
+                        onClick={() => temPermissaoEdicao && handleMudarParaLoja(enc)}
+                        disabled={!temPermissaoEdicao}
+                        className={`flex items-center justify-center gap-1.5 rounded-xl py-2.5 px-2 text-[11px] transition border ${
+                          temPermissaoEdicao
+                            ? 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+                            : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-60'
+                        }`}
+                        title={temPermissaoEdicao ? "Converter em levantamento em loja" : "Apenas leitura"}
                       >
                         <Store className="h-4 w-4 text-amber-600" />
                         + {t.pickupStore}
@@ -301,8 +323,13 @@ export default function EntregasPage() {
                         ) : (
                           <button
                             type="button"
-                            onClick={() => confirmarEntrega(enc.id)}
-                            className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-2.5 px-2 text-white shadow-xs hover:bg-emerald-700 transition"
+                            onClick={() => temPermissaoEdicao && confirmarEntrega(enc.id)}
+                            disabled={!temPermissaoEdicao}
+                            className={`w-full flex items-center justify-center gap-1.5 rounded-xl py-2.5 px-2 text-white shadow-xs transition ${
+                              temPermissaoEdicao
+                                ? 'bg-emerald-600 hover:bg-emerald-700'
+                                : 'bg-gray-400 cursor-not-allowed opacity-60'
+                            }`}
                           >
                             <CheckCircle2 className="h-4 w-4" /> {t.completeDelivery}
                           </button>
