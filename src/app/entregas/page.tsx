@@ -2,10 +2,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { Navbar } from '../../components/Navbar';
+import { ThermalReceipt } from '../../components/ThermalReceipt';
 import { LOJAS_MOCK, CARRINHAS_MOCK } from '../../lib/mockData';
 import { supabase } from '../../lib/supabase';
-import { carregarEncomendasSupabase, atualizarEstadoEncomendaDb } from '../../lib/encomendasService';
+import { 
+  carregarEncomendasSupabase, 
+  atualizarEstadoEncomendaDb,
+  alternarTipoEntregaDb 
+} from '../../lib/encomendasService';
 import { Encomenda } from '../../types';
+import { useTranslation } from '../../lib/i18n';
 import { 
   Truck, 
   MapPin, 
@@ -15,15 +21,18 @@ import {
   Clock, 
   PackageCheck,
   DollarSign,
-  Edit3
+  Edit3,
+  Store,
+  Printer
 } from 'lucide-react';
 
 export default function EntregasPage() {
+  const { t } = useTranslation();
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
   const [carrinhaSelecionadaId, setCarrinhaSelecionadaId] = useState<string>('todas');
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
+  const [encomendaParaImprimir, setEncomendaParaImprimir] = useState<Encomenda | null>(null);
 
-  // Carregar encomendas reais da base de dados Supabase
   useEffect(() => {
     async function carregar() {
       const dados = await carregarEncomendasSupabase();
@@ -45,9 +54,9 @@ export default function EntregasPage() {
     return isEntrega && matchLoja && matchCarrinha;
   });
 
-  // Concluir entrega (em memória e no Supabase)
+  // Concluir entrega
   const confirmarEntrega = async (encomendaId: string) => {
-    await atualizarEstadoEncomendaDb(encomendaId, 'entregue');
+    await atualizarEstadoEncomendaDb(encomendaId, 'entregue', 'pago');
     setEncomendas((prev) =>
       prev.map((e) =>
         e.id === encomendaId
@@ -57,7 +66,7 @@ export default function EntregasPage() {
     );
   };
 
-  // Alterar morada de entrega diretamente no painel
+  // Alterar morada diretamente
   const handleEditarMorada = async (enc: Encomenda) => {
     const novaMorada = window.prompt(
       `Atualizar morada de entrega para ${enc.cliente.nome}:`,
@@ -83,8 +92,25 @@ export default function EntregasPage() {
     );
   };
 
+  // Mudar para Levantamento em Loja
+  const handleMudarParaLoja = async (enc: Encomenda) => {
+    if (!window.confirm(`Deseja converter a encomenda ${enc.codigo} para LEVANTAMENTO EM LOJA? Ela sairá da rota da carrinha.`)) {
+      return;
+    }
+
+    const ok = await alternarTipoEntregaDb(enc.id, 'levantamento_loja');
+    if (ok) {
+      setEncomendas((prev) =>
+        prev.map((e) =>
+          e.id === enc.id ? { ...e, tipo: 'levantamento_loja', carrinha_id: undefined } : e
+        )
+      );
+      alert(`Encomenda ${enc.codigo} movida para o Balcão de Entrega em Loja!`);
+    }
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-gray-50/70">
       <Navbar selectedLojaId={selectedLojaId} onSelectLoja={setSelectedLojaId} />
 
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-6 sm:px-6">
@@ -97,26 +123,27 @@ export default function EntregasPage() {
               </div>
               <div>
                 <h2 className="text-lg sm:text-xl font-black text-gray-900 leading-tight">
-                  Painel da Carrinha de Entregas
+                  {t.deliveriesTitle}
                 </h2>
-                <p className="text-xs text-gray-500">
-                  Rota diária e guias de entrega ao domicílio para a frota da loja.
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {t.deliveriesDesc}
                 </p>
               </div>
             </div>
 
             {/* Seletor de Carrinha */}
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-semibold text-gray-600">Carrinha:</label>
+            <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-xl">
+              <Truck className="h-4 w-4 text-blue-700" />
+              <span className="text-xs font-semibold text-blue-900">{t.van}:</span>
               <select
                 value={carrinhaSelecionadaId}
                 onChange={(e) => setCarrinhaSelecionadaId(e.target.value)}
-                className="rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-xs font-bold text-gray-900 focus:outline-hidden"
+                className="bg-transparent text-xs font-bold text-blue-950 focus:outline-hidden cursor-pointer"
               >
                 <option value="todas">Todas as Carrinhas</option>
-                {carrinhasDaLoja.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.identificador} ({c.matricula})
+                {carrinhasDaLoja.map((car) => (
+                  <option key={car.id} value={car.id}>
+                    {car.identificador} ({car.matricula})
                   </option>
                 ))}
               </select>
@@ -124,32 +151,12 @@ export default function EntregasPage() {
           </div>
         </div>
 
-        {/* Resumo da Rota */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="bg-white p-4 rounded-xl border border-gray-200 text-center">
-            <p className="text-xs text-gray-500 font-medium">Total de Paragens</p>
-            <p className="text-xl font-bold text-gray-900 mt-0.5">{entregas.length}</p>
-          </div>
-          <div className="bg-white p-4 rounded-xl border border-gray-200 text-center">
-            <p className="text-xs text-gray-500 font-medium">Pendentes</p>
-            <p className="text-xl font-bold text-amber-600 mt-0.5">
-              {entregas.filter((e) => e.estado !== 'entregue').length}
-            </p>
-          </div>
-          <div className="bg-white p-4 rounded-xl border border-gray-200 text-center">
-            <p className="text-xs text-gray-500 font-medium">Concluídas</p>
-            <p className="text-xl font-bold text-emerald-600 mt-0.5">
-              {entregas.filter((e) => e.estado === 'entregue').length}
-            </p>
-          </div>
-        </div>
-
-        {/* Lista Sequencial de Entregas */}
+        {/* Lista de Paragens */}
         {entregas.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-2xl border border-gray-200">
+          <div className="rounded-2xl bg-white border border-gray-200 p-12 text-center">
             <PackageCheck className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-            <h3 className="text-base font-bold text-gray-800">Sem entregas agendadas nesta carrinha</h3>
-            <p className="text-xs text-gray-500 mt-1">Todas as encomendas para esta rota já foram entregues ou não foram atribuídas.</p>
+            <h3 className="text-sm font-bold text-gray-800">Sem entregas agendadas nesta rota</h3>
+            <p className="text-xs text-gray-500 mt-1">Todas as encomendas desta carrinha já foram concluídas ou não existem pedidos de entrega pendentes.</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -182,7 +189,7 @@ export default function EntregasPage() {
                       </div>
                     </div>
 
-                    <div className="text-right">
+                    <div className="flex items-center gap-2">
                       <span className="inline-flex items-center gap-1 text-xs font-bold bg-white px-2.5 py-1 rounded-lg border border-gray-200 shadow-2xs">
                         <Clock className="h-3.5 w-3.5 text-blue-600" /> {enc.hora_agendamento}
                       </span>
@@ -213,7 +220,7 @@ export default function EntregasPage() {
                         title="Alterar Morada de Entrega"
                       >
                         <Edit3 className="h-3 w-3" />
-                        Alterar
+                        {t.changeAddress}
                       </button>
                     </div>
 
@@ -223,8 +230,15 @@ export default function EntregasPage() {
                       <ul className="space-y-1">
                         {enc.itens.map((item) => (
                           <li key={item.id} className="flex justify-between font-medium text-gray-800">
-                            <span><b>{item.quantidade}x</b> {item.produto_nome}</span>
-                            <span className="text-gray-500">{(item.quantidade * item.preco_unitario).toFixed(2)}€</span>
+                            <span>
+                              <b>{item.quantidade}x</b> {item.produto_nome}
+                              {item.notas_personalizacao && (
+                                <span className="block text-[11px] text-amber-800 italic pl-3">
+                                  » {item.notas_personalizacao}
+                                </span>
+                              )}
+                            </span>
+                            <span className="text-gray-500">{(item.quantidade * item.preco_unitario).toFixed(2)} €</span>
                           </li>
                         ))}
                       </ul>
@@ -250,36 +264,47 @@ export default function EntregasPage() {
                     </div>
 
                     {/* Botões de Ação para o Motorista */}
-                    <div className="pt-3 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <div className="pt-3 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-bold">
                       <a
                         href={`tel:${enc.cliente.telefone.replace(/\s+/g, '')}`}
-                        className="flex items-center justify-center gap-1.5 rounded-xl bg-gray-100 py-2.5 px-3 text-xs font-bold text-gray-800 hover:bg-gray-200 transition"
+                        className="flex items-center justify-center gap-1.5 rounded-xl bg-gray-100 py-2.5 px-2 text-gray-800 hover:bg-gray-200 transition"
                       >
                         <Phone className="h-4 w-4 text-emerald-600" />
-                        Ligar
+                        {t.callClient}
                       </a>
 
                       <a
                         href={mapsUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-1.5 rounded-xl bg-blue-50 py-2.5 px-3 text-xs font-bold text-blue-700 hover:bg-blue-100 transition border border-blue-200"
+                        className="flex items-center justify-center gap-1.5 rounded-xl bg-blue-50 py-2.5 px-2 text-blue-700 hover:bg-blue-100 transition border border-blue-200"
                       >
                         <Navigation className="h-4 w-4 text-blue-600" />
-                        GPS Maps
+                        {t.openGps}
                       </a>
 
-                      <div className="col-span-2 sm:col-span-1">
+                      <button
+                        type="button"
+                        onClick={() => handleMudarParaLoja(enc)}
+                        className="flex items-center justify-center gap-1.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 transition text-[11px]"
+                        title="Converter em levantamento em loja"
+                      >
+                        <Store className="h-4 w-4 text-amber-600" />
+                        + Loja
+                      </button>
+
+                      <div>
                         {jaEntregue ? (
-                          <div className="flex items-center justify-center gap-1 h-full rounded-xl bg-emerald-100 text-emerald-800 text-xs font-bold py-2.5">
+                          <div className="flex items-center justify-center gap-1 h-full rounded-xl bg-emerald-100 text-emerald-800 py-2.5">
                             <CheckCircle2 className="h-4 w-4" /> Entregue
                           </div>
                         ) : (
                           <button
+                            type="button"
                             onClick={() => confirmarEntrega(enc.id)}
-                            className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-2.5 px-3 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition"
+                            className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-2.5 px-2 text-white shadow-xs hover:bg-emerald-700 transition"
                           >
-                            <CheckCircle2 className="h-4 w-4" /> Concluir
+                            <CheckCircle2 className="h-4 w-4" /> {t.completeDelivery}
                           </button>
                         )}
                       </div>
@@ -291,6 +316,15 @@ export default function EntregasPage() {
           </div>
         )}
       </main>
+
+      {/* Modal do Talão */}
+      {encomendaParaImprimir && (
+        <ThermalReceipt
+          encomenda={encomendaParaImprimir}
+          loja={lojaAtual}
+          onClose={() => setEncomendaParaImprimir(null)}
+        />
+      )}
     </div>
   );
 }

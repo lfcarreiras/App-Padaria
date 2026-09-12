@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Encomenda, ItemEncomenda, EstadoEncomenda, EstadoProducaoItem } from '../types';
+import { Encomenda, ItemEncomenda, EstadoEncomenda, EstadoProducaoItem, Cliente, Produto, Loja, Carrinha } from '../types';
 
 export function parseEncomendasFromDb(data: any[]): Encomenda[] {
   if (!data || !Array.isArray(data)) return [];
@@ -98,14 +98,65 @@ export async function carregarEncomendasSupabase(): Promise<Encomenda[]> {
   return parseEncomendasFromDb(data);
 }
 
-export async function atualizarEstadoEncomendaDb(encomendaId: string, novoEstado: EstadoEncomenda) {
+export async function atualizarEstadoEncomendaDb(
+  encomendaId: string, 
+  novoEstado: EstadoEncomenda,
+  estadoPagamento?: 'pago' | 'pendente'
+) {
   if (!supabase) return;
+  const updates: any = { 
+    estado: novoEstado, 
+    atualizado_em: new Date().toISOString() 
+  };
+  if (estadoPagamento) {
+    updates.estado_pagamento = estadoPagamento;
+  }
   const { error } = await supabase
     .from('encomendas')
-    .update({ estado: novoEstado, atualizado_em: new Date().toISOString() })
+    .update(updates)
     .eq('id', encomendaId);
 
   if (error) console.error('Erro ao atualizar estado da encomenda:', error);
+}
+
+export async function alternarTipoEntregaDb(
+  encomendaId: string,
+  novoTipo: 'levantamento_loja' | 'entrega_domicilio',
+  lojaId?: string,
+  carrinhaIdEspecifica?: string
+) {
+  if (!supabase) return false;
+
+  let carrinhaFinal: string | null = null;
+
+  if (novoTipo === 'entrega_domicilio') {
+    if (carrinhaIdEspecifica) {
+      carrinhaFinal = carrinhaIdEspecifica;
+    } else if (lojaId) {
+      const { data: carDb } = await supabase
+        .from('carrinhas')
+        .select('id')
+        .eq('loja_id', lojaId)
+        .limit(1)
+        .maybeSingle();
+      if (carDb) carrinhaFinal = carDb.id;
+    }
+  }
+
+  const { error } = await supabase
+    .from('encomendas')
+    .update({
+      tipo: novoTipo,
+      carrinha_id: carrinhaFinal,
+      atualizado_em: new Date().toISOString(),
+    })
+    .eq('id', encomendaId);
+
+  if (error) {
+    console.error('Erro ao alternar modo de entrega:', error);
+    return false;
+  }
+  return true;
 }
 
 export async function atualizarEstadoItemDb(itemId: string, novoEstado: EstadoProducaoItem) {
@@ -116,4 +167,267 @@ export async function atualizarEstadoItemDb(itemId: string, novoEstado: EstadoPr
     .eq('id', itemId);
 
   if (error) console.error('Erro ao atualizar estado do item:', error);
+}
+
+// ---------------- CLIENTES ---------------- //
+
+export async function carregarClientesSupabase(): Promise<Cliente[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('clientes')
+    .select('*')
+    .order('nome', { ascending: true });
+
+  if (error) {
+    console.error('Erro ao carregar clientes:', error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function salvarClienteDb(cliente: Partial<Cliente> & { nome: string; telefone: string }) {
+  if (!supabase) return null;
+
+  const payload = {
+    nome: cliente.nome.trim(),
+    telefone: cliente.telefone.trim(),
+    email: cliente.email?.trim() || null,
+    morada: cliente.morada?.trim() || null,
+    codigo_postal: cliente.codigo_postal?.trim() || null,
+    notas_entrega: cliente.notas_entrega?.trim() || null,
+  };
+
+  if (cliente.id) {
+    const { data, error } = await supabase
+      .from('clientes')
+      .update(payload)
+      .eq('id', cliente.id)
+      .select()
+      .single();
+    if (error) console.error('Erro ao atualizar cliente:', error);
+    return data;
+  } else {
+    const { data, error } = await supabase
+      .from('clientes')
+      .insert(payload)
+      .select()
+      .single();
+    if (error) console.error('Erro ao criar cliente:', error);
+    return data;
+  }
+}
+
+// ---------------- PRODUTOS ---------------- //
+
+export async function carregarProdutosSupabase(): Promise<Produto[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('produtos')
+    .select('*')
+    .order('nome', { ascending: true });
+
+  if (error) {
+    console.error('Erro ao carregar produtos:', error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function salvarProdutoDb(produto: Partial<Produto> & { nome: string; preco: number; categoria: any }) {
+  if (!supabase) return null;
+  const payload = {
+    nome: produto.nome.trim(),
+    preco: produto.preco,
+    categoria: produto.categoria,
+    unidade: produto.unidade || 'unidade',
+    ativo: produto.ativo !== undefined ? produto.ativo : true,
+  };
+
+  if (produto.id) {
+    const { data, error } = await supabase
+      .from('produtos')
+      .update(payload)
+      .eq('id', produto.id)
+      .select()
+      .single();
+    if (error) console.error('Erro ao atualizar produto:', error);
+    return data;
+  } else {
+    const { data, error } = await supabase
+      .from('produtos')
+      .insert(payload)
+      .select()
+      .single();
+    if (error) console.error('Erro ao criar produto:', error);
+    return data;
+  }
+}
+
+// ---------------- LOJAS ---------------- //
+
+export async function carregarLojasSupabase(): Promise<Loja[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('lojas')
+    .select('*')
+    .order('codigo', { ascending: true });
+
+  if (error) {
+    console.error('Erro ao carregar lojas:', error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function salvarLojaDb(loja: Partial<Loja> & { codigo: string; nome: string; morada: string; telefone: string }) {
+  if (!supabase) return null;
+  const payload = {
+    codigo: loja.codigo.trim(),
+    nome: loja.nome.trim(),
+    morada: loja.morada.trim(),
+    telefone: loja.telefone.trim(),
+    nif: loja.nif?.trim() || null,
+    ativo: loja.ativo !== undefined ? loja.ativo : true,
+  };
+
+  if (loja.id) {
+    const { data, error } = await supabase
+      .from('lojas')
+      .update(payload)
+      .eq('id', loja.id)
+      .select()
+      .single();
+    if (error) console.error('Erro ao atualizar loja:', error);
+    return data;
+  } else {
+    const { data, error } = await supabase
+      .from('lojas')
+      .insert(payload)
+      .select()
+      .single();
+    if (error) console.error('Erro ao criar loja:', error);
+    return data;
+  }
+}
+
+// ---------------- CARRINHAS ---------------- //
+
+export async function carregarCarrinhasSupabase(): Promise<Carrinha[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('carrinhas')
+    .select('*')
+    .order('identificador', { ascending: true });
+
+  if (error) {
+    console.error('Erro ao carregar carrinhas:', error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function salvarCarrinhaDb(carrinha: Partial<Carrinha> & { loja_id: string; identificador: string; matricula: string }) {
+  if (!supabase) return null;
+  const payload = {
+    loja_id: carrinha.loja_id,
+    identificador: carrinha.identificador.trim(),
+    matricula: carrinha.matricula.trim(),
+    ativo: carrinha.ativo !== undefined ? carrinha.ativo : true,
+  };
+
+  if (carrinha.id) {
+    const { data, error } = await supabase
+      .from('carrinhas')
+      .update(payload)
+      .eq('id', carrinha.id)
+      .select()
+      .single();
+    if (error) console.error('Erro ao atualizar carrinha:', error);
+    return data;
+  } else {
+    const { data, error } = await supabase
+      .from('carrinhas')
+      .insert(payload)
+      .select()
+      .single();
+    if (error) console.error('Erro ao criar carrinha:', error);
+    return data;
+  }
+}
+
+// ---------------- IMPORTAÇÃO MASSIVA (UPSERT) ---------------- //
+
+export async function upsertClientesEmLote(clientes: any[]) {
+  if (!supabase || !clientes.length) return { inseridos: 0, erros: [] };
+
+  let sucesso = 0;
+  const erros: string[] = [];
+
+  for (const c of clientes) {
+    if (!c.telefone || !c.nome) continue;
+    try {
+      const { data: existente } = await supabase
+        .from('clientes')
+        .select('id')
+        .eq('telefone', c.telefone.trim())
+        .maybeSingle();
+
+      const payload = {
+        nome: c.nome.trim(),
+        telefone: c.telefone.trim(),
+        email: c.email?.trim() || null,
+        morada: c.morada?.trim() || null,
+        codigo_postal: c.codigo_postal?.trim() || null,
+        notas_entrega: c.notas_entrega?.trim() || null,
+      };
+
+      if (existente) {
+        await supabase.from('clientes').update(payload).eq('id', existente.id);
+      } else {
+        await supabase.from('clientes').insert(payload);
+      }
+      sucesso++;
+    } catch (err: any) {
+      erros.push(`Falha no cliente ${c.nome} (${c.telefone}): ${err.message}`);
+    }
+  }
+
+  return { sucesso, erros };
+}
+
+export async function upsertProdutosEmLote(produtos: any[]) {
+  if (!supabase || !produtos.length) return { inseridos: 0, erros: [] };
+
+  let sucesso = 0;
+  const erros: string[] = [];
+
+  for (const p of produtos) {
+    if (!p.nome || p.preco === undefined) continue;
+    try {
+      const { data: existente } = await supabase
+        .from('produtos')
+        .select('id')
+        .ilike('nome', p.nome.trim())
+        .maybeSingle();
+
+      const payload = {
+        nome: p.nome.trim(),
+        preco: Number(p.preco) || 0,
+        categoria: p.categoria === 'pastelaria' ? 'pastelaria' : 'padaria',
+        unidade: p.unidade || 'unidade',
+        ativo: p.ativo !== undefined ? Boolean(p.ativo) : true,
+      };
+
+      if (existente) {
+        await supabase.from('produtos').update(payload).eq('id', existente.id);
+      } else {
+        await supabase.from('produtos').insert(payload);
+      }
+      sucesso++;
+    } catch (err: any) {
+      erros.push(`Falha no produto ${p.nome}: ${err.message}`);
+    }
+  }
+
+  return { sucesso, erros };
 }

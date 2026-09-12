@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { LanguageProvider } from '../lib/i18n';
 
 export const metadata: Metadata = {
   title: 'Gestão de Encomendas & Produção | 4 Lojas',
@@ -14,7 +15,9 @@ export default function RootLayout({
   return (
     <html lang="pt">
       <body className="min-h-screen bg-bakery-50/50 text-gray-900 antialiased selection:bg-bakery-500 selection:text-white">
-        {children}
+        <LanguageProvider>
+          {children}
+        </LanguageProvider>
       </body>
     </html>
   );

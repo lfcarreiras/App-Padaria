@@ -10,9 +10,11 @@ import {
   atualizarEstadoEncomendaDb 
 } from '../../lib/encomendasService';
 import { Encomenda, SetorProducao, EstadoProducaoItem } from '../../types';
+import { useTranslation } from '../../lib/i18n';
 import { ChefHat, Clock, CheckCircle2, AlertTriangle, Printer, Sparkles, Flame, Store } from 'lucide-react';
 
 export default function ProducaoPage() {
+  const { t } = useTranslation();
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
   const [setorAtivo, setSetorAtivo] = useState<SetorProducao | 'todos'>('todos');
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
@@ -41,17 +43,14 @@ export default function ProducaoPage() {
 
   // Atualizar estado de produção de um item (em memória e no Supabase)
   const atualizarEstadoItem = async (encomendaId: string, itemId: string, novoEstado: EstadoProducaoItem) => {
-    // 1. Atualizar base de dados
     await atualizarEstadoItemDb(itemId, novoEstado);
 
-    // 2. Atualizar estado local
     setEncomendas((prev) =>
       prev.map((enc) => {
         if (enc.id !== encomendaId) return enc;
         const novosItens = enc.itens.map((item) =>
           item.id === itemId ? { ...item, estado_producao: novoEstado } : item
         );
-        // Se todos os itens estiverem prontos, marcar a encomenda como pronta para loja/entrega
         const todosProntos = novosItens.every((i) => i.estado_producao === 'pronto');
         if (todosProntos) {
           atualizarEstadoEncomendaDb(encomendaId, 'pronto_loja');
@@ -79,7 +78,7 @@ export default function ProducaoPage() {
               </div>
               <div>
                 <h2 className="text-xl font-black text-gray-900 leading-tight">
-                  KDS - Ecrã de Produção ({selectedLojaId === 'todas' ? 'Todas as Lojas' : lojaAtual.nome})
+                  {t.productionTitle} ({selectedLojaId === 'todas' ? t.allStores : lojaAtual.nome})
                 </h2>
                 <p className="text-xs text-gray-500">
                   Fila tátil de fabrico em tempo real para os padeiros e pasteleiros da loja.
@@ -105,161 +104,186 @@ export default function ProducaoPage() {
               className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-bold transition ${
                 setorAtivo === 'padaria'
                   ? 'bg-amber-600 text-white shadow-xs'
-                  : 'text-gray-600 hover:text-gray-900'
+                  : 'text-gray-500 hover:text-gray-800'
               }`}
             >
-              <Flame className="h-3.5 w-3.5" /> Forno & Padaria
+              <Flame className="h-3.5 w-3.5" />
+              {t.bakeryTab}
             </button>
             <button
               onClick={() => setSetorAtivo('pastelaria')}
               className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-bold transition ${
                 setorAtivo === 'pastelaria'
                   ? 'bg-pink-600 text-white shadow-xs'
-                  : 'text-gray-600 hover:text-gray-900'
+                  : 'text-gray-500 hover:text-gray-800'
               }`}
             >
-              <Sparkles className="h-3.5 w-3.5" /> Bancada de Pastelaria
+              <Sparkles className="h-3.5 w-3.5" />
+              {t.pastryTab}
             </button>
           </div>
         </div>
 
-        {/* Fila de Cartões de Produção Táteis */}
+        {/* Grelha de Pedidos no KDS */}
         {encomendasDaLoja.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-3xl border border-gray-200">
-            <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto mb-3" />
-            <h3 className="text-base font-bold text-gray-800">Sem pedidos pendentes neste setor</h3>
-            <p className="text-xs text-gray-500 mt-1">Todos os artigos já foram confecionados ou ainda não há encomendas agendadas.</p>
+          <div className="rounded-2xl bg-white border border-gray-200 p-12 text-center">
+            <ChefHat className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+            <h3 className="text-base font-bold text-gray-800">Sem pedidos em fila de produção</h3>
+            <p className="text-xs text-gray-500 mt-1">Nenhuma encomenda pendente para fabrico com estes filtros.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {encomendasDaLoja.map((enc) => {
               const itensFiltrados = enc.itens.filter(
-                (i) => setorAtivo === 'todos' || i.setor === setorAtivo
+                (item) => setorAtivo === 'todos' || item.setor === setorAtivo
               );
 
               return (
                 <div
                   key={enc.id}
-                  className="flex flex-col justify-between rounded-2xl bg-white border-2 border-gray-200 shadow-sm overflow-hidden"
+                  className="rounded-2xl bg-white border-2 border-stone-200 shadow-sm overflow-hidden flex flex-col justify-between"
                 >
-                  {/* Cabeçalho do Cartão */}
-                  <div className="bg-stone-900 text-white p-4 flex items-center justify-between">
+                  {/* Cabeçalho da Ficha */}
+                  <div className="bg-stone-800 text-white p-3.5 flex items-center justify-between">
                     <div>
-                      <span className="text-xs font-mono font-bold tracking-widest text-amber-400">
-                        {enc.codigo}
-                      </span>
-                      <p className="text-sm font-bold truncate">{enc.cliente.nome}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-black text-sm text-amber-400">{enc.codigo}</span>
+                        <span className="text-xs bg-stone-700 px-2 py-0.5 rounded-md font-medium text-stone-200">
+                          #{enc.numero_sequencial}
+                        </span>
+                      </div>
+                      <p className="text-xs font-bold text-white mt-0.5">{enc.cliente.nome}</p>
                     </div>
-                    <div className="text-right">
-                      <span className="flex items-center gap-1 text-xs font-bold text-white bg-white/20 px-2.5 py-1 rounded-lg">
-                        <Clock className="h-3.5 w-3.5 text-amber-300" /> {enc.hora_agendamento}
-                      </span>
-                      <span className="text-[10px] text-gray-300 block mt-0.5">
-                        {enc.data_agendamento}
-                      </span>
+
+                    <div className="text-right flex items-center gap-2">
+                      <div className="bg-stone-700 px-2.5 py-1 rounded-lg border border-stone-600 text-right">
+                        <div className="flex items-center gap-1 text-xs font-bold text-amber-300">
+                          <Clock className="h-3.5 w-3.5" />
+                          <span>{enc.hora_agendamento}</span>
+                        </div>
+                        <span className="text-[10px] text-stone-300 block">{enc.data_agendamento}</span>
+                      </div>
+
+                      <button
+                        onClick={() => setEncomendaParaImprimir(enc)}
+                        className="p-1.5 rounded-lg bg-stone-700 hover:bg-stone-600 text-white transition"
+                        title="Imprimir talão de produção"
+                      >
+                        <Printer className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
 
-                  {/* Indicador de Modalidade */}
-                  <div className={`px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider flex items-center justify-between ${
-                    enc.tipo === 'entrega_domicilio'
-                      ? 'bg-blue-50 text-blue-800 border-b border-blue-100'
-                      : 'bg-amber-50 text-amber-800 border-b border-amber-100'
-                  }`}>
-                    <span>{enc.tipo === 'entrega_domicilio' ? 'Carrinha de Entrega' : 'Levantamento no Balcão'}</span>
-                    <button
-                      onClick={() => setEncomendaParaImprimir(enc)}
-                      className="text-gray-500 hover:text-black flex items-center gap-1 text-[10px]"
-                    >
-                      <Printer className="h-3 w-3" /> Talão
-                    </button>
-                  </div>
-
-                  {/* Lista de Itens do Cartão */}
-                  <div className="p-4 space-y-3 flex-1">
+                  {/* Lista de Artigos a Fabricar */}
+                  <div className="p-4 space-y-3 flex-1 bg-stone-50/50">
                     {itensFiltrados.map((item) => (
                       <div
                         key={item.id}
-                        className={`rounded-xl p-3 border text-xs transition ${
+                        className={`p-3 rounded-xl border transition ${
                           item.estado_producao === 'pronto'
-                            ? 'bg-emerald-50/70 border-emerald-300 text-emerald-950'
+                            ? 'bg-emerald-50 border-emerald-300 text-emerald-950 opacity-80'
                             : item.estado_producao === 'em_preparo'
-                            ? 'bg-amber-50/70 border-amber-300 text-amber-950'
-                            : 'bg-gray-50 border-gray-200 text-gray-900'
+                            ? 'bg-amber-50 border-amber-300 text-amber-950 shadow-xs'
+                            : 'bg-white border-stone-200 text-stone-900'
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <span className="inline-block rounded-md bg-stone-900 text-white font-black px-2 py-0.5 text-xs mr-1.5">
-                              {item.quantidade}x
+                            <span className="text-xs font-black text-stone-500 uppercase block mb-0.5">
+                              {item.setor === 'padaria' ? '🥖 Padaria' : '🎂 Pastelaria'}
                             </span>
-                            <span className="font-bold text-sm">{item.produto_nome}</span>
+                            <h4 className="text-sm font-black text-gray-900 leading-tight">
+                              <span className="text-amber-700 mr-1.5">{item.quantidade}x</span>
+                              {item.produto_nome}
+                            </h4>
                           </div>
-                          <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
-                            item.setor === 'padaria' ? 'bg-amber-100 text-amber-800' : 'bg-pink-100 text-pink-800'
+
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border ${
+                            item.estado_producao === 'pronto'
+                              ? 'bg-emerald-200 text-emerald-900 border-emerald-400'
+                              : item.estado_producao === 'em_preparo'
+                              ? 'bg-amber-200 text-amber-900 border-amber-400'
+                              : 'bg-stone-200 text-stone-700 border-stone-300'
                           }`}>
-                            {item.setor}
+                            {item.estado_producao}
                           </span>
                         </div>
 
-                        {/* Destaque para Personalização de Bolos de Pastelaria */}
+                        {/* Notas de Personalização */}
                         {item.notas_personalizacao && (
-                          <div className="mt-2 rounded-lg bg-amber-100 border border-amber-400 p-2 text-amber-950 font-medium">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-amber-900">
-                              ⚠️ Instruções de Personalização:
-                            </p>
-                            <p className="text-xs font-bold mt-0.5">"{item.notas_personalizacao}"</p>
+                          <div className="mt-2 p-2 rounded-lg bg-red-50 border border-red-200 text-xs text-red-950 flex items-start gap-1.5">
+                            <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
+                            <div>
+                              <span className="font-black text-[11px] uppercase block tracking-wider text-red-800">
+                                Personalização / Mensagem:
+                              </span>
+                              <p className="font-bold">{item.notas_personalizacao}</p>
+                            </div>
                           </div>
                         )}
 
-                        {/* Botões Táteis de Estado do Item */}
-                        <div className="mt-3 flex items-center justify-end gap-2 pt-2 border-t border-gray-200/60">
-                          {item.estado_producao === 'pendente' && (
-                            <button
-                              onClick={() => atualizarEstadoItem(enc.id, item.id, 'em_preparo')}
-                              className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-amber-700 transition"
-                            >
-                              Iniciar Preparo
-                            </button>
-                          )}
-                          {item.estado_producao === 'em_preparo' && (
-                            <button
-                              onClick={() => atualizarEstadoItem(enc.id, item.id, 'pronto')}
-                              className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition flex items-center gap-1"
-                            >
-                              <CheckCircle2 className="h-3.5 w-3.5" /> Marcar Pronto
-                            </button>
-                          )}
-                          {item.estado_producao === 'pronto' && (
-                            <span className="flex items-center gap-1 text-xs font-bold text-emerald-700">
-                              <CheckCircle2 className="h-4 w-4" /> Pronto na Bancada
-                            </span>
-                          )}
+                        {/* Botões Táteis de Mudança de Estado */}
+                        <div className="mt-3 pt-2 border-t border-stone-200/60 grid grid-cols-3 gap-1.5 text-xs font-bold">
+                          <button
+                            onClick={() => atualizarEstadoItem(enc.id, item.id, 'pendente')}
+                            className={`py-1.5 rounded-lg border transition ${
+                              item.estado_producao === 'pendente'
+                                ? 'bg-stone-800 text-white border-stone-800'
+                                : 'bg-white text-stone-600 hover:bg-stone-100 border-stone-300'
+                            }`}
+                          >
+                            {t.pendingPrep}
+                          </button>
+                          <button
+                            onClick={() => atualizarEstadoItem(enc.id, item.id, 'em_preparo')}
+                            className={`py-1.5 rounded-lg border transition ${
+                              item.estado_producao === 'em_preparo'
+                                ? 'bg-amber-600 text-white border-amber-600'
+                                : 'bg-white text-stone-600 hover:bg-amber-100 border-stone-300'
+                            }`}
+                          >
+                            {t.inPrep}
+                          </button>
+                          <button
+                            onClick={() => atualizarEstadoItem(enc.id, item.id, 'pronto')}
+                            className={`py-1.5 rounded-lg border transition flex items-center justify-center gap-1 ${
+                              item.estado_producao === 'pronto'
+                                ? 'bg-emerald-600 text-white border-emerald-600'
+                                : 'bg-white text-stone-600 hover:bg-emerald-100 border-stone-300'
+                            }`}
+                          >
+                            <CheckCircle2 className="h-3 w-3" />
+                            {t.readyPrep}
+                          </button>
                         </div>
                       </div>
                     ))}
                   </div>
 
                   {/* Rodapé do Cartão */}
-                  <div className="bg-gray-50 border-t border-gray-200 px-4 py-3 flex items-center justify-between text-xs text-gray-500">
-                    <span>Loja: <b>{enc.loja_nome?.split('(')[0] || 'Matriz'}</b></span>
-                    <span className="font-semibold text-gray-900">Total: {enc.total.toFixed(2)} €</span>
+                  <div className="p-3 bg-stone-100 border-t border-stone-200 flex items-center justify-between text-xs text-stone-600">
+                    <span className="font-semibold">
+                      Destino: {enc.tipo === 'entrega_domicilio' ? 'Carrinha de Entrega' : 'Balcão da Loja'}
+                    </span>
+                    <span className="font-bold text-stone-800">
+                      {enc.itens.filter((i) => i.estado_producao === 'pronto').length} de {enc.itens.length} prontos
+                    </span>
                   </div>
                 </div>
               );
             })}
           </div>
         )}
-
-        {/* Modal de Impressão Térmica se solicitado */}
-        {encomendaParaImprimir && (
-          <ThermalReceipt
-            encomenda={encomendaParaImprimir}
-            loja={lojaAtual}
-            onClose={() => setEncomendaParaImprimir(null)}
-          />
-        )}
       </main>
+
+      {/* Modal de Impressão */}
+      {encomendaParaImprimir && (
+        <ThermalReceipt
+          encomenda={encomendaParaImprimir}
+          loja={lojaAtual}
+          onClose={() => setEncomendaParaImprimir(null)}
+        />
+      )}
     </div>
   );
 }
