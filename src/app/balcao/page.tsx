@@ -212,6 +212,19 @@ export default function BalcaoPage() {
 
         if (cliExistente) {
           clienteId = cliExistente.id;
+          // Atualizar morada e notas do cliente se for entrega ao domicílio
+          const updates: any = {};
+          if (nomeCliente.trim()) updates.nome = nomeCliente.trim();
+          if (tipoEntrega === 'entrega_domicilio') {
+            if (moradaCliente.trim()) updates.morada = moradaCliente.trim();
+            if (notasEntrega.trim()) updates.notas_entrega = notasEntrega.trim();
+          }
+          if (Object.keys(updates).length > 0) {
+            await supabase
+              .from('clientes')
+              .update(updates)
+              .eq('id', clienteId);
+          }
         } else {
           const { data: novoCli, error: errCli } = await supabase
             .from('clientes')
@@ -240,6 +253,18 @@ export default function BalcaoPage() {
 
         const lojaIdFinal = lojaDb?.id || lojaAtual.id;
 
+        // Obter carrinha da loja no Supabase se for entrega ao domicílio
+        let carrinhaIdFinal = null;
+        if (tipoEntrega === 'entrega_domicilio') {
+          const { data: carDb } = await supabase
+            .from('carrinhas')
+            .select('id')
+            .eq('loja_id', lojaIdFinal)
+            .limit(1)
+            .maybeSingle();
+          if (carDb) carrinhaIdFinal = carDb.id;
+        }
+
         // 3. Inserir Encomenda
         const { data: encDb, error: errEnc } = await supabase
           .from('encomendas')
@@ -248,7 +273,7 @@ export default function BalcaoPage() {
             loja_id: lojaIdFinal,
             cliente_id: clienteId,
             tipo: tipoEntrega,
-            carrinha_id: null,
+            carrinha_id: carrinhaIdFinal,
             data_agendamento: dataAgendamento,
             hora_agendamento: horaAgendamento,
             estado: 'pendente',

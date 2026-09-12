@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar } from '../../components/Navbar';
 import { LOJAS_MOCK, CARRINHAS_MOCK } from '../../lib/mockData';
+import { supabase } from '../../lib/supabase';
 import { carregarEncomendasSupabase, atualizarEstadoEncomendaDb } from '../../lib/encomendasService';
 import { Encomenda } from '../../types';
 import { 
@@ -11,11 +12,10 @@ import {
   Phone, 
   Navigation, 
   CheckCircle2, 
-  AlertCircle, 
   Clock, 
   PackageCheck,
-  CreditCard,
-  DollarSign
+  DollarSign,
+  Edit3
 } from 'lucide-react';
 
 export default function EntregasPage() {
@@ -52,6 +52,32 @@ export default function EntregasPage() {
       prev.map((e) =>
         e.id === encomendaId
           ? { ...e, estado: 'entregue', estado_pagamento: 'pago' }
+          : e
+      )
+    );
+  };
+
+  // Alterar morada de entrega diretamente no painel
+  const handleEditarMorada = async (enc: Encomenda) => {
+    const novaMorada = window.prompt(
+      `Atualizar morada de entrega para ${enc.cliente.nome}:`,
+      enc.cliente.morada || ''
+    );
+    if (novaMorada === null || !novaMorada.trim()) return;
+
+    const moradaLimpa = novaMorada.trim();
+
+    if (supabase && enc.cliente.id) {
+      await supabase
+        .from('clientes')
+        .update({ morada: moradaLimpa })
+        .eq('id', enc.cliente.id);
+    }
+
+    setEncomendas((prev) =>
+      prev.map((e) =>
+        e.id === enc.id
+          ? { ...e, cliente: { ...e.cliente, morada: moradaLimpa } }
           : e
       )
     );
@@ -165,19 +191,30 @@ export default function EntregasPage() {
 
                   {/* Corpo da Paragem com Morada e Telefone */}
                   <div className="p-4 space-y-3">
-                    <div className="flex items-start gap-2 text-xs text-gray-800">
-                      <MapPin className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-bold">{enc.cliente.morada || 'Morada não especificada'}</p>
-                        {enc.cliente.codigo_postal && (
-                          <p className="text-gray-500">{enc.cliente.codigo_postal}</p>
-                        )}
-                        {enc.cliente.notas_entrega && (
-                          <p className="text-amber-800 italic font-medium mt-1 bg-amber-50 p-1.5 rounded-md border border-amber-200">
-                            Obs: {enc.cliente.notas_entrega}
-                          </p>
-                        )}
+                    <div className="flex items-start justify-between gap-2 text-xs text-gray-800">
+                      <div className="flex items-start gap-2">
+                        <MapPin className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-bold text-gray-900">{enc.cliente.morada || 'Morada não especificada'}</p>
+                          {enc.cliente.codigo_postal && (
+                            <p className="text-gray-500">{enc.cliente.codigo_postal}</p>
+                          )}
+                          {enc.cliente.notas_entrega && (
+                            <p className="text-amber-800 italic font-medium mt-1 bg-amber-50 p-1.5 rounded-md border border-amber-200">
+                              Obs: {enc.cliente.notas_entrega}
+                            </p>
+                          )}
+                        </div>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => handleEditarMorada(enc)}
+                        className="flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg border border-blue-200 shrink-0 transition"
+                        title="Alterar Morada de Entrega"
+                      >
+                        <Edit3 className="h-3 w-3" />
+                        Alterar
+                      </button>
                     </div>
 
                     {/* Resumo de Artigos no Carrinho */}
