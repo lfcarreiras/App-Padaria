@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 30, 20, 15;
+  --background-rgb: 253, 248, 244;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-rgb));
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* ==========================================================================
+   ESTILOS DEDICADOS À IMPRESSÃO TÉRMICA DE RECIBOS (80mm e 58mm)
+   ========================================================================== */
+@media print {
+  /* Ocultar toda a interface de ecrã (menus, botões, modais, fundo) */
+  body * {
+    visibility: hidden;
+  }
+
+  .no-print, header, nav, footer, button {
+    display: none !important;
+  }
+
+  /* Exibir exclusivamente o contentor do talão térmico */
+  #thermal-print-area, #thermal-print-area * {
+    visibility: visible;
+  }
+
+  #thermal-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 78mm; /* Padrão de impressora de talões 80mm com margem de corte */
+    margin: 0;
+    padding: 2mm 3mm;
+    font-family: 'Courier New', Courier, monospace;
+    color: #000 !important;
+    background: #fff !important;
+    font-size: 12px;
+    line-height: 1.25;
+  }
+
+  @page {
+    size: 80mm auto; /* Rolo contínuo de 80mm */
+    margin: 0;
+  }
+}
