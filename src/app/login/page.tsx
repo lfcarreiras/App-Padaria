@@ -44,20 +44,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleAcessoRapido = async (userDemo: string, passDemo: string) => {
-    setIdentificador(userDemo);
-    setPassword(passDemo);
-    setErro('');
-    setSubmitting(true);
-    const res = await login(userDemo, passDemo);
-    if (res.success) {
-      router.push(obterRotaInicial());
-    } else {
-      setErro(res.message || t.loginInvalidCredentials);
-      setSubmitting(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-stone-100 flex flex-col justify-center items-center p-4 sm:p-6 relative">
       {/* Seletor de Idioma no Canto Superior Direito */}
@@ -142,59 +128,6 @@ export default function LoginPage() {
               <ArrowRight className="h-4 w-4" />
             </button>
           </form>
-
-          {/* Secção de Acesso Rápido de Teste */}
-          <div className="pt-4 border-t border-stone-200">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 block mb-2 text-center">
-              {t.loginDemoAccess}
-            </span>
-
-            <div className="grid grid-cols-2 gap-2 text-[11px] font-bold">
-              <button
-                type="button"
-                onClick={() => handleAcessoRapido('admin@padaria.pt', 'admin')}
-                className="p-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-left transition"
-              >
-                👑 <b>Admin Geral</b>
-                <span className="block text-[10px] text-purple-600 font-normal">Acesso total</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleAcessoRapido('antonio.silva@padaria.pt', '123')}
-                className="p-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 text-left transition"
-              >
-                🏪 <b>Gerente Loja</b>
-                <span className="block text-[10px] text-blue-600 font-normal">Edição + Leitura</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleAcessoRapido('marta.santos@padaria.pt', '123')}
-                className="p-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-left transition"
-              >
-                🥐 <b>Balcão Loja</b>
-                <span className="block text-[10px] text-amber-600 font-normal">Encomendas & Loja</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleAcessoRapido('carlos.padeiro@padaria.pt', '123')}
-                className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-900 border border-rose-200 text-left transition"
-              >
-                🥖 <b>Padeiro KDS</b>
-                <span className="block text-[10px] text-rose-600 font-normal">Produção</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleAcessoRapido('rui.motorista@padaria.pt', '123')}
-                className="col-span-2 p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 text-center transition"
-              >
-                🚚 <b>Motorista de Entregas</b> (Carrinha 1)
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Rodapé Informativo */}
