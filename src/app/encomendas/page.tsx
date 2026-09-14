@@ -75,6 +75,7 @@ export default function EncomendasPage() {
   // Modal de Edição de Cliente
   const [clienteModal, setClienteModal] = useState<Partial<Cliente> | null>(null);
   const [buscaCliente, setBuscaCliente] = useState('');
+  const [buscaHistorico, setBuscaHistorico] = useState('');
 
   // Carregamento Inicial
   useEffect(() => {
@@ -556,6 +557,20 @@ Observações: [ex: Pão fatiado / Frase no bolo / Campainha]`;
     ? encomendas
     : encomendas.filter((e) => e.loja_id === selectedLojaId);
 
+  // Filtro de Histórico de Encomendas (Pesquisa por data, código, cliente, telefone ou produto)
+  const encomendasHistoricoFiltradas = encomendasFiltradas.filter((e) => {
+    if (!buscaHistorico.trim()) return true;
+    const q = buscaHistorico.toLowerCase().trim();
+    return (
+      e.codigo.toLowerCase().includes(q) ||
+      e.cliente.nome.toLowerCase().includes(q) ||
+      e.cliente.telefone.includes(q) ||
+      e.data_agendamento.includes(q) ||
+      (e.cliente.morada && e.cliente.morada.toLowerCase().includes(q)) ||
+      e.itens.some((i) => i.produto_nome.toLowerCase().includes(q))
+    );
+  });
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50/70">
       <Navbar selectedLojaId={selectedLojaId} onSelectLoja={setSelectedLojaId} />
@@ -991,8 +1006,34 @@ Observações: [ex: Pão fatiado / Frase no bolo / Campainha]`;
         {/* ----------------- ABA 3: HISTÓRICO DE ENCOMENDAS ----------------- */}
         {activeTab === 'historico' && (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {encomendasFiltradas.map((enc) => (
+            {/* Barra de Pesquisa de Histórico */}
+            <div className="bg-white p-3 rounded-2xl border border-gray-200 shadow-2xs flex items-center gap-2">
+              <Search className="h-4 w-4 text-gray-400 shrink-0" />
+              <input
+                type="text"
+                value={buscaHistorico}
+                onChange={(e) => setBuscaHistorico(e.target.value)}
+                placeholder="Pesquisar histórico por data (ex: 2026-09-14), código, cliente, morada ou produto..."
+                className="w-full text-xs font-semibold text-gray-800 placeholder-gray-400 focus:outline-hidden"
+              />
+              {buscaHistorico && (
+                <button
+                  type="button"
+                  onClick={() => setBuscaHistorico('')}
+                  className="text-xs text-gray-400 hover:text-gray-600 font-bold px-1.5 cursor-pointer"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {encomendasHistoricoFiltradas.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-3xl border border-gray-200 text-gray-500 text-xs font-semibold">
+                Nenhuma encomenda encontrada no histórico para o critério indicado.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {encomendasHistoricoFiltradas.map((enc) => (
                 <div
                   key={enc.id}
                   className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs flex flex-col justify-between space-y-3"

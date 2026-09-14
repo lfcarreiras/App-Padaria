@@ -237,48 +237,46 @@ export default function ProducaoPage() {
                           </div>
                         )}
 
-                        {/* Botões Táteis de Mudança de Estado */}
-                        <div className="mt-3 pt-2 border-t border-stone-200/60 grid grid-cols-3 gap-1.5 text-xs font-bold">
-                          <button
-                            disabled={!temPermissaoEdicao}
-                            onClick={() => atualizarEstadoItem(enc.id, item.id, 'pendente')}
-                            className={`py-1.5 rounded-lg border transition ${
-                              !temPermissaoEdicao ? 'opacity-60 cursor-not-allowed' : ''
-                            } ${
-                              item.estado_producao === 'pendente'
-                                ? 'bg-stone-800 text-white border-stone-800'
-                                : 'bg-white text-stone-600 hover:bg-stone-100 border-stone-300'
-                            }`}
-                          >
-                            {t.pendingPrep}
-                          </button>
-                          <button
-                            disabled={!temPermissaoEdicao}
-                            onClick={() => atualizarEstadoItem(enc.id, item.id, 'em_preparo')}
-                            className={`py-1.5 rounded-lg border transition ${
-                              !temPermissaoEdicao ? 'opacity-60 cursor-not-allowed' : ''
-                            } ${
-                              item.estado_producao === 'em_preparo'
-                                ? 'bg-amber-600 text-white border-amber-600'
-                                : 'bg-white text-stone-600 hover:bg-amber-100 border-stone-300'
-                            }`}
-                          >
-                            {t.inPrep}
-                          </button>
-                          <button
-                            disabled={!temPermissaoEdicao}
-                            onClick={() => atualizarEstadoItem(enc.id, item.id, 'pronto')}
-                            className={`py-1.5 rounded-lg border transition flex items-center justify-center gap-1 ${
-                              !temPermissaoEdicao ? 'opacity-60 cursor-not-allowed' : ''
-                            } ${
-                              item.estado_producao === 'pronto'
-                                ? 'bg-emerald-600 text-white border-emerald-600'
-                                : 'bg-white text-stone-600 hover:bg-emerald-100 border-stone-300'
-                            }`}
-                          >
-                            <CheckCircle2 className="h-3 w-3" />
-                            {t.readyPrep}
-                          </button>
+                        {/* Botões Táteis de Estado do Item */}
+                        <div className="mt-3 flex items-center justify-end gap-2 pt-2 border-t border-stone-200/60">
+                          {temPermissaoEdicao ? (
+                            <>
+                              {item.estado_producao === 'pendente' && (
+                                <button
+                                  onClick={() => atualizarEstadoItem(enc.id, item.id, 'em_preparo')}
+                                  className="rounded-lg bg-amber-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-amber-700 transition cursor-pointer"
+                                >
+                                  Iniciar Preparo
+                                </button>
+                              )}
+                              {item.estado_producao === 'em_preparo' && (
+                                <button
+                                  onClick={() => atualizarEstadoItem(enc.id, item.id, 'pronto')}
+                                  className="rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition flex items-center gap-1 cursor-pointer"
+                                >
+                                  <CheckCircle2 className="h-3.5 w-3.5" /> Marcar Pronto
+                                </button>
+                              )}
+                              {item.estado_producao === 'pronto' && (
+                                <div className="flex items-center gap-2">
+                                  <span className="flex items-center gap-1 text-xs font-bold text-emerald-700">
+                                    <CheckCircle2 className="h-4 w-4" /> Pronto na Bancada
+                                  </span>
+                                  <button
+                                    onClick={() => atualizarEstadoItem(enc.id, item.id, 'pendente')}
+                                    className="text-[10px] text-gray-400 hover:text-gray-600 underline cursor-pointer"
+                                    title="Reverter estado para pendente"
+                                  >
+                                    (reverter)
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-xs font-bold text-stone-500">
+                              {item.estado_producao === 'pronto' ? '✓ Pronto na Bancada' : item.estado_producao === 'em_preparo' ? 'Em Preparo' : 'Pendente'}
+                            </span>
+                          )}
                         </div>
                       </div>
                     ))}

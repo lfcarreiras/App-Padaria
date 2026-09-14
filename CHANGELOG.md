@@ -42,6 +42,30 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v1.5.0] - 2026-09-14
+### 🎨 Identidade Visual & Cabeçalho Desimpedido
+- **Branding Atualizado**: Substituição do logótipo e imagem de fundo do login pelos novos ativos de alta qualidade da Inbox do Vault.
+- **Header Limpo sem Barras de Scroll**: Removido texto excessivo e eliminado o scroll horizontal na navegação superior. Todas as 5 abas (`Encomendas`, `Produção`, `Balcão`, `Entregas`, `Gestão`) mantêm-se visíveis e diretamente clicáveis em qualquer resolução.
+
+### 📊 Suporte Nativo a Excel (.xlsx / .xls)
+- **Importação & Exportação em Formato Excel**: Substituição total de ficheiros CSV por folhas de cálculo Excel nativas.
+- **Importação Multi-folha**: Suporte automático para processar ficheiros com várias abas (ex: `Padaria` e `Pastelaria`).
+- **Download de Modelos em .xlsx**: Templates de clientes e produtos descarregados diretamente em Excel pronto a editar.
+
+### 🥖 Catálogo Oficial da Padaria da Vila (98 Artigos)
+- **Carga Massiva**: Purga das tabelas antigas e inserção dos 98 artigos reais da Padaria da Vila a partir da `Lista Artigos.xls` (41 artigos de Padaria e 57 de Pastelaria), refletidos na base de dados Supabase e nos dados de contingência (`PRODUTOS_MOCK`).
+
+### 📍 Encomendas de Simulação no Concelho de Arouca
+- **Cenários Reais de Teste**: 9 encomendas distribuídas entre Hoje (5 encomendas para testar Produção, Balcão e Carrinhas em tempo real), Histórico (3 encomendas em datas anteriores para testar métricas e histórico) e Futuro (1 encomenda para amanhã).
+- **Clientes e Moradas em Arouca**: Moradas reais do concelho (Arouca Centro, Santa Eulália, Alvarenga, Mansores, Escariz, Serra da Freita).
+- **Pesquisa Rápida de Histórico**: Pesquisa flexível por data, código, cliente ou produto no separador de Histórico de Encomendas.
+
+### 👨‍🍳 Restauração dos Botões Táteis de Produção
+- **Fluxo Tátil Restaurado**: Recuperados os botões progressivos de estado de fabrico (`Iniciar Preparo` ➔ `Marcar Pronto` ➔ `✓ Pronto na Bancada` com opção de reversão).
+
+### 🗄️ Organização do Vault
+- Ficheiros da Inbox (`Logo_Padaria_da_Vila.jpg`, `Imagem_Padaria_da_Vila.jpg`, `Lista Artigos.xls`) arquivados na pasta `documentos/` do projeto no Vault.
+
 ## [v1.4.0] - 2026-09-14
 ### 🥖 Identidade Visual & Rede Padaria da Vila (Arouca)
 - **Branding Oficial**: Integração do logótipo oficial da Padaria da Vila no cabeçalho e imagem de fundo da padaria no ecrã de login (`/login`).

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import * as XLSX from 'xlsx';
 import { Navbar } from '../../components/Navbar';
 import { ThermalReceipt } from '../../components/ThermalReceipt';
 import { LOJAS_MOCK, PRODUTOS_MOCK, CARRINHAS_MOCK } from '../../lib/mockData';
@@ -313,52 +314,43 @@ export default function AdminPage() {
     setPerfis(novaLista);
   };
 
-  // Exportação CSV com UTF-8 BOM
-  const exportarCSV = (nomeFicheiro: string, colunas: string[], linhas: (string | number)[][]) => {
-    const separador = ';';
-    const conteudo = [
-      colunas.join(separador),
-      ...linhas.map((l) =>
-        l.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(separador)
-      ),
-    ].join('\r\n');
-
-    const blob = new Blob(['\uFEFF' + conteudo], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${nomeFicheiro}_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+  // Exportação Excel (.xlsx) Nativa
+  const exportarExcel = (nomeFicheiro: string, nomeFolha: string, colunas: string[], linhas: (string | number)[][]) => {
+    const wb = XLSX.utils.book_new();
+    const dadosCompletos = [colunas, ...linhas];
+    const ws = XLSX.utils.aoa_to_sheet(dadosCompletos);
+    XLSX.utils.book_append_sheet(wb, ws, nomeFolha);
+    const dataStr = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(wb, `${nomeFicheiro}_${dataStr}.xlsx`);
   };
 
   const exportarClientes = () => {
-    exportarCSV('clientes_padaria', ['Nome', 'Telefone', 'Morada', 'Codigo_Postal', 'Notas_Entrega', 'Email'], clientes.map((c) => [
+    exportarExcel('clientes_padaria', 'Clientes', ['Nome', 'Telefone', 'Morada', 'Codigo_Postal', 'Notas_Entrega', 'Email'], clientes.map((c) => [
       c.nome, c.telefone, c.morada || '', c.codigo_postal || '', c.notas_entrega || '', c.email || ''
     ]));
   };
 
   const exportarProdutos = () => {
-    exportarCSV('produtos_padaria', ['Nome', 'Categoria', 'Preco', 'Unidade', 'Ativo'], produtos.map((p) => [
+    exportarExcel('produtos_padaria', 'Produtos', ['Nome', 'Categoria', 'Preco', 'Unidade', 'Ativo'], produtos.map((p) => [
       p.nome, p.categoria, p.preco, p.unidade, p.ativo ? 'SIM' : 'NAO'
     ]));
   };
 
   const exportarEncomendas = () => {
-    exportarCSV('encomendas_padaria', ['Codigo', 'Loja', 'Cliente', 'Telefone', 'Tipo', 'Data', 'Hora', 'Total', 'Estado', 'Pagamento'], encomendas.map((e) => [
+    exportarExcel('encomendas_padaria', 'Encomendas', ['Codigo', 'Loja', 'Cliente', 'Telefone', 'Tipo', 'Data', 'Hora', 'Total', 'Estado', 'Pagamento'], encomendas.map((e) => [
       e.codigo, e.loja_nome || '', e.cliente.nome, e.cliente.telefone, e.tipo, e.data_agendamento, e.hora_agendamento, e.total, e.estado, e.estado_pagamento
     ]));
   };
 
-  // Download de Templates
+  // Download de Templates em Excel (.xlsx)
   const descarregarTemplate = (tipo: 'clientes' | 'produtos') => {
     if (tipo === 'clientes') {
-      exportarCSV('template_clientes', ['Nome', 'Telefone', 'Morada', 'Codigo_Postal', 'Notas_Entrega', 'Email'], [
+      exportarExcel('template_clientes', 'Clientes', ['Nome', 'Telefone', 'Morada', 'Codigo_Postal', 'Notas_Entrega', 'Email'], [
         ['Manuel Ferreira', '912345678', 'Rua Dr. Teixeira de Brito, Arouca', '4540-100', 'Campainha 2º Dto', 'manuel@exemplo.pt'],
         ['Maria Santos', '933221100', 'Praça Brandão de Vasconcelos, Arouca', '4540-111', 'Portão lateral', 'maria@exemplo.pt'],
       ]);
     } else {
-      exportarCSV('template_produtos_padaria_da_vila', ['Nome', 'Categoria', 'Unidade', 'Ativo'], [
+      exportarExcel('template_produtos_padaria_da_vila', 'Produtos', ['Nome', 'Categoria', 'Unidade', 'Ativo'], [
         ['Pão de Arouca Tradicional', 'padaria', 'unidade', 'SIM'],
         ['Broa de Milho em Forno de Lenha', 'padaria', 'unidade', 'SIM'],
         ['Pão de Ló de Arouca', 'pastelaria', 'unidade', 'SIM'],
@@ -373,28 +365,70 @@ export default function AdminPage() {
     if (!file) return;
 
     setArquivoImportado(file.name);
+    setStatusImportacao(null);
     const reader = new FileReader();
+
     reader.onload = (event) => {
-      const text = event.target?.result as string;
-      if (!text) return;
-      const linhas = text.split(/\r?\n/).filter((l) => l.trim() !== '');
-      if (linhas.length < 2) return;
+      try {
+        const buffer = event.target?.result as ArrayBuffer;
+        if (!buffer) return;
+        const wb = XLSX.read(buffer, { type: 'array' });
+        const parsed: any[] = [];
 
-      const separador = linhas[0].includes(';') ? ';' : ',';
-      const cabecalhos = linhas[0].split(separador).map((c) => c.replace(/^["']|["']$/g, '').trim().toLowerCase());
+        if (tabelaImportacao === 'produtos') {
+          // Processar todas as folhas do ficheiro Excel (ex: Padaria e Pastelaria)
+          for (const sheetName of wb.SheetNames) {
+            const ws = wb.Sheets[sheetName];
+            const rows: any[] = XLSX.utils.sheet_to_json(ws);
+            const defaultCat = sheetName.toLowerCase().includes('past') ? 'pastelaria' : 'padaria';
 
-      const parsed: any[] = [];
-      for (let i = 1; i < linhas.length; i++) {
-        const valores = linhas[i].split(separador).map((v) => v.replace(/^["']|["']$/g, '').trim());
-        const item: any = {};
-        cabecalhos.forEach((cab, idx) => {
-          item[cab] = valores[idx] || '';
-        });
-        parsed.push(item);
+            for (const r of rows) {
+              const nome = r['Descrição'] || r['Descricao'] || r['Nome'] || r['nome'] || r['Produto'] || r['produto'] || '';
+              if (!String(nome).trim()) continue;
+
+              const catRaw = r['Área'] || r['Area'] || r['Categoria'] || r['categoria'] || defaultCat;
+              const cat = String(catRaw).toLowerCase().includes('past') ? 'pastelaria' : 'padaria';
+              const preco = parseFloat(String(r['Preco'] || r['Preço'] || r['preco'] || '0').replace(',', '.')) || 0;
+              const unidadeRaw = r['Unidade'] || r['unidade'] || (String(nome).toLowerCase().includes('kg') ? 'kg' : 'unidade');
+              const ativo = r['Ativo'] !== undefined ? String(r['Ativo']).toUpperCase() === 'SIM' || String(r['Ativo']) === '1' || String(r['Ativo']) === 'true' : true;
+
+              parsed.push({
+                nome: String(nome).trim(),
+                categoria: cat,
+                preco,
+                unidade: unidadeRaw,
+                ativo
+              });
+            }
+          }
+        } else {
+          // Processar folha de clientes
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          const rows: any[] = XLSX.utils.sheet_to_json(ws);
+          for (const r of rows) {
+            const nome = r['Nome'] || r['nome'] || r['Cliente'] || r['cliente'] || '';
+            const telefone = r['Telefone'] || r['telefone'] || r['Contato'] || r['contato'] || r['Tel'] || '';
+            if (!String(nome).trim() && !String(telefone).trim()) continue;
+
+            parsed.push({
+              nome: String(nome).trim(),
+              telefone: String(telefone).trim(),
+              morada: r['Morada'] || r['morada'] || r['Endereco'] || '',
+              codigo_postal: r['Codigo_Postal'] || r['codigo_postal'] || r['CP'] || '',
+              notas_entrega: r['Notas_Entrega'] || r['notas_entrega'] || r['Observacoes'] || '',
+              email: r['Email'] || r['email'] || '',
+            });
+          }
+        }
+
+        setLinhasPreview(parsed);
+      } catch (err: any) {
+        console.error('Erro ao ler ficheiro Excel:', err);
+        setStatusImportacao(`Erro ao processar ficheiro Excel: ${err.message}`);
       }
-      setLinhasPreview(parsed);
     };
-    reader.readAsText(file, 'UTF-8');
+
+    reader.readAsArrayBuffer(file);
   };
 
   const handleExecutarImportacao = async () => {
@@ -414,7 +448,7 @@ export default function AdminPage() {
         }));
 
         const res = await upsertClientesEmLote(listaMapeada);
-        setStatusImportacao(`${t.success} ${res.sucesso} registos.`);
+        setStatusImportacao(`${t.success} ${res.sucesso} clientes importados/atualizados.`);
         const clis = await carregarClientesSupabase();
         setClientes(clis);
       } else {
@@ -427,7 +461,7 @@ export default function AdminPage() {
         }));
 
         const res = await upsertProdutosEmLote(listaMapeada);
-        setStatusImportacao(`${t.success} ${res.sucesso} registos.`);
+        setStatusImportacao(`${t.success} ${res.sucesso} produtos importados/atualizados.`);
         const prods = await carregarProdutosSupabase();
         setProdutos(prods);
       }
@@ -840,7 +874,7 @@ export default function AdminPage() {
                   onClick={() => descarregarTemplate(tabelaImportacao)}
                   className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1"
                 >
-                  <Download className="h-3.5 w-3.5" /> Descarregar Modelo CSV / Excel
+                  <Download className="h-3.5 w-3.5" /> Descarregar Modelo Excel (.xlsx)
                 </button>
               </div>
 
@@ -851,18 +885,18 @@ export default function AdminPage() {
               }`}>
                 <input
                   type="file"
-                  accept=".csv,.txt"
+                  accept=".xlsx,.xls,.csv"
                   id="excel-upload"
                   disabled={!temPermissaoEdicaoGestao}
                   onChange={handleFicheiroSelecionado}
                   className="hidden"
                 />
                 <label htmlFor={temPermissaoEdicaoGestao ? "excel-upload" : undefined} className={`flex flex-col items-center ${temPermissaoEdicaoGestao ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
-                  <FileSpreadsheet className="h-10 w-10 text-gray-400 mb-2" />
+                  <FileSpreadsheet className="h-10 w-10 text-emerald-600 mb-2" />
                   <span className="text-xs font-bold text-gray-800">
-                    {!temPermissaoEdicaoGestao ? `🚫 ${t.readOnlyMode} - ${t.importExcel}` : arquivoImportado ? `Ficheiro: ${arquivoImportado}` : 'Clique para selecionar ficheiro CSV / Excel'}
+                    {!temPermissaoEdicaoGestao ? `🚫 ${t.readOnlyMode} - ${t.importExcel}` : arquivoImportado ? `Ficheiro: ${arquivoImportado}` : 'Clique para carregar ficheiro Excel (.xlsx / .xls)'}
                   </span>
-                  <span className="text-[11px] text-gray-400 mt-1">Ficheiros .CSV exportados do Excel</span>
+                  <span className="text-[11px] text-gray-400 mt-1">Suporta ficheiros Excel nativos (.xlsx e .xls) e folhas múltiplas (Padaria / Pastelaria)</span>
                 </label>
               </div>
 
