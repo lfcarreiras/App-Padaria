@@ -190,7 +190,7 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
               <div className="flex justify-between text-xs font-bold uppercase border-t border-b border-black py-1">
                 <span>{t.totalItems}:</span>
                 <span className="font-black">
-                  {encomenda.itens.reduce((acc, item) => acc + item.quantidade, 0)} un.
+                  {encomenda.itens.reduce((acc: number, item: any) => acc + item.quantidade, 0)} un.
                 </span>
               </div>
             </div>

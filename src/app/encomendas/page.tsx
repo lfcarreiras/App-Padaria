@@ -1107,6 +1107,7 @@ Observações: [ex: Pão fatiado / Frase no bolo / Campainha]`;
                 </div>
               ))}
             </div>
+            )}
           </div>
         )}
       </main>

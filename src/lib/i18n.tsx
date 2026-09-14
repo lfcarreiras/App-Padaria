@@ -222,6 +222,7 @@ export interface Translations {
   accessLevel: string;
   levelNoAccess: string;
   levelReadOnly: string;
+  levelFullEdit: string;
   password: string;
 
   // WhatsApp e Rota

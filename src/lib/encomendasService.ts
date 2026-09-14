@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Encomenda, ItemEncomenda, EstadoEncomenda, EstadoProducaoItem, Cliente, Produto, Loja, Carrinha } from '../types';
+import { Encomenda, ItemEncomenda, EstadoEncomenda, EstadoProducaoItem, Cliente, Produto, Loja, Carrinha, PerfilUtilizador } from '../types';
 
 export function parseEncomendasFromDb(data: any[]): Encomenda[] {
   if (!data || !Array.isArray(data)) return [];
