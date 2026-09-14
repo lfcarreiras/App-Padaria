@@ -43,10 +43,12 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId, onSelectLoja }) 
       <div className="mx-auto flex max-w-7xl items-center justify-between px-3 py-2.5 sm:px-6">
         {/* Identidade e Seletor de Loja */}
         <div className="flex items-center gap-3">
-          <Link href={links[0]?.href || '/login'} className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-bakery-600 text-white shadow-sm text-base">
-              🥖
-            </div>
+          <Link href={links[0]?.href || '/login'} className="flex items-center gap-2.5">
+            <img
+              src="/logo-padaria.jpg"
+              alt="Padaria da Vila"
+              className="h-9 w-9 rounded-xl object-cover shadow-xs border border-amber-200"
+            />
             <div className="hidden sm:block">
               <h1 className="text-xs sm:text-sm font-bold text-gray-900 leading-tight">
                 {t.appTitle}

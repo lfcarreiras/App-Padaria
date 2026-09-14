@@ -32,7 +32,7 @@ export interface Produto {
   id: string;
   nome: string;
   categoria: CategoriaProduto;
-  preco: number;
+  preco?: number;
   unidade: 'unidade' | 'kg' | 'cento';
   tempo_preparo_minutos?: number;
   ativo: boolean;
@@ -54,7 +54,7 @@ export interface ItemEncomenda {
   produto_nome: string;
   setor: SetorProducao;
   quantidade: number;
-  preco_unitario: number;
+  preco_unitario?: number;
   notas_personalizacao?: string;
   estado_producao: EstadoProducaoItem;
 }
@@ -72,12 +72,34 @@ export interface Encomenda {
   data_agendamento: string; // YYYY-MM-DD
   hora_agendamento: string; // HH:MM
   estado: EstadoEncomenda;
-  estado_pagamento: EstadoPagamento;
+  estado_pagamento?: EstadoPagamento;
   metodo_pagamento?: MetodoPagamento;
-  total: number;
+  total?: number;
   notas_cliente?: string;
   itens: ItemEncomenda[];
   criado_em: string;
+}
+
+export type EstadoRota = 'nao_iniciada' | 'em_curso' | 'concluida';
+
+export interface RotaCarrinhaControlo {
+  carrinha_id: string;
+  data: string;
+  estado: EstadoRota;
+  hora_inicio?: string;
+  hora_fim?: string;
+  paragem_atual_index: number;
+}
+
+export interface PedidoWhatsAppEstruturado {
+  nomeCliente: string;
+  telefoneCliente: string;
+  tipoEntrega: TipoEntrega;
+  moradaOuLoja: string;
+  dataAgendamento: string;
+  horaAgendamento: string;
+  notas: string;
+  itens: { nome: string; quantidade: number; notas?: string }[];
 }
 
 export type NivelAcesso = 'sem_acesso' | 'leitura' | 'edicao';

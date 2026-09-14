@@ -32,7 +32,10 @@ import {
   Phone,
   MapPin,
   X,
-  Eye
+  Eye,
+  MessageSquare,
+  Copy,
+  FileText
 } from 'lucide-react';
 
 export default function EncomendasPage() {
@@ -57,12 +60,14 @@ export default function EncomendasPage() {
   const [tipoEntrega, setTipoEntrega] = useState<TipoEntrega>('levantamento_loja');
   const [dataAgendamento, setDataAgendamento] = useState(new Date().toISOString().split('T')[0]);
   const [horaAgendamento, setHoraAgendamento] = useState('10:00');
-  const [metodoPagamento, setMetodoPagamento] = useState<MetodoPagamento>('multibanco');
-  const [estadoPagamento, setEstadoPagamento] = useState<'pendente' | 'pago'>('pendente');
   const [notasGerais, setNotasGerais] = useState('');
   const [categoriaAtiva, setCategoriaAtiva] = useState<'todas' | 'padaria' | 'pastelaria'>('todas');
   const [buscaProduto, setBuscaProduto] = useState('');
   const [aGravar, setAGravar] = useState(false);
+
+  // Modal de Importação do WhatsApp
+  const [whatsappModalAberto, setWhatsappModalAberto] = useState(false);
+  const [textoWhatsapp, setTextoWhatsapp] = useState('');
 
   // Modal de Talão
   const [encomendaParaImprimir, setEncomendaParaImprimir] = useState<Encomenda | null>(null);
@@ -157,10 +162,151 @@ export default function EncomendasPage() {
     );
   };
 
-  const totalCarrinho = carrinho.reduce(
-    (acc, curr) => acc + curr.quantidade * curr.preco_unitario,
-    0
-  );
+  // Modelo WhatsApp Padaria da Vila para copiar aos clientes
+  const modeloWhatsapp = `*PEDIDO - PADARIA DA VILA*
+Nome: [O seu nome]
+Telefone: [O seu contacto telefónico]
+Tipo: [Levantamento em Loja OU Entrega ao Domicílio]
+Loja / Morada: [Praça / 25 de Abril / Arouca / Unidade Fabrico OU Morada completa em Arouca]
+Data: [Hoje / Amanhã ou AAAA-MM-DD]
+Hora: [ex: 08:30]
+Artigos:
+- 2x Pão de Arouca
+- 1x Pão de Ló de Arouca
+Observações: [ex: Pão fatiado / Frase no bolo / Campainha]`;
+
+  const handleCopiarModelo = () => {
+    navigator.clipboard.writeText(modeloWhatsapp);
+    alert(t.whatsappTemplateCopied);
+  };
+
+  // Processar mensagem estruturada de WhatsApp colada pelo operador
+  const handleProcessarWhatsapp = () => {
+    if (!textoWhatsapp.trim()) return;
+
+    const linhas = textoWhatsapp.split('\n').map((l) => l.trim()).filter(Boolean);
+
+    let nomeEncontrado = '';
+    let telEncontrado = '';
+    let tipoEncontrado: TipoEntrega = 'levantamento_loja';
+    let moradaEncontrada = '';
+    let dataEncontrada = dataAgendamento;
+    let horaEncontrada = horaAgendamento;
+    let notasEncontradas = '';
+    const itensParaAdicionar: ItemEncomenda[] = [];
+
+    for (const linha of linhas) {
+      const linhaLower = linha.toLowerCase();
+
+      if (linhaLower.startsWith('nome:') || linhaLower.startsWith('cliente:')) {
+        nomeEncontrado = linha.split(':')[1]?.trim().replace(/^\[|\]$/g, '') || '';
+      } else if (
+        linhaLower.startsWith('telefone:') ||
+        linhaLower.startsWith('tel:') ||
+        linhaLower.startsWith('contacto:') ||
+        linhaLower.startsWith('telemovel:') ||
+        linhaLower.startsWith('telemóvel:')
+      ) {
+        telEncontrado = linha.split(':')[1]?.trim().replace(/^\[|\]$/g, '') || '';
+      } else if (linhaLower.startsWith('tipo:')) {
+        const val = linha.split(':')[1]?.toLowerCase() || '';
+        if (val.includes('entrega') || val.includes('domicilio') || val.includes('domicílio') || val.includes('carrinha')) {
+          tipoEncontrado = 'entrega_domicilio';
+        } else {
+          tipoEncontrado = 'levantamento_loja';
+        }
+      } else if (
+        linhaLower.startsWith('morada:') ||
+        linhaLower.startsWith('loja / morada:') ||
+        linhaLower.startsWith('endereco:') ||
+        linhaLower.startsWith('endereço:')
+      ) {
+        moradaEncontrada = linha.split(':')[1]?.trim().replace(/^\[|\]$/g, '') || '';
+      } else if (linhaLower.startsWith('data:')) {
+        const val = linha.split(':')[1]?.trim().replace(/^\[|\]$/g, '') || '';
+        if (val.toLowerCase() === 'hoje') {
+          dataEncontrada = new Date().toISOString().split('T')[0];
+        } else if (val.toLowerCase() === 'amanhã' || val.toLowerCase() === 'amanha') {
+          const amanha = new Date();
+          amanha.setDate(amanha.getDate() + 1);
+          dataEncontrada = amanha.toISOString().split('T')[0];
+        } else if (val.includes('-')) {
+          dataEncontrada = val;
+        } else if (val.includes('/')) {
+          const [d, m, y] = val.split('/');
+          if (d && m && y) {
+            dataEncontrada = `${y.trim()}-${m.trim().padStart(2, '0')}-${d.trim().padStart(2, '0')}`;
+          }
+        }
+      } else if (
+        linhaLower.startsWith('hora:') ||
+        linhaLower.startsWith('horário:') ||
+        linhaLower.startsWith('horario:')
+      ) {
+        const val = linha.split(':')[1]?.trim().replace(/^\[|\]$/g, '') || '';
+        const matchHora = val.match(/(\d{1,2})[h:](\d{2})?/i);
+        if (matchHora) {
+          const h = matchHora[1].padStart(2, '0');
+          const m = matchHora[2] ? matchHora[2].padStart(2, '0') : '00';
+          horaEncontrada = `${h}:${m}`;
+        }
+      } else if (
+        linhaLower.startsWith('observações:') ||
+        linhaLower.startsWith('observacoes:') ||
+        linhaLower.startsWith('notas:') ||
+        linhaLower.startsWith('obs:')
+      ) {
+        notasEncontradas = linha.split(':')[1]?.trim().replace(/^\[|\]$/g, '') || '';
+      } else if (linha.startsWith('-') || linha.startsWith('•') || /^\d+\s*(x|un)\b/i.test(linha)) {
+        const textoItem = linha.replace(/^[-•*]\s*/, '').trim();
+        const matchQty = textoItem.match(/^(\d+)\s*(?:x|un)?\s+(.+)$/i);
+        if (matchQty) {
+          const qty = parseInt(matchQty[1], 10);
+          const nomeArtigo = matchQty[2].replace(/\(.*?\)/g, '').trim();
+
+          const prodEncontrado = produtos.find(
+            (p) =>
+              p.nome.toLowerCase().includes(nomeArtigo.toLowerCase()) ||
+              nomeArtigo.toLowerCase().includes(p.nome.toLowerCase())
+          );
+
+          if (prodEncontrado) {
+            itensParaAdicionar.push({
+              id: `item-${Date.now()}-${Math.random()}`,
+              encomenda_id: '',
+              produto_id: prodEncontrado.id,
+              produto_nome: prodEncontrado.nome,
+              setor: prodEncontrado.categoria === 'padaria' ? 'padaria' : 'pastelaria',
+              quantidade: qty,
+              preco_unitario: 0,
+              estado_producao: 'pendente',
+              notas_personalizacao: '',
+            });
+          } else {
+            notasEncontradas = notasEncontradas
+              ? `${notasEncontradas} | ${qty}x ${nomeArtigo}`
+              : `${qty}x ${nomeArtigo}`;
+          }
+        }
+      }
+    }
+
+    if (nomeEncontrado) setNomeCliente(nomeEncontrado);
+    if (telEncontrado) handleTelefoneChange(telEncontrado);
+    if (tipoEncontrado) setTipoEntrega(tipoEncontrado);
+    if (moradaEncontrada) setMoradaCliente(moradaEncontrada);
+    if (dataEncontrada) setDataAgendamento(dataEncontrada);
+    if (horaEncontrada) setHoraAgendamento(horaEncontrada);
+    if (notasEncontradas) setNotasGerais(notasEncontradas);
+
+    if (itensParaAdicionar.length > 0) {
+      setCarrinho((prev) => [...prev, ...itensParaAdicionar]);
+    }
+
+    setWhatsappModalAberto(false);
+    setTextoWhatsapp('');
+    alert('Pedido do WhatsApp processado com sucesso! Verifique os dados no formulário.');
+  };
 
   // Submeter Encomenda
   const handleGravarEncomenda = async (e: React.FormEvent) => {
@@ -243,9 +389,8 @@ export default function EncomendasPage() {
             data_agendamento: dataAgendamento,
             hora_agendamento: horaAgendamento,
             estado: 'pendente',
-            estado_pagamento: estadoPagamento,
-            metodo_pagamento: metodoPagamento,
-            total: totalCarrinho,
+            estado_pagamento: 'pago',
+            total: 0,
             notas_cliente: notasGerais.trim() || null,
           })
           .select('id, codigo')
@@ -260,7 +405,7 @@ export default function EncomendasPage() {
             produto_id: item.produto_id,
             setor: item.setor,
             quantidade: item.quantidade,
-            preco_unitario: item.preco_unitario,
+            preco_unitario: 0,
             notas_personalizacao: item.notas_personalizacao || null,
             estado_producao: 'pendente',
           }));
@@ -287,9 +432,7 @@ export default function EncomendasPage() {
         data_agendamento: dataAgendamento,
         hora_agendamento: horaAgendamento,
         estado: 'pendente',
-        estado_pagamento: estadoPagamento,
-        metodo_pagamento: metodoPagamento,
-        total: totalCarrinho,
+        total: 0,
         notas_cliente: notasGerais.trim() || undefined,
         itens: [...carrinho],
         criado_em: new Date().toISOString(),
@@ -481,6 +624,39 @@ export default function EncomendasPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Coluna Esquerda: Catálogo de Produtos */}
             <div className="lg:col-span-7 space-y-4">
+              {/* Barra de Integração WhatsApp */}
+              <div className="bg-emerald-50/90 border border-emerald-200 p-3 rounded-2xl flex flex-wrap items-center justify-between gap-2.5 shadow-2xs">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-xl bg-emerald-600 text-white shadow-2xs">
+                    <MessageSquare className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-emerald-950">Integração WhatsApp</h4>
+                    <p className="text-[11px] text-emerald-800">Importar mensagens estruturadas de clientes</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCopiarModelo}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-emerald-100/50 text-emerald-800 border border-emerald-300 text-xs font-bold transition shadow-2xs cursor-pointer"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    <span>{t.whatsappCopyTemplate}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setWhatsappModalAberto(true)}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition shadow-xs cursor-pointer"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    <span>{t.whatsappOrderBtn}</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Pesquisa e Filtros de Categoria */}
               <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
@@ -512,7 +688,7 @@ export default function EncomendasPage() {
                 </div>
               </div>
 
-              {/* Grelha de Produtos */}
+              {/* Grelha de Produtos (Sem preços - foco na quantidade e artigo) */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {produtosFiltrados.map((prod) => (
                   <button
@@ -526,8 +702,8 @@ export default function EncomendasPage() {
                     <h4 className="text-xs font-bold text-gray-900 group-hover:text-bakery-700 line-clamp-2">
                       {prod.nome}
                     </h4>
-                    <span className="text-xs font-black text-bakery-700 mt-auto pt-2">
-                      {prod.preco.toFixed(2)} €
+                    <span className="text-[11px] font-bold text-bakery-700 mt-auto pt-2 uppercase">
+                      + Adicionar
                     </span>
                   </button>
                 ))}
@@ -669,7 +845,7 @@ export default function EncomendasPage() {
                         <div key={item.id} className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 text-xs space-y-1.5">
                           <div className="flex items-center justify-between font-bold text-gray-900">
                             <span>{item.produto_nome}</span>
-                            <span>{(item.quantidade * item.preco_unitario).toFixed(2)} €</span>
+                            <span className="text-xs text-stone-600 font-bold">{item.quantidade} un.</span>
                           </div>
 
                           <div className="flex items-center justify-between">
@@ -705,40 +881,13 @@ export default function EncomendasPage() {
                   )}
                 </div>
 
-                {/* Pagamento e Total */}
-                <div className="border-t border-gray-100 pt-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">{t.paymentMethod}:</span>
-                    <select
-                      value={metodoPagamento}
-                      onChange={(e) => setMetodoPagamento(e.target.value as MetodoPagamento)}
-                      className="text-xs font-bold border border-gray-200 rounded-lg px-2 py-1 bg-white cursor-pointer"
-                    >
-                      <option value="multibanco">{t.card}</option>
-                      <option value="dinheiro">{t.cash}</option>
-                      <option value="mbway">{t.mbway}</option>
-                      <option value="transferencia">{t.transfer}</option>
-                    </select>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">{t.receiptPaymentStatus}:</span>
-                    <button
-                      type="button"
-                      onClick={() => setEstadoPagamento(estadoPagamento === 'pago' ? 'pendente' : 'pago')}
-                      className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border transition ${
-                        estadoPagamento === 'pago'
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-                          : 'bg-amber-50 text-amber-800 border-amber-300'
-                      }`}
-                    >
-                      {estadoPagamento === 'pago' ? t.paid : t.toPay}
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between text-base font-black text-gray-900 pt-2 border-t border-gray-100">
-                    <span>{t.total}:</span>
-                    <span className="text-xl text-bakery-700">{totalCarrinho.toFixed(2)} €</span>
+                {/* Resumo de Artigos no Pedido */}
+                <div className="border-t border-gray-100 pt-3">
+                  <div className="flex items-center justify-between text-base font-black text-gray-900 pt-1">
+                    <span>{t.totalItems}:</span>
+                    <span className="text-xl text-bakery-700">
+                      {carrinho.reduce((acc, i) => acc + i.quantidade, 0)} un.
+                    </span>
                   </div>
                 </div>
 
@@ -874,16 +1023,18 @@ export default function EncomendasPage() {
 
                     <div className="text-xs text-gray-600 mt-2 flex items-center justify-between">
                       <span>{enc.data_agendamento} às {enc.hora_agendamento}</span>
-                      <span className="font-black text-sm text-gray-900">{enc.total.toFixed(2)} €</span>
+                      <span className="font-bold text-xs text-stone-800 bg-stone-100 px-2 py-0.5 rounded-md">
+                        {enc.itens.reduce((acc, i) => acc + i.quantidade, 0)} {t.totalItems.toLowerCase()}
+                      </span>
                     </div>
                   </div>
 
                   {/* Ações da Encomenda */}
-                  <div className="pt-2 border-t border-gray-100 grid grid-cols-2 gap-2 text-xs font-bold">
+                  <div className="pt-2 border-t border-gray-100 grid grid-cols-3 gap-1.5 text-xs font-bold">
                     <button
                       type="button"
                       onClick={() => setEncomendaParaImprimir(enc)}
-                      className="flex items-center justify-center gap-1 py-2 rounded-xl bg-gray-100 text-gray-800 hover:bg-gray-200 transition"
+                      className="flex items-center justify-center gap-1 py-2 rounded-xl bg-gray-100 text-gray-800 hover:bg-gray-200 transition text-[11px]"
                     >
                       <Printer className="h-3.5 w-3.5" />
                       Talão
@@ -896,8 +1047,21 @@ export default function EncomendasPage() {
                       title="Mudar entre Entrega ao Domicílio e Levantamento em Loja"
                     >
                       <ArrowRightLeft className="h-3.5 w-3.5" />
-                      Mudar Tipo
+                      Tipo
                     </button>
+
+                    <a
+                      href={`https://wa.me/351${enc.cliente.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(
+                        `🥖 *Padaria da Vila*\nOlá ${enc.cliente.nome}, o seu pedido *${enc.codigo}* está confirmado para ${enc.data_agendamento} às ${enc.hora_agendamento}.\nFormato: ${enc.tipo === 'entrega_domicilio' ? `Entrega em ${enc.cliente.morada}` : 'Levantamento no Balcão'}.\nArtigos: ${enc.itens.map(i => `${i.quantidade}x ${i.produto_nome}`).join(', ')}.\nObrigado pela sua preferência!`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-1 py-2 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 transition text-[11px]"
+                      title="Enviar Confirmação WhatsApp"
+                    >
+                      <MessageSquare className="h-3.5 w-3.5 text-emerald-600" />
+                      WhatsApp
+                    </a>
                   </div>
                 </div>
               ))}
@@ -987,6 +1151,68 @@ export default function EncomendasPage() {
                 )}
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE IMPORTAÇÃO WHATSAPP */}
+      {whatsappModalAberto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-emerald-600 text-white shadow-2xs">
+                  <MessageSquare className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-gray-900">{t.whatsappModalTitle}</h3>
+                  <p className="text-xs text-gray-500">Cole a mensagem enviada pelo cliente no WhatsApp</p>
+                </div>
+              </div>
+              <button onClick={() => setWhatsappModalAberto(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <textarea
+                rows={7}
+                value={textoWhatsapp}
+                onChange={(e) => setTextoWhatsapp(e.target.value)}
+                placeholder={t.whatsappPastePlaceholder}
+                className="w-full p-3.5 rounded-2xl border border-gray-300 font-mono text-xs focus:outline-hidden focus:border-emerald-500 bg-stone-50"
+              />
+
+              <div className="flex items-center justify-between text-xs text-gray-500">
+                <button
+                  type="button"
+                  onClick={handleCopiarModelo}
+                  className="flex items-center gap-1 font-bold text-emerald-700 hover:underline cursor-pointer"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  {t.whatsappCopyTemplate}
+                </button>
+                <span>Reconhece nome, telefone, morada, data e artigos</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setWhatsappModalAberto(false)}
+                className="px-4 py-2.5 rounded-xl bg-gray-100 text-xs font-bold text-gray-700 hover:bg-gray-200 transition"
+              >
+                {t.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={handleProcessarWhatsapp}
+                disabled={!textoWhatsapp.trim()}
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-md transition disabled:opacity-50 cursor-pointer"
+              >
+                {t.whatsappParseBtn}
+              </button>
+            </div>
           </div>
         </div>
       )}

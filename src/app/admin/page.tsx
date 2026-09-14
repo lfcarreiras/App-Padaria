@@ -149,11 +149,14 @@ export default function AdminPage() {
     });
   }, [encomendas, selectedLojaId, formatoEntrega, periodoSelecionado]);
 
-  // Cálculos de Indicadores
-  const totalFaturado = encomendasFiltradas.reduce((acc, curr) => acc + curr.total, 0);
+  // Cálculos de Indicadores Operacionais (Foco em cumprimento e volume)
+  const totalVolumeEncomendas = encomendasFiltradas.length;
+  const totalArtigos = encomendasFiltradas.reduce(
+    (acc, curr) => acc + curr.itens.reduce((iAcc, item) => iAcc + item.quantidade, 0),
+    0
+  );
   const totalEntregas = encomendasFiltradas.filter((e) => e.tipo === 'entrega_domicilio').length;
   const totalLevantamentos = encomendasFiltradas.filter((e) => e.tipo === 'levantamento_loja').length;
-  const ticketMedio = encomendasFiltradas.length > 0 ? totalFaturado / encomendasFiltradas.length : 0;
 
   // Necessidades Consolidadas de Produção com o filtro ativo
   const mapaProducao: { [nome: string]: { quantidade: number; setor: string; unidade: string } } = {};
@@ -351,13 +354,16 @@ export default function AdminPage() {
   const descarregarTemplate = (tipo: 'clientes' | 'produtos') => {
     if (tipo === 'clientes') {
       exportarCSV('template_clientes', ['Nome', 'Telefone', 'Morada', 'Codigo_Postal', 'Notas_Entrega', 'Email'], [
-        ['Manuel Ferreira', '912345678', 'Rua das Flores 10, Lisboa', '1000-001', 'Campainha 2º Dto', 'manuel@exemplo.pt'],
-        ['Maria Santos', '933221100', 'Av. da Liberdade 200, Lisboa', '1250-096', 'Portão lateral', 'maria@exemplo.pt'],
+        ['Manuel Ferreira', '912345678', 'Rua Dr. Teixeira de Brito, Arouca', '4540-100', 'Campainha 2º Dto', 'manuel@exemplo.pt'],
+        ['Maria Santos', '933221100', 'Praça Brandão de Vasconcelos, Arouca', '4540-111', 'Portão lateral', 'maria@exemplo.pt'],
       ]);
     } else {
-      exportarCSV('template_produtos', ['Nome', 'Categoria', 'Preco', 'Unidade', 'Ativo'], [
-        ['Pão de Mafra Especial', 'padaria', 1.80, 'unidade', 'SIM'],
-        ['Torta de Noz e Ovos Moles', 'pastelaria', 16.50, 'kg', 'SIM'],
+      exportarCSV('template_produtos_padaria_da_vila', ['Nome', 'Categoria', 'Unidade', 'Ativo'], [
+        ['Pão de Arouca Tradicional', 'padaria', 'unidade', 'SIM'],
+        ['Broa de Milho em Forno de Lenha', 'padaria', 'unidade', 'SIM'],
+        ['Pão de Ló de Arouca', 'pastelaria', 'unidade', 'SIM'],
+        ['Castanhas Doces de Arouca', 'pastelaria', 'unidade', 'SIM'],
+        ['Manjar de Língua', 'pastelaria', 'unidade', 'SIM'],
       ]);
     }
   };
@@ -574,21 +580,21 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Cartões de Indicadores */}
+            {/* Cartões de Indicadores Operacionais */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
-                <span className="text-xs text-gray-500 font-bold uppercase">{t.totalRevenue}</span>
-                <p className="text-2xl font-black text-gray-900 mt-1">{totalFaturado.toFixed(2)} €</p>
+                <span className="text-xs text-gray-500 font-bold uppercase">{t.totalOrders}</span>
+                <p className="text-2xl font-black text-gray-900 mt-1">{totalVolumeEncomendas}</p>
                 <span className="text-[11px] text-emerald-600 font-bold mt-1 block">
-                  {encomendasFiltradas.length} {t.totalOrders.toLowerCase()}
+                  {periodoSelecionado === 'todos' ? t.periodAll : t.timePeriod}
                 </span>
               </div>
 
               <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
-                <span className="text-xs text-gray-500 font-bold uppercase">{t.avgTicket}</span>
-                <p className="text-2xl font-black text-gray-900 mt-1">{ticketMedio.toFixed(2)} €</p>
-                <span className="text-[11px] text-gray-400 font-medium mt-1 block">
-                  {periodoSelecionado === 'todos' ? t.periodAll : t.timePeriod}
+                <span className="text-xs text-gray-500 font-bold uppercase">{t.totalItems}</span>
+                <p className="text-2xl font-black text-amber-700 mt-1">{totalArtigos} un.</p>
+                <span className="text-[11px] text-gray-500 font-medium mt-1 block">
+                  Padaria & Pastelaria consolidados
                 </span>
               </div>
 
@@ -596,7 +602,7 @@ export default function AdminPage() {
                 <span className="text-xs text-gray-500 font-bold uppercase">{t.deliveryHome}</span>
                 <p className="text-2xl font-black text-blue-700 mt-1">{totalEntregas}</p>
                 <span className="text-[11px] text-blue-600 font-bold mt-1 block">
-                  {encomendasFiltradas.length > 0 ? ((totalEntregas / encomendasFiltradas.length) * 100).toFixed(0) : 0}% do volume
+                  {totalVolumeEncomendas > 0 ? ((totalEntregas / totalVolumeEncomendas) * 100).toFixed(0) : 0}% das encomendas
                 </span>
               </div>
 
@@ -604,7 +610,7 @@ export default function AdminPage() {
                 <span className="text-xs text-gray-500 font-bold uppercase">{t.pickupStore}</span>
                 <p className="text-2xl font-black text-amber-700 mt-1">{totalLevantamentos}</p>
                 <span className="text-[11px] text-amber-600 font-bold mt-1 block">
-                  {encomendasFiltradas.length > 0 ? ((totalLevantamentos / encomendasFiltradas.length) * 100).toFixed(0) : 0}% do volume
+                  {totalVolumeEncomendas > 0 ? ((totalLevantamentos / totalVolumeEncomendas) * 100).toFixed(0) : 0}% das encomendas
                 </span>
               </div>
             </div>
@@ -621,14 +627,16 @@ export default function AdminPage() {
                 <div className="space-y-3">
                   {lojas.map((l) => {
                     const encsLoja = encomendasFiltradas.filter((e) => e.loja_id === l.id);
-                    const totalLoja = encsLoja.reduce((acc, curr) => acc + curr.total, 0);
-                    const pct = totalFaturado > 0 ? (totalLoja / totalFaturado) * 100 : 0;
+                    const itensLoja = encsLoja.reduce((acc, curr) => 
+                      acc + curr.itens.reduce((iAcc, item) => iAcc + item.quantidade, 0), 0
+                    );
+                    const pct = totalVolumeEncomendas > 0 ? (encsLoja.length / totalVolumeEncomendas) * 100 : 0;
 
                     return (
                       <div key={l.id} className="space-y-1">
                         <div className="flex justify-between text-xs font-bold">
                           <span className="text-gray-800">{l.nome}</span>
-                          <span className="text-bakery-700">{totalLoja.toFixed(2)} € ({encsLoja.length} enc.)</span>
+                          <span className="text-bakery-700">{encsLoja.length} enc. ({itensLoja} un.)</span>
                         </div>
                         <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
                           <div

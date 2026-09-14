@@ -135,7 +135,6 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
                           <span className="font-bold">
                             {item.quantidade}x {item.produto_nome}
                           </span>
-                          <span>{(item.quantidade * item.preco_unitario).toFixed(2)}€</span>
                         </div>
                         {item.notas_personalizacao && cfg.highlightCakeNotes && (
                           <p className="text-[10px] italic pl-2">» {item.notas_personalizacao}</p>
@@ -154,7 +153,6 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
                           <span className="font-bold">
                             {item.quantidade}x {item.produto_nome}
                           </span>
-                          <span>{(item.quantidade * item.preco_unitario).toFixed(2)}€</span>
                         </div>
                         {item.notas_personalizacao && cfg.highlightCakeNotes && (
                           <div className="bg-gray-100 p-1 border border-black my-0.5">
@@ -176,7 +174,6 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
                       <span className="font-bold">
                         {item.quantidade}x {item.produto_nome}
                       </span>
-                      <span>{(item.quantidade * item.preco_unitario).toFixed(2)}€</span>
                     </div>
                     {item.notas_personalizacao && cfg.highlightCakeNotes && (
                       <p className="text-[10px] italic pl-2">» {item.notas_personalizacao}</p>
@@ -188,18 +185,12 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
 
             <div className="my-2 border-b border-dashed border-black" />
 
-            {/* Totais e Pagamento */}
+            {/* Resumo de Artigos (sem preços nem pagamentos) */}
             <div className="space-y-1">
-              <div className="flex justify-between text-sm font-black">
-                <span>{t.receiptTotalToPay}:</span>
-                <span>{encomenda.total.toFixed(2)} €</span>
-              </div>
-              <div className="flex justify-between text-[11px]">
-                <span>{t.receiptPaymentStatus}:</span>
-                <span className="font-bold uppercase">
-                  {encomenda.estado_pagamento === 'pago' 
-                    ? `[ ${t.receiptPaid} - ${encomenda.metodo_pagamento?.toUpperCase() || 'MBWAY'} ]` 
-                    : `[ ${t.receiptToCollect} ]`}
+              <div className="flex justify-between text-xs font-bold uppercase border-t border-b border-black py-1">
+                <span>{t.totalItems}:</span>
+                <span className="font-black">
+                  {encomenda.itens.reduce((acc, item) => acc + item.quantidade, 0)} un.
                 </span>
               </div>
             </div>

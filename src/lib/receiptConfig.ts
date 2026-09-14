@@ -13,8 +13,8 @@ export interface ReceiptConfig {
 }
 
 export const DEFAULT_RECEIPT_CONFIG: ReceiptConfig = {
-  storeNameOverride: '',
-  slogan: 'Fabrico Próprio Diário • Padaria & Pastelaria',
+  storeNameOverride: 'Padaria da Vila',
+  slogan: 'União Panificadora Central Arouquense • Desde 1965',
   showPhone: true,
   showAddress: true,
   showNif: true,
@@ -23,7 +23,7 @@ export const DEFAULT_RECEIPT_CONFIG: ReceiptConfig = {
   showSectionSeparation: true,
   highlightCakeNotes: true,
   showQrCode: true,
-  footerMessage: 'Obrigado pela sua preferência! Consumir de preferência no próprio dia.',
+  footerMessage: 'Pão é saúde! Obrigado pela sua preferência.',
 };
 
 export function getReceiptConfig(): ReceiptConfig {

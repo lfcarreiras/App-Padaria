@@ -42,6 +42,30 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v1.4.0] - 2026-09-14
+### 🥖 Identidade Visual & Rede Padaria da Vila (Arouca)
+- **Branding Oficial**: Integração do logótipo oficial da Padaria da Vila no cabeçalho e imagem de fundo da padaria no ecrã de login (`/login`).
+- **4 Lojas em Arouca**: Configuração das lojas Padaria da Vila I (Praça), II (25 de Abril), III (Arouca) e Unidade Central de Fabrico & Sede (Lavandeira).
+- **Frota de 3 Carrinhas de Entrega**: Configuração das 3 viaturas com ponto de carga na Unidade Central de Fabrico.
+
+### 🚫 Remoção Total de Preços e Pagamentos (Foco Operacional)
+- A aplicação foi convertida para operação logística e de cumprimento: entrega da quantidade certa, no local certo e à hora certa.
+- Preços unitários, totais em euros, métodos de pagamento e estados de cobrança foram totalmente removidos de todos os ecrãs operacionais, talões térmicos e métricas de gestão.
+
+### 📱 Integração de Pedidos via WhatsApp
+- **Gerador de Modelo Estruturado para Clientes**: Botão para copiar modelo guiado de pedido estruturado.
+- **Processador Automático de Mensagens WhatsApp**: Modal no ecrã de encomendas que interpreta texto colado do WhatsApp e auto-preenche o formulário e carrinho.
+- **Envio de Confirmação 1-Clique ao Cliente**: Ligação direta `wa.me` com mensagem estruturada de confirmação de encomenda.
+
+### 🚚 Ciclo de Vida da Rota & Navegação Sequencial GPS
+- **Ciclo da Rota (`Iniciar Rota` / `Concluir Rota`)**: Registo com carimbo temporal da saída e regresso da viatura à central.
+- **Bloqueio Sequencial de Entregas**: Desbloqueio sequencial das paragens (paragem N+1 bloqueada até conclusão da paragem N).
+- **Navegação Google Maps Embutida**: Visualizador de mapa integrado diretamente na app sem necessidade de alternar para o GPS externo.
+
+### 📅 Separação Operacional do Turno vs Histórico Global
+- **Filtro Estrito do Dia**: Ecrãs operacionais de Produção (`/producao`), Balcão de Loja (`/loja`) e Entregas (`/entregas`) apresentam exclusivamente encomendas do próprio dia.
+- **Histórico Completo**: O separador de Histórico em `/encomendas` e o painel de `/admin` permitem consultar e pesquisar pedidos de qualquer data.
+
 ---
 
 ## [v1.3.1] - 2026-09-13

@@ -20,7 +20,6 @@ import {
   Printer, 
   Truck, 
   Search, 
-  DollarSign, 
   PackageCheck,
   AlertCircle,
   Eye
@@ -46,8 +45,11 @@ export default function EntregaLojaPage() {
 
   const lojaAtual = LOJAS_MOCK.find((l) => l.id === selectedLojaId) || LOJAS_MOCK[0];
 
-  // Encomendas de levantamento em loja
+  const hoje = new Date().toISOString().split('T')[0];
+
+  // Encomendas de levantamento em loja exclusivas de HOJE
   const levantamentos = encomendas.filter((e) => {
+    const isHoje = e.data_agendamento === hoje;
     const isLoja = e.tipo === 'levantamento_loja';
     const matchLoja = selectedLojaId === 'todas' || e.loja_id === selectedLojaId;
     const matchStatus = filtroEstado === 'pendentes'
@@ -58,7 +60,7 @@ export default function EntregaLojaPage() {
       e.codigo.toLowerCase().includes(busca.toLowerCase()) ||
       e.cliente.telefone.includes(busca);
 
-    return isLoja && matchLoja && matchStatus && matchBusca;
+    return isHoje && isLoja && matchLoja && matchStatus && matchBusca;
   });
 
   // Concluir Levantamento no Balcão
@@ -225,29 +227,17 @@ export default function EntregaLojaPage() {
                                 </span>
                               )}
                             </span>
-                            <span className="text-gray-500">{(item.quantidade * item.preco_unitario).toFixed(2)} €</span>
                           </li>
                         ))}
                       </ul>
                     </div>
 
-                    {/* Pagamento */}
-                    <div className="flex items-center justify-between text-xs pt-1">
-                      <span className="text-gray-500">{t.total}:</span>
-                      <span className="font-black text-sm text-gray-900">{enc.total.toFixed(2)} €</span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-500">{t.paymentMethod}:</span>
-                      {enc.estado_pagamento === 'pago' ? (
-                        <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                          <CheckCircle2 className="h-3 w-3" /> {t.paid} ({enc.metodo_pagamento || 'MBWay'})
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 font-bold text-red-700 bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200">
-                          <DollarSign className="h-3 w-3" /> {t.toPay}: {enc.total.toFixed(2)} €
-                        </span>
-                      )}
+                    {/* Resumo de Artigos */}
+                    <div className="flex items-center justify-between text-xs pt-1 text-gray-600 font-semibold">
+                      <span>{t.totalItems}:</span>
+                      <span className="font-bold text-gray-900">
+                        {enc.itens.reduce((acc, i) => acc + i.quantidade, 0)} un.
+                      </span>
                     </div>
 
                     {/* Ações Rápidas */}

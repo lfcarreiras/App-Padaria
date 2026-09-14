@@ -222,14 +222,33 @@ export interface Translations {
   accessLevel: string;
   levelNoAccess: string;
   levelReadOnly: string;
-  levelFullEdit: string;
   password: string;
+
+  // WhatsApp e Rota
+  whatsappOrderBtn: string;
+  whatsappModalTitle: string;
+  whatsappPastePlaceholder: string;
+  whatsappParseBtn: string;
+  whatsappSendConfirm: string;
+  whatsappCopyTemplate: string;
+  whatsappTemplateCopied: string;
+  routeNotStarted: string;
+  routeInProgress: string;
+  routeCompleted: string;
+  startRoute: string;
+  endRoute: string;
+  nextDeliveryLocked: string;
+  embeddedMap: string;
+  showMap: string;
+  hideMap: string;
+  todayOrdersOnlyNotice: string;
+  totalItems: string;
 }
 
 const translations: Record<Language, Translations> = {
   pt: {
-    appTitle: 'Padarias & Pastelarias',
-    appSubtitle: 'Gestão & Produção',
+    appTitle: 'Padaria da Vila',
+    appSubtitle: 'União Panificadora Central Arouquense',
     activeStore: 'Loja Ativa:',
     allStores: 'Todas as Lojas (Consolidado)',
     navEncomendas: 'Encomendas',
@@ -433,10 +452,30 @@ const translations: Record<Language, Translations> = {
     levelReadOnly: 'Apenas Leitura',
     levelFullEdit: 'Edição Completa',
     password: 'Palavra-passe',
+
+    // WhatsApp e Rota
+    whatsappOrderBtn: '📥 Pedido WhatsApp',
+    whatsappModalTitle: 'Importar Pedido do WhatsApp',
+    whatsappPastePlaceholder: 'Cole aqui o texto da mensagem do WhatsApp enviada pelo cliente...',
+    whatsappParseBtn: 'Processar e Preencher',
+    whatsappSendConfirm: 'Enviar Confirmação WhatsApp',
+    whatsappCopyTemplate: 'Copiar Modelo para Clientes',
+    whatsappTemplateCopied: 'Modelo de pedido copiado! Pode colar na conversa com o cliente.',
+    routeNotStarted: 'Rota Não Iniciada',
+    routeInProgress: 'Rota em Curso',
+    routeCompleted: 'Rota Concluída com Sucesso',
+    startRoute: '🚀 Iniciar Rota',
+    endRoute: '🏁 Concluir Rota',
+    nextDeliveryLocked: '🔒 Paragem Bloqueada (conclua a paragem anterior)',
+    embeddedMap: 'Navegação GPS',
+    showMap: 'Ver Mapa',
+    hideMap: 'Ocultar Mapa',
+    todayOrdersOnlyNotice: 'Modo operacional do turno: A apresentar exclusivamente pedidos para hoje.',
+    totalItems: 'Total de Artigos',
   },
   en: {
-    appTitle: 'Bakeries & Pastries',
-    appSubtitle: 'Management & Production',
+    appTitle: 'Padaria da Vila',
+    appSubtitle: 'União Panificadora Central Arouquense',
     activeStore: 'Active Store:',
     allStores: 'All Stores (Consolidated)',
     navEncomendas: 'Orders',
@@ -640,6 +679,26 @@ const translations: Record<Language, Translations> = {
     levelReadOnly: 'Read-only',
     levelFullEdit: 'Full Edit',
     password: 'Password',
+
+    // WhatsApp and Route
+    whatsappOrderBtn: '📥 WhatsApp Order',
+    whatsappModalTitle: 'Import Order from WhatsApp',
+    whatsappPastePlaceholder: 'Paste here the WhatsApp message text received from the customer...',
+    whatsappParseBtn: 'Process and Auto-fill',
+    whatsappSendConfirm: 'Send WhatsApp Confirmation',
+    whatsappCopyTemplate: 'Copy Customer Template',
+    whatsappTemplateCopied: 'Order template copied! You can paste it into the chat with the customer.',
+    routeNotStarted: 'Route Not Started',
+    routeInProgress: 'Route In Progress',
+    routeCompleted: 'Route Completed Successfully',
+    startRoute: '🚀 Start Route',
+    endRoute: '🏁 Complete Route',
+    nextDeliveryLocked: '🔒 Stop Locked (complete the previous stop first)',
+    embeddedMap: 'GPS Navigation',
+    showMap: 'View Map',
+    hideMap: 'Hide Map',
+    todayOrdersOnlyNotice: 'Shift operational mode: Displaying exclusively today\'s scheduled orders.',
+    totalItems: 'Total Items',
   },
 };
 

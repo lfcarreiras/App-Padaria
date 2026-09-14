@@ -402,7 +402,7 @@ export async function upsertProdutosEmLote(produtos: any[]) {
   const erros: string[] = [];
 
   for (const p of produtos) {
-    if (!p.nome || p.preco === undefined) continue;
+    if (!p.nome || !p.nome.trim()) continue;
     try {
       const { data: existente } = await supabase
         .from('produtos')

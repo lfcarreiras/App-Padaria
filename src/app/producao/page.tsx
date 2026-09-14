@@ -34,14 +34,18 @@ export default function ProducaoPage() {
 
   const lojaAtual = LOJAS_MOCK.find((l) => l.id === selectedLojaId) || LOJAS_MOCK[0];
 
-  // Filtrar encomendas da loja atual que contenham itens do setor selecionado
+  // Data de hoje (AAAA-MM-DD) para modo operacional estrito do dia
+  const hoje = new Date().toISOString().split('T')[0];
+
+  // Filtrar exclusivamente encomendas com agendamento para HOJE na loja/setor selecionado
   const encomendasDaLoja = encomendas.filter((e) => {
+    const isHoje = e.data_agendamento === hoje;
     const matchLoja = selectedLojaId === 'todas' || e.loja_id === selectedLojaId;
     const temItensDoSetor =
       setorAtivo === 'todos'
         ? true
         : e.itens.some((item) => item.setor === setorAtivo);
-    return matchLoja && temItensDoSetor;
+    return isHoje && matchLoja && temItensDoSetor;
   });
 
   // Atualizar estado de produção de um item (em memória e no Supabase)
