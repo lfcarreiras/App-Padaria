@@ -58,6 +58,8 @@ Consulte o histórico detalhado em `[[CHANGELOG]]`.
 
 | Versão | Tag Git | Commit | Data | Marco Funcional Principal |
 | :--- | :--- | :--- | :--- | :--- |
+| **v1.5.0** | `v1.5.0` | `5ff5f99` | 2026-09-14 | Novo branding, header limpo sem scroll, Excel (.xlsx/.xls), 98 artigos de Arouca e botões KDS |
+| **v1.4.0** | `v1.4.0` | `7388889` | 2026-09-14 | Personalização Padaria da Vila (Arouca), remoção de preços, WhatsApp e rotas GPS |
 | **v1.3.1** | `v1.3.1` | `9d6f825` | 2026-09-13 | Remoção dos atalhos de teste no login e hardening para produção limpa |
 | **v1.3.0** | `v1.3.0` | `ccace91` | 2026-09-13 | Ecrã de login inicial, 3 níveis de acesso (Sem Acesso/Leitura/Edição) e proteção total |
 | **v1.2.0** | `v1.2.0` | `2a0f409` | 2026-09-12 | Métricas temporais (Ano/Mês/Semana/Dia), bilingue integral e gestão de acessos in-app |
