@@ -42,6 +42,14 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v1.7.1] - 2026-09-16
+### 🧾 Resolução do Corte no Talão de Pré-Visualização
+- **Eliminação do Bug de Flexbox Height**: O contentor de scroll da pré-visualização do talão térmico (`ThermalReceipt.tsx`) foi refatorado de `display: flex` para um contentor de bloco padrão com `mx-auto block h-auto`, eliminando o comportamento de esticamento vertical (`align-items: stretch`) que causava o corte da folha branca do talão aos ~500px e deixava o QR Code e o rodapé a transbordar sobre o fundo cinzento. A folha branca e o picotado passam a envolver 100% dos dados desde o cabeçalho até ao rodapé final, com espaçamento seguro (`pb-12`).
+- **Fixação do Cabeçalho do Modal**: O cabeçalho com os botões de ação ("Imprimir" e "Fechar") mantém-se fixo no topo com `shrink-0 bg-white z-10`, e o modal previne transbordos indesejados com `overflow-hidden`.
+
+### 🔘 Correção de Caracteres Duplicados no Botão
+- **Remoção de Duplo Sinal "+"**: Corrigido o botão de inserção de registos no painel de administração (`/admin`) para exibir unicamente o ícone `<Plus />` seguido do texto `"Inserir registo"`, eliminando o segundo carácter `+` literal redundante.
+
 ## [v1.7.0] - 2026-09-16
 ### 🏬 Restrição de Licenciamento de Lojas & Carrinhas
 - **Bloqueio de Criação no Frontend**: Remoção da opção de adicionar lojas e carrinhas na interface de utilizador (mesmo para perfis de administrador), ficando a criação restrita ao backoffice técnico do proprietário (conforme o modelo de fee mensal por ponto de venda e viatura).

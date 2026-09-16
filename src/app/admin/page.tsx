@@ -1485,7 +1485,7 @@ export default function AdminPage() {
                     className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-bakery-600 hover:bg-bakery-700 text-white text-xs font-bold shadow-xs transition cursor-pointer shrink-0"
                   >
                     <Plus className="h-4 w-4" />
-                    + Inserir registo
+                    Inserir registo
                   </button>
                 )}
               </div>

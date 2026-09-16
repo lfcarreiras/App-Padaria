@@ -46,9 +46,9 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
     <div id="receipt-print-root">
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
         {/* Caixa do Modal de Pré-visualização do Talão */}
-        <div className="relative flex max-h-[90vh] w-full max-w-md flex-col rounded-2xl bg-white shadow-2xl">
+        <div className="relative flex max-h-[90vh] w-full max-w-md flex-col rounded-2xl bg-white shadow-2xl overflow-hidden">
         {/* Barra superior de ações (não impressa) */}
-        <div className="no-print flex items-center justify-between border-b border-gray-200 p-4">
+        <div className="no-print flex items-center justify-between border-b border-gray-200 p-4 shrink-0 bg-white z-10">
           <div className="flex items-center gap-2">
             <Printer className="h-5 w-5 text-bakery-600" />
             <h3 className="text-base font-semibold text-gray-900">
@@ -75,10 +75,10 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
         </div>
 
         {/* ÁREA DE IMPRESSÃO TÉRMICA (80mm / 58mm) */}
-        <div className="overflow-y-auto p-4 sm:p-6 pb-20 bg-gray-100 flex justify-center">
+        <div className="overflow-y-auto flex-1 p-4 sm:p-6 pb-20 bg-gray-100">
           <div
             id="thermal-print-area"
-            className={`${widthClass} ${fontSizeClass} border border-dashed border-gray-400 bg-white p-5 pb-8 font-mono text-black shadow-md my-2`}
+            className={`${widthClass} ${fontSizeClass} mx-auto block h-auto border border-dashed border-gray-400 bg-white p-5 pb-12 font-mono text-black shadow-md my-2`}
           >
             {/* Cabeçalho da Loja */}
             <div className="text-center">
