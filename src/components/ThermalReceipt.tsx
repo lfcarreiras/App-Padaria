@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Encomenda, Loja } from '../types';
 import { Printer, X, QrCode } from 'lucide-react';
 import { ReceiptConfig, getReceiptConfig } from '../lib/receiptConfig';
@@ -16,6 +17,11 @@ interface ThermalReceiptProps {
 export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja, config, onClose }) => {
   const { t, language } = useTranslation();
   const cfg = config || getReceiptConfig();
+  const [montado, setMontado] = useState(false);
+
+  useEffect(() => {
+    setMontado(true);
+  }, []);
 
   const handlePrint = () => {
     window.print();
@@ -34,10 +40,13 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
     cfg.fontSize === 'compact' ? 'text-[11px]' :
     cfg.fontSize === 'large' ? 'text-sm' : 'text-xs';
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      {/* Caixa do Modal de Pré-visualização do Talão */}
-      <div className="relative flex max-h-[90vh] w-full max-w-md flex-col rounded-2xl bg-white shadow-2xl">
+  if (!montado) return null;
+
+  return createPortal(
+    <div id="receipt-print-root">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+        {/* Caixa do Modal de Pré-visualização do Talão */}
+        <div className="relative flex max-h-[90vh] w-full max-w-md flex-col rounded-2xl bg-white shadow-2xl">
         {/* Barra superior de ações (não impressa) */}
         <div className="no-print flex items-center justify-between border-b border-gray-200 p-4">
           <div className="flex items-center gap-2">
@@ -221,6 +230,7 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

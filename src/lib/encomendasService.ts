@@ -22,6 +22,22 @@ export function parseEncomendasFromDb(data: any[]): Encomenda[] {
       estado_producao: item.estado_producao || 'pendente',
     }));
 
+    // Determinar hora de entrega real para cálculo de On-Time
+    let horaEntregaReal: string | undefined = undefined;
+    if (row.hora_entrega_real) {
+      horaEntregaReal = String(row.hora_entrega_real).slice(0, 5);
+    } else if (row.notas_cliente && row.notas_cliente.includes('[ENTREGUE:')) {
+      const match = row.notas_cliente.match(/\[ENTREGUE:\s*([0-9]{2}:[0-9]{2})\]/);
+      if (match) horaEntregaReal = match[1];
+    } else if (row.estado === 'entregue' && row.atualizado_em) {
+      try {
+        const d = new Date(row.atualizado_em);
+        horaEntregaReal = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      } catch (e) {
+        horaEntregaReal = typeof row.hora_agendamento === 'string' ? row.hora_agendamento.slice(0, 5) : '10:00';
+      }
+    }
+
     return {
       id: row.id,
       numero_sequencial: row.numero_sequencial || (index + 1),
@@ -43,6 +59,8 @@ export function parseEncomendasFromDb(data: any[]): Encomenda[] {
       hora_agendamento: typeof row.hora_agendamento === 'string' 
         ? row.hora_agendamento.slice(0, 5) 
         : '10:00',
+      hora_entrega_real: horaEntregaReal,
+      ordem_rota: row.ordem_rota || (index + 1),
       estado: row.estado as EstadoEncomenda,
       estado_pagamento: row.estado_pagamento,
       metodo_pagamento: row.metodo_pagamento,
@@ -169,6 +187,105 @@ export async function atualizarEstadoItemDb(itemId: string, novoEstado: EstadoPr
   if (error) console.error('Erro ao atualizar estado do item:', error);
 }
 
+export async function concluirEntregaComTimestampDb(encomendaId: string, horaReal?: string) {
+  if (!supabase) return false;
+  const hora = horaReal || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const { error } = await supabase
+    .from('encomendas')
+    .update({
+      estado: 'entregue',
+      atualizado_em: new Date().toISOString(),
+    })
+    .eq('id', encomendaId);
+
+  if (error) {
+    console.error('Erro ao concluir entrega com timestamp:', error);
+    return false;
+  }
+  return true;
+}
+
+export async function atribuirCarrinhaDb(encomendaId: string, carrinhaId: string | null) {
+  if (!supabase) return false;
+  const { error } = await supabase
+    .from('encomendas')
+    .update({
+      carrinha_id: carrinhaId,
+      atualizado_em: new Date().toISOString(),
+    })
+    .eq('id', encomendaId);
+
+  if (error) {
+    console.error('Erro ao atribuir carrinha:', error);
+    return false;
+  }
+  return true;
+}
+
+export async function eliminarEncomendaDb(encomendaId: string) {
+  if (!supabase) return false;
+  try {
+    // 1. Apagar itens dependentes primeiro
+    await supabase.from('itens_encomenda').delete().eq('encomenda_id', encomendaId);
+    // 2. Apagar a encomenda
+    const { error } = await supabase.from('encomendas').delete().eq('id', encomendaId);
+    if (error) {
+      console.error('Erro ao eliminar encomenda:', error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('Erro na eliminação de encomenda:', err);
+    return false;
+  }
+}
+
+export async function atualizarEncomendaDb(encomenda: Partial<Encomenda> & { id: string }) {
+  if (!supabase) return false;
+  try {
+    const updates: any = {
+      atualizado_em: new Date().toISOString(),
+    };
+    if (encomenda.loja_id) updates.loja_id = encomenda.loja_id;
+    if (encomenda.tipo) updates.tipo = encomenda.tipo;
+    if (encomenda.carrinha_id !== undefined) updates.carrinha_id = encomenda.carrinha_id;
+    if (encomenda.data_agendamento) updates.data_agendamento = encomenda.data_agendamento;
+    if (encomenda.hora_agendamento) updates.hora_agendamento = encomenda.hora_agendamento;
+    if (encomenda.estado) updates.estado = encomenda.estado;
+    if (encomenda.estado_pagamento) updates.estado_pagamento = encomenda.estado_pagamento;
+    if (encomenda.notas_cliente !== undefined) updates.notas_cliente = encomenda.notas_cliente;
+    if (encomenda.total !== undefined) updates.total = encomenda.total;
+
+    const { error } = await supabase
+      .from('encomendas')
+      .update(updates)
+      .eq('id', encomenda.id);
+
+    if (error) {
+      console.error('Erro ao atualizar encomenda:', error);
+      return false;
+    }
+
+    // Se houver cliente para atualizar
+    if (encomenda.cliente && encomenda.cliente.id) {
+      await supabase
+        .from('clientes')
+        .update({
+          nome: encomenda.cliente.nome.trim(),
+          telefone: encomenda.cliente.telefone.trim(),
+          morada: encomenda.cliente.morada?.trim() || null,
+          notas_entrega: encomenda.cliente.notas_entrega?.trim() || null,
+        })
+        .eq('id', encomenda.cliente.id);
+    }
+
+    return true;
+  } catch (err) {
+    console.error('Erro na atualização da encomenda:', err);
+    return false;
+  }
+}
+
 // ---------------- CLIENTES ---------------- //
 
 export async function carregarClientesSupabase(): Promise<Cliente[]> {
@@ -217,6 +334,16 @@ export async function salvarClienteDb(cliente: Partial<Cliente> & { nome: string
   }
 }
 
+export async function eliminarClienteDb(clienteId: string) {
+  if (!supabase) return false;
+  const { error } = await supabase.from('clientes').delete().eq('id', clienteId);
+  if (error) {
+    console.error('Erro ao eliminar cliente:', error);
+    return false;
+  }
+  return true;
+}
+
 // ---------------- PRODUTOS ---------------- //
 
 export async function carregarProdutosSupabase(): Promise<Produto[]> {
@@ -261,6 +388,16 @@ export async function salvarProdutoDb(produto: Partial<Produto> & { nome: string
     if (error) console.error('Erro ao criar produto:', error);
     return data;
   }
+}
+
+export async function eliminarProdutoDb(produtoId: string) {
+  if (!supabase) return false;
+  const { error } = await supabase.from('produtos').delete().eq('id', produtoId);
+  if (error) {
+    console.error('Erro ao eliminar produto:', error);
+    return false;
+  }
+  return true;
 }
 
 // ---------------- LOJAS ---------------- //
@@ -310,6 +447,16 @@ export async function salvarLojaDb(loja: Partial<Loja> & { codigo: string; nome:
   }
 }
 
+export async function eliminarLojaDb(lojaId: string) {
+  if (!supabase) return false;
+  const { error } = await supabase.from('lojas').delete().eq('id', lojaId);
+  if (error) {
+    console.error('Erro ao eliminar loja:', error);
+    return false;
+  }
+  return true;
+}
+
 // ---------------- CARRINHAS ---------------- //
 
 export async function carregarCarrinhasSupabase(): Promise<Carrinha[]> {
@@ -353,6 +500,16 @@ export async function salvarCarrinhaDb(carrinha: Partial<Carrinha> & { loja_id: 
     if (error) console.error('Erro ao criar carrinha:', error);
     return data;
   }
+}
+
+export async function eliminarCarrinhaDb(carrinhaId: string) {
+  if (!supabase) return false;
+  const { error } = await supabase.from('carrinhas').delete().eq('id', carrinhaId);
+  if (error) {
+    console.error('Erro ao eliminar carrinha:', error);
+    return false;
+  }
+  return true;
 }
 
 // ---------------- IMPORTAÇÃO MASSIVA (UPSERT) ---------------- //

@@ -9,6 +9,9 @@ import {
   carregarEncomendasSupabase, 
   carregarClientesSupabase, 
   salvarClienteDb,
+  eliminarClienteDb,
+  eliminarEncomendaDb,
+  atualizarEncomendaDb,
   alternarTipoEntregaDb 
 } from '../../lib/encomendasService';
 import { Encomenda, Produto, ItemEncomenda, TipoEntrega, MetodoPagamento, Cliente } from '../../types';
@@ -75,7 +78,13 @@ export default function EncomendasPage() {
   // Modal de Edição de Cliente
   const [clienteModal, setClienteModal] = useState<Partial<Cliente> | null>(null);
   const [buscaCliente, setBuscaCliente] = useState('');
+  
+  // Estados do Histórico de Encomendas
   const [buscaHistorico, setBuscaHistorico] = useState('');
+  const [filtroPeriodoHistorico, setFiltroPeriodoHistorico] = useState<'todos' | 'hoje' | 'amanha' | 'semana' | 'personalizado'>('todos');
+  const [dataInicioHistorico, setDataInicioHistorico] = useState('');
+  const [dataFimHistorico, setDataFimHistorico] = useState('');
+  const [encomendaEmEdicao, setEncomendaEmEdicao] = useState<Encomenda | null>(null);
 
   // Carregamento Inicial
   useEffect(() => {
@@ -486,6 +495,46 @@ Observações: [ex: Pão fatiado / Frase no bolo / Campainha]`;
     }
   };
 
+  // Eliminar Cliente
+  const handleEliminarCliente = async () => {
+    if (!clienteModal?.id) return;
+    if (!window.confirm(`Tem a certeza de que deseja eliminar o cliente "${clienteModal.nome}"? Esta ação é irreversível.`)) return;
+    const ok = await eliminarClienteDb(clienteModal.id);
+    if (ok) {
+      const lista = await carregarClientesSupabase();
+      setClientes(lista);
+      setClienteModal(null);
+      alert('Cliente eliminado com sucesso.');
+    }
+  };
+
+  // Eliminar Encomenda
+  const handleEliminarEncomenda = async (encId: string, encCodigo: string) => {
+    if (!window.confirm(`Tem a certeza de que deseja eliminar a encomenda ${encCodigo}? Esta ação não pode ser anulada.`)) return;
+    const ok = await eliminarEncomendaDb(encId);
+    if (ok) {
+      setEncomendas((prev) => prev.filter((e) => e.id !== encId));
+      if (encomendaEmEdicao?.id === encId) {
+        setEncomendaEmEdicao(null);
+      }
+      alert(`Encomenda ${encCodigo} eliminada com sucesso.`);
+    }
+  };
+
+  // Guardar Edição de Encomenda
+  const handleSalvarEdicaoEncomenda = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!encomendaEmEdicao) return;
+    const ok = await atualizarEncomendaDb(encomendaEmEdicao);
+    if (ok) {
+      setEncomendas((prev) =>
+        prev.map((enc) => (enc.id === encomendaEmEdicao.id ? { ...encomendaEmEdicao } : enc))
+      );
+      setEncomendaEmEdicao(null);
+      alert(`Encomenda ${encomendaEmEdicao.codigo} atualizada com sucesso!`);
+    }
+  };
+
   // Alternar Tipo de Entrega na Lista de Encomendas
   const handleAlternarEntrega = async (enc: Encomenda) => {
     const novoTipo: TipoEntrega = 
@@ -557,18 +606,47 @@ Observações: [ex: Pão fatiado / Frase no bolo / Campainha]`;
     ? encomendas
     : encomendas.filter((e) => e.loja_id === selectedLojaId);
 
-  // Filtro de Histórico de Encomendas (Pesquisa por data, código, cliente, telefone ou produto)
+  // Filtro e Ordenação do Histórico de Encomendas
+  const hoje = new Date().toISOString().split('T')[0];
+  const dHoje = new Date();
+  const dAmanha = new Date(dHoje);
+  dAmanha.setDate(dHoje.getDate() + 1);
+  const amanha = dAmanha.toISOString().split('T')[0];
+  const dSemanaAtras = new Date(dHoje);
+  dSemanaAtras.setDate(dHoje.getDate() - 7);
+  const semanaAtras = dSemanaAtras.toISOString().split('T')[0];
+  const dSemanaFrente = new Date(dHoje);
+  dSemanaFrente.setDate(dHoje.getDate() + 7);
+  const semanaFrente = dSemanaFrente.toISOString().split('T')[0];
+
   const encomendasHistoricoFiltradas = encomendasFiltradas.filter((e) => {
-    if (!buscaHistorico.trim()) return true;
-    const q = buscaHistorico.toLowerCase().trim();
-    return (
-      e.codigo.toLowerCase().includes(q) ||
-      e.cliente.nome.toLowerCase().includes(q) ||
-      e.cliente.telefone.includes(q) ||
-      e.data_agendamento.includes(q) ||
-      (e.cliente.morada && e.cliente.morada.toLowerCase().includes(q)) ||
-      e.itens.some((i) => i.produto_nome.toLowerCase().includes(q))
-    );
+    // 1. Filtro de Texto
+    if (buscaHistorico.trim()) {
+      const q = buscaHistorico.toLowerCase().trim();
+      const match = (
+        e.codigo.toLowerCase().includes(q) ||
+        e.cliente.nome.toLowerCase().includes(q) ||
+        e.cliente.telefone.includes(q) ||
+        e.data_agendamento.includes(q) ||
+        (e.cliente.morada && e.cliente.morada.toLowerCase().includes(q)) ||
+        e.itens.some((i) => i.produto_nome.toLowerCase().includes(q))
+      );
+      if (!match) return false;
+    }
+
+    // 2. Filtro de Período / Calendário
+    if (filtroPeriodoHistorico === 'hoje') {
+      return e.data_agendamento === hoje;
+    } else if (filtroPeriodoHistorico === 'amanha') {
+      return e.data_agendamento === amanha;
+    } else if (filtroPeriodoHistorico === 'semana') {
+      return e.data_agendamento >= semanaAtras && e.data_agendamento <= semanaFrente;
+    } else if (filtroPeriodoHistorico === 'personalizado') {
+      if (dataInicioHistorico && e.data_agendamento < dataInicioHistorico) return false;
+      if (dataFimHistorico && e.data_agendamento > dataFimHistorico) return false;
+      return true;
+    }
+    return true;
   });
 
   return (
@@ -1006,107 +1084,276 @@ Observações: [ex: Pão fatiado / Frase no bolo / Campainha]`;
         {/* ----------------- ABA 3: HISTÓRICO DE ENCOMENDAS ----------------- */}
         {activeTab === 'historico' && (
           <div className="space-y-4">
-            {/* Barra de Pesquisa de Histórico */}
-            <div className="bg-white p-3 rounded-2xl border border-gray-200 shadow-2xs flex items-center gap-2">
-              <Search className="h-4 w-4 text-gray-400 shrink-0" />
-              <input
-                type="text"
-                value={buscaHistorico}
-                onChange={(e) => setBuscaHistorico(e.target.value)}
-                placeholder="Pesquisar histórico por data (ex: 2026-09-14), código, cliente, morada ou produto..."
-                className="w-full text-xs font-semibold text-gray-800 placeholder-gray-400 focus:outline-hidden"
-              />
-              {buscaHistorico && (
-                <button
-                  type="button"
-                  onClick={() => setBuscaHistorico('')}
-                  className="text-xs text-gray-400 hover:text-gray-600 font-bold px-1.5 cursor-pointer"
-                >
-                  ✕
-                </button>
+            {/* Barra de Filtros do Histórico: Pesquisa e Seletor de Período / Calendário */}
+            <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-2xs space-y-3">
+              <div className="flex flex-col md:flex-row items-center gap-3">
+                <div className="relative flex-1 w-full">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400 shrink-0" />
+                  <input
+                    type="text"
+                    value={buscaHistorico}
+                    onChange={(e) => setBuscaHistorico(e.target.value)}
+                    placeholder="Pesquisar histórico por código, cliente, telefone, morada ou produto..."
+                    className="w-full pl-9 pr-8 py-2 text-xs font-semibold text-gray-800 placeholder-gray-400 border border-gray-200 rounded-xl focus:outline-hidden"
+                  />
+                  {buscaHistorico && (
+                    <button
+                      type="button"
+                      onClick={() => setBuscaHistorico('')}
+                      className="absolute right-2.5 top-2.5 text-xs text-gray-400 hover:text-gray-600 font-bold px-1"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                {/* Seletor Rápido de Período */}
+                <div className="flex flex-wrap items-center gap-1.5 w-full md:w-auto">
+                  <span className="text-xs font-bold text-gray-500 mr-1 flex items-center gap-1">
+                    <Calendar className="h-3.5 w-3.5 text-bakery-600" />
+                    Período:
+                  </span>
+                  {[
+                    { id: 'todos', label: 'Todas as Datas' },
+                    { id: 'hoje', label: 'Hoje' },
+                    { id: 'amanha', label: 'Amanhã' },
+                    { id: 'semana', label: 'Próx. 7 Dias' },
+                    { id: 'personalizado', label: 'Personalizado' },
+                  ].map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setFiltroPeriodoHistorico(p.id as any)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                        filtroPeriodoHistorico === p.id
+                          ? 'bg-bakery-600 text-white shadow-2xs'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Seletor de Datas Personalizadas do Calendário */}
+              {filtroPeriodoHistorico === 'personalizado' && (
+                <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-gray-100 bg-bakery-50/50 p-3 rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-bold text-gray-700">De:</label>
+                    <input
+                      type="date"
+                      value={dataInicioHistorico}
+                      onChange={(e) => setDataInicioHistorico(e.target.value)}
+                      className="px-2.5 py-1.5 text-xs bg-white rounded-lg border border-gray-300 font-medium"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-bold text-gray-700">Até:</label>
+                    <input
+                      type="date"
+                      value={dataFimHistorico}
+                      onChange={(e) => setDataFimHistorico(e.target.value)}
+                      className="px-2.5 py-1.5 text-xs bg-white rounded-lg border border-gray-300 font-medium"
+                    />
+                  </div>
+                  {(dataInicioHistorico || dataFimHistorico) && (
+                    <button
+                      type="button"
+                      onClick={() => { setDataInicioHistorico(''); setDataFimHistorico(''); }}
+                      className="text-xs text-bakery-700 font-bold hover:underline"
+                    >
+                      Limpar datas
+                    </button>
+                  )}
+                </div>
               )}
             </div>
 
+            {/* Visualização Hierárquica: Tipo de Entrega -> Loja -> Ordenado Ascendente por Data e Hora */}
             {encomendasHistoricoFiltradas.length === 0 ? (
               <div className="text-center py-12 bg-white rounded-3xl border border-gray-200 text-gray-500 text-xs font-semibold">
-                Nenhuma encomenda encontrada no histórico para o critério indicado.
+                Nenhuma encomenda encontrada no histórico para os filtros selecionados.
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {encomendasHistoricoFiltradas.map((enc) => (
-                <div
-                  key={enc.id}
-                  className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs flex flex-col justify-between space-y-3"
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="font-mono font-bold text-xs text-gray-600">{enc.codigo}</span>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
-                        enc.tipo === 'entrega_domicilio'
-                          ? 'bg-blue-50 text-blue-800 border-blue-200'
-                          : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+              <div className="space-y-8">
+                {(['levantamento_loja', 'entrega_domicilio'] as TipoEntrega[]).map((tipo) => {
+                  const encomendasDoTipo = encomendasHistoricoFiltradas.filter((e) => e.tipo === tipo);
+                  if (encomendasDoTipo.length === 0) return null;
+
+                  // Agrupar por Loja
+                  const lojasMap = new Map<string, Encomenda[]>();
+                  for (const enc of encomendasDoTipo) {
+                    const lNome = enc.loja_nome || 'Padaria da Vila (Arouca)';
+                    if (!lojasMap.has(lNome)) {
+                      lojasMap.set(lNome, []);
+                    }
+                    lojasMap.get(lNome)!.push(enc);
+                  }
+
+                  return (
+                    <div key={tipo} className="space-y-4">
+                      {/* Cabeçalho de Nível 1: Tipo de Entrega */}
+                      <div className={`p-3.5 rounded-2xl flex items-center justify-between border ${
+                        tipo === 'levantamento_loja'
+                          ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
+                          : 'bg-blue-50/80 border-blue-200 text-blue-950'
                       }`}>
-                        {enc.tipo === 'entrega_domicilio' ? t.deliveryHome : t.pickupStore}
-                      </span>
+                        <div className="flex items-center gap-2.5 font-black text-sm">
+                          {tipo === 'levantamento_loja' ? (
+                            <>
+                              <Store className="h-5 w-5 text-emerald-700" />
+                              <span>LEVANTAMENTO EM LOJA</span>
+                            </>
+                          ) : (
+                            <>
+                              <Truck className="h-5 w-5 text-blue-700" />
+                              <span>ENTREGA AO DOMICÍLIO</span>
+                            </>
+                          )}
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-white font-bold border border-current opacity-80">
+                            {encomendasDoTipo.length} encomenda(s)
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Agrupamento de Nível 2: Por Loja */}
+                      {Array.from(lojasMap.entries()).map(([nomeLoja, pedidosLoja]) => {
+                        // Ordenação estrita crescente por data e hora de agendamento
+                        const pedidosOrdenados = [...pedidosLoja].sort((a, b) => {
+                          const dtA = `${a.data_agendamento} ${a.hora_agendamento}`;
+                          const dtB = `${b.data_agendamento} ${b.hora_agendamento}`;
+                          return dtA.localeCompare(dtB);
+                        });
+
+                        return (
+                          <div key={nomeLoja} className="pl-2 sm:pl-4 space-y-3">
+                            <div className="flex items-center gap-2 text-xs font-bold text-gray-700 border-b border-gray-200 pb-1.5">
+                              <span className="h-2 w-2 rounded-full bg-bakery-600"></span>
+                              <span>{nomeLoja}</span>
+                              <span className="text-[11px] text-gray-500 font-normal">
+                                ({pedidosOrdenados.length} pedidos • ordenados por hora crescente)
+                              </span>
+                            </div>
+
+                            {/* Grelha de Pedidos Ordenados */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {pedidosOrdenados.map((enc) => (
+                                <div
+                                  key={enc.id}
+                                  className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs flex flex-col justify-between space-y-3 hover:border-bakery-300 transition"
+                                >
+                                  <div>
+                                    <div className="flex items-center justify-between mb-1.5">
+                                      <span className="font-mono font-black text-xs text-gray-800">{enc.codigo}</span>
+                                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
+                                        enc.estado === 'entregue'
+                                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                          : enc.estado === 'em_producao' || enc.estado === 'pronto_loja'
+                                          ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                          : 'bg-gray-100 text-gray-700 border-gray-200'
+                                      }`}>
+                                        {enc.estado.replace('_', ' ')}
+                                      </span>
+                                    </div>
+
+                                    <h4 className="font-bold text-sm text-gray-900">{enc.cliente.nome}</h4>
+                                    <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                                      <Phone className="h-3 w-3" /> {enc.cliente.telefone}
+                                    </p>
+
+                                    {enc.tipo === 'entrega_domicilio' && enc.cliente.morada && (
+                                      <p className="text-xs text-gray-700 mt-1.5 bg-blue-50/50 p-2 rounded-lg border border-blue-100">
+                                        <MapPin className="h-3 w-3 inline mr-1 text-red-500" />
+                                        {enc.cliente.morada}
+                                      </p>
+                                    )}
+
+                                    <div className="text-xs text-gray-600 mt-2.5 flex items-center justify-between bg-gray-50 p-2 rounded-xl">
+                                      <span className="font-bold text-gray-900 flex items-center gap-1">
+                                        <Clock className="h-3.5 w-3.5 text-bakery-600" />
+                                        {enc.data_agendamento} às {enc.hora_agendamento}
+                                      </span>
+                                      <span className="font-bold text-xs text-stone-800 bg-stone-200/80 px-2 py-0.5 rounded-md">
+                                        {enc.itens.reduce((acc, i) => acc + i.quantidade, 0)} {t.totalItems.toLowerCase()}
+                                      </span>
+                                    </div>
+
+                                    {/* Resumo de Artigos */}
+                                    <div className="mt-2 space-y-0.5">
+                                      {enc.itens.map((it) => (
+                                        <div key={it.id} className="text-[11px] text-gray-600 flex justify-between">
+                                          <span>• {it.produto_nome}</span>
+                                          <span className="font-bold">{it.quantidade} un.</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  {/* Ações da Encomenda */}
+                                  <div className="pt-2.5 border-t border-gray-100 flex flex-wrap gap-1.5 text-xs font-bold">
+                                    <button
+                                      type="button"
+                                      onClick={() => setEncomendaParaImprimir(enc)}
+                                      className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-xl bg-gray-100 text-gray-800 hover:bg-gray-200 transition text-[11px]"
+                                    >
+                                      <Printer className="h-3.5 w-3.5" />
+                                      Talão
+                                    </button>
+
+                                    {temPermissaoEdicao && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setEncomendaEmEdicao(enc)}
+                                        className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-xl bg-bakery-50 text-bakery-800 border border-bakery-200 hover:bg-bakery-100 transition text-[11px]"
+                                      >
+                                        <Edit3 className="h-3.5 w-3.5" />
+                                        Editar
+                                      </button>
+                                    )}
+
+                                    {temPermissaoEdicao && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleEliminarEncomenda(enc.id, enc.codigo)}
+                                        className="flex items-center justify-center p-1.5 rounded-xl bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 transition"
+                                        title="Eliminar Encomenda"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </button>
+                                    )}
+
+                                    <button
+                                      type="button"
+                                      onClick={() => handleAlternarEntrega(enc)}
+                                      className="flex items-center justify-center p-1.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition"
+                                      title="Alternar entre Loja e Domicílio"
+                                    >
+                                      <ArrowRightLeft className="h-3.5 w-3.5" />
+                                    </button>
+
+                                    <a
+                                      href={`https://wa.me/351${enc.cliente.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(
+                                        `🥖 *Padaria da Vila*\nOlá ${enc.cliente.nome}, o seu pedido *${enc.codigo}* está confirmado para ${enc.data_agendamento} às ${enc.hora_agendamento}.\nFormato: ${enc.tipo === 'entrega_domicilio' ? `Entrega em ${enc.cliente.morada}` : 'Levantamento no Balcão'}.\nArtigos: ${enc.itens.map(i => `${i.quantidade}x ${i.produto_nome}`).join(', ')}.\nObrigado pela sua preferência!`
+                                      )}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center justify-center p-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 transition"
+                                      title="Enviar WhatsApp"
+                                    >
+                                      <MessageSquare className="h-3.5 w-3.5 text-emerald-600" />
+                                    </a>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-
-                    <h4 className="font-bold text-sm text-gray-900">{enc.cliente.nome}</h4>
-                    <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
-                      <Phone className="h-3 w-3" /> {enc.cliente.telefone}
-                    </p>
-
-                    {enc.tipo === 'entrega_domicilio' && enc.cliente.morada && (
-                      <p className="text-xs text-gray-700 mt-1 bg-gray-50 p-1.5 rounded-lg border border-gray-100">
-                        <MapPin className="h-3 w-3 inline mr-1 text-red-500" />
-                        {enc.cliente.morada}
-                      </p>
-                    )}
-
-                    <div className="text-xs text-gray-600 mt-2 flex items-center justify-between">
-                      <span>{enc.data_agendamento} às {enc.hora_agendamento}</span>
-                      <span className="font-bold text-xs text-stone-800 bg-stone-100 px-2 py-0.5 rounded-md">
-                        {enc.itens.reduce((acc, i) => acc + i.quantidade, 0)} {t.totalItems.toLowerCase()}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Ações da Encomenda */}
-                  <div className="pt-2 border-t border-gray-100 grid grid-cols-3 gap-1.5 text-xs font-bold">
-                    <button
-                      type="button"
-                      onClick={() => setEncomendaParaImprimir(enc)}
-                      className="flex items-center justify-center gap-1 py-2 rounded-xl bg-gray-100 text-gray-800 hover:bg-gray-200 transition text-[11px]"
-                    >
-                      <Printer className="h-3.5 w-3.5" />
-                      Talão
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleAlternarEntrega(enc)}
-                      className="flex items-center justify-center gap-1 py-2 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition text-[11px]"
-                      title="Mudar entre Entrega ao Domicílio e Levantamento em Loja"
-                    >
-                      <ArrowRightLeft className="h-3.5 w-3.5" />
-                      Tipo
-                    </button>
-
-                    <a
-                      href={`https://wa.me/351${enc.cliente.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(
-                        `🥖 *Padaria da Vila*\nOlá ${enc.cliente.nome}, o seu pedido *${enc.codigo}* está confirmado para ${enc.data_agendamento} às ${enc.hora_agendamento}.\nFormato: ${enc.tipo === 'entrega_domicilio' ? `Entrega em ${enc.cliente.morada}` : 'Levantamento no Balcão'}.\nArtigos: ${enc.itens.map(i => `${i.quantidade}x ${i.produto_nome}`).join(', ')}.\nObrigado pela sua preferência!`
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-1 py-2 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 transition text-[11px]"
-                      title="Enviar Confirmação WhatsApp"
-                    >
-                      <MessageSquare className="h-3.5 w-3.5 text-emerald-600" />
-                      WhatsApp
-                    </a>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         )}
@@ -1171,26 +1418,39 @@ Observações: [ex: Pão fatiado / Frase no bolo / Campainha]`;
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t">
-                <button
-                  type="button"
-                  onClick={() => setClienteModal(null)}
-                  className="px-3.5 py-2 rounded-xl bg-gray-100 font-bold text-gray-700 hover:bg-gray-200 transition"
-                >
-                  {t.cancel}
-                </button>
-                {temPermissaoEdicao ? (
+              <div className="flex items-center justify-between gap-2 pt-2 border-t">
+                {clienteModal.id && temPermissaoEdicao ? (
                   <button
-                    type="submit"
-                    className="px-4 py-2 rounded-xl bg-bakery-600 font-bold text-white shadow-xs hover:bg-bakery-700 transition"
+                    type="button"
+                    onClick={handleEliminarCliente}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-50 text-red-700 font-bold border border-red-200 hover:bg-red-100 transition text-xs"
                   >
-                    {t.save}
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Eliminar Cliente
                   </button>
-                ) : (
-                  <span className="text-xs font-bold text-gray-400 italic">
-                    {t.levelReadOnly}
-                  </span>
-                )}
+                ) : <div />}
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setClienteModal(null)}
+                    className="px-3.5 py-2 rounded-xl bg-gray-100 font-bold text-gray-700 hover:bg-gray-200 transition"
+                  >
+                    {t.cancel}
+                  </button>
+                  {temPermissaoEdicao ? (
+                    <button
+                      type="submit"
+                      className="px-4 py-2 rounded-xl bg-bakery-600 font-bold text-white shadow-xs hover:bg-bakery-700 transition"
+                    >
+                      {t.save}
+                    </button>
+                  ) : (
+                    <span className="text-xs font-bold text-gray-400 italic">
+                      {t.levelReadOnly}
+                    </span>
+                  )}
+                </div>
               </div>
             </form>
           </div>
@@ -1255,6 +1515,277 @@ Observações: [ex: Pão fatiado / Frase no bolo / Campainha]`;
                 {t.whatsappParseBtn}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE EDIÇÃO DE ENCOMENDA */}
+      {encomendaEmEdicao && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-gray-200 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-bakery-600 text-white shadow-xs">
+                  <Edit3 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-gray-900">
+                    Editar Encomenda <span className="font-mono text-bakery-700">{encomendaEmEdicao.codigo}</span>
+                  </h3>
+                  <p className="text-xs text-gray-500">Altere dados do cliente, agendamento, formato de entrega ou artigos</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEncomendaEmEdicao(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSalvarEdicaoEncomenda} className="space-y-4 text-xs">
+              {/* Formato de Entrega */}
+              <div className="grid grid-cols-2 gap-2 bg-gray-100 p-1 rounded-xl font-bold">
+                <button
+                  type="button"
+                  onClick={() => setEncomendaEmEdicao({ ...encomendaEmEdicao, tipo: 'levantamento_loja' })}
+                  className={`flex items-center justify-center gap-1.5 py-2 rounded-lg transition ${
+                    encomendaEmEdicao.tipo === 'levantamento_loja'
+                      ? 'bg-white text-gray-900 shadow-2xs'
+                      : 'text-gray-500 hover:text-gray-900'
+                  }`}
+                >
+                  <Store className="h-4 w-4 text-emerald-600" />
+                  Levantamento em Loja
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEncomendaEmEdicao({ ...encomendaEmEdicao, tipo: 'entrega_domicilio' })}
+                  className={`flex items-center justify-center gap-1.5 py-2 rounded-lg transition ${
+                    encomendaEmEdicao.tipo === 'entrega_domicilio'
+                      ? 'bg-white text-gray-900 shadow-2xs'
+                      : 'text-gray-500 hover:text-gray-900'
+                  }`}
+                >
+                  <Truck className="h-4 w-4 text-blue-600" />
+                  Entrega ao Domicílio
+                </button>
+              </div>
+
+              {/* Dados do Cliente */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Nome do Cliente *</label>
+                  <input
+                    type="text"
+                    required
+                    value={encomendaEmEdicao.cliente.nome}
+                    onChange={(e) =>
+                      setEncomendaEmEdicao({
+                        ...encomendaEmEdicao,
+                        cliente: { ...encomendaEmEdicao.cliente, nome: e.target.value },
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Telefone *</label>
+                  <input
+                    type="tel"
+                    required
+                    value={encomendaEmEdicao.cliente.telefone}
+                    onChange={(e) =>
+                      setEncomendaEmEdicao({
+                        ...encomendaEmEdicao,
+                        cliente: { ...encomendaEmEdicao.cliente, telefone: e.target.value },
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                  />
+                </div>
+              </div>
+
+              {/* Morada (se entrega ao domicílio) */}
+              {encomendaEmEdicao.tipo === 'entrega_domicilio' && (
+                <div className="space-y-2 bg-blue-50/60 p-3 rounded-xl border border-blue-200">
+                  <div>
+                    <label className="block font-bold text-blue-950 mb-1">Morada de Entrega *</label>
+                    <input
+                      type="text"
+                      required
+                      value={encomendaEmEdicao.cliente.morada || ''}
+                      onChange={(e) =>
+                        setEncomendaEmEdicao({
+                          ...encomendaEmEdicao,
+                          cliente: { ...encomendaEmEdicao.cliente, morada: e.target.value },
+                        })
+                      }
+                      placeholder="Rua, número, andar, localidade"
+                      className="w-full px-3 py-2 bg-white rounded-lg border border-blue-200 focus:outline-hidden"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-blue-950 mb-1">Notas de Acesso / Estafeta</label>
+                    <input
+                      type="text"
+                      value={encomendaEmEdicao.cliente.notas_entrega || ''}
+                      onChange={(e) =>
+                        setEncomendaEmEdicao({
+                          ...encomendaEmEdicao,
+                          cliente: { ...encomendaEmEdicao.cliente, notas_entrega: e.target.value },
+                        })
+                      }
+                      placeholder="Código do portão, etc."
+                      className="w-full px-3 py-2 bg-white rounded-lg border border-blue-200 focus:outline-hidden"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Agendamento & Loja & Estado */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Data Agendada *</label>
+                  <input
+                    type="date"
+                    required
+                    value={encomendaEmEdicao.data_agendamento}
+                    onChange={(e) =>
+                      setEncomendaEmEdicao({ ...encomendaEmEdicao, data_agendamento: e.target.value })
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Hora Agendada *</label>
+                  <input
+                    type="time"
+                    required
+                    value={encomendaEmEdicao.hora_agendamento}
+                    onChange={(e) =>
+                      setEncomendaEmEdicao({ ...encomendaEmEdicao, hora_agendamento: e.target.value })
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Estado da Encomenda</label>
+                  <select
+                    value={encomendaEmEdicao.estado}
+                    onChange={(e) =>
+                      setEncomendaEmEdicao({ ...encomendaEmEdicao, estado: e.target.value as any })
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold"
+                  >
+                    <option value="pendente">Pendente</option>
+                    <option value="em_producao">Em Produção</option>
+                    <option value="pronto_loja">Pronto / Para Expedição</option>
+                    <option value="em_rota">Em Rota de Entrega</option>
+                    <option value="entregue">Entregue / Concluída</option>
+                    <option value="cancelado">Cancelado</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Notas Gerais */}
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Notas Gerais da Encomenda</label>
+                <input
+                  type="text"
+                  value={encomendaEmEdicao.notas_cliente || ''}
+                  onChange={(e) =>
+                    setEncomendaEmEdicao({ ...encomendaEmEdicao, notas_cliente: e.target.value })
+                  }
+                  placeholder="Observações do pedido"
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                />
+              </div>
+
+              {/* Artigos da Encomenda */}
+              <div className="border-t pt-3">
+                <h4 className="font-bold text-gray-800 mb-2 uppercase text-[11px]">Artigos ({encomendaEmEdicao.itens.length})</h4>
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {encomendaEmEdicao.itens.map((item, idx) => (
+                    <div key={item.id || idx} className="p-2.5 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between gap-2">
+                      <span className="font-bold text-gray-900">{item.produto_nome}</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const novaQtd = Math.max(1, item.quantidade - 1);
+                            const novos = encomendaEmEdicao.itens.map((it, i) =>
+                              i === idx ? { ...it, quantidade: novaQtd } : it
+                            );
+                            setEncomendaEmEdicao({ ...encomendaEmEdicao, itens: novos });
+                          }}
+                          className="h-6 w-6 rounded-md bg-white border border-gray-200 flex items-center justify-center font-bold"
+                        >
+                          -
+                        </button>
+                        <span className="font-mono font-bold w-6 text-center">{item.quantidade}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const novos = encomendaEmEdicao.itens.map((it, i) =>
+                              i === idx ? { ...it, quantidade: it.quantidade + 1 } : it
+                            );
+                            setEncomendaEmEdicao({ ...encomendaEmEdicao, itens: novos });
+                          }}
+                          className="h-6 w-6 rounded-md bg-white border border-gray-200 flex items-center justify-center font-bold"
+                        >
+                          +
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (encomendaEmEdicao.itens.length <= 1) {
+                              alert('A encomenda deve ter pelo menos um artigo.');
+                              return;
+                            }
+                            const novos = encomendaEmEdicao.itens.filter((_, i) => i !== idx);
+                            setEncomendaEmEdicao({ ...encomendaEmEdicao, itens: novos });
+                          }}
+                          className="p-1 rounded-md text-red-500 hover:bg-red-50"
+                          title="Remover artigo"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Ações Inferiores */}
+              <div className="flex items-center justify-between pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => handleEliminarEncomenda(encomendaEmEdicao.id, encomendaEmEdicao.codigo)}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-50 text-red-700 font-bold border border-red-200 hover:bg-red-100 transition"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Eliminar Encomenda
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEncomendaEmEdicao(null)}
+                    className="px-4 py-2 rounded-xl bg-gray-100 font-bold text-gray-700 hover:bg-gray-200 transition"
+                  >
+                    {t.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-bakery-600 font-bold text-white shadow-xs hover:bg-bakery-700 transition"
+                  >
+                    Guardar Alterações
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -11,11 +11,15 @@ import {
   carregarProdutosSupabase,
   carregarLojasSupabase,
   salvarLojaDb,
+  eliminarLojaDb,
   carregarCarrinhasSupabase,
   salvarCarrinhaDb,
+  eliminarCarrinhaDb,
   carregarPerfisAcessoSupabase,
   salvarPerfilAcessoDb,
   eliminarPerfilAcessoDb,
+  salvarClienteDb,
+  salvarProdutoDb,
   upsertClientesEmLote,
   upsertProdutosEmLote
 } from '../../lib/encomendasService';
@@ -49,7 +53,13 @@ import {
   UserCheck,
   Eye,
   Lock,
-  AlertTriangle
+  AlertTriangle,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Award,
+  TrendingUp,
+  User
 } from 'lucide-react';
 
 export default function AdminPage() {
@@ -79,6 +89,19 @@ export default function AdminPage() {
   const [lojaEmEdicao, setLojaEmEdicao] = useState<Partial<Loja> | null>(null);
   const [carrinhaEmEdicao, setCarrinhaEmEdicao] = useState<Partial<Carrinha> | null>(null);
   const [perfilEmEdicao, setPerfilEmEdicao] = useState<Partial<PerfilUtilizador> | null>(null);
+
+  // Inserção de Registo Avulso na BD
+  const [modalRegistoAvulsoAberto, setModalRegistoAvulsoAberto] = useState<boolean>(false);
+  const [subAbaRegistoAvulso, setSubAbaRegistoAvulso] = useState<'cliente' | 'produto' | 'loja' | 'carrinha'>('cliente');
+  const [novoCliente, setNovoCliente] = useState<{ nome: string; telefone: string; morada: string; codigo_postal: string; notas_entrega: string }>({
+    nome: '', telefone: '', morada: '', codigo_postal: '', notas_entrega: ''
+  });
+  const [novoProduto, setNovoProduto] = useState<{ nome: string; categoria: 'padaria' | 'pastelaria'; unidade: string }>({
+    nome: '', categoria: 'padaria', unidade: 'unidade'
+  });
+
+  // Filtro de Data para a Tabela Consolidada de Planeamento vs Real
+  const [filtroDataConsolidada, setFiltroDataConsolidada] = useState<string>('');
 
   // Importação Massiva Excel/CSV
   const [tabelaImportacao, setTabelaImportacao] = useState<'clientes' | 'produtos'>('clientes');
@@ -176,6 +199,71 @@ export default function AdminPage() {
   });
   const itensProducaoConsolidados = Object.entries(mapaProducao).sort((a, b) => b[1].quantidade - a[1].quantidade);
 
+  // Função auxiliar de cálculo de desvio em minutos entre hora planeada e real
+  const calcularDesvioMinutos = (horaAgendada?: string, horaReal?: string): number | null => {
+    if (!horaAgendada || !horaReal) return null;
+    const [hA, mA] = horaAgendada.split(':').map(Number);
+    const [hR, mR] = horaReal.split(':').map(Number);
+    if (isNaN(hA) || isNaN(mA) || isNaN(hR) || isNaN(mR)) return null;
+    return (hR * 60 + mR) - (hA * 60 + mA);
+  };
+
+  // Cálculo de % On-Time (Pontualidade das Entregas) com tolerância de 10 min
+  const entregasFinalizadas = useMemo(() => {
+    return encomendasFiltradas.filter((e) => e.estado === 'entregue' && (e.hora_entrega_real || e.hora_agendamento));
+  }, [encomendasFiltradas]);
+
+  const entregasNoPrazo = useMemo(() => {
+    return entregasFinalizadas.filter((e) => {
+      const desvio = calcularDesvioMinutos(e.hora_agendamento, e.hora_entrega_real || e.hora_agendamento);
+      return desvio === null || desvio <= 10;
+    });
+  }, [entregasFinalizadas]);
+
+  const taxaPontualidade = entregasFinalizadas.length > 0
+    ? Math.round((entregasNoPrazo.length / entregasFinalizadas.length) * 100)
+    : 100;
+
+  // Top 5 Clientes com mais encomendas no período
+  const topClientes = useMemo(() => {
+    const contagem: Record<string, { nome: string; telefone: string; morada?: string; total: number }> = {};
+    encomendasFiltradas.forEach((e) => {
+      const chave = e.cliente.telefone || e.cliente.nome;
+      if (!contagem[chave]) {
+        contagem[chave] = { nome: e.cliente.nome, telefone: e.cliente.telefone, morada: e.cliente.morada, total: 0 };
+      }
+      contagem[chave].total += 1;
+    });
+    return Object.values(contagem).sort((a, b) => b.total - a.total).slice(0, 5);
+  }, [encomendasFiltradas]);
+
+  // Top 5 Artigos mais pedidos no período
+  const topArtigos = useMemo(() => {
+    const contagem: Record<string, { nome: string; setor: string; quantidade: number }> = {};
+    encomendasFiltradas.forEach((e) => {
+      e.itens.forEach((item) => {
+        if (!contagem[item.produto_nome]) {
+          contagem[item.produto_nome] = { nome: item.produto_nome, setor: item.setor, quantidade: 0 };
+        }
+        contagem[item.produto_nome].quantidade += item.quantidade;
+      });
+    });
+    return Object.values(contagem).sort((a, b) => b.quantidade - a.quantidade).slice(0, 5);
+  }, [encomendasFiltradas]);
+
+  // Encomendas para a Tabela de Detalhe Consolidado de Planeamento vs Real
+  const encomendasTabelaConsolidada = useMemo(() => {
+    let base = [...encomendasFiltradas];
+    if (filtroDataConsolidada) {
+      base = base.filter((e) => e.data_agendamento === filtroDataConsolidada);
+    }
+    return base.sort((a, b) => {
+      const dataCmp = a.data_agendamento.localeCompare(b.data_agendamento);
+      if (dataCmp !== 0) return dataCmp;
+      return a.hora_agendamento.localeCompare(b.hora_agendamento);
+    });
+  }, [encomendasFiltradas, filtroDataConsolidada]);
+
   // Ações de Talão
   const handleSalvarConfigTalao = (e: React.FormEvent) => {
     e.preventDefault();
@@ -196,6 +284,17 @@ export default function AdminPage() {
     }
   };
 
+  const handleEliminarLoja = async (lojaId: string) => {
+    if (!window.confirm('Tem a certeza que deseja eliminar permanentemente esta loja?')) return;
+    const ok = await eliminarLojaDb(lojaId);
+    if (ok) {
+      const ljs = await carregarLojasSupabase();
+      setLojas(ljs);
+      setLojaEmEdicao(null);
+      alert(t.success);
+    }
+  };
+
   const handleSalvarCarrinha = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!carrinhaEmEdicao || !carrinhaEmEdicao.identificador || !carrinhaEmEdicao.loja_id) return;
@@ -205,6 +304,56 @@ export default function AdminPage() {
       setCarrinhas(cars);
       setCarrinhaEmEdicao(null);
       alert(t.success);
+    }
+  };
+
+  const handleEliminarCarrinha = async (carrinhaId: string) => {
+    if (!window.confirm('Tem a certeza que deseja eliminar permanentemente esta carrinha da frota?')) return;
+    const ok = await eliminarCarrinhaDb(carrinhaId);
+    if (ok) {
+      const cars = await carregarCarrinhasSupabase();
+      setCarrinhas(cars);
+      setCarrinhaEmEdicao(null);
+      alert(t.success);
+    }
+  };
+
+  // Ações de Inserção de Registos Avulsos na Base de Dados
+  const handleSalvarClienteAvulso = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!novoCliente.nome.trim() || !novoCliente.telefone.trim()) {
+      alert('Nome e telefone são obrigatórios.');
+      return;
+    }
+    const salvo = await salvarClienteDb(novoCliente);
+    if (salvo) {
+      const clis = await carregarClientesSupabase();
+      setClientes(clis);
+      setNovoCliente({ nome: '', telefone: '', morada: '', codigo_postal: '', notas_entrega: '' });
+      setModalRegistoAvulsoAberto(false);
+      alert('Cliente criado com sucesso na Base de Dados!');
+    }
+  };
+
+  const handleSalvarProdutoAvulso = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!novoProduto.nome.trim()) {
+      alert('O nome do produto é obrigatório.');
+      return;
+    }
+    const salvo = await salvarProdutoDb({
+      nome: novoProduto.nome.trim(),
+      preco: 0,
+      categoria: novoProduto.categoria,
+      unidade: novoProduto.unidade,
+      ativo: true
+    });
+    if (salvo) {
+      const prods = await carregarProdutosSupabase();
+      setProdutos(prods);
+      setNovoProduto({ nome: '', categoria: 'padaria', unidade: 'unidade' });
+      setModalRegistoAvulsoAberto(false);
+      alert('Produto criado com sucesso na Base de Dados!');
     }
   };
 
@@ -243,7 +392,7 @@ export default function AdminPage() {
       };
     } else if (cargo === 'operador_padaria' || cargo === 'operador_pastelaria') {
       accessLevels = {
-        acesso_encomendas: 'leitura',
+        acesso_encomendas: 'sem_acesso',
         acesso_producao: 'edicao',
         acesso_loja: 'sem_acesso',
         acesso_entregas: 'sem_acesso',
@@ -615,7 +764,7 @@ export default function AdminPage() {
             </div>
 
             {/* Cartões de Indicadores Operacionais */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
                 <span className="text-xs text-gray-500 font-bold uppercase">{t.totalOrders}</span>
                 <p className="text-2xl font-black text-gray-900 mt-1">{totalVolumeEncomendas}</p>
@@ -645,6 +794,16 @@ export default function AdminPage() {
                 <p className="text-2xl font-black text-amber-700 mt-1">{totalLevantamentos}</p>
                 <span className="text-[11px] text-amber-600 font-bold mt-1 block">
                   {totalVolumeEncomendas > 0 ? ((totalLevantamentos / totalVolumeEncomendas) * 100).toFixed(0) : 0}% das encomendas
+                </span>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
+                <span className="text-xs text-gray-500 font-bold uppercase">Taxa On-Time</span>
+                <p className={`text-2xl font-black mt-1 ${taxaPontualidade >= 90 ? 'text-emerald-700' : 'text-amber-700'}`}>
+                  {taxaPontualidade}%
+                </p>
+                <span className="text-[11px] text-gray-500 font-medium mt-1 block">
+                  {entregasNoPrazo.length} de {entregasFinalizadas.length} entregas a horas
                 </span>
               </div>
             </div>
@@ -710,6 +869,197 @@ export default function AdminPage() {
                     ))
                   )}
                 </div>
+              </div>
+            </div>
+
+            {/* Secção Top Clientes e Top Artigos */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Top Clientes */}
+              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
+                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                  <Award className="h-4 w-4 text-amber-600" />
+                  Top Clientes com Mais Encomendas
+                </h3>
+                {topClientes.length === 0 ? (
+                  <p className="text-gray-400 italic py-4 text-center text-xs">Sem dados de clientes no período selecionado.</p>
+                ) : (
+                  <div className="space-y-2 text-xs">
+                    {topClientes.map((c, idx) => (
+                      <div key={c.telefone || idx} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
+                        <div className="flex items-center gap-2.5">
+                          <span className={`flex h-6 w-6 items-center justify-center rounded-lg text-xs font-black ${
+                            idx === 0 ? 'bg-amber-400 text-stone-950 shadow-2xs' : 'bg-stone-200 text-stone-700'
+                          }`}>
+                            #{idx + 1}
+                          </span>
+                          <div>
+                            <p className="font-bold text-gray-900">{c.nome}</p>
+                            <p className="text-[11px] text-gray-500">{c.telefone} {c.morada ? `• ${c.morada}` : ''}</p>
+                          </div>
+                        </div>
+                        <span className="font-black text-sm text-bakery-800 bg-bakery-50 px-2 py-0.5 rounded-md border border-bakery-200">
+                          {c.total} enc.
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Top Artigos */}
+              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
+                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-emerald-600" />
+                  Top Artigos Mais Pedidos
+                </h3>
+                {topArtigos.length === 0 ? (
+                  <p className="text-gray-400 italic py-4 text-center text-xs">Sem dados de artigos no período selecionado.</p>
+                ) : (
+                  <div className="space-y-2 text-xs">
+                    {topArtigos.map((a, idx) => (
+                      <div key={a.nome} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
+                        <div className="flex items-center gap-2.5">
+                          <span className={`flex h-6 w-6 items-center justify-center rounded-lg text-xs font-black ${
+                            idx === 0 ? 'bg-amber-400 text-stone-950 shadow-2xs' : 'bg-stone-200 text-stone-700'
+                          }`}>
+                            #{idx + 1}
+                          </span>
+                          <div>
+                            <p className="font-bold text-gray-900">{a.nome}</p>
+                            <span className="text-[10px] text-gray-500 uppercase">
+                              {a.setor === 'padaria' ? '🥖 Padaria' : '🎂 Pastelaria'}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="font-black text-sm text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                          {a.quantidade} un.
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Tabela de Detalhe Consolidado de Planeamento vs Real */}
+            <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-blue-600" />
+                    Detalhe Consolidado de Planeamento vs Real
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Auditoria de cumprimento dos horários de agendamento e tempos reais de entrega / levantamento
+                  </p>
+                </div>
+
+                {/* Filtro de Calendário para a Tabela */}
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-stone-400" />
+                  <span className="text-xs font-bold text-stone-600">Filtrar Data:</span>
+                  <input
+                    type="date"
+                    value={filtroDataConsolidada}
+                    onChange={(e) => setFiltroDataConsolidada(e.target.value)}
+                    className="px-2.5 py-1 text-xs font-bold rounded-lg border border-gray-300 bg-white"
+                  />
+                  {filtroDataConsolidada && (
+                    <button
+                      type="button"
+                      onClick={() => setFiltroDataConsolidada('')}
+                      className="text-xs text-stone-500 hover:text-stone-800 font-bold px-1.5 py-1 cursor-pointer"
+                    >
+                      Limpar
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-200 bg-gray-50 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                      <th className="py-2.5 px-3">Código</th>
+                      <th className="py-2.5 px-3">Cliente</th>
+                      <th className="py-2.5 px-3">Formato / Destino</th>
+                      <th className="py-2.5 px-3">Data</th>
+                      <th className="py-2.5 px-3">Hora Planeada</th>
+                      <th className="py-2.5 px-3">Hora Real</th>
+                      <th className="py-2.5 px-3">Pontualidade / Desvio</th>
+                      <th className="py-2.5 px-3">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {encomendasTabelaConsolidada.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-8 text-center text-gray-400 italic">
+                          Nenhuma encomenda encontrada para o filtro selecionado.
+                        </td>
+                      </tr>
+                    ) : (
+                      encomendasTabelaConsolidada.map((enc) => {
+                        const horaReal = enc.hora_entrega_real;
+                        const desvioMin = horaReal ? calcularDesvioMinutos(enc.hora_agendamento, horaReal) : null;
+                        const jaEntregue = enc.estado === 'entregue';
+
+                        return (
+                          <tr key={enc.id} className="hover:bg-gray-50 transition">
+                            <td className="py-2.5 px-3 font-mono font-bold text-gray-900">{enc.codigo}</td>
+                            <td className="py-2.5 px-3">
+                              <p className="font-bold text-gray-900">{enc.cliente.nome}</p>
+                              <p className="text-[10px] text-gray-500">{enc.cliente.telefone}</p>
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${
+                                enc.tipo === 'entrega_domicilio' ? 'bg-blue-50 text-blue-800' : 'bg-amber-50 text-amber-800'
+                              }`}>
+                                {enc.tipo === 'entrega_domicilio' ? `🚚 ${enc.carrinha_nome || 'Carrinha'}` : `🏪 ${enc.loja_nome}`}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 font-medium text-gray-700">{enc.data_agendamento}</td>
+                            <td className="py-2.5 px-3 font-bold text-stone-900 font-mono">{enc.hora_agendamento}</td>
+                            <td className="py-2.5 px-3 font-bold font-mono">
+                              {horaReal ? (
+                                <span className="text-gray-900">{horaReal}</span>
+                              ) : (
+                                <span className="text-gray-400 font-normal italic">--:--</span>
+                              )}
+                            </td>
+                            <td className="py-2.5 px-3">
+                              {jaEntregue ? (
+                                desvioMin !== null && desvioMin <= 10 ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+                                    <CheckCircle2 className="h-3 w-3" /> No Prazo ({desvioMin <= 0 ? 'Adiantado' : `+${desvioMin}m`})
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 font-bold text-[10px]">
+                                    <Clock className="h-3 w-3" /> Atraso (+{desvioMin || 0}m)
+                                  </span>
+                                )
+                              ) : (
+                                <span className="text-gray-400 text-[10px] italic">Por entregar</span>
+                              )}
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                                jaEntregue
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : enc.estado === 'em_preparacao'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : enc.estado === 'pronto'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : 'bg-stone-100 text-stone-700'
+                              }`}>
+                                {enc.estado}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -808,6 +1158,34 @@ export default function AdminPage() {
         {/* ----------------- ABA 3: BASES DE DADOS & EXCEL ----------------- */}
         {activeTab === 'database' && (
           <div className="space-y-6">
+            {/* Secção de Inserção de Registo Avulso */}
+            <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                    <Plus className="h-4 w-4 text-bakery-600" />
+                    Inserir Registo Avulso na Base de Dados
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Adicione rapidamente um novo cliente, produto, loja ou carrinha de forma manual sem necessidade de carregar ficheiro Excel.
+                  </p>
+                </div>
+                {temPermissaoEdicaoGestao && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSubAbaRegistoAvulso('cliente');
+                      setModalRegistoAvulsoAberto(true);
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-bakery-600 hover:bg-bakery-700 text-white text-xs font-bold shadow-xs transition cursor-pointer shrink-0"
+                  >
+                    <Plus className="h-4 w-4" />
+                    + Inserir Registo Avulso
+                  </button>
+                )}
+              </div>
+            </div>
+
             <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
               <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                 <Download className="h-4 w-4 text-emerald-600" />
@@ -1407,9 +1785,8 @@ export default function AdminPage() {
                   { key: 'acesso_entregas', label: t.navEntregas },
                   { key: 'acesso_gestao', label: `${t.navGestao} (Métricas, Lojas, Frota e Acessos)` },
                 ].map((item) => {
-                  const nivelAtual: NivelAcesso =
-                    (perfilEmEdicao as any)[item.key] ||
-                    (perfilEmEdicao as any)[item.key.replace('acesso_', 'painel_')] ? 'edicao' : 'sem_acesso';
+                  const val = (perfilEmEdicao as any)?.[item.key] ?? (perfilEmEdicao as any)?.[item.key.replace('acesso_', 'painel_')];
+                  const nivelAtual: NivelAcesso = (val === 'sem_acesso' || val === 'leitura' || val === 'edicao') ? val : 'sem_acesso';
 
                   return (
                     <div key={item.key} className="p-2 rounded-xl bg-white border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -1466,17 +1843,32 @@ export default function AdminPage() {
                   <span>{t.userActive}</span>
                 </label>
 
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2">
+                  {perfilEmEdicao.id && perfilEmEdicao.role !== 'admin' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm(`Tem a certeza que deseja eliminar o colaborador ${perfilEmEdicao.nome}?`)) {
+                          handleEliminarPerfil(perfilEmEdicao.id!);
+                          setPerfilEmEdicao(null);
+                        }
+                      }}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs transition cursor-pointer"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Eliminar
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setPerfilEmEdicao(null)}
-                    className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700"
+                    className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
                   >
                     {t.cancel}
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-1.5 rounded-lg bg-bakery-600 font-bold text-white shadow-xs"
+                    className="px-4 py-1.5 rounded-lg bg-bakery-600 font-bold text-white shadow-xs hover:bg-bakery-700 transition cursor-pointer"
                   >
                     {t.saveUser}
                   </button>
@@ -1548,20 +1940,33 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t">
-                <button
-                  type="button"
-                  onClick={() => setLojaEmEdicao(null)}
-                  className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700"
-                >
-                  {t.cancel}
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 rounded-lg bg-bakery-600 font-bold text-white shadow-xs"
-                >
-                  {t.save}
-                </button>
+              <div className="flex items-center justify-between pt-2 border-t">
+                {lojaEmEdicao.id ? (
+                  <button
+                    type="button"
+                    onClick={() => handleEliminarLoja(lojaEmEdicao.id!)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs transition cursor-pointer"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Eliminar Loja
+                  </button>
+                ) : <div />}
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setLojaEmEdicao(null)}
+                    className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
+                  >
+                    {t.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded-lg bg-bakery-600 font-bold text-white shadow-xs hover:bg-bakery-700 transition cursor-pointer"
+                  >
+                    {t.save}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -1611,22 +2016,237 @@ export default function AdminPage() {
                 </select>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t">
-                <button
-                  type="button"
-                  onClick={() => setCarrinhaEmEdicao(null)}
-                  className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700"
-                >
-                  {t.cancel}
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 rounded-lg bg-blue-600 font-bold text-white shadow-xs"
-                >
-                  {t.save}
-                </button>
+              <div className="flex items-center justify-between pt-2 border-t">
+                {carrinhaEmEdicao.id ? (
+                  <button
+                    type="button"
+                    onClick={() => handleEliminarCarrinha(carrinhaEmEdicao.id!)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs transition cursor-pointer"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Eliminar Carrinha
+                  </button>
+                ) : <div />}
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCarrinhaEmEdicao(null)}
+                    className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
+                  >
+                    {t.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded-lg bg-blue-600 font-bold text-white shadow-xs hover:bg-blue-700 transition cursor-pointer"
+                  >
+                    {t.save}
+                  </button>
+                </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE INSERÇÃO DE REGISTO AVULSO NA BASE DE DADOS */}
+      {modalRegistoAvulsoAberto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl border border-gray-200 space-y-4 text-xs">
+            <div className="flex items-center justify-between border-b pb-2">
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <Plus className="h-4 w-4 text-bakery-600" />
+                Inserir Registo Avulso na Base de Dados
+              </h3>
+              <button
+                type="button"
+                onClick={() => setModalRegistoAvulsoAberto(false)}
+                className="text-gray-400 hover:text-gray-600 text-sm font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Sub-abas do Modal */}
+            <div className="flex bg-gray-100 p-1 rounded-xl text-xs font-bold gap-1">
+              <button
+                type="button"
+                onClick={() => setSubAbaRegistoAvulso('cliente')}
+                className={`flex-1 py-1.5 rounded-lg transition cursor-pointer ${
+                  subAbaRegistoAvulso === 'cliente' ? 'bg-white text-bakery-900 shadow-2xs' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                👤 Cliente
+              </button>
+              <button
+                type="button"
+                onClick={() => setSubAbaRegistoAvulso('produto')}
+                className={`flex-1 py-1.5 rounded-lg transition cursor-pointer ${
+                  subAbaRegistoAvulso === 'produto' ? 'bg-white text-bakery-900 shadow-2xs' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                🥖 Produto
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setModalRegistoAvulsoAberto(false);
+                  setLojaEmEdicao({ codigo: '', nome: '', morada: '', telefone: '' });
+                }}
+                className="flex-1 py-1.5 rounded-lg text-gray-600 hover:text-gray-900 transition hover:bg-white cursor-pointer"
+              >
+                🏪 Loja
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setModalRegistoAvulsoAberto(false);
+                  setCarrinhaEmEdicao({ identificador: '', matricula: '', loja_id: lojas[0]?.id });
+                }}
+                className="flex-1 py-1.5 rounded-lg text-gray-600 hover:text-gray-900 transition hover:bg-white cursor-pointer"
+              >
+                🚚 Carrinha
+              </button>
+            </div>
+
+            {/* Formulário de Novo Cliente */}
+            {subAbaRegistoAvulso === 'cliente' && (
+              <form onSubmit={handleSalvarClienteAvulso} className="space-y-3">
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Nome do Cliente *</label>
+                  <input
+                    type="text"
+                    required
+                    value={novoCliente.nome}
+                    onChange={(e) => setNovoCliente({ ...novoCliente, nome: e.target.value })}
+                    placeholder="Ex: Maria Pereira"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">Telefone *</label>
+                    <input
+                      type="tel"
+                      required
+                      value={novoCliente.telefone}
+                      onChange={(e) => setNovoCliente({ ...novoCliente, telefone: e.target.value })}
+                      placeholder="912 345 678"
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">Código Postal</label>
+                    <input
+                      type="text"
+                      value={novoCliente.codigo_postal}
+                      onChange={(e) => setNovoCliente({ ...novoCliente, codigo_postal: e.target.value })}
+                      placeholder="4540-102"
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Morada de Entrega</label>
+                  <input
+                    type="text"
+                    value={novoCliente.morada}
+                    onChange={(e) => setNovoCliente({ ...novoCliente, morada: e.target.value })}
+                    placeholder="Rua / Lugar, Arouca"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Notas de Entrega / Referência</label>
+                  <textarea
+                    rows={2}
+                    value={novoCliente.notas_entrega}
+                    onChange={(e) => setNovoCliente({ ...novoCliente, notas_entrega: e.target.value })}
+                    placeholder="Ex: Deixar no portão lateral se não atender"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t">
+                  <button
+                    type="button"
+                    onClick={() => setModalRegistoAvulsoAberto(false)}
+                    className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
+                  >
+                    {t.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded-lg bg-bakery-600 hover:bg-bakery-700 font-bold text-white shadow-xs transition cursor-pointer"
+                  >
+                    Criar Cliente
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Formulário de Novo Produto */}
+            {subAbaRegistoAvulso === 'produto' && (
+              <form onSubmit={handleSalvarProdutoAvulso} className="space-y-3">
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Nome do Artigo *</label>
+                  <input
+                    type="text"
+                    required
+                    value={novoProduto.nome}
+                    onChange={(e) => setNovoProduto({ ...novoProduto, nome: e.target.value })}
+                    placeholder="Ex: Broa de Milho Tradicional"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">Setor de Fabrico</label>
+                    <select
+                      value={novoProduto.categoria}
+                      onChange={(e) => setNovoProduto({ ...novoProduto, categoria: e.target.value as any })}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold"
+                    >
+                      <option value="padaria">🥖 Padaria</option>
+                      <option value="pastelaria">🎂 Pastelaria</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">Unidade de Medida</label>
+                    <select
+                      value={novoProduto.unidade}
+                      onChange={(e) => setNovoProduto({ ...novoProduto, unidade: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold"
+                    >
+                      <option value="unidade">Unidade (un.)</option>
+                      <option value="kg">Quilograma (kg)</option>
+                      <option value="cento">Cento</option>
+                      <option value="dose">Dose</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t">
+                  <button
+                    type="button"
+                    onClick={() => setModalRegistoAvulsoAberto(false)}
+                    className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
+                  >
+                    {t.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded-lg bg-bakery-600 hover:bg-bakery-700 font-bold text-white shadow-xs transition cursor-pointer"
+                  >
+                    Criar Produto
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

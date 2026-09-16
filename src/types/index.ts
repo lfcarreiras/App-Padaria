@@ -76,6 +76,8 @@ export interface Encomenda {
   metodo_pagamento?: MetodoPagamento;
   total?: number;
   notas_cliente?: string;
+  hora_entrega_real?: string; // HH:MM real da entrega
+  ordem_rota?: number; // Sequência manual ou otimizada da carrinha
   itens: ItemEncomenda[];
   criado_em: string;
 }

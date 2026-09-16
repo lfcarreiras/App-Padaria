@@ -9,10 +9,26 @@ import {
   atualizarEstadoItemDb, 
   atualizarEstadoEncomendaDb 
 } from '../../lib/encomendasService';
-import { Encomenda, SetorProducao, EstadoProducaoItem } from '../../types';
+import { Encomenda, SetorProducao, EstadoProducaoItem, TipoEntrega } from '../../types';
 import { useTranslation } from '../../lib/i18n';
 import { useAuth } from '../../lib/authContext';
-import { ChefHat, Clock, CheckCircle2, AlertTriangle, Printer, Sparkles, Flame, Store, Eye } from 'lucide-react';
+import { 
+  ChefHat, 
+  Clock, 
+  CheckCircle2, 
+  AlertTriangle, 
+  Printer, 
+  Sparkles, 
+  Flame, 
+  Store, 
+  Truck,
+  Eye, 
+  Calendar,
+  Columns,
+  ListFilter,
+  ArrowRight,
+  RotateCcw
+} from 'lucide-react';
 
 export default function ProducaoPage() {
   const { t } = useTranslation();
@@ -20,8 +36,13 @@ export default function ProducaoPage() {
   const temPermissaoEdicao = podeEditar('producao');
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
   const [setorAtivo, setSetorAtivo] = useState<SetorProducao | 'todos'>('todos');
+  const [modoVisualizacao, setModoVisualizacao] = useState<'kanban' | 'hierarquica'>('kanban');
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
   const [encomendaParaImprimir, setEncomendaParaImprimir] = useState<Encomenda | null>(null);
+
+  // Filtro de Calendário
+  const [filtroPeriodo, setFiltroPeriodo] = useState<'hoje' | 'amanha' | 'todos' | 'personalizado'>('hoje');
+  const [dataPersonalizada, setDataPersonalizada] = useState('');
 
   // Carregar encomendas reais da base de dados Supabase
   useEffect(() => {
@@ -34,21 +55,38 @@ export default function ProducaoPage() {
 
   const lojaAtual = LOJAS_MOCK.find((l) => l.id === selectedLojaId) || LOJAS_MOCK[0];
 
-  // Data de hoje (AAAA-MM-DD) para modo operacional estrito do dia
+  // Datas de referência
   const hoje = new Date().toISOString().split('T')[0];
+  const dHoje = new Date();
+  const dAmanha = new Date(dHoje);
+  dAmanha.setDate(dHoje.getDate() + 1);
+  const amanha = dAmanha.toISOString().split('T')[0];
 
-  // Filtrar exclusivamente encomendas com agendamento para HOJE na loja/setor selecionado
-  const encomendasDaLoja = encomendas.filter((e) => {
-    const isHoje = e.data_agendamento === hoje;
+  // Filtrar encomendas de acordo com Loja, Setor e Período de Calendário
+  const encomendasFiltradas = encomendas.filter((e) => {
+    // 1. Filtro de Loja
     const matchLoja = selectedLojaId === 'todas' || e.loja_id === selectedLojaId;
+
+    // 2. Filtro de Setor (Padaria vs Pastelaria)
     const temItensDoSetor =
       setorAtivo === 'todos'
         ? true
         : e.itens.some((item) => item.setor === setorAtivo);
-    return isHoje && matchLoja && temItensDoSetor;
+
+    // 3. Filtro Temporal / Calendário
+    let matchData = true;
+    if (filtroPeriodo === 'hoje') {
+      matchData = e.data_agendamento === hoje;
+    } else if (filtroPeriodo === 'amanha') {
+      matchData = e.data_agendamento === amanha;
+    } else if (filtroPeriodo === 'personalizado' && dataPersonalizada) {
+      matchData = e.data_agendamento === dataPersonalizada;
+    }
+
+    return matchLoja && temItensDoSetor && matchData;
   });
 
-  // Atualizar estado de produção de um item (em memória e no Supabase)
+  // Atualizar estado de produção de um item específico
   const atualizarEstadoItem = async (encomendaId: string, itemId: string, novoEstado: EstadoProducaoItem) => {
     await atualizarEstadoItemDb(itemId, novoEstado);
 
@@ -71,6 +109,44 @@ export default function ProducaoPage() {
     );
   };
 
+  // Mover encomenda completa no Kanban (Pendente -> Em Produção -> Pronto)
+  const moverEncomendaKanban = async (encomendaId: string, novoEstadoEncomenda: 'pendente' | 'em_producao' | 'pronto_loja') => {
+    const novoEstadoItens: EstadoProducaoItem = 
+      novoEstadoEncomenda === 'pendente' ? 'pendente' :
+      novoEstadoEncomenda === 'em_producao' ? 'em_preparo' : 'pronto';
+
+    await atualizarEstadoEncomendaDb(encomendaId, novoEstadoEncomenda);
+
+    setEncomendas((prev) =>
+      prev.map((enc) => {
+        if (enc.id !== encomendaId) return enc;
+        const itensAtualizados = enc.itens.map((it) => ({
+          ...it,
+          estado_producao: novoEstadoItens,
+        }));
+        // Atualizar também na BD os itens
+        itensAtualizados.forEach((it) => atualizarEstadoItemDb(it.id, novoEstadoItens));
+
+        return {
+          ...enc,
+          estado: novoEstadoEncomenda,
+          itens: itensAtualizados,
+        };
+      })
+    );
+  };
+
+  // Separação para as 3 colunas táteis do Kanban
+  const kanbanPorPreparar = encomendasFiltradas.filter(
+    (e) => e.estado === 'pendente'
+  );
+  const kanbanEmPreparacao = encomendasFiltradas.filter(
+    (e) => e.estado === 'em_producao'
+  );
+  const kanbanPronto = encomendasFiltradas.filter(
+    (e) => e.estado === 'pronto_loja' || e.estado === 'em_rota' || e.estado === 'entregue'
+  );
+
   return (
     <div className="min-h-screen flex flex-col bg-stone-100/70">
       <Navbar selectedLojaId={selectedLojaId} onSelectLoja={setSelectedLojaId} />
@@ -84,213 +160,546 @@ export default function ProducaoPage() {
           </div>
         )}
 
-        {/* Barra Superior do KDS */}
+        {/* Barra Superior do Painel de Produção */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-amber-500 text-white shadow-xs">
-                <ChefHat className="h-6 w-6" />
-              </div>
-              <div>
-                <h2 className="text-xl font-black text-gray-900 leading-tight">
-                  {t.productionTitle} ({selectedLojaId === 'todas' ? t.allStores : lojaAtual.nome})
-                </h2>
-                <p className="text-xs text-gray-500">
-                  {t.productionSubtitle}
-                </p>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-amber-500 text-white shadow-xs">
+              <ChefHat className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-gray-900 leading-tight">
+                Painel de Produção ({selectedLojaId === 'todas' ? t.allStores : lojaAtual.nome})
+              </h2>
+              <p className="text-xs text-gray-500">
+                Fila de fabrico com visualização Kanban e hierárquica por tipo e loja
+              </p>
             </div>
           </div>
 
-          {/* Abas de Setor: Padaria vs Pastelaria */}
-          <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-xl">
-            <button
-              onClick={() => setSetorAtivo('todos')}
-              className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition ${
-                setorAtivo === 'todos'
-                  ? 'bg-white text-gray-900 shadow-xs'
-                  : 'text-gray-500 hover:text-gray-800'
-              }`}
-            >
-              {t.allDepartments}
-            </button>
-            <button
-              onClick={() => setSetorAtivo('padaria')}
-              className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-bold transition ${
-                setorAtivo === 'padaria'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'text-gray-500 hover:text-gray-800'
-              }`}
-            >
-              <Flame className="h-3.5 w-3.5" />
-              {t.bakeryTab}
-            </button>
-            <button
-              onClick={() => setSetorAtivo('pastelaria')}
-              className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-bold transition ${
-                setorAtivo === 'pastelaria'
-                  ? 'bg-pink-600 text-white shadow-xs'
-                  : 'text-gray-500 hover:text-gray-800'
-              }`}
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              {t.pastryTab}
-            </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Toggle de Modo de Visualização */}
+            <div className="flex bg-stone-100 p-1 rounded-xl font-bold text-xs">
+              <button
+                type="button"
+                onClick={() => setModoVisualizacao('kanban')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition ${
+                  modoVisualizacao === 'kanban'
+                    ? 'bg-white text-gray-900 shadow-2xs'
+                    : 'text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                <Columns className="h-3.5 w-3.5 text-amber-600" />
+                Quadro Kanban
+              </button>
+              <button
+                type="button"
+                onClick={() => setModoVisualizacao('hierarquica')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition ${
+                  modoVisualizacao === 'hierarquica'
+                    ? 'bg-white text-gray-900 shadow-2xs'
+                    : 'text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                <ListFilter className="h-3.5 w-3.5 text-amber-600" />
+                Vista Hierárquica
+              </button>
+            </div>
+
+            {/* Abas de Setor: Padaria vs Pastelaria */}
+            <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl">
+              <button
+                onClick={() => setSetorAtivo('todos')}
+                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                  setorAtivo === 'todos'
+                    ? 'bg-white text-gray-900 shadow-xs'
+                    : 'text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                {t.allDepartments}
+              </button>
+              <button
+                onClick={() => setSetorAtivo('padaria')}
+                className={`flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                  setorAtivo === 'padaria'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                <Flame className="h-3 w-3" />
+                {t.bakeryTab}
+              </button>
+              <button
+                onClick={() => setSetorAtivo('pastelaria')}
+                className={`flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                  setorAtivo === 'pastelaria'
+                    ? 'bg-pink-600 text-white shadow-xs'
+                    : 'text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                <Sparkles className="h-3 w-3" />
+                {t.pastryTab}
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Grelha de Pedidos no KDS */}
-        {encomendasDaLoja.length === 0 ? (
-          <div className="rounded-2xl bg-white border border-gray-200 p-12 text-center">
-            <ChefHat className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-            <h3 className="text-base font-bold text-gray-800">{t.noProductionItems}</h3>
-            <p className="text-xs text-gray-500 mt-1">{t.noOrdersFound}</p>
+        {/* Barra de Filtro de Calendário */}
+        <div className="bg-white p-3.5 rounded-2xl border border-gray-200 shadow-2xs mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold text-gray-600 flex items-center gap-1.5 mr-1">
+              <Calendar className="h-4 w-4 text-amber-600" />
+              Período de Fabrico:
+            </span>
+            {[
+              { id: 'hoje', label: 'Hoje' },
+              { id: 'amanha', label: 'Amanhã' },
+              { id: 'todos', label: 'Todas as Datas' },
+              { id: 'personalizado', label: 'Calendário Específico' },
+            ].map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setFiltroPeriodo(p.id as any)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                  filtroPeriodo === p.id
+                    ? 'bg-amber-600 text-white shadow-2xs'
+                    : 'bg-stone-100 text-gray-700 hover:bg-stone-200'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {encomendasDaLoja.map((enc) => {
-              const itensFiltrados = enc.itens.filter(
-                (item) => setorAtivo === 'todos' || item.setor === setorAtivo
-              );
 
-              return (
-                <div
-                  key={enc.id}
-                  className="rounded-2xl bg-white border-2 border-stone-200 shadow-sm overflow-hidden flex flex-col justify-between"
-                >
-                  {/* Cabeçalho da Ficha */}
-                  <div className="bg-stone-800 text-white p-3.5 flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-black text-sm text-amber-400">{enc.codigo}</span>
-                        <span className="text-xs bg-stone-700 px-2 py-0.5 rounded-md font-medium text-stone-200">
-                          #{enc.numero_sequencial}
+          {filtroPeriodo === 'personalizado' && (
+            <div className="flex items-center gap-2 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200">
+              <label className="text-xs font-bold text-amber-950">Data:</label>
+              <input
+                type="date"
+                value={dataPersonalizada}
+                onChange={(e) => setDataPersonalizada(e.target.value)}
+                className="text-xs px-2 py-1 rounded bg-white border border-amber-300 font-medium text-gray-900"
+              />
+            </div>
+          )}
+
+          <div className="text-xs font-bold text-gray-500">
+            Total: <span className="text-amber-700 font-black">{encomendasFiltradas.length}</span> encomenda(s)
+          </div>
+        </div>
+
+        {/* ---------------- VISTA 1: QUADRO KANBAN (3 COLUNAS) ---------------- */}
+        {modoVisualizacao === 'kanban' && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* COLUNA 1: POR PREPARAR (Pendente) */}
+            <div className="flex flex-col rounded-3xl bg-stone-200/60 p-4 border border-stone-300 shadow-2xs">
+              <div className="flex items-center justify-between pb-3 border-b border-stone-300 mb-3">
+                <div className="flex items-center gap-2 font-black text-xs text-stone-800 uppercase tracking-wider">
+                  <span className="h-3 w-3 rounded-full bg-stone-400"></span>
+                  <span>1. Por Preparar</span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-stone-300 font-mono text-xs font-black text-stone-700">
+                  {kanbanPorPreparar.length}
+                </span>
+              </div>
+
+              <div className="space-y-3 flex-1 overflow-y-auto max-h-[75vh] pr-1">
+                {kanbanPorPreparar.length === 0 ? (
+                  <div className="text-center py-8 text-stone-400 text-xs italic">
+                    Sem encomendas pendentes de início.
+                  </div>
+                ) : (
+                  kanbanPorPreparar.map((enc) => (
+                    <div key={enc.id} className="bg-white p-3.5 rounded-2xl border border-stone-300 shadow-xs space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono font-black text-xs text-gray-900">{enc.codigo}</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-700">
+                          {enc.hora_agendamento}
                         </span>
                       </div>
-                      <p className="text-xs font-bold text-white mt-0.5">{enc.cliente.nome}</p>
-                    </div>
 
-                    <div className="text-right flex items-center gap-2">
-                      <div className="bg-stone-700 px-2.5 py-1 rounded-lg border border-stone-600 text-right">
-                        <div className="flex items-center gap-1 text-xs font-bold text-amber-300">
-                          <Clock className="h-3.5 w-3.5" />
-                          <span>{enc.hora_agendamento}</span>
-                        </div>
-                        <span className="text-[10px] text-stone-300 block">{enc.data_agendamento}</span>
+                      <p className="font-bold text-xs text-gray-800">{enc.cliente.nome}</p>
+
+                      <div className="bg-stone-50 p-2 rounded-xl border border-stone-100 space-y-1">
+                        {enc.itens.map((it) => (
+                          <div key={it.id} className="text-[11px] flex justify-between">
+                            <span className="font-semibold text-gray-700">{it.produto_nome}</span>
+                            <span className="font-mono font-bold text-amber-700">{it.quantidade}x</span>
+                          </div>
+                        ))}
                       </div>
 
-                      <button
-                        onClick={() => setEncomendaParaImprimir(enc)}
-                        className="p-1.5 rounded-lg bg-stone-700 hover:bg-stone-600 text-white transition"
-                        title="Imprimir talão de produção"
-                      >
-                        <Printer className="h-4 w-4" />
-                      </button>
+                      {temPermissaoEdicao && (
+                        <button
+                          type="button"
+                          onClick={() => moverEncomendaKanban(enc.id, 'em_producao')}
+                          className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs shadow-xs transition"
+                        >
+                          <span>Iniciar Preparo 👨‍🍳</span>
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* COLUNA 2: EM PREPARAÇÃO (Forno / Bancada) */}
+            <div className="flex flex-col rounded-3xl bg-amber-50/80 p-4 border border-amber-200 shadow-2xs">
+              <div className="flex items-center justify-between pb-3 border-b border-amber-200 mb-3">
+                <div className="flex items-center gap-2 font-black text-xs text-amber-900 uppercase tracking-wider">
+                  <span className="h-3 w-3 rounded-full bg-amber-500 animate-pulse"></span>
+                  <span>2. Em Preparação</span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-amber-200 font-mono text-xs font-black text-amber-800">
+                  {kanbanEmPreparacao.length}
+                </span>
+              </div>
+
+              <div className="space-y-3 flex-1 overflow-y-auto max-h-[75vh] pr-1">
+                {kanbanEmPreparacao.length === 0 ? (
+                  <div className="text-center py-8 text-amber-700/60 text-xs italic">
+                    Nenhuma encomenda atualmente em forno/preparo.
+                  </div>
+                ) : (
+                  kanbanEmPreparacao.map((enc) => (
+                    <div key={enc.id} className="bg-white p-3.5 rounded-2xl border border-amber-300 shadow-xs space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono font-black text-xs text-amber-900">{enc.codigo}</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                          {enc.hora_agendamento}
+                        </span>
+                      </div>
+
+                      <p className="font-bold text-xs text-gray-800">{enc.cliente.nome}</p>
+
+                      <div className="space-y-1.5">
+                        {enc.itens.map((it) => (
+                          <div
+                            key={it.id}
+                            className={`p-2 rounded-xl text-[11px] flex items-center justify-between border ${
+                              it.estado_producao === 'pronto'
+                                ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold'
+                                : 'bg-stone-50 border-stone-200 text-stone-800'
+                            }`}
+                          >
+                            <span>{it.quantidade}x {it.produto_nome}</span>
+                            {temPermissaoEdicao && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  atualizarEstadoItem(
+                                    enc.id,
+                                    it.id,
+                                    it.estado_producao === 'pronto' ? 'em_preparo' : 'pronto'
+                                  )
+                                }
+                                className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition ${
+                                  it.estado_producao === 'pronto'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'bg-stone-200 hover:bg-stone-300 text-stone-700'
+                                }`}
+                              >
+                                {it.estado_producao === 'pronto' ? '✓ Pronto' : 'Marcar'}
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {temPermissaoEdicao && (
+                        <div className="flex gap-1.5 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => moverEncomendaKanban(enc.id, 'pendente')}
+                            className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600"
+                            title="Recuar para Por Preparar"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moverEncomendaKanban(enc.id, 'pronto_loja')}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs transition"
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            <span>Marcar Tudo Pronto</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* COLUNA 3: PRONTO A SER LEVANTADO / EXPEDIDO */}
+            <div className="flex flex-col rounded-3xl bg-emerald-50/80 p-4 border border-emerald-200 shadow-2xs">
+              <div className="flex items-center justify-between pb-3 border-b border-emerald-200 mb-3">
+                <div className="flex items-center gap-2 font-black text-xs text-emerald-900 uppercase tracking-wider">
+                  <span className="h-3 w-3 rounded-full bg-emerald-600"></span>
+                  <span>3. Pronto / Expedição</span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-200 font-mono text-xs font-black text-emerald-800">
+                  {kanbanPronto.length}
+                </span>
+              </div>
+
+              <div className="space-y-3 flex-1 overflow-y-auto max-h-[75vh] pr-1">
+                {kanbanPronto.length === 0 ? (
+                  <div className="text-center py-8 text-emerald-700/60 text-xs italic">
+                    Nenhuma encomenda na zona de expedição ou pronta.
+                  </div>
+                ) : (
+                  kanbanPronto.map((enc) => (
+                    <div key={enc.id} className="bg-white p-3.5 rounded-2xl border border-emerald-300 shadow-xs space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono font-black text-xs text-emerald-900">{enc.codigo}</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 uppercase">
+                          {enc.tipo === 'entrega_domicilio' ? 'Carrinha' : 'Balcão'}
+                        </span>
+                      </div>
+
+                      <p className="font-bold text-xs text-gray-800">{enc.cliente.nome}</p>
+
+                      <div className="bg-emerald-50/60 p-2 rounded-xl border border-emerald-100 text-[11px] space-y-0.5">
+                        <span className="font-bold text-emerald-900 block">
+                          {enc.itens.reduce((acc, i) => acc + i.quantidade, 0)} unidades concluídas
+                        </span>
+                        <span className="text-gray-500">Agendado: {enc.hora_agendamento}</span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => setEncomendaParaImprimir(enc)}
+                          className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-xs"
+                        >
+                          <Printer className="h-3.5 w-3.5" />
+                          <span>Talão</span>
+                        </button>
+                        {temPermissaoEdicao && (
+                          <button
+                            type="button"
+                            onClick={() => moverEncomendaKanban(enc.id, 'em_producao')}
+                            className="p-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-600"
+                            title="Recuar para Em Preparação"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ---------------- VISTA 2: HIERÁRQUICA (TIPO -> LOJA -> ASCENDENTE HORA) ---------------- */}
+        {modoVisualizacao === 'hierarquica' && (
+          <div className="space-y-8">
+            {(['levantamento_loja', 'entrega_domicilio'] as TipoEntrega[]).map((tipo) => {
+              const encomendasDoTipo = encomendasFiltradas.filter((e) => e.tipo === tipo);
+              if (encomendasDoTipo.length === 0) return null;
+
+              // Agrupar por Loja
+              const lojasMap = new Map<string, Encomenda[]>();
+              for (const enc of encomendasDoTipo) {
+                const lNome = enc.loja_nome || 'Padaria da Vila (Arouca)';
+                if (!lojasMap.has(lNome)) {
+                  lojasMap.set(lNome, []);
+                }
+                lojasMap.get(lNome)!.push(enc);
+              }
+
+              return (
+                <div key={tipo} className="space-y-4">
+                  {/* Cabeçalho do Formato de Entrega */}
+                  <div className={`p-4 rounded-2xl flex items-center justify-between border ${
+                    tipo === 'levantamento_loja'
+                      ? 'bg-emerald-50/90 border-emerald-200 text-emerald-950'
+                      : 'bg-blue-50/90 border-blue-200 text-blue-950'
+                  }`}>
+                    <div className="flex items-center gap-2.5 font-black text-sm">
+                      {tipo === 'levantamento_loja' ? (
+                        <>
+                          <Store className="h-5 w-5 text-emerald-700" />
+                          <span>PRODUÇÃO PARA LEVANTAMENTO EM LOJA</span>
+                        </>
+                      ) : (
+                        <>
+                          <Truck className="h-5 w-5 text-blue-700" />
+                          <span>PRODUÇÃO PARA ENTREGA AO DOMICÍLIO (FROTA)</span>
+                        </>
+                      )}
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-white font-bold border border-current opacity-80">
+                        {encomendasDoTipo.length} encomenda(s)
+                      </span>
                     </div>
                   </div>
 
-                  {/* Lista de Artigos a Fabricar */}
-                  <div className="p-4 space-y-3 flex-1 bg-stone-50/50">
-                    {itensFiltrados.map((item) => (
-                      <div
-                        key={item.id}
-                        className={`p-3 rounded-xl border transition ${
-                          item.estado_producao === 'pronto'
-                            ? 'bg-emerald-50 border-emerald-300 text-emerald-950 opacity-80'
-                            : item.estado_producao === 'em_preparo'
-                            ? 'bg-amber-50 border-amber-300 text-amber-950 shadow-xs'
-                            : 'bg-white border-stone-200 text-stone-900'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <span className="text-xs font-black text-stone-500 uppercase block mb-0.5">
-                              {item.setor === 'padaria' ? `🥖 ${t.bakeryTab}` : `🎂 ${t.pastryTab}`}
-                            </span>
-                            <h4 className="text-sm font-black text-gray-900 leading-tight">
-                              <span className="text-amber-700 mr-1.5">{item.quantidade}x</span>
-                              {item.produto_nome}
-                            </h4>
-                          </div>
+                  {/* Agrupamento por Loja */}
+                  {Array.from(lojasMap.entries()).map(([nomeLoja, pedidosLoja]) => {
+                    // Ordenação estrita crescente por data e hora de agendamento
+                    const pedidosOrdenados = [...pedidosLoja].sort((a, b) => {
+                      const dtA = `${a.data_agendamento} ${a.hora_agendamento}`;
+                      const dtB = `${b.data_agendamento} ${b.hora_agendamento}`;
+                      return dtA.localeCompare(dtB);
+                    });
 
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border ${
-                            item.estado_producao === 'pronto'
-                              ? 'bg-emerald-200 text-emerald-900 border-emerald-400'
-                              : item.estado_producao === 'em_preparo'
-                              ? 'bg-amber-200 text-amber-900 border-amber-400'
-                              : 'bg-stone-200 text-stone-700 border-stone-300'
-                          }`}>
-                            {item.estado_producao === 'pronto' ? t.readyPrep : item.estado_producao === 'em_preparo' ? t.inPrep : t.pendingPrep}
+                    return (
+                      <div key={nomeLoja} className="pl-2 sm:pl-4 space-y-3">
+                        <div className="flex items-center gap-2 text-xs font-bold text-gray-700 border-b border-gray-200 pb-1.5">
+                          <span className="h-2 w-2 rounded-full bg-amber-600"></span>
+                          <span>{nomeLoja}</span>
+                          <span className="text-[11px] text-gray-500 font-normal">
+                            ({pedidosOrdenados.length} pedidos • ordenados por hora crescente de entrega)
                           </span>
                         </div>
 
-                        {/* Notas de Personalização */}
-                        {item.notas_personalizacao && (
-                          <div className="mt-2 p-2 rounded-lg bg-red-50 border border-red-200 text-xs text-red-950 flex items-start gap-1.5">
-                            <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
-                            <div>
-                              <span className="font-black text-[11px] uppercase block tracking-wider text-red-800">
-                                {t.customizationNotes}
-                              </span>
-                              <p className="font-bold">{item.notas_personalizacao}</p>
-                            </div>
-                          </div>
-                        )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                          {pedidosOrdenados.map((enc) => (
+                            <div
+                              key={enc.id}
+                              className="rounded-2xl bg-white border-2 border-stone-200 shadow-sm overflow-hidden flex flex-col justify-between"
+                            >
+                              <div className="bg-stone-800 text-white p-3.5 flex items-center justify-between">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-mono font-black text-sm text-amber-400">{enc.codigo}</span>
+                                    <span className="text-xs bg-stone-700 px-2 py-0.5 rounded-md font-medium text-stone-200">
+                                      #{enc.numero_sequencial}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs font-bold text-white mt-0.5">{enc.cliente.nome}</p>
+                                </div>
 
-                        {/* Botões Táteis de Estado do Item */}
-                        <div className="mt-3 flex items-center justify-end gap-2 pt-2 border-t border-stone-200/60">
-                          {temPermissaoEdicao ? (
-                            <>
-                              {item.estado_producao === 'pendente' && (
-                                <button
-                                  onClick={() => atualizarEstadoItem(enc.id, item.id, 'em_preparo')}
-                                  className="rounded-lg bg-amber-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-amber-700 transition cursor-pointer"
-                                >
-                                  Iniciar Preparo
-                                </button>
-                              )}
-                              {item.estado_producao === 'em_preparo' && (
-                                <button
-                                  onClick={() => atualizarEstadoItem(enc.id, item.id, 'pronto')}
-                                  className="rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition flex items-center gap-1 cursor-pointer"
-                                >
-                                  <CheckCircle2 className="h-3.5 w-3.5" /> Marcar Pronto
-                                </button>
-                              )}
-                              {item.estado_producao === 'pronto' && (
-                                <div className="flex items-center gap-2">
-                                  <span className="flex items-center gap-1 text-xs font-bold text-emerald-700">
-                                    <CheckCircle2 className="h-4 w-4" /> Pronto na Bancada
-                                  </span>
+                                <div className="text-right flex items-center gap-2">
+                                  <div className="bg-stone-700 px-2.5 py-1 rounded-lg border border-stone-600 text-right">
+                                    <div className="flex items-center gap-1 text-xs font-bold text-amber-300">
+                                      <Clock className="h-3.5 w-3.5" />
+                                      <span>{enc.hora_agendamento}</span>
+                                    </div>
+                                    <span className="text-[10px] text-stone-300 block">{enc.data_agendamento}</span>
+                                  </div>
+
                                   <button
-                                    onClick={() => atualizarEstadoItem(enc.id, item.id, 'pendente')}
-                                    className="text-[10px] text-gray-400 hover:text-gray-600 underline cursor-pointer"
-                                    title="Reverter estado para pendente"
+                                    onClick={() => setEncomendaParaImprimir(enc)}
+                                    className="p-1.5 rounded-lg bg-stone-700 hover:bg-stone-600 text-white transition"
+                                    title="Imprimir talão de produção"
                                   >
-                                    (reverter)
+                                    <Printer className="h-4 w-4" />
                                   </button>
                                 </div>
-                              )}
-                            </>
-                          ) : (
-                            <span className="text-xs font-bold text-stone-500">
-                              {item.estado_producao === 'pronto' ? '✓ Pronto na Bancada' : item.estado_producao === 'em_preparo' ? 'Em Preparo' : 'Pendente'}
-                            </span>
-                          )}
+                              </div>
+
+                              <div className="p-4 space-y-3 flex-1 bg-stone-50/50">
+                                {enc.itens.map((item) => (
+                                  <div
+                                    key={item.id}
+                                    className={`p-3 rounded-xl border transition ${
+                                      item.estado_producao === 'pronto'
+                                        ? 'bg-emerald-50 border-emerald-300 text-emerald-950 opacity-80'
+                                        : item.estado_producao === 'em_preparo'
+                                        ? 'bg-amber-50 border-amber-300 text-amber-950 shadow-xs'
+                                        : 'bg-white border-stone-200 text-stone-900'
+                                    }`}
+                                  >
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div>
+                                        <span className="text-xs font-black text-stone-500 uppercase block mb-0.5">
+                                          {item.setor === 'padaria' ? `🥖 ${t.bakeryTab}` : `🎂 ${t.pastryTab}`}
+                                        </span>
+                                        <h4 className="text-sm font-black text-gray-900 leading-tight">
+                                          <span className="text-amber-700 mr-1.5">{item.quantidade}x</span>
+                                          {item.produto_nome}
+                                        </h4>
+                                      </div>
+
+                                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border ${
+                                        item.estado_producao === 'pronto'
+                                          ? 'bg-emerald-200 text-emerald-900 border-emerald-400'
+                                          : item.estado_producao === 'em_preparo'
+                                          ? 'bg-amber-200 text-amber-900 border-amber-400'
+                                          : 'bg-stone-200 text-stone-700 border-stone-300'
+                                      }`}>
+                                        {item.estado_producao === 'pronto' ? t.readyPrep : item.estado_producao === 'em_preparo' ? t.inPrep : t.pendingPrep}
+                                      </span>
+                                    </div>
+
+                                    {item.notas_personalizacao && (
+                                      <div className="mt-2 p-2 rounded-lg bg-red-50 border border-red-200 text-xs text-red-950 flex items-start gap-1.5">
+                                        <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
+                                        <div>
+                                          <span className="font-black text-[11px] uppercase block tracking-wider text-red-800">
+                                            {t.customizationNotes}
+                                          </span>
+                                          <p className="font-bold">{item.notas_personalizacao}</p>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    <div className="mt-3 flex items-center justify-end gap-2 pt-2 border-t border-stone-200/60">
+                                      {temPermissaoEdicao ? (
+                                        <>
+                                          {item.estado_producao === 'pendente' && (
+                                            <button
+                                              onClick={() => atualizarEstadoItem(enc.id, item.id, 'em_preparo')}
+                                              className="rounded-lg bg-amber-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-amber-700 transition cursor-pointer"
+                                            >
+                                              Iniciar Preparo
+                                            </button>
+                                          )}
+                                          {item.estado_producao === 'em_preparo' && (
+                                            <button
+                                              onClick={() => atualizarEstadoItem(enc.id, item.id, 'pronto')}
+                                              className="rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition flex items-center gap-1 cursor-pointer"
+                                            >
+                                              <CheckCircle2 className="h-3.5 w-3.5" /> Marcar Pronto
+                                            </button>
+                                          )}
+                                          {item.estado_producao === 'pronto' && (
+                                            <div className="flex items-center gap-2">
+                                              <span className="flex items-center gap-1 text-xs font-bold text-emerald-700">
+                                                <CheckCircle2 className="h-4 w-4" /> Pronto na Bancada
+                                              </span>
+                                              <button
+                                                onClick={() => atualizarEstadoItem(enc.id, item.id, 'pendente')}
+                                                className="text-[10px] text-gray-400 hover:text-gray-600 underline cursor-pointer"
+                                                title="Reverter estado para pendente"
+                                              >
+                                                (reverter)
+                                              </button>
+                                            </div>
+                                          )}
+                                        </>
+                                      ) : (
+                                        <span className="text-xs font-bold text-stone-500">
+                                          {item.estado_producao === 'pronto' ? '✓ Pronto na Bancada' : item.estado_producao === 'em_preparo' ? 'Em Preparo' : 'Pendente'}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+
+                              <div className="p-3 bg-stone-100 border-t border-stone-200 flex items-center justify-between text-xs text-stone-600">
+                                <span className="font-semibold">
+                                  Destino: {enc.tipo === 'entrega_domicilio' ? 'Carrinha de Entrega' : 'Balcão de Loja'}
+                                </span>
+                                <span className="font-bold text-stone-800">
+                                  {enc.itens.filter((i) => i.estado_producao === 'pronto').length} / {enc.itens.length} Concluídos
+                                </span>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    ))}
-                  </div>
-
-                  {/* Rodapé do Cartão */}
-                  <div className="p-3 bg-stone-100 border-t border-stone-200 flex items-center justify-between text-xs text-stone-600">
-                    <span className="font-semibold">
-                      {t.destination}: {enc.tipo === 'entrega_domicilio' ? t.destinationVan : t.destinationStore}
-                    </span>
-                    <span className="font-bold text-stone-800">
-                      {enc.itens.filter((i) => i.estado_producao === 'pronto').length} / {enc.itens.length} {t.readyPrep}
-                    </span>
-                  </div>
+                    );
+                  })}
                 </div>
               );
             })}

@@ -42,6 +42,38 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v1.6.0] - 2026-09-16
+### 🖨️ Impressão Térmica de Talão sem Páginas Fantasma
+- **Zero Páginas em Branco**: Resolução definitiva do bug de 4 páginas na pré-visualização de impressão (3 páginas em branco e recibo na página 4). O componente `ThermalReceipt` passa a ser renderizado via `createPortal` diretamente em `#receipt-print-root` e a regra CSS `@media print` oculta todos os nós irmãos (`body > *:not(#receipt-print-root)`), garantindo uma impressão de exatamente 1 página contínua em rolo de 80mm.
+
+### 🗑️ Gestão de Clientes e Encomendas
+- **Eliminação Permanente de Clientes**: Possibilidade de apagar qualquer cliente no modal de edição de clientes.
+- **Edição e Eliminação no Histórico de Encomendas**: Modal de edição completa da encomenda e cancelamento/eliminação definitiva na base de dados Supabase.
+- **Agrupamento Hierárquico no Histórico**: Organização estruturada em Árvore: Formato de Entrega (Levantamento em Loja vs Entrega ao Domicílio) ➔ Loja / Destino ➔ ordenação cronológica crescente por data e hora. Inclui filtro de calendário por período.
+
+### 🥖 Produção & Fabrico Reestruturados
+- **Remoção de Referências a KDS**: Substituição por terminologia tradicional de confeção e fabrico.
+- **Visualização Kanban do Dia**: Quadro de 3 colunas (*Por Preparar*, *Em Preparação*, *Pronto / Expedição*) com botões táteis para avançar rapidamente o estado dos pedidos do dia.
+- **Visualização Hierárquica por Loja e Horário**: Agrupamento por Formato e Loja com seletor de período por calendário.
+
+### 🚚 Logística de Entregas & Rota Inteligente
+- **Pool de Encomendas por Atribuir**: Encomendas do dia sem carrinha alocada ficam reunidas num pool operacional visível e expansível.
+- **Drag & Drop Nativo (HTML5)**: Atribuição de encomendas arrastando entre o Pool e as Carrinhas (e vice-versa), com botões rápidos de 1 clique para dispositivos móveis e tablets.
+- **Otimizador Automático de Rota**: Botão para reordenar instantaneamente as paragens pela hora combinada e menor percurso.
+- **Reordenação Manual pelo Motorista**: O motorista pode arrastar as paragens para redefinir a sequência da rota se necessário.
+- **Registo de Timestamp Real de Entrega**: Ao concluir uma entrega, é registada a hora exata da paragem (`hora_entrega_real`).
+
+### ⚙️ Painel de Gestão & Métricas Avançadas
+- **Correção dos Botões de Acesso**: Resolvido o erro de precedência de operadores ternários que deixava os seletores de permissão bloqueados em 'Edição'.
+- **Predefinições de Padeiro/Pasteleiro**: Ajuste automático para Produção = Edição e restantes painéis = Sem Acesso.
+- **Eliminação de Colaboradores, Lojas e Carrinhas**: Botões dedicados com confirmação de segurança nos respetivos modais.
+- **Inserção de Registos Avulsos**: Novo assistente com abas (*Cliente*, *Produto*, *Loja*, *Carrinha*) para criar entidades avulsas na base de dados sem necessidade de ficheiro Excel.
+- **Métricas & KPIs Operacionais**:
+  - Cartão de **Taxa On-Time (%)**: Comparação entre hora planeada e hora real (tolerância de +10 min).
+  - Ranking de **Top Clientes** com mais encomendas.
+  - Ranking de **Top Artigos** com maiores volumes pedidos.
+  - Tabela detalhada de **Detalhe Consolidado de Planeamento vs Real** com seletor de data por calendário.
+
 ## [v1.5.0] - 2026-09-14
 ### 🎨 Identidade Visual & Cabeçalho Desimpedido
 - **Branding Atualizado**: Substituição do logótipo e imagem de fundo do login pelos novos ativos de alta qualidade da Inbox do Vault.
