@@ -230,7 +230,8 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
           </div>
         </div>
       </div>
-    </div>,
-    document.body
-  );
+    </div>
+  </div>,
+  document.body
+);
 };

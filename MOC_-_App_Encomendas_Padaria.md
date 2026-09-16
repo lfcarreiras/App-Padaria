@@ -58,7 +58,8 @@ Consulte o histórico detalhado em `[[CHANGELOG]]`.
 
 | Versão | Tag Git | Commit | Data | Marco Funcional Principal |
 | :--- | :--- | :--- | :--- | :--- |
-| **v1.6.0** | `v1.6.0` | `HEAD` | 2026-09-16 | Talão sem páginas em branco, drag & drop de entregas, otimizador de rota, eliminação de clientes/encomendas, Kanban produção e métricas On-Time |
+| **v1.6.1** | `v1.6.1` | `HEAD` | 2026-09-16 | Correção sintaxe JSX no modal de impressão térmica (ThermalReceipt) para compilação Vercel |
+| **v1.6.0** | `v1.6.0` | `81fd67d` | 2026-09-16 | Talão sem páginas em branco, drag & drop de entregas, otimizador de rota, eliminação de clientes/encomendas, Kanban produção e métricas On-Time |
 | **v1.5.0** | `v1.5.0` | `5ff5f99` | 2026-09-14 | Novo branding, header limpo sem scroll, Excel (.xlsx/.xls), 98 artigos de Arouca e botões KDS |
 | **v1.4.0** | `v1.4.0` | `7388889` | 2026-09-14 | Personalização Padaria da Vila (Arouca), remoção de preços, WhatsApp e rotas GPS |
 | **v1.3.1** | `v1.3.1` | `9d6f825` | 2026-09-13 | Remoção dos atalhos de teste no login e hardening para produção limpa |

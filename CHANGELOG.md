@@ -42,6 +42,10 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v1.6.1] - 2026-09-16
+### 🐛 Correção no Build Vercel & Validação JSX
+- **Sintaxe JSX em `ThermalReceipt.tsx`**: Fechamento do elemento contentor `<div id="receipt-print-root">` no modal de impressão térmica antes do encerramento com `createPortal(..., document.body)`. Elimina o erro do compilador SWC na Vercel (`Unexpected token div. Expected jsx identifier`) e valida a compilação completa da release.
+
 ## [v1.6.0] - 2026-09-16
 ### 🖨️ Impressão Térmica de Talão sem Páginas Fantasma
 - **Zero Páginas em Branco**: Resolução definitiva do bug de 4 páginas na pré-visualização de impressão (3 páginas em branco e recibo na página 4). O componente `ThermalReceipt` passa a ser renderizado via `createPortal` diretamente em `#receipt-print-root` e a regra CSS `@media print` oculta todos os nós irmãos (`body > *:not(#receipt-print-root)`), garantindo uma impressão de exatamente 1 página contínua em rolo de 80mm.
