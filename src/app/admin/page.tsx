@@ -20,6 +20,8 @@ import {
   eliminarPerfilAcessoDb,
   salvarClienteDb,
   salvarProdutoDb,
+  eliminarProdutoDb,
+  formatarNomeEntidade,
   upsertClientesEmLote,
   upsertProdutosEmLote
 } from '../../lib/encomendasService';
@@ -38,6 +40,8 @@ import {
   Truck, 
   FileSpreadsheet, 
   Printer, 
+  Search,
+  ArrowUpDown, 
   Users, 
   Download, 
   Upload, 
@@ -92,7 +96,7 @@ export default function AdminPage() {
 
   // Inserção de Registo Avulso na BD
   const [modalRegistoAvulsoAberto, setModalRegistoAvulsoAberto] = useState<boolean>(false);
-  const [subAbaRegistoAvulso, setSubAbaRegistoAvulso] = useState<'cliente' | 'produto' | 'loja' | 'carrinha'>('cliente');
+  const [subAbaRegistoAvulso, setSubAbaRegistoAvulso] = useState<'cliente' | 'produto'>('cliente');
   const [novoCliente, setNovoCliente] = useState<{ nome: string; telefone: string; morada: string; codigo_postal: string; notas_entrega: string }>({
     nome: '', telefone: '', morada: '', codigo_postal: '', notas_entrega: ''
   });
@@ -100,8 +104,29 @@ export default function AdminPage() {
     nome: '', categoria: 'padaria', unidade: 'unidade'
   });
 
-  // Filtro de Data para a Tabela Consolidada de Planeamento vs Real
+  // Tabela de Produtos Interativa (Réplica do Supabase)
+  const [produtoEmEdicaoModal, setProdutoEmEdicaoModal] = useState<Partial<Produto> | null>(null);
+  const [sortProdutos, setSortProdutos] = useState<{ col: 'nome' | 'categoria' | 'unidade' | 'ativo'; dir: 'asc' | 'desc' }>({ col: 'nome', dir: 'asc' });
+  const [filtroProdutos, setFiltroProdutos] = useState({
+    busca: '',
+    categoria: 'todas',
+    unidade: 'todas',
+    ativo: 'todos',
+  });
+
+  // Filtros e Ordenação para a Tabela Consolidada de Planeamento vs Real
   const [filtroDataConsolidada, setFiltroDataConsolidada] = useState<string>('');
+  const [sortConsolidada, setSortConsolidada] = useState<{ col: string; dir: 'asc' | 'desc' }>({ col: 'data_agendamento', dir: 'desc' });
+  const [filtroConsolidada, setFiltroConsolidada] = useState({
+    codigo: '',
+    cliente: '',
+    formato: 'todos',
+    data: '',
+    horaPlaneada: '',
+    horaReal: '',
+    pontualidade: 'todos',
+    estado: 'todos'
+  });
 
   // Importação Massiva Excel/CSV
   const [tabelaImportacao, setTabelaImportacao] = useState<'clientes' | 'produtos'>('clientes');
@@ -251,18 +276,166 @@ export default function AdminPage() {
     return Object.values(contagem).sort((a, b) => b.quantidade - a.quantidade).slice(0, 5);
   }, [encomendasFiltradas]);
 
-  // Encomendas para a Tabela de Detalhe Consolidado de Planeamento vs Real
+  // Ações de Ordenação da Tabela Consolidada
+  const handleToggleSortConsolidada = (col: string) => {
+    setSortConsolidada(prev => ({
+      col,
+      dir: prev.col === col && prev.dir === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  // Encomendas para a Tabela de Detalhe Consolidado de Planeamento vs Real (com filtros e ordenação)
   const encomendasTabelaConsolidada = useMemo(() => {
-    let base = [...encomendasFiltradas];
+    let base = [...encomendas];
+
     if (filtroDataConsolidada) {
       base = base.filter((e) => e.data_agendamento === filtroDataConsolidada);
     }
-    return base.sort((a, b) => {
-      const dataCmp = a.data_agendamento.localeCompare(b.data_agendamento);
-      if (dataCmp !== 0) return dataCmp;
-      return a.hora_agendamento.localeCompare(b.hora_agendamento);
+    if (filtroConsolidada.codigo.trim()) {
+      const q = filtroConsolidada.codigo.toLowerCase().trim();
+      base = base.filter(e => e.codigo.toLowerCase().includes(q));
+    }
+    if (filtroConsolidada.cliente.trim()) {
+      const q = filtroConsolidada.cliente.toLowerCase().trim();
+      base = base.filter(e => e.cliente.nome.toLowerCase().includes(q) || e.cliente.telefone.includes(q));
+    }
+    if (filtroConsolidada.formato !== 'todos') {
+      base = base.filter(e => e.tipo === filtroConsolidada.formato);
+    }
+    if (filtroConsolidada.data.trim()) {
+      base = base.filter(e => e.data_agendamento.includes(filtroConsolidada.data.trim()));
+    }
+    if (filtroConsolidada.horaPlaneada.trim()) {
+      base = base.filter(e => e.hora_agendamento.includes(filtroConsolidada.horaPlaneada.trim()));
+    }
+    if (filtroConsolidada.horaReal.trim()) {
+      base = base.filter(e => (e.hora_entrega_real || '').includes(filtroConsolidada.horaReal.trim()));
+    }
+    if (filtroConsolidada.pontualidade !== 'todos') {
+      base = base.filter(e => {
+        if (e.estado !== 'entregue') return filtroConsolidada.pontualidade === 'pendente';
+        const d = e.hora_entrega_real ? calcularDesvioMinutos(e.hora_agendamento, e.hora_entrega_real) : null;
+        if (filtroConsolidada.pontualidade === 'no_prazo') return d !== null && d <= 10;
+        if (filtroConsolidada.pontualidade === 'atraso') return d !== null && d > 10;
+        return true;
+      });
+    }
+    if (filtroConsolidada.estado !== 'todos') {
+      base = base.filter(e => e.estado === filtroConsolidada.estado);
+    }
+
+    base.sort((a, b) => {
+      let res = 0;
+      switch (sortConsolidada.col) {
+        case 'codigo':
+          res = a.codigo.localeCompare(b.codigo);
+          break;
+        case 'cliente':
+          res = a.cliente.nome.localeCompare(b.cliente.nome);
+          break;
+        case 'formato':
+          res = a.tipo.localeCompare(b.tipo);
+          break;
+        case 'data_agendamento':
+          res = a.data_agendamento.localeCompare(b.data_agendamento);
+          if (res === 0) res = a.hora_agendamento.localeCompare(b.hora_agendamento);
+          break;
+        case 'hora_agendamento':
+          res = a.hora_agendamento.localeCompare(b.hora_agendamento);
+          break;
+        case 'hora_entrega_real':
+          res = (a.hora_entrega_real || '').localeCompare(b.hora_entrega_real || '');
+          break;
+        case 'pontualidade': {
+          const dA = a.hora_entrega_real ? calcularDesvioMinutos(a.hora_agendamento, a.hora_entrega_real) : 999;
+          const dB = b.hora_entrega_real ? calcularDesvioMinutos(b.hora_agendamento, b.hora_entrega_real) : 999;
+          res = (dA ?? 999) - (dB ?? 999);
+          break;
+        }
+        case 'estado':
+          res = a.estado.localeCompare(b.estado);
+          break;
+        default:
+          res = a.data_agendamento.localeCompare(b.data_agendamento);
+      }
+      return sortConsolidada.dir === 'asc' ? res : -res;
     });
-  }, [encomendasFiltradas, filtroDataConsolidada]);
+
+    return base;
+  }, [encomendas, filtroDataConsolidada, filtroConsolidada, sortConsolidada]);
+
+  // Ações da Tabela Interativa de Produtos
+  const handleToggleSortProdutos = (col: 'nome' | 'categoria' | 'unidade' | 'ativo') => {
+    setSortProdutos(prev => ({
+      col,
+      dir: prev.col === col && prev.dir === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  const produtosFiltradosTabela = useMemo(() => {
+    let list = [...produtos];
+
+    if (filtroProdutos.busca.trim()) {
+      const q = filtroProdutos.busca.toLowerCase().trim();
+      list = list.filter(p => p.nome.toLowerCase().includes(q) || p.id.toLowerCase().includes(q));
+    }
+    if (filtroProdutos.categoria !== 'todas') {
+      list = list.filter(p => p.categoria === filtroProdutos.categoria);
+    }
+    if (filtroProdutos.unidade !== 'todas') {
+      list = list.filter(p => p.unidade === filtroProdutos.unidade);
+    }
+    if (filtroProdutos.ativo !== 'todos') {
+      const isAtivo = filtroProdutos.ativo === 'ativo';
+      list = list.filter(p => p.ativo === isAtivo);
+    }
+
+    list.sort((a, b) => {
+      let res = 0;
+      if (sortProdutos.col === 'nome') {
+        res = a.nome.localeCompare(b.nome);
+      } else if (sortProdutos.col === 'categoria') {
+        res = a.categoria.localeCompare(b.categoria);
+      } else if (sortProdutos.col === 'unidade') {
+        res = (a.unidade || '').localeCompare(b.unidade || '');
+      } else if (sortProdutos.col === 'ativo') {
+        res = (a.ativo ? 1 : 0) - (b.ativo ? 1 : 0);
+      }
+      return sortProdutos.dir === 'asc' ? res : -res;
+    });
+
+    return list;
+  }, [produtos, filtroProdutos, sortProdutos]);
+
+  const handleSalvarEdicaoProdutoModal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!produtoEmEdicaoModal || !produtoEmEdicaoModal.nome?.trim()) return;
+    const salvo = await salvarProdutoDb(produtoEmEdicaoModal as any);
+    if (salvo) {
+      const prods = await carregarProdutosSupabase();
+      setProdutos(prods);
+      setProdutoEmEdicaoModal(null);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('app_produtos_atualizados'));
+      }
+      alert('Artigo atualizado com sucesso na Base de Dados!');
+    }
+  };
+
+  const handleEliminarProduto = async (prodId: string, prodNome: string) => {
+    if (!window.confirm(`Tem a certeza que deseja eliminar o artigo "${prodNome}" permanentemente da Base de Dados?`)) return;
+    const ok = await eliminarProdutoDb(prodId);
+    if (ok) {
+      const prods = await carregarProdutosSupabase();
+      setProdutos(prods);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('app_produtos_atualizados'));
+      }
+      alert('Artigo eliminado com sucesso!');
+    } else {
+      alert('Não foi possível eliminar o artigo.');
+    }
+  };
 
   // Ações de Talão
   const handleSalvarConfigTalao = (e: React.FormEvent) => {
@@ -353,6 +526,9 @@ export default function AdminPage() {
       setProdutos(prods);
       setNovoProduto({ nome: '', categoria: 'padaria', unidade: 'unidade' });
       setModalRegistoAvulsoAberto(false);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('app_produtos_atualizados'));
+      }
       alert('Produto criado com sucesso na Base de Dados!');
     }
   };
@@ -480,8 +656,8 @@ export default function AdminPage() {
   };
 
   const exportarProdutos = () => {
-    exportarExcel('produtos_padaria', 'Produtos', ['Nome', 'Categoria', 'Preco', 'Unidade', 'Ativo'], produtos.map((p) => [
-      p.nome, p.categoria, p.preco, p.unidade, p.ativo ? 'SIM' : 'NAO'
+    exportarExcel('produtos_padaria', 'Produtos', ['Nome', 'Categoria', 'Unidade', 'Ativo'], produtos.map((p) => [
+      p.nome, p.categoria, p.unidade, p.ativo ? 'SIM' : 'NAO'
     ]));
   };
 
@@ -979,15 +1155,154 @@ export default function AdminPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-gray-200 bg-gray-50 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-                      <th className="py-2.5 px-3">Código</th>
-                      <th className="py-2.5 px-3">Cliente</th>
-                      <th className="py-2.5 px-3">Formato / Destino</th>
-                      <th className="py-2.5 px-3">Data</th>
-                      <th className="py-2.5 px-3">Hora Planeada</th>
-                      <th className="py-2.5 px-3">Hora Real</th>
-                      <th className="py-2.5 px-3">Pontualidade / Desvio</th>
-                      <th className="py-2.5 px-3">Estado</th>
+                    <tr className="border-b border-gray-200 bg-gray-50 text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">
+                      <th onClick={() => handleToggleSortConsolidada('codigo')} className="py-2.5 px-3 cursor-pointer hover:bg-gray-100 transition">
+                        <div className="flex items-center gap-1">
+                          <span>Código</span>
+                          <ArrowUpDown className="h-3 w-3 text-gray-400" />
+                        </div>
+                      </th>
+                      <th onClick={() => handleToggleSortConsolidada('cliente')} className="py-2.5 px-3 cursor-pointer hover:bg-gray-100 transition">
+                        <div className="flex items-center gap-1">
+                          <span>Cliente</span>
+                          <ArrowUpDown className="h-3 w-3 text-gray-400" />
+                        </div>
+                      </th>
+                      <th onClick={() => handleToggleSortConsolidada('formato')} className="py-2.5 px-3 cursor-pointer hover:bg-gray-100 transition">
+                        <div className="flex items-center gap-1">
+                          <span>Formato / Destino</span>
+                          <ArrowUpDown className="h-3 w-3 text-gray-400" />
+                        </div>
+                      </th>
+                      <th onClick={() => handleToggleSortConsolidada('data_agendamento')} className="py-2.5 px-3 cursor-pointer hover:bg-gray-100 transition">
+                        <div className="flex items-center gap-1">
+                          <span>Data</span>
+                          <ArrowUpDown className="h-3 w-3 text-gray-400" />
+                        </div>
+                      </th>
+                      <th onClick={() => handleToggleSortConsolidada('hora_agendamento')} className="py-2.5 px-3 cursor-pointer hover:bg-gray-100 transition">
+                        <div className="flex items-center gap-1">
+                          <span>Hora Planeada</span>
+                          <ArrowUpDown className="h-3 w-3 text-gray-400" />
+                        </div>
+                      </th>
+                      <th onClick={() => handleToggleSortConsolidada('hora_entrega_real')} className="py-2.5 px-3 cursor-pointer hover:bg-gray-100 transition">
+                        <div className="flex items-center gap-1">
+                          <span>Hora Real</span>
+                          <ArrowUpDown className="h-3 w-3 text-gray-400" />
+                        </div>
+                      </th>
+                      <th onClick={() => handleToggleSortConsolidada('pontualidade')} className="py-2.5 px-3 cursor-pointer hover:bg-gray-100 transition">
+                        <div className="flex items-center gap-1">
+                          <span>Pontualidade / Desvio</span>
+                          <ArrowUpDown className="h-3 w-3 text-gray-400" />
+                        </div>
+                      </th>
+                      <th onClick={() => handleToggleSortConsolidada('estado')} className="py-2.5 px-3 cursor-pointer hover:bg-gray-100 transition">
+                        <div className="flex items-center gap-1">
+                          <span>Estado</span>
+                          <ArrowUpDown className="h-3 w-3 text-gray-400" />
+                        </div>
+                      </th>
+                    </tr>
+                    {/* Linha de Filtros Em Cada Coluna */}
+                    <tr className="bg-stone-50 border-b border-gray-200 text-[10px]">
+                      <th className="p-1.5 font-normal">
+                        <input
+                          type="text"
+                          placeholder="Filtrar cód..."
+                          value={filtroConsolidada.codigo}
+                          onChange={(e) => setFiltroConsolidada(prev => ({ ...prev, codigo: e.target.value }))}
+                          className="w-full px-1.5 py-1 bg-white border border-gray-300 rounded font-normal text-xs"
+                        />
+                      </th>
+                      <th className="p-1.5 font-normal">
+                        <input
+                          type="text"
+                          placeholder="Nome/Tel..."
+                          value={filtroConsolidada.cliente}
+                          onChange={(e) => setFiltroConsolidada(prev => ({ ...prev, cliente: e.target.value }))}
+                          className="w-full px-1.5 py-1 bg-white border border-gray-300 rounded font-normal text-xs"
+                        />
+                      </th>
+                      <th className="p-1.5 font-normal">
+                        <select
+                          value={filtroConsolidada.formato}
+                          onChange={(e) => setFiltroConsolidada(prev => ({ ...prev, formato: e.target.value }))}
+                          className="w-full px-1 py-1 bg-white border border-gray-300 rounded font-normal text-xs"
+                        >
+                          <option value="todos">Todos</option>
+                          <option value="levantamento_loja">Loja</option>
+                          <option value="entrega_domicilio">Carrinha</option>
+                        </select>
+                      </th>
+                      <th className="p-1.5 font-normal">
+                        <input
+                          type="date"
+                          value={filtroConsolidada.data}
+                          onChange={(e) => setFiltroConsolidada(prev => ({ ...prev, data: e.target.value }))}
+                          className="w-full px-1 py-1 bg-white border border-gray-300 rounded font-normal text-xs"
+                        />
+                      </th>
+                      <th className="p-1.5 font-normal">
+                        <input
+                          type="text"
+                          placeholder="HH:MM"
+                          value={filtroConsolidada.horaPlaneada}
+                          onChange={(e) => setFiltroConsolidada(prev => ({ ...prev, horaPlaneada: e.target.value }))}
+                          className="w-full px-1.5 py-1 bg-white border border-gray-300 rounded font-normal text-xs"
+                        />
+                      </th>
+                      <th className="p-1.5 font-normal">
+                        <input
+                          type="text"
+                          placeholder="HH:MM"
+                          value={filtroConsolidada.horaReal}
+                          onChange={(e) => setFiltroConsolidada(prev => ({ ...prev, horaReal: e.target.value }))}
+                          className="w-full px-1.5 py-1 bg-white border border-gray-300 rounded font-normal text-xs"
+                        />
+                      </th>
+                      <th className="p-1.5 font-normal">
+                        <select
+                          value={filtroConsolidada.pontualidade}
+                          onChange={(e) => setFiltroConsolidada(prev => ({ ...prev, pontualidade: e.target.value }))}
+                          className="w-full px-1 py-1 bg-white border border-gray-300 rounded font-normal text-xs"
+                        >
+                          <option value="todos">Todos</option>
+                          <option value="no_prazo">No Prazo</option>
+                          <option value="atraso">Atraso</option>
+                          <option value="pendente">Por Entregar</option>
+                        </select>
+                      </th>
+                      <th className="p-1.5 font-normal">
+                        <div className="flex items-center gap-1">
+                          <select
+                            value={filtroConsolidada.estado}
+                            onChange={(e) => setFiltroConsolidada(prev => ({ ...prev, estado: e.target.value }))}
+                            className="w-full px-1 py-1 bg-white border border-gray-300 rounded font-normal text-xs"
+                          >
+                            <option value="todos">Todos</option>
+                            <option value="pendente">Pendente</option>
+                            <option value="em_producao">Em Produção</option>
+                            <option value="pronto_loja">Pronto</option>
+                            <option value="em_rota">Em Rota</option>
+                            <option value="entregue">Entregue</option>
+                            <option value="cancelado">Cancelado</option>
+                          </select>
+                          {(filtroConsolidada.codigo || filtroConsolidada.cliente || filtroConsolidada.formato !== 'todos' || filtroConsolidada.data || filtroConsolidada.horaPlaneada || filtroConsolidada.horaReal || filtroConsolidada.pontualidade !== 'todos' || filtroConsolidada.estado !== 'todos') && (
+                            <button
+                              type="button"
+                              onClick={() => setFiltroConsolidada({
+                                codigo: '', cliente: '', formato: 'todos', data: '', horaPlaneada: '', horaReal: '', pontualidade: 'todos', estado: 'todos'
+                              })}
+                              className="text-[9px] text-red-600 hover:underline font-bold px-1"
+                              title="Limpar filtros"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -1114,16 +1429,6 @@ export default function AdminPage() {
                   </h3>
                   <p className="text-xs text-gray-500">{t.vansSectionDesc}</p>
                 </div>
-
-                {temPermissaoEdicaoGestao && (
-                  <button
-                    type="button"
-                    onClick={() => setCarrinhaEmEdicao({ identificador: '', matricula: '', loja_id: lojas[0]?.id || '' })}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition"
-                  >
-                    <Plus className="h-3.5 w-3.5" /> {t.addVan}
-                  </button>
-                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1164,10 +1469,10 @@ export default function AdminPage() {
                 <div>
                   <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                     <Plus className="h-4 w-4 text-bakery-600" />
-                    Inserir Registo Avulso na Base de Dados
+                    Inserir Registo na Base de Dados
                   </h3>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Adicione rapidamente um novo cliente, produto, loja ou carrinha de forma manual sem necessidade de carregar ficheiro Excel.
+                    Adicione rapidamente um novo cliente ou produto de forma manual sem necessidade de carregar ficheiro Excel.
                   </p>
                 </div>
                 {temPermissaoEdicaoGestao && (
@@ -1180,9 +1485,190 @@ export default function AdminPage() {
                     className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-bakery-600 hover:bg-bakery-700 text-white text-xs font-bold shadow-xs transition cursor-pointer shrink-0"
                   >
                     <Plus className="h-4 w-4" />
-                    + Inserir Registo Avulso
+                    + Inserir registo
                   </button>
                 )}
+              </div>
+            </div>
+
+            {/* TABELA RÉPLICA DO SUPABASE - ARTIGOS E PRODUTOS */}
+            <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                    <Layers className="h-4 w-4 text-amber-600" />
+                    Catálogo de Artigos & Produtos (Réplica do Supabase)
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Tabela em tempo real dos produtos registados no Supabase com filtros por coluna, ordenação, edição e remoção.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-gray-100 text-gray-700 border border-gray-200">
+                    Total: <b>{produtos.length}</b> artigos
+                  </span>
+                  {produtosFiltradosTabela.length !== produtos.length && (
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200">
+                      Filtrados: <b>{produtosFiltradosTabela.length}</b>
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Tabela com Filtros de Coluna e Ordenação */}
+              <div className="overflow-x-auto border border-gray-200 rounded-xl">
+                <table className="w-full text-left text-xs text-gray-600">
+                  <thead className="bg-gray-50 text-gray-700 border-b border-gray-200">
+                    <tr>
+                      <th className="py-2.5 px-3 font-black text-gray-900 w-44">
+                        <span className="block text-[11px] uppercase tracking-wider text-gray-500 mb-1">ID (Supabase)</span>
+                        <span className="text-[10px] text-gray-400 font-mono">UUID</span>
+                      </th>
+                      <th className="py-2.5 px-3 font-black text-gray-900">
+                        <div className="flex items-center justify-between gap-1 mb-1.5 cursor-pointer select-none hover:text-bakery-700" onClick={() => handleToggleSortProdutos('nome')}>
+                          <span className="text-[11px] uppercase tracking-wider">Artigo / Nome</span>
+                          <span className="flex items-center text-[10px] text-gray-400">
+                            <ArrowUpDown className="h-3 w-3" />
+                            {sortProdutos.col === 'nome' && (sortProdutos.dir === 'asc' ? ' ↑' : ' ↓')}
+                          </span>
+                        </div>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={filtroProdutos.busca}
+                            onChange={(e) => setFiltroProdutos({ ...filtroProdutos, busca: e.target.value })}
+                            placeholder="Pesquisar artigo..."
+                            className="w-full pl-6 pr-2 py-1 text-xs bg-white border border-gray-200 rounded-lg font-normal focus:outline-hidden focus:border-bakery-500"
+                          />
+                          <Search className="h-3 w-3 text-gray-400 absolute left-2 top-2" />
+                        </div>
+                      </th>
+                      <th className="py-2.5 px-3 font-black text-gray-900 w-36">
+                        <div className="flex items-center justify-between gap-1 mb-1.5 cursor-pointer select-none hover:text-bakery-700" onClick={() => handleToggleSortProdutos('categoria')}>
+                          <span className="text-[11px] uppercase tracking-wider">Setor</span>
+                          <span className="flex items-center text-[10px] text-gray-400">
+                            <ArrowUpDown className="h-3 w-3" />
+                            {sortProdutos.col === 'categoria' && (sortProdutos.dir === 'asc' ? ' ↑' : ' ↓')}
+                          </span>
+                        </div>
+                        <select
+                          value={filtroProdutos.categoria}
+                          onChange={(e) => setFiltroProdutos({ ...filtroProdutos, categoria: e.target.value })}
+                          className="w-full py-1 px-1.5 text-xs bg-white border border-gray-200 rounded-lg font-bold focus:outline-hidden"
+                        >
+                          <option value="todas">Todos os setores</option>
+                          <option value="padaria">🥖 Padaria</option>
+                          <option value="pastelaria">🎂 Pastelaria</option>
+                        </select>
+                      </th>
+                      <th className="py-2.5 px-3 font-black text-gray-900 w-32">
+                        <div className="flex items-center justify-between gap-1 mb-1.5 cursor-pointer select-none hover:text-bakery-700" onClick={() => handleToggleSortProdutos('unidade')}>
+                          <span className="text-[11px] uppercase tracking-wider">Unidade</span>
+                          <span className="flex items-center text-[10px] text-gray-400">
+                            <ArrowUpDown className="h-3 w-3" />
+                            {sortProdutos.col === 'unidade' && (sortProdutos.dir === 'asc' ? ' ↑' : ' ↓')}
+                          </span>
+                        </div>
+                        <select
+                          value={filtroProdutos.unidade}
+                          onChange={(e) => setFiltroProdutos({ ...filtroProdutos, unidade: e.target.value })}
+                          className="w-full py-1 px-1.5 text-xs bg-white border border-gray-200 rounded-lg font-bold focus:outline-hidden"
+                        >
+                          <option value="todas">Todas</option>
+                          <option value="unidade">Unidade (un.)</option>
+                          <option value="kg">Quilograma (kg)</option>
+                          <option value="cento">Cento</option>
+                          <option value="dose">Dose</option>
+                        </select>
+                      </th>
+                      <th className="py-2.5 px-3 font-black text-gray-900 w-28">
+                        <div className="flex items-center justify-between gap-1 mb-1.5 cursor-pointer select-none hover:text-bakery-700" onClick={() => handleToggleSortProdutos('ativo')}>
+                          <span className="text-[11px] uppercase tracking-wider">Estado</span>
+                          <span className="flex items-center text-[10px] text-gray-400">
+                            <ArrowUpDown className="h-3 w-3" />
+                            {sortProdutos.col === 'ativo' && (sortProdutos.dir === 'asc' ? ' ↑' : ' ↓')}
+                          </span>
+                        </div>
+                        <select
+                          value={filtroProdutos.ativo}
+                          onChange={(e) => setFiltroProdutos({ ...filtroProdutos, ativo: e.target.value })}
+                          className="w-full py-1 px-1.5 text-xs bg-white border border-gray-200 rounded-lg font-bold focus:outline-hidden"
+                        >
+                          <option value="todos">Todos</option>
+                          <option value="ativo">Ativo</option>
+                          <option value="inativo">Inativo</option>
+                        </select>
+                      </th>
+                      <th className="py-2.5 px-3 font-black text-gray-900 w-24 text-right">
+                        <span className="block text-[11px] uppercase tracking-wider mb-1.5">Ações</span>
+                        <span className="text-[10px] text-gray-400 font-normal">Opções</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {produtosFiltradosTabela.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-gray-400 italic">
+                          Nenhum artigo encontrado para o filtro selecionado.
+                        </td>
+                      </tr>
+                    ) : (
+                      produtosFiltradosTabela.map((p) => (
+                        <tr key={p.id} className="hover:bg-gray-50/80 transition">
+                          <td className="py-2 px-3 font-mono text-[11px] text-gray-500 select-all" title={p.id}>
+                            {p.id.length > 12 ? `${p.id.substring(0, 8)}...` : p.id}
+                          </td>
+                          <td className="py-2 px-3">
+                            <p className="font-bold text-gray-900">{p.nome}</p>
+                          </td>
+                          <td className="py-2 px-3">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              p.categoria === 'padaria' ? 'bg-amber-100 text-amber-900' : 'bg-pink-100 text-pink-900'
+                            }`}>
+                              {p.categoria === 'padaria' ? '🥖 Padaria' : '🎂 Pastelaria'}
+                            </span>
+                          </td>
+                          <td className="py-2 px-3">
+                            <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 font-mono text-[10px]">
+                              {p.unidade || 'unidade'}
+                            </span>
+                          </td>
+                          <td className="py-2 px-3">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black ${
+                              p.ativo ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-200 text-stone-700'
+                            }`}>
+                              {p.ativo ? '● Ativo' : '○ Inativo'}
+                            </span>
+                          </td>
+                          <td className="py-2 px-3 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              {temPermissaoEdicaoGestao && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => setProdutoEmEdicaoModal(p)}
+                                    className="p-1 rounded-lg text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition cursor-pointer"
+                                    title="Editar Artigo"
+                                  >
+                                    <Edit3 className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleEliminarProduto(p.id, p.nome)}
+                                    className="p-1 rounded-lg text-red-600 hover:text-red-800 hover:bg-red-50 transition cursor-pointer"
+                                    title="Eliminar Artigo"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
 
@@ -2056,7 +2542,7 @@ export default function AdminPage() {
             <div className="flex items-center justify-between border-b pb-2">
               <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                 <Plus className="h-4 w-4 text-bakery-600" />
-                Inserir Registo Avulso na Base de Dados
+                Inserir Registo na Base de Dados
               </h3>
               <button
                 type="button"
@@ -2086,26 +2572,6 @@ export default function AdminPage() {
                 }`}
               >
                 🥖 Produto
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setModalRegistoAvulsoAberto(false);
-                  setLojaEmEdicao({ codigo: '', nome: '', morada: '', telefone: '' });
-                }}
-                className="flex-1 py-1.5 rounded-lg text-gray-600 hover:text-gray-900 transition hover:bg-white cursor-pointer"
-              >
-                🏪 Loja
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setModalRegistoAvulsoAberto(false);
-                  setCarrinhaEmEdicao({ identificador: '', matricula: '', loja_id: lojas[0]?.id });
-                }}
-                className="flex-1 py-1.5 rounded-lg text-gray-600 hover:text-gray-900 transition hover:bg-white cursor-pointer"
-              >
-                🚚 Carrinha
               </button>
             </div>
 
@@ -2247,6 +2713,97 @@ export default function AdminPage() {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE EDIÇÃO DE ARTIGO / PRODUTO */}
+      {produtoEmEdicaoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-gray-200 space-y-4 text-xs">
+            <div className="flex items-center justify-between border-b pb-2">
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <Edit3 className="h-4 w-4 text-bakery-600" />
+                Editar Artigo no Supabase
+              </h3>
+              <button
+                type="button"
+                onClick={() => setProdutoEmEdicaoModal(null)}
+                className="text-gray-400 hover:text-gray-600 text-sm font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSalvarEdicaoProdutoModal} className="space-y-3">
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Nome do Artigo *</label>
+                <input
+                  type="text"
+                  required
+                  value={produtoEmEdicaoModal.nome || ''}
+                  onChange={(e) => setProdutoEmEdicaoModal({ ...produtoEmEdicaoModal, nome: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                />
+                <span className="text-[10px] text-gray-500 mt-0.5 block">Formatado automaticamente em Title Case (Ex: Pão de Forma Tradicional).</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Setor de Fabrico</label>
+                  <select
+                    value={produtoEmEdicaoModal.categoria || 'padaria'}
+                    onChange={(e) => setProdutoEmEdicaoModal({ ...produtoEmEdicaoModal, categoria: e.target.value as any })}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold"
+                  >
+                    <option value="padaria">🥖 Padaria</option>
+                    <option value="pastelaria">🎂 Pastelaria</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Unidade de Medida</label>
+                  <select
+                    value={produtoEmEdicaoModal.unidade || 'unidade'}
+                    onChange={(e) => setProdutoEmEdicaoModal({ ...produtoEmEdicaoModal, unidade: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold"
+                  >
+                    <option value="unidade">Unidade (un.)</option>
+                    <option value="kg">Quilograma (kg)</option>
+                    <option value="cento">Cento</option>
+                    <option value="dose">Dose</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <label className="flex items-center gap-2 cursor-pointer font-bold text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={produtoEmEdicaoModal.ativo ?? true}
+                    onChange={(e) => setProdutoEmEdicaoModal({ ...produtoEmEdicaoModal, ativo: e.target.checked })}
+                    className="rounded text-emerald-600"
+                  />
+                  <span>Artigo Ativo no Catálogo de Encomendas</span>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => setProdutoEmEdicaoModal(null)}
+                  className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 rounded-lg bg-bakery-600 hover:bg-bakery-700 font-bold text-white shadow-xs transition cursor-pointer"
+                >
+                  Guardar Alterações
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

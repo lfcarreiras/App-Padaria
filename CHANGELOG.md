@@ -42,7 +42,33 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
-## [v1.6.1] - 2026-09-16
+## [v1.7.0] - 2026-09-16
+### 🏬 Restrição de Licenciamento de Lojas & Carrinhas
+- **Bloqueio de Criação no Frontend**: Remoção da opção de adicionar lojas e carrinhas na interface de utilizador (mesmo para perfis de administrador), ficando a criação restrita ao backoffice técnico do proprietário (conforme o modelo de fee mensal por ponto de venda e viatura).
+- **Remoção Permanente da Loja 4**: Eliminação da "Futura Loja IV" da base de dados Supabase e dos mocks locais, reafetando as carrinhas à Loja Central (Loja 1).
+- **Formulário de Registo Simplificado**: Atualização do assistente "+ Inserir registo" para criar exclusivamente Clientes e Produtos, eliminando as opções de Loja e Carrinha.
+
+### 🗄️ Catálogo Interativo de Artigos & Réplica do Supabase
+- **Tabela Completa no Menu de Bases de Dados**: Tabela interativa réplica da tabela do Supabase contendo `ID`, `Nome`, `Setor` (Padaria ou Pastelaria), `Unidade` e `Estado` (Ativo/Inativo).
+- **Pesquisa e Filtros por Coluna**: Campo de pesquisa textual em tempo real no nome do artigo, filtros por setor, unidade e estado.
+- **Ordenação com 1 Clique**: Clique nos cabeçalhos das colunas para alternar ordenação ascendente e descendente com indicadores visuais.
+- **Edição & Eliminação Segura**: Modal dedicado de edição de artigos com gravação direta em Supabase e botão de eliminação permanente com confirmação.
+- **Sincronização em Tempo Real**: Disparo de evento `app_produtos_atualizados` para atualizar instantaneamente o catálogo no ecrã de encomendas sem necessidade de recarregar a página.
+
+### 🔤 Padronização Title Case & Remoção de Preço
+- **Normalização Automática de Nomes**: Mecanismo inteligente de conversão para Title Case (ex: "Pão Alentejano") em todos os registos avulsos de produtos e clientes, respeitando preposições e acentuação da língua portuguesa.
+- **Remoção de Preços Operacionais**: Eliminação da coluna `Preço` no Supabase, nas exportações Excel e nos formulários do catálogo.
+
+### 📊 Filtros por Coluna e Intervalo de Datas
+- **Tabela Consolidada de Planeamento vs Real**: Todos os cabeçalhos das colunas passam a ser ordenáveis com 1 clique (Código, Cliente, Formato, Data, Hora Planeada, Hora Real, Pontualidade, Estado) e contam com caixas de pesquisa e filtros dropdown in-column.
+- **Intervalo de Datas na Produção**: Substituição do filtro de dia único por um seletor de intervalo de datas flexível ("De:" e "Até:") com botão "Limpar".
+- **Ajuste de Terminologia**: Normalização de "Iniciar preparo" para "Iniciar preparação" no painel de fabrico e visualização Kanban.
+
+### 🧾 Impressão Térmica Aperfeiçoada
+- **Correção de Corte no Rodapé**: Ajuste de padding na pré-visualização do talão térmico (`ThermalReceipt.tsx`), assegurando que a mensagem de agradecimento e rodapé nunca fiquem cortados antes da impressão.
+
+### 📦 Dataset Realista de Arouca
+- **100 Encomendas Autênticas**: Injeção de 100 encomendas e 250 itens com clientes e moradas reais no concelho de Arouca (distribuídos pelos últimos 10 dias, hoje e datas futuras), com tempos reais de entrega e simulação fidedigna de pontualidade e atrasos.
 ### 🐛 Correção no Build Vercel & Validação JSX
 - **Sintaxe JSX em `ThermalReceipt.tsx`**: Fechamento do elemento contentor `<div id="receipt-print-root">` no modal de impressão térmica antes do encerramento com `createPortal(..., document.body)`. Elimina o erro do compilador SWC na Vercel (`Unexpected token div. Expected jsx identifier`) e valida a compilação completa da release.
 

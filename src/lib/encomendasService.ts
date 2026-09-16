@@ -302,11 +302,60 @@ export async function carregarClientesSupabase(): Promise<Cliente[]> {
   return data || [];
 }
 
+/**
+ * Converte um nome (de produto, cliente, etc.) para Title Case adequado em Português
+ * Exemplo: "PAO SALOIO" -> "Pão Saloio", "FERMENTO DE PADEIRO" -> "Fermento de Padeiro",
+ * "MINI BROA C/CHOURISSO" -> "Mini Broa c/ Chourisso", "ANA SOFIA FERREIRA" -> "Ana Sofia Ferreira"
+ */
+export function formatarNomeEntidade(texto: string): string {
+  if (!texto) return '';
+  const preposicoes = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'em', 'c/', 'com', 'para', 'ao', 'à', 'aos', 'às']);
+  
+  // Dicionário de substituições e acentuações para produtos de padaria/pastelaria
+  const acentuacoes: Record<string, string> = {
+    'pao': 'Pão',
+    'pão': 'Pão',
+    'avo': 'Avó',
+    'avó': 'Avó',
+    'chourisso': 'Chouriço',
+    'chourico': 'Chouriço',
+    'aniversario': 'Aniversário',
+    'frances': 'Francês',
+    'alemao': 'Alemão',
+    'japones': 'Japonês',
+    'agua': 'Água',
+  };
+
+  const partes = texto.trim().split(/\s+/);
+  return partes
+    .map((palavra, index) => {
+      // Casos como "c/chourisso"
+      if (palavra.toLowerCase().startsWith('c/')) {
+        const resto = palavra.substring(2);
+        const restoFormatado = acentuacoes[resto.toLowerCase()] || 
+          (resto ? resto.charAt(0).toUpperCase() + resto.slice(1).toLowerCase() : '');
+        return 'c/ ' + restoFormatado;
+      }
+
+      const lower = palavra.toLowerCase();
+      if (index > 0 && preposicoes.has(lower)) {
+        return lower;
+      }
+
+      if (acentuacoes[lower]) {
+        return acentuacoes[lower];
+      }
+
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    })
+    .join(' ');
+}
+
 export async function salvarClienteDb(cliente: Partial<Cliente> & { nome: string; telefone: string }) {
   if (!supabase) return null;
 
   const payload = {
-    nome: cliente.nome.trim(),
+    nome: formatarNomeEntidade(cliente.nome),
     telefone: cliente.telefone.trim(),
     email: cliente.email?.trim() || null,
     morada: cliente.morada?.trim() || null,
@@ -360,14 +409,14 @@ export async function carregarProdutosSupabase(): Promise<Produto[]> {
   return data || [];
 }
 
-export async function salvarProdutoDb(produto: Partial<Produto> & { nome: string; preco: number; categoria: any }) {
+export async function salvarProdutoDb(produto: Partial<Produto> & { nome: string; categoria: any; unidade?: any; ativo?: boolean }) {
   if (!supabase) return null;
-  const payload = {
-    nome: produto.nome.trim(),
-    preco: produto.preco,
+  const payload: any = {
+    nome: formatarNomeEntidade(produto.nome),
     categoria: produto.categoria,
     unidade: produto.unidade || 'unidade',
     ativo: produto.ativo !== undefined ? produto.ativo : true,
+    preco: 0,
   };
 
   if (produto.id) {

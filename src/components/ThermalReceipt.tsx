@@ -75,10 +75,10 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
         </div>
 
         {/* ÁREA DE IMPRESSÃO TÉRMICA (80mm / 58mm) */}
-        <div className="overflow-y-auto p-6 bg-gray-50 flex justify-center">
+        <div className="overflow-y-auto p-4 sm:p-6 pb-20 bg-gray-100 flex justify-center">
           <div
             id="thermal-print-area"
-            className={`${widthClass} ${fontSizeClass} border border-dashed border-gray-300 bg-white p-4 font-mono text-black shadow-sm`}
+            className={`${widthClass} ${fontSizeClass} border border-dashed border-gray-400 bg-white p-5 pb-8 font-mono text-black shadow-md my-2`}
           >
             {/* Cabeçalho da Loja */}
             <div className="text-center">

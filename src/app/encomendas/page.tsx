@@ -8,6 +8,7 @@ import { supabase } from '../../lib/supabase';
 import { 
   carregarEncomendasSupabase, 
   carregarClientesSupabase, 
+  carregarProdutosSupabase,
   salvarClienteDb,
   eliminarClienteDb,
   eliminarEncomendaDb,
@@ -90,15 +91,27 @@ export default function EncomendasPage() {
   useEffect(() => {
     async function carregar() {
       setCarregando(true);
-      const [encs, clis] = await Promise.all([
+      const [encs, clis, prods] = await Promise.all([
         carregarEncomendasSupabase(),
         carregarClientesSupabase(),
+        carregarProdutosSupabase(),
       ]);
       setEncomendas(encs);
       setClientes(clis);
+      if (prods && prods.length > 0) setProdutos(prods);
       setCarregando(false);
     }
     carregar();
+
+    const handleProdutosAtualizados = async () => {
+      const prods = await carregarProdutosSupabase();
+      if (prods && prods.length > 0) setProdutos(prods);
+    };
+
+    window.addEventListener('app_produtos_atualizados', handleProdutosAtualizados);
+    return () => {
+      window.removeEventListener('app_produtos_atualizados', handleProdutosAtualizados);
+    };
   }, []);
 
   const lojaAtual = LOJAS_MOCK.find((l) => l.id === selectedLojaId) || LOJAS_MOCK[0];

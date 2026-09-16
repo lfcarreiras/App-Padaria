@@ -1,150 +1,6249 @@
-import { Loja, Produto, Encomenda, Carrinha } from '../types';
+import { Loja, Carrinha, Produto, Encomenda } from '../types';
 
 export const LOJAS_MOCK: Loja[] = [
   {
-    id: 'loja-1',
-    codigo: 'LOJA-1',
-    nome: 'Padaria da Vila I (Praça)',
-    morada: 'Praça Brandão de Vasconcelos, 4540-102 Arouca',
-    telefone: '256 944 179',
-    nif: '500123456',
-    ativo: true,
+    "id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "codigo": "LOJA-1",
+    "nome": "Padaria da Vila I (Praça)",
+    "morada": "Praça Brandão de Vasconcelos, 4540-102 Arouca",
+    "telefone": "210000001",
+    "nif": "500100201",
+    "ativo": true,
+    "criado_em": "2026-09-12T14:49:25.355379+00:00"
   },
   {
-    id: 'loja-2',
-    codigo: 'LOJA-2',
-    nome: 'Padaria da Vila II (Av. 25 de Abril)',
-    morada: 'Av. 25 de Abril, 4540-102 Arouca',
-    telefone: '256 941 154',
-    nif: '500123456',
-    ativo: true,
+    "id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "codigo": "LOJA-2",
+    "nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "morada": "Av. 25 de Abril, 4540-102 Arouca",
+    "telefone": "210000002",
+    "nif": "500100202",
+    "ativo": true,
+    "criado_em": "2026-09-12T14:49:25.355379+00:00"
   },
   {
-    id: 'loja-3',
-    codigo: 'LOJA-3',
-    nome: 'Padaria da Vila III',
-    morada: 'Arouca (Ponto de Venda)',
-    telefone: '256 944 321',
-    nif: '500123456',
-    ativo: true,
-  },
-  {
-    id: 'loja-4',
-    codigo: 'LOJA-4',
-    nome: 'Unidade Central de Fabrico & Sede (Futura Loja IV)',
-    morada: 'Rua Dr. Teixeira de Brito, 8 (Lavandeira), 4540-137 Arouca',
-    telefone: '256 944 321',
-    nif: '500123456',
-    ativo: true,
-  },
+    "id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "codigo": "LOJA-3",
+    "nome": "Padaria da Vila III",
+    "morada": "Arouca (Ponto de Venda)",
+    "telefone": "210000003",
+    "nif": "500100203",
+    "ativo": true,
+    "criado_em": "2026-09-12T14:49:25.355379+00:00"
+  }
 ];
 
 export const CARRINHAS_MOCK: Carrinha[] = [
-  { id: 'car-1', loja_id: 'loja-4', identificador: 'Carrinha 1 (Fabrico Central)', matricula: '42-AB-89', ativo: true },
-  { id: 'car-2', loja_id: 'loja-4', identificador: 'Carrinha 2 (Fabrico Central)', matricula: '77-ZX-12', ativo: true },
-  { id: 'car-3', loja_id: 'loja-4', identificador: 'Carrinha 3 (Fabrico Central)', matricula: '15-TR-33', ativo: true },
+  {
+    "id": "1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "identificador": "Carrinha 1 (Fabrico Central)",
+    "matricula": "42-AB-89",
+    "motorista_id": null,
+    "ativo": true,
+    "criado_em": "2026-09-12T15:48:41.304463+00:00"
+  },
+  {
+    "id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "identificador": "Carrinha 2 (Fabrico Central)",
+    "matricula": "77-ZX-12",
+    "motorista_id": null,
+    "ativo": true,
+    "criado_em": "2026-09-12T15:48:41.304463+00:00"
+  },
+  {
+    "id": "e062fea7-97da-4b2a-8607-da6a9ea8e668",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "identificador": "Carrinha 3 (Fabrico Central)",
+    "matricula": "15-TR-33",
+    "motorista_id": null,
+    "ativo": true,
+    "criado_em": "2026-09-12T15:48:41.304463+00:00"
+  },
+  {
+    "id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "identificador": "Carrinha 4 - Estação",
+    "matricula": "90-KL-55",
+    "motorista_id": null,
+    "ativo": true,
+    "criado_em": "2026-09-12T15:48:41.304463+00:00"
+  }
 ];
 
 export const PRODUTOS_MOCK: Produto[] = [
-  { id: '6f9ef3b0-d0e2-483f-bf1f-b18b3ce06654', nome: "FERMENTO DE PADEIRO", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '79c9bdcd-4e97-49e2-85ae-5042f3d33aed', nome: "Saco Mini Tostas", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'd9ea0db1-84f2-4fb8-ac70-60042b7d8c71', nome: "PAO SALOIO", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '18d2eb00-f11c-4865-a975-7ee9746121db', nome: "BROA CENTEIO", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '368ad493-fd3a-4ab5-b5e7-259ba4e04eea', nome: "PADINHAS ALFARROBA", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '4966d5c0-7eb7-42ac-8be6-9c56785ef855', nome: "PÃO DA AVÓ", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '8dd8e171-e457-49be-9f54-27a31548e77e', nome: "MINI PÃO DA AVÓ", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '6c99a29d-46c1-4925-a281-827ed82017ef', nome: "PADINHAS", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '5a0b42ce-4e7b-4629-8c58-a3d2de065afc', nome: "BROA", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '882a046c-1937-4c5b-8c92-51e12aa49d9d', nome: "TRIGA MILHA", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '43750423-88ef-4eb6-accb-ce91ec24e743', nome: "FARINHA", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '4d5b2947-0858-4e8a-8be4-201d0e341a58', nome: "MINI BROA C/CHOURISSO", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'efcf6c84-e29f-43ab-8236-7138292a38d6', nome: "PÃO", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'c328eda2-bf66-4b38-96b0-f3b9809a039a', nome: "REGUEIFA BRANCA", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '230e1426-14b4-4697-9921-14601ae09f4f', nome: "Pão Integral", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'ac7b605d-ba59-431d-8f83-f0bb0189b44a', nome: "PAO DE ALFARROBA PEQ.", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'ce9636e2-dbe4-41f2-87de-a0f7b5fbad9b', nome: "PAO DE BETERRABA PEQ.", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'bc9b4c3f-ba07-4bdf-9da5-af41869f6700', nome: "PÃO DE FORMA PEQ.", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '7c3fa4bd-3570-489b-9090-8d9b49d5db62', nome: "BROINHA DE MISTURA", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '313b9c76-01a6-445c-89c8-9e9ca4888307', nome: "PÃO DE CACHORRO", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '17cef10f-0498-4cee-bb1f-88a6bea44aea', nome: "PADAS", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '6e255632-0f13-4998-87e1-cd680b9fb2f7', nome: "PÃO ITALIANO", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '18900043-ae36-4a74-b5cd-fb5b4f8ce109', nome: "BAGUETE", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'f4d2b8a4-0646-4542-9128-84959726fda8', nome: "Pao de Hanburger", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '024009c9-e4df-4bc1-ab4c-7025a2d7e373', nome: "PÃO MISTURA", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '25039971-deb7-490f-8634-20e7719c0b99', nome: "PÃO DE LEITE", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '154690ff-0395-4545-90b1-0ca4d7ccdec4', nome: "Pao de canela", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '9a355c4b-8758-4d94-828c-d5ebb7563b77', nome: "PÃO DE ALHO", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'abad98cb-b121-47f4-b17b-995334aa9f67', nome: "Pão c/ sementes", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '9083a4ac-715e-4708-8a16-45bcd0a7028d', nome: "PÃO DE FORMA", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '5f633c41-7b50-4356-bbf4-54c97b27b687', nome: "CARCAÇA", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'bf83f1b8-cae1-4623-81a3-2291ad9f570e', nome: "PAO DE BETERRABA", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '43648ed7-6e34-4929-a530-7c1a1f998a3f', nome: "PAO DE ALFARROBA", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '82f0c100-81e9-489b-9377-9e5dc48ff312', nome: "PAO DA MEALHADA", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'd39830a9-82cd-4d40-80f8-807e1e70bdf7', nome: "CACETE", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '7d72b412-371a-4c22-a5d4-a984e9b0ab83', nome: "BOLO C/SARDINHAS", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '763750ac-6167-4637-96e8-bbc8dce6194d', nome: "Broa com Chouriço", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '9dc5b77b-71e3-4c85-b042-9c6acc697317', nome: "Pão de Forma Cereais", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '5c08ccef-1408-4169-b4d3-aa6856e1f402', nome: "Pão ralado", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '034c0563-440d-4ee8-bb1b-464458efd3ca', nome: "Pão Cereais fatiado", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'ce0bb303-7b7a-4e00-bbf2-8cf4d081d454', nome: "Pão 7 Grãos peq", categoria: 'padaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '9801a217-4d18-469c-ac02-36b8d308f015', nome: "PASTEIS MINIATURA KG", categoria: 'pastelaria', unidade: 'kg', preco: 0, ativo: true },
-  { id: '35955671-7c02-42a5-bf89-4223c39f364c', nome: "SEMI-FRIO", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'e2b97eb6-8c28-42ea-bc92-0729eb386a87', nome: "BOLO REI", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'b8b62528-c374-435f-9b89-4bda4f156f05', nome: "BOLO REI ESCANGALHADO", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'f016598c-2024-49db-bd07-7effc8ca7201', nome: "BOLO REI FOLHADO", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'ede288e0-9ab2-4808-b313-b81a6eaad854', nome: "BOLO DE ANIVERSÁRIO", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '973aeeda-a967-4a04-9171-b99e8548b35a', nome: "BOLO DE CASAMENTO", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'b5265bc7-1d64-407d-82b5-465750e8d4d1', nome: "BOLO DE COMUNHÃO", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '2e213c12-5698-4de3-9e85-bcbdae9d721b', nome: "TARTE DE FRUTA", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'fd8adf34-89a2-4216-9ae0-3abd4e7e4fe2', nome: "TELHA", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'f13b5274-a257-4bb8-985e-7cd42274be83', nome: "CHÁ HUNGARO", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '13c7cd7e-43ae-462d-8822-a23b917181ed', nome: "ALMENDRADO", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '01a58bef-1587-45a5-abeb-1e839ba8235c', nome: "BRIGADEIROS", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '067fb587-f1ff-40af-8b7c-94890127ce46', nome: "PÃO DE LÓ", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '8fa0d571-c22b-40d5-88ab-258f2fd66fac', nome: "PÃO DE LÓ DE OVAR", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '1f3e1e2f-d437-4c26-98dd-6cdd0f9cbc18', nome: "CAVACAS", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '56059b6d-06c3-46d5-952d-2e33a21a2922', nome: "MELINDRES", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '8e450646-7681-447f-9930-4ac9325107a0', nome: "RASPAS DE CHOCOLATE", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '9e926846-a0db-4db0-83e3-0328da2279b6', nome: "MASSA FOLHADA", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'c71d6135-a6a6-49a6-af5f-d2cd69f3fa4a', nome: "FIOS D'OVOS", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '08e7dab3-1768-4ea8-932c-f86885f5aa94', nome: "PIZZA GRANDE", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '382df3c8-bbec-4785-a451-877136620fc5', nome: "PIZZA MÉDIA", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '7bf261c4-dc6d-4f3f-bef3-0415e7cd49d2', nome: "PIZZA PEQUENA", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'd075f44e-da7d-442c-8758-e58e987652f6', nome: "FATIA DE BOLO", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '6052a0b5-9a40-4fa0-a18f-14cd9ea76d5b', nome: "PASTEL MINIATURA UNI", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '1eecf267-b7f4-4c10-ab11-67e0e33ea87d', nome: "PASTEL RECHEADO", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '893530d5-ef2d-4c40-a1e0-39bf3e6d617a', nome: "REGUEIFA DOCE", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'da4b1f00-f298-4034-ad13-5f69dc03e757', nome: "REGUEIFA CÔCO", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'e176b6ac-58e9-48d0-8ffc-cb682e2883fb', nome: "MEIA LUA", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '0bd90792-4dcf-4b28-b5b2-b17d5f8bdf1a', nome: "REGUEIFA CANELA", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '7e63af46-d1a3-4885-b661-c76caa5cdbb0', nome: "TRANÇA", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '0f3e6f65-ee9b-43bd-a8d8-897fbc4c6f7e', nome: "REGUEIFA MINIATURA", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '318643dc-3772-4d81-a554-6b5ed2790311', nome: "FOGAÇA", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '760d70c4-eeaa-4613-812c-c9a8cfccdf1c', nome: "BOLA DE CARNE", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'e9f1ac0f-5e43-4d44-90d5-f0844b7948af', nome: "FATIA BOLA DE CARNE", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'bc2a1035-0e0b-45eb-bd92-158e68bbe074', nome: "MEIA BOLA DE CARNE", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'beb635fb-f94c-4d55-8780-f082072d44b9', nome: "TRANÇA DE AMENDOA", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '8c913441-6b0f-4ca8-a5e2-3c724226ccc0', nome: "ROSCA", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '2ee0cd98-3c6d-4ac1-bd5c-782be4958bbc', nome: "RABANADAS", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'f6e98e77-8e58-43e6-a722-684339d85ec7', nome: "SONHOS", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '48036f45-d227-4e27-8472-793b10d95a70', nome: "PAO DOCE", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '413a9168-c3c6-43f8-9f8b-98ce961f6618', nome: "BROAS DE MEL", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '1f8c24a7-0152-49b9-8bce-205ce409940b', nome: "Tartes de Fruta", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '1cd4b73f-f75f-49c0-9a34-b665375dc164', nome: "PASTEIS", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'be759f4c-f6fd-4ac8-b424-2762e4c6f231', nome: "PÃO COM CHOURIÇO", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'ffa1654f-604c-441a-ade6-a362d403597e', nome: "LANCHE MISTO", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'c1a421f7-2da6-4714-bdb9-f11a1b0c5d26', nome: "PAO PIZZA", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '8b1f5edb-cdc9-4842-bb64-d21e488ecf6e', nome: "Crocante de Ovo", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '479cfb8a-1d70-4ea9-9953-086f18649192', nome: "PUDIM", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '53df5098-7d17-4d41-9738-c01b14363cf4', nome: "FATIA PÃO DE LÓ", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'e1694cc6-eb86-418e-a445-f520bc95c8f7', nome: "CASTANHAS DOCES", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '4fc071f3-53a6-4719-b8d4-496ce67226cf', nome: "ROSCA DE AMÊNDOA", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'b22aa2cb-aab2-480b-b448-fc8362d1be14', nome: "Panettone", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '08af0d35-85ec-4b35-8edc-3cdf81581cc1', nome: "Tabuleiro de Pizza", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '91baf8ae-17ca-45d9-899d-ac0367cdc717', nome: "Trança Folhada Frutos Secos", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: 'e1c23a54-7027-4bc6-9998-0eb0adc970ce', nome: "Torre Profiteroles", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
-  { id: '398cb1e9-19df-477d-bb4e-c99a451d206f', nome: "Ovo de Páscoa", categoria: 'pastelaria', unidade: 'unidade', preco: 0, ativo: true },
+  {
+    "id": "13c7cd7e-43ae-462d-8822-a23b917181ed",
+    "nome": "Almendrado",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "18900043-ae36-4a74-b5cd-fb5b4f8ce109",
+    "nome": "Baguete",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "760d70c4-eeaa-4613-812c-c9a8cfccdf1c",
+    "nome": "Bola de Carne",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "7d72b412-371a-4c22-a5d4-a984e9b0ab83",
+    "nome": "Bolo c/ Sardinhas",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "ede288e0-9ab2-4808-b313-b81a6eaad854",
+    "nome": "Bolo de Aniversário",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "973aeeda-a967-4a04-9171-b99e8548b35a",
+    "nome": "Bolo de Casamento",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "b5265bc7-1d64-407d-82b5-465750e8d4d1",
+    "nome": "Bolo de Comunhão",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "e2b97eb6-8c28-42ea-bc92-0729eb386a87",
+    "nome": "Bolo Rei",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "b8b62528-c374-435f-9b89-4bda4f156f05",
+    "nome": "Bolo Rei Escangalhado",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "f016598c-2024-49db-bd07-7effc8ca7201",
+    "nome": "Bolo Rei Folhado",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "01a58bef-1587-45a5-abeb-1e839ba8235c",
+    "nome": "Brigadeiros",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "5a0b42ce-4e7b-4629-8c58-a3d2de065afc",
+    "nome": "Broa",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "18d2eb00-f11c-4865-a975-7ee9746121db",
+    "nome": "Broa Centeio",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "763750ac-6167-4637-96e8-bbc8dce6194d",
+    "nome": "Broa com Chouriço",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "413a9168-c3c6-43f8-9f8b-98ce961f6618",
+    "nome": "Broas de Mel",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.979687+00:00"
+  },
+  {
+    "id": "7c3fa4bd-3570-489b-9090-8d9b49d5db62",
+    "nome": "Broinha de Mistura",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "d39830a9-82cd-4d40-80f8-807e1e70bdf7",
+    "nome": "Cacete",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "5f633c41-7b50-4356-bbf4-54c97b27b687",
+    "nome": "Carcaça",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "e1694cc6-eb86-418e-a445-f520bc95c8f7",
+    "nome": "Castanhas Doces",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.979687+00:00"
+  },
+  {
+    "id": "1f3e1e2f-d437-4c26-98dd-6cdd0f9cbc18",
+    "nome": "Cavacas",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "f13b5274-a257-4bb8-985e-7cd42274be83",
+    "nome": "Chá Hungaro",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "8b1f5edb-cdc9-4842-bb64-d21e488ecf6e",
+    "nome": "Crocante de Ovo",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.979687+00:00"
+  },
+  {
+    "id": "43750423-88ef-4eb6-accb-ce91ec24e743",
+    "nome": "Farinha",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "e9f1ac0f-5e43-4d44-90d5-f0844b7948af",
+    "nome": "Fatia Bola de Carne",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "d075f44e-da7d-442c-8758-e58e987652f6",
+    "nome": "Fatia de Bolo",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "53df5098-7d17-4d41-9738-c01b14363cf4",
+    "nome": "Fatia Pão de Ló",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.979687+00:00"
+  },
+  {
+    "id": "6f9ef3b0-d0e2-483f-bf1f-b18b3ce06654",
+    "nome": "Fermento de Padeiro",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "c71d6135-a6a6-49a6-af5f-d2cd69f3fa4a",
+    "nome": "Fios D'ovos",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "318643dc-3772-4d81-a554-6b5ed2790311",
+    "nome": "Fogaça",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "ffa1654f-604c-441a-ade6-a362d403597e",
+    "nome": "Lanche Misto",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.979687+00:00"
+  },
+  {
+    "id": "9e926846-a0db-4db0-83e3-0328da2279b6",
+    "nome": "Massa Folhada",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "bc2a1035-0e0b-45eb-bd92-158e68bbe074",
+    "nome": "Meia Bola de Carne",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "e176b6ac-58e9-48d0-8ffc-cb682e2883fb",
+    "nome": "Meia Lua",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "56059b6d-06c3-46d5-952d-2e33a21a2922",
+    "nome": "Melindres",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "4d5b2947-0858-4e8a-8be4-201d0e341a58",
+    "nome": "Mini Broa c/ Chouriço",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "8dd8e171-e457-49be-9f54-27a31548e77e",
+    "nome": "Mini Pão da Avó",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "398cb1e9-19df-477d-bb4e-c99a451d206f",
+    "nome": "Ovo de Páscoa",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.979687+00:00"
+  },
+  {
+    "id": "17cef10f-0498-4cee-bb1f-88a6bea44aea",
+    "nome": "Padas",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "6c99a29d-46c1-4925-a281-827ed82017ef",
+    "nome": "Padinhas",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "368ad493-fd3a-4ab5-b5e7-259ba4e04eea",
+    "nome": "Padinhas Alfarroba",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "b22aa2cb-aab2-480b-b448-fc8362d1be14",
+    "nome": "Panettone",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.979687+00:00"
+  },
+  {
+    "id": "efcf6c84-e29f-43ab-8236-7138292a38d6",
+    "nome": "Pão",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "ce0bb303-7b7a-4e00-bbf2-8cf4d081d454",
+    "nome": "Pão 7 Grãos Pequeno",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "abad98cb-b121-47f4-b17b-995334aa9f67",
+    "nome": "Pão c/  Sementes",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "034c0563-440d-4ee8-bb1b-464458efd3ca",
+    "nome": "Pão Cereais Fatiado",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "be759f4c-f6fd-4ac8-b424-2762e4c6f231",
+    "nome": "Pão com Chouriço",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.979687+00:00"
+  },
+  {
+    "id": "4966d5c0-7eb7-42ac-8be6-9c56785ef855",
+    "nome": "Pão da Avó",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "82f0c100-81e9-489b-9377-9e5dc48ff312",
+    "nome": "Pão da Mealhada",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "43648ed7-6e34-4929-a530-7c1a1f998a3f",
+    "nome": "Pão de Alfarroba",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "ac7b605d-ba59-431d-8f83-f0bb0189b44a",
+    "nome": "Pão de Alfarroba Pequeno",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "9a355c4b-8758-4d94-828c-d5ebb7563b77",
+    "nome": "Pão de Alho",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "bf83f1b8-cae1-4623-81a3-2291ad9f570e",
+    "nome": "Pão de Beterraba",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "ce9636e2-dbe4-41f2-87de-a0f7b5fbad9b",
+    "nome": "Pão de Beterraba Pequeno",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "313b9c76-01a6-445c-89c8-9e9ca4888307",
+    "nome": "Pão de Cachorro",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "154690ff-0395-4545-90b1-0ca4d7ccdec4",
+    "nome": "Pão de Canela",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "9083a4ac-715e-4708-8a16-45bcd0a7028d",
+    "nome": "Pão de Forma",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "9dc5b77b-71e3-4c85-b042-9c6acc697317",
+    "nome": "Pão de Forma Cereais",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "bc9b4c3f-ba07-4bdf-9da5-af41869f6700",
+    "nome": "Pão de Forma Pequeno",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "f4d2b8a4-0646-4542-9128-84959726fda8",
+    "nome": "Pão de Hanburger",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "25039971-deb7-490f-8634-20e7719c0b99",
+    "nome": "Pão de Leite",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "067fb587-f1ff-40af-8b7c-94890127ce46",
+    "nome": "Pão de Ló",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "8fa0d571-c22b-40d5-88ab-258f2fd66fac",
+    "nome": "Pão de Ló de Ovar",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "48036f45-d227-4e27-8472-793b10d95a70",
+    "nome": "Pão Doce",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.979687+00:00"
+  },
+  {
+    "id": "230e1426-14b4-4697-9921-14601ae09f4f",
+    "nome": "Pão Integral",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "6e255632-0f13-4998-87e1-cd680b9fb2f7",
+    "nome": "Pão Italiano",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "024009c9-e4df-4bc1-ab4c-7025a2d7e373",
+    "nome": "Pão Mistura",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "c1a421f7-2da6-4714-bdb9-f11a1b0c5d26",
+    "nome": "Pão Pizza",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.979687+00:00"
+  },
+  {
+    "id": "5c08ccef-1408-4169-b4d3-aa6856e1f402",
+    "nome": "Pão Ralado",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "d9ea0db1-84f2-4fb8-ac70-60042b7d8c71",
+    "nome": "Pão Saloio",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "1cd4b73f-f75f-49c0-9a34-b665375dc164",
+    "nome": "Pasteis",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.979687+00:00"
+  },
+  {
+    "id": "9801a217-4d18-469c-ac02-36b8d308f015",
+    "nome": "Pasteis Miniatura Kg",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "kg",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "6052a0b5-9a40-4fa0-a18f-14cd9ea76d5b",
+    "nome": "Pastel Miniatura Uni",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "1eecf267-b7f4-4c10-ab11-67e0e33ea87d",
+    "nome": "Pastel Recheado",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "08e7dab3-1768-4ea8-932c-f86885f5aa94",
+    "nome": "Pizza Grande",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "382df3c8-bbec-4785-a451-877136620fc5",
+    "nome": "Pizza Média",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "7bf261c4-dc6d-4f3f-bef3-0415e7cd49d2",
+    "nome": "Pizza Pequena",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "479cfb8a-1d70-4ea9-9953-086f18649192",
+    "nome": "Pudim",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.979687+00:00"
+  },
+  {
+    "id": "2ee0cd98-3c6d-4ac1-bd5c-782be4958bbc",
+    "nome": "Rabanadas",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "8e450646-7681-447f-9930-4ac9325107a0",
+    "nome": "Raspas de Chocolate",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "c328eda2-bf66-4b38-96b0-f3b9809a039a",
+    "nome": "Regueifa Branca",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "0bd90792-4dcf-4b28-b5b2-b17d5f8bdf1a",
+    "nome": "Regueifa Canela",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "da4b1f00-f298-4034-ad13-5f69dc03e757",
+    "nome": "Regueifa Côco",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "893530d5-ef2d-4c40-a1e0-39bf3e6d617a",
+    "nome": "Regueifa Doce",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "0f3e6f65-ee9b-43bd-a8d8-897fbc4c6f7e",
+    "nome": "Regueifa Miniatura",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "8c913441-6b0f-4ca8-a5e2-3c724226ccc0",
+    "nome": "Rosca",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "4fc071f3-53a6-4719-b8d4-496ce67226cf",
+    "nome": "Rosca de Amêndoa",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.979687+00:00"
+  },
+  {
+    "id": "79c9bdcd-4e97-49e2-85ae-5042f3d33aed",
+    "nome": "Saco Mini Tostas",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  },
+  {
+    "id": "35955671-7c02-42a5-bf89-4223c39f364c",
+    "nome": "Semi-frio",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "f6e98e77-8e58-43e6-a722-684339d85ec7",
+    "nome": "Sonhos",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.979687+00:00"
+  },
+  {
+    "id": "08af0d35-85ec-4b35-8edc-3cdf81581cc1",
+    "nome": "Tabuleiro de Pizza",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.979687+00:00"
+  },
+  {
+    "id": "2e213c12-5698-4de3-9e85-bcbdae9d721b",
+    "nome": "Tarte de Fruta",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "1f8c24a7-0152-49b9-8bce-205ce409940b",
+    "nome": "Tartes de Fruta",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.979687+00:00"
+  },
+  {
+    "id": "fd8adf34-89a2-4216-9ae0-3abd4e7e4fe2",
+    "nome": "Telha",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "d52f51ee-e38f-4555-b1d5-a2c9b51e162c",
+    "nome": "Teste",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-16T18:31:10.589474+00:00"
+  },
+  {
+    "id": "e1c23a54-7027-4bc6-9998-0eb0adc970ce",
+    "nome": "Torre Profiteroles",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.979687+00:00"
+  },
+  {
+    "id": "059aac54-1ae3-4121-94d9-af7160cd866d",
+    "nome": "Tosta Teste",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-16T18:29:50.995686+00:00"
+  },
+  {
+    "id": "7e63af46-d1a3-4885-b661-c76caa5cdbb0",
+    "nome": "Trança",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "beb635fb-f94c-4d55-8780-f082072d44b9",
+    "nome": "Trança de Amendoa",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.879667+00:00"
+  },
+  {
+    "id": "91baf8ae-17ca-45d9-899d-ac0367cdc717",
+    "nome": "Trança Folhada Frutos Secos",
+    "categoria": "pastelaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.979687+00:00"
+  },
+  {
+    "id": "882a046c-1937-4c5b-8c92-51e12aa49d9d",
+    "nome": "Triga Milha",
+    "categoria": "padaria",
+    "preco": 0,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "ativo": true,
+    "criado_em": "2026-09-14T19:32:26.772605+00:00"
+  }
 ];
 
-// Encomendas iniciais carregadas em tempo real do Supabase
-export const ENCOMENDAS_INICIAIS: Encomenda[] = [];
+export const ENCOMENDAS_MOCK: Encomenda[] = [
+  {
+    "id": "343b2bb8-7666-4a34-b8fc-e2d4f5ebc06c",
+    "numero_sequencial": 101,
+    "codigo": "ENC-LOJA1-101",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "b0880586-81f6-47e7-9c9a-8dacc701f4ba",
+      "nome": "Ana Sofia Ferreira",
+      "telefone": "919012308",
+      "morada": "Lugar da Merujal, Serra da Freita, 4540-610 Arouca",
+      "notas_entrega": "Casa em granito perto do parque de campismo"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-07",
+    "hora_agendamento": "08:00",
+    "hora_entrega_real": "08:00",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 08:00]",
+    "itens": [
+      {
+        "id": "item-343b2bb8-7666-4a34-b8fc-e2d4f5ebc06c-0",
+        "encomenda_id": "343b2bb8-7666-4a34-b8fc-e2d4f5ebc06c",
+        "produto_id": "7d72b412-371a-4c22-a5d4-a984e9b0ab83",
+        "produto_nome": "Bolo c/ Sardinhas",
+        "setor": "padaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-343b2bb8-7666-4a34-b8fc-e2d4f5ebc06c-1",
+        "encomenda_id": "343b2bb8-7666-4a34-b8fc-e2d4f5ebc06c",
+        "produto_id": "ede288e0-9ab2-4808-b313-b81a6eaad854",
+        "produto_nome": "Bolo de Aniversário",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-07T08:00:00+00:00"
+  },
+  {
+    "id": "56208890-c023-4801-94a4-5348fe9280e9",
+    "numero_sequencial": 102,
+    "codigo": "ENC-DOM-102",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "df2fbf0f-375c-4eb7-b131-3e2cad6e0295",
+      "nome": "António Rodrigues Silva",
+      "telefone": "912345601",
+      "morada": "Rua Dr. Teixeira de Brito, 14, 4540-100 Arouca",
+      "notas_entrega": "Portão preto lateral, entregar de manhã"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
+    "carrinha_nome": "Carrinha 2 (Fabrico Central)",
+    "data_agendamento": "2026-09-08",
+    "hora_agendamento": "08:30",
+    "hora_entrega_real": "08:30",
+    "ordem_rota": 3,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 08:30]",
+    "itens": [
+      {
+        "id": "item-56208890-c023-4801-94a4-5348fe9280e9-0",
+        "encomenda_id": "56208890-c023-4801-94a4-5348fe9280e9",
+        "produto_id": "b5265bc7-1d64-407d-82b5-465750e8d4d1",
+        "produto_nome": "Bolo de Comunhão",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Massa bem cozida",
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-56208890-c023-4801-94a4-5348fe9280e9-1",
+        "encomenda_id": "56208890-c023-4801-94a4-5348fe9280e9",
+        "produto_id": "e2b97eb6-8c28-42ea-bc92-0729eb386a87",
+        "produto_nome": "Bolo Rei",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-56208890-c023-4801-94a4-5348fe9280e9-2",
+        "encomenda_id": "56208890-c023-4801-94a4-5348fe9280e9",
+        "produto_id": "b8b62528-c374-435f-9b89-4bda4f156f05",
+        "produto_nome": "Bolo Rei Escangalhado",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-08T08:30:00+00:00"
+  },
+  {
+    "id": "39ad7fcd-02f6-4ab3-a078-0a8a2d429365",
+    "numero_sequencial": 103,
+    "codigo": "ENC-LOJA3-103",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "f6af84a8-3428-4e16-b708-9141abd29169",
+      "nome": "Beatriz Sousa Pinto",
+      "telefone": "921234560",
+      "morada": "Rua 1º de Maio, 88, 4540-105 Arouca",
+      "notas_entrega": "Campainha Sousa"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-09",
+    "hora_agendamento": "09:00",
+    "hora_entrega_real": "09:18",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 09:18]",
+    "itens": [
+      {
+        "id": "item-39ad7fcd-02f6-4ab3-a078-0a8a2d429365-0",
+        "encomenda_id": "39ad7fcd-02f6-4ab3-a078-0a8a2d429365",
+        "produto_id": "f016598c-2024-49db-bd07-7effc8ca7201",
+        "produto_nome": "Bolo Rei Folhado",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Sem canela",
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-39ad7fcd-02f6-4ab3-a078-0a8a2d429365-1",
+        "encomenda_id": "39ad7fcd-02f6-4ab3-a078-0a8a2d429365",
+        "produto_id": "01a58bef-1587-45a5-abeb-1e839ba8235c",
+        "produto_nome": "Brigadeiros",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-39ad7fcd-02f6-4ab3-a078-0a8a2d429365-2",
+        "encomenda_id": "39ad7fcd-02f6-4ab3-a078-0a8a2d429365",
+        "produto_id": "5a0b42ce-4e7b-4629-8c58-a3d2de065afc",
+        "produto_nome": "Broa",
+        "setor": "padaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-39ad7fcd-02f6-4ab3-a078-0a8a2d429365-3",
+        "encomenda_id": "39ad7fcd-02f6-4ab3-a078-0a8a2d429365",
+        "produto_id": "18d2eb00-f11c-4865-a975-7ee9746121db",
+        "produto_nome": "Broa Centeio",
+        "setor": "padaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-09T09:00:00+00:00"
+  },
+  {
+    "id": "5baf47e7-6b56-435a-a3fe-98cf6271ae24",
+    "numero_sequencial": 104,
+    "codigo": "ENC-DOM-104",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "2b914a5b-b30f-4023-a2ab-0cefff095199",
+      "nome": "Carlos Alberto Resende",
+      "telefone": "918901207",
+      "morada": "Avenida 25 de Abril, Escariz, 4540-320 Arouca",
+      "notas_entrega": "Zona comercial de Escariz"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
+    "carrinha_nome": "Carrinha 4 - Estação",
+    "data_agendamento": "2026-09-10",
+    "hora_agendamento": "09:30",
+    "hora_entrega_real": "09:32",
+    "ordem_rota": 5,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 09:32]",
+    "itens": [
+      {
+        "id": "item-5baf47e7-6b56-435a-a3fe-98cf6271ae24-0",
+        "encomenda_id": "5baf47e7-6b56-435a-a3fe-98cf6271ae24",
+        "produto_id": "18d2eb00-f11c-4865-a975-7ee9746121db",
+        "produto_nome": "Broa Centeio",
+        "setor": "padaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-10T09:30:00+00:00"
+  },
+  {
+    "id": "cef8db7d-5468-41ff-9535-c1d52d965c42",
+    "numero_sequencial": 105,
+    "codigo": "ENC-LOJA2-105",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "2ccb42f0-bbe9-4c1b-ba92-d0bafea931f7",
+      "nome": "Carlos Alberto Rocha",
+      "telefone": "910123459",
+      "morada": "Lugar de Moldes de Cima, 4540-420 Arouca",
+      "notas_entrega": "Casa perto da capela"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-11",
+    "hora_agendamento": "10:00",
+    "hora_entrega_real": "10:00",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "Cliente habitual - embalar em saco duplo [ENTREGUE: 10:00]",
+    "itens": [
+      {
+        "id": "item-cef8db7d-5468-41ff-9535-c1d52d965c42-0",
+        "encomenda_id": "cef8db7d-5468-41ff-9535-c1d52d965c42",
+        "produto_id": "7c3fa4bd-3570-489b-9090-8d9b49d5db62",
+        "produto_nome": "Broinha de Mistura",
+        "setor": "padaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-cef8db7d-5468-41ff-9535-c1d52d965c42-1",
+        "encomenda_id": "cef8db7d-5468-41ff-9535-c1d52d965c42",
+        "produto_id": "d39830a9-82cd-4d40-80f8-807e1e70bdf7",
+        "produto_nome": "Cacete",
+        "setor": "padaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-11T10:00:00+00:00"
+  },
+  {
+    "id": "8c3068c7-dd31-49bf-b2b5-7d490304b585",
+    "numero_sequencial": 106,
+    "codigo": "ENC-DOM-106",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "b16c4461-58fd-446a-8f22-13ca1bc8506e",
+      "nome": "Domingos Ferreira Bastos",
+      "telefone": "914567893",
+      "morada": "Lugar de Urrô, 4540-700 Arouca",
+      "notas_entrega": "Portão da quinta"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
+    "carrinha_nome": "Carrinha 2 (Fabrico Central)",
+    "data_agendamento": "2026-09-12",
+    "hora_agendamento": "10:30",
+    "hora_entrega_real": "10:51",
+    "ordem_rota": 7,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 10:51]",
+    "itens": [
+      {
+        "id": "item-8c3068c7-dd31-49bf-b2b5-7d490304b585-0",
+        "encomenda_id": "8c3068c7-dd31-49bf-b2b5-7d490304b585",
+        "produto_id": "e1694cc6-eb86-418e-a445-f520bc95c8f7",
+        "produto_nome": "Castanhas Doces",
+        "setor": "pastelaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Sem frutos secos",
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-8c3068c7-dd31-49bf-b2b5-7d490304b585-1",
+        "encomenda_id": "8c3068c7-dd31-49bf-b2b5-7d490304b585",
+        "produto_id": "1f3e1e2f-d437-4c26-98dd-6cdd0f9cbc18",
+        "produto_nome": "Cavacas",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-8c3068c7-dd31-49bf-b2b5-7d490304b585-2",
+        "encomenda_id": "8c3068c7-dd31-49bf-b2b5-7d490304b585",
+        "produto_id": "f13b5274-a257-4bb8-985e-7cd42274be83",
+        "produto_nome": "Chá Hungaro",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-12T10:30:00+00:00"
+  },
+  {
+    "id": "73299935-25ca-4b62-80ee-b1a84218af8b",
+    "numero_sequencial": 107,
+    "codigo": "ENC-LOJA1-107",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "0d5d5c3a-428f-43ac-a2fd-c71f96e61dc5",
+      "nome": "Fernanda Isabel Duarte",
+      "telefone": "939012318",
+      "morada": "Serra da Freita, Lugar de Merujal, 4540-410 Arouca",
+      "notas_entrega": "Restaurante típico"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-13",
+    "hora_agendamento": "11:00",
+    "hora_entrega_real": "11:00",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 11:00]",
+    "itens": [
+      {
+        "id": "item-73299935-25ca-4b62-80ee-b1a84218af8b-0",
+        "encomenda_id": "73299935-25ca-4b62-80ee-b1a84218af8b",
+        "produto_id": "8b1f5edb-cdc9-4842-bb64-d21e488ecf6e",
+        "produto_nome": "Crocante de Ovo",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Massa bem cozida",
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-73299935-25ca-4b62-80ee-b1a84218af8b-1",
+        "encomenda_id": "73299935-25ca-4b62-80ee-b1a84218af8b",
+        "produto_id": "43750423-88ef-4eb6-accb-ce91ec24e743",
+        "produto_nome": "Farinha",
+        "setor": "padaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-73299935-25ca-4b62-80ee-b1a84218af8b-2",
+        "encomenda_id": "73299935-25ca-4b62-80ee-b1a84218af8b",
+        "produto_id": "e9f1ac0f-5e43-4d44-90d5-f0844b7948af",
+        "produto_nome": "Fatia Bola de Carne",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-73299935-25ca-4b62-80ee-b1a84218af8b-3",
+        "encomenda_id": "73299935-25ca-4b62-80ee-b1a84218af8b",
+        "produto_id": "d075f44e-da7d-442c-8758-e58e987652f6",
+        "produto_nome": "Fatia de Bolo",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-13T11:00:00+00:00"
+  },
+  {
+    "id": "b8bb66a6-0969-49e3-a7f9-150377c449f6",
+    "numero_sequencial": 108,
+    "codigo": "ENC-DOM-108",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "44a8827a-97a8-47db-85af-d5c80fa2e3cd",
+      "nome": "Francisco José Valente",
+      "telefone": "936789015",
+      "morada": "Rua do Mosteiro, 3, 4540-100 Arouca",
+      "notas_entrega": "Apartamento 1º Dto"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
+    "carrinha_nome": "Carrinha 4 - Estação",
+    "data_agendamento": "2026-09-14",
+    "hora_agendamento": "11:30",
+    "hora_entrega_real": "11:31",
+    "ordem_rota": 9,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 11:31]",
+    "itens": [
+      {
+        "id": "item-b8bb66a6-0969-49e3-a7f9-150377c449f6-0",
+        "encomenda_id": "b8bb66a6-0969-49e3-a7f9-150377c449f6",
+        "produto_id": "d075f44e-da7d-442c-8758-e58e987652f6",
+        "produto_nome": "Fatia de Bolo",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Sem canela",
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-14T11:30:00+00:00"
+  },
+  {
+    "id": "5a8d306c-e347-4b55-9ee9-43b35a6e10c7",
+    "numero_sequencial": 109,
+    "codigo": "ENC-LOJA3-109",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "85a086e8-35ce-4410-b19d-2db0ca54d198",
+      "nome": "Helena Margarida Cunha",
+      "telefone": "925678904",
+      "morada": "Canelas, Estrada das Minas, 4540-150 Arouca",
+      "notas_entrega": "Deixar no alpendre se não estiver"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-15",
+    "hora_agendamento": "14:00",
+    "hora_entrega_real": "14:24",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 14:24]",
+    "itens": [
+      {
+        "id": "item-5a8d306c-e347-4b55-9ee9-43b35a6e10c7-0",
+        "encomenda_id": "5a8d306c-e347-4b55-9ee9-43b35a6e10c7",
+        "produto_id": "c71d6135-a6a6-49a6-af5f-d2cd69f3fa4a",
+        "produto_nome": "Fios D'ovos",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Creme de ovo suave",
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-5a8d306c-e347-4b55-9ee9-43b35a6e10c7-1",
+        "encomenda_id": "5a8d306c-e347-4b55-9ee9-43b35a6e10c7",
+        "produto_id": "318643dc-3772-4d81-a554-6b5ed2790311",
+        "produto_nome": "Fogaça",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-15T14:00:00+00:00"
+  },
+  {
+    "id": "4866c377-e859-498e-baba-826255364ed5",
+    "numero_sequencial": 110,
+    "codigo": "ENC-DOM-110",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "b64fdccc-7803-49dc-bfd9-39796eba0cc3",
+      "nome": "Inês Filipa Moreira",
+      "telefone": "967890126",
+      "morada": "Lugar de Chave, 4540-250 Arouca",
+      "notas_entrega": "Entregar à D. Maria"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
+    "carrinha_nome": "Carrinha 2 (Fabrico Central)",
+    "data_agendamento": "2026-09-06",
+    "hora_agendamento": "15:30",
+    "hora_entrega_real": "15:30",
+    "ordem_rota": 1,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "Cliente habitual - embalar em saco duplo [ENTREGUE: 15:30]",
+    "itens": [
+      {
+        "id": "item-4866c377-e859-498e-baba-826255364ed5-0",
+        "encomenda_id": "4866c377-e859-498e-baba-826255364ed5",
+        "produto_id": "9e926846-a0db-4db0-83e3-0328da2279b6",
+        "produto_nome": "Massa Folhada",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Escrever 'Parabéns'",
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-4866c377-e859-498e-baba-826255364ed5-1",
+        "encomenda_id": "4866c377-e859-498e-baba-826255364ed5",
+        "produto_id": "bc2a1035-0e0b-45eb-bd92-158e68bbe074",
+        "produto_nome": "Meia Bola de Carne",
+        "setor": "pastelaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-4866c377-e859-498e-baba-826255364ed5-2",
+        "encomenda_id": "4866c377-e859-498e-baba-826255364ed5",
+        "produto_id": "e176b6ac-58e9-48d0-8ffc-cb682e2883fb",
+        "produto_nome": "Meia Lua",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-06T15:30:00+00:00"
+  },
+  {
+    "id": "0f4cd616-3915-4ec6-b02a-54f88335f0c9",
+    "numero_sequencial": 111,
+    "codigo": "ENC-LOJA2-111",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "71b565b3-373d-42f9-b470-d060241e7105",
+      "nome": "Joaquim Fernandes Couto",
+      "telefone": "914567803",
+      "morada": "Avenida Reinaldo dos Santos, 22, 4540-105 Arouca",
+      "notas_entrega": "Edifício Parque, 2º Dto"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-07",
+    "hora_agendamento": "16:00",
+    "hora_entrega_real": "16:00",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 16:00]",
+    "itens": [
+      {
+        "id": "item-0f4cd616-3915-4ec6-b02a-54f88335f0c9-0",
+        "encomenda_id": "0f4cd616-3915-4ec6-b02a-54f88335f0c9",
+        "produto_id": "56059b6d-06c3-46d5-952d-2e33a21a2922",
+        "produto_nome": "Melindres",
+        "setor": "pastelaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Sem frutos secos",
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-0f4cd616-3915-4ec6-b02a-54f88335f0c9-1",
+        "encomenda_id": "0f4cd616-3915-4ec6-b02a-54f88335f0c9",
+        "produto_id": "4d5b2947-0858-4e8a-8be4-201d0e341a58",
+        "produto_nome": "Mini Broa c/ Chouriço",
+        "setor": "padaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-0f4cd616-3915-4ec6-b02a-54f88335f0c9-2",
+        "encomenda_id": "0f4cd616-3915-4ec6-b02a-54f88335f0c9",
+        "produto_id": "8dd8e171-e457-49be-9f54-27a31548e77e",
+        "produto_nome": "Mini Pão da Avó",
+        "setor": "padaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-0f4cd616-3915-4ec6-b02a-54f88335f0c9-3",
+        "encomenda_id": "0f4cd616-3915-4ec6-b02a-54f88335f0c9",
+        "produto_id": "398cb1e9-19df-477d-bb4e-c99a451d206f",
+        "produto_nome": "Ovo de Páscoa",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-07T16:00:00+00:00"
+  },
+  {
+    "id": "a8835a24-e46a-489b-9f1d-99740da98b2f",
+    "numero_sequencial": 112,
+    "codigo": "ENC-DOM-112",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "45ced891-5586-4ac5-ac89-ccf133983551",
+      "nome": "Joaquim Pedro Tavares",
+      "telefone": "928901207",
+      "morada": "Escariz, Zona Industrial, Lote 8, 4540-200 Arouca",
+      "notas_entrega": "Portaria da fábrica"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
+    "carrinha_nome": "Carrinha 4 - Estação",
+    "data_agendamento": "2026-09-08",
+    "hora_agendamento": "17:00",
+    "hora_entrega_real": "17:27",
+    "ordem_rota": 3,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 17:27]",
+    "itens": [
+      {
+        "id": "item-a8835a24-e46a-489b-9f1d-99740da98b2f-0",
+        "encomenda_id": "a8835a24-e46a-489b-9f1d-99740da98b2f",
+        "produto_id": "398cb1e9-19df-477d-bb4e-c99a451d206f",
+        "produto_nome": "Ovo de Páscoa",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Massa bem cozida",
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-08T17:00:00+00:00"
+  },
+  {
+    "id": "c9d12c96-266f-4fe9-b0b4-0af8512fc8e0",
+    "numero_sequencial": 113,
+    "codigo": "ENC-LOJA1-113",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "f5246e1a-68fb-43e1-bb60-f3a6c0279489",
+      "nome": "José Carlos Oliveira",
+      "telefone": "934567803",
+      "morada": "Avenida 25 de Abril, 102, 4540-102 Arouca",
+      "notas_entrega": "Entregar na loja de pronto a vestir"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-09",
+    "hora_agendamento": "18:00",
+    "hora_entrega_real": null,
+    "estado": "cancelado",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-c9d12c96-266f-4fe9-b0b4-0af8512fc8e0-0",
+        "encomenda_id": "c9d12c96-266f-4fe9-b0b4-0af8512fc8e0",
+        "produto_id": "368ad493-fd3a-4ab5-b5e7-259ba4e04eea",
+        "produto_nome": "Padinhas Alfarroba",
+        "setor": "padaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-c9d12c96-266f-4fe9-b0b4-0af8512fc8e0-1",
+        "encomenda_id": "c9d12c96-266f-4fe9-b0b4-0af8512fc8e0",
+        "produto_id": "b22aa2cb-aab2-480b-b448-fc8362d1be14",
+        "produto_nome": "Panettone",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-09T18:00:00+00:00"
+  },
+  {
+    "id": "b177b6ec-1120-49cc-bb44-7d9398851b0a",
+    "numero_sequencial": 114,
+    "codigo": "ENC-DOM-114",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "bf23bcc5-2c2b-4572-b805-c9f8d66152e8",
+      "nome": "Luís Carreiras",
+      "telefone": "935241876",
+      "morada": "Travessa do Poço da Água Lote 4 Coimbra",
+      "notas_entrega": "Entregar na porta principal"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
+    "carrinha_nome": "Carrinha 2 (Fabrico Central)",
+    "data_agendamento": "2026-09-10",
+    "hora_agendamento": "07:30",
+    "hora_entrega_real": "07:32",
+    "ordem_rota": 5,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 07:32]",
+    "itens": [
+      {
+        "id": "item-b177b6ec-1120-49cc-bb44-7d9398851b0a-0",
+        "encomenda_id": "b177b6ec-1120-49cc-bb44-7d9398851b0a",
+        "produto_id": "ce0bb303-7b7a-4e00-bbf2-8cf4d081d454",
+        "produto_nome": "Pão 7 Grãos Pequeno",
+        "setor": "padaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-b177b6ec-1120-49cc-bb44-7d9398851b0a-1",
+        "encomenda_id": "b177b6ec-1120-49cc-bb44-7d9398851b0a",
+        "produto_id": "abad98cb-b121-47f4-b17b-995334aa9f67",
+        "produto_nome": "Pão c/  Sementes",
+        "setor": "padaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-b177b6ec-1120-49cc-bb44-7d9398851b0a-2",
+        "encomenda_id": "b177b6ec-1120-49cc-bb44-7d9398851b0a",
+        "produto_id": "034c0563-440d-4ee8-bb1b-464458efd3ca",
+        "produto_nome": "Pão Cereais Fatiado",
+        "setor": "padaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-10T07:30:00+00:00"
+  },
+  {
+    "id": "56afc603-52a7-4a74-877d-eaa3f6402bc4",
+    "numero_sequencial": 115,
+    "codigo": "ENC-LOJA3-115",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "896e30f3-2d24-4864-83a6-82b8cd14d6e5",
+      "nome": "Manuel Fernando Brandão",
+      "telefone": "916789005",
+      "morada": "Lugar da Granja, Santa Eulália, 4540-520 Arouca",
+      "notas_entrega": "Deixar na mercearia local se não estiver"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-11",
+    "hora_agendamento": "08:00",
+    "hora_entrega_real": "08:30",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "Cliente habitual - embalar em saco duplo [ENTREGUE: 08:30]",
+    "itens": [
+      {
+        "id": "item-56afc603-52a7-4a74-877d-eaa3f6402bc4-0",
+        "encomenda_id": "56afc603-52a7-4a74-877d-eaa3f6402bc4",
+        "produto_id": "be759f4c-f6fd-4ac8-b424-2762e4c6f231",
+        "produto_nome": "Pão com Chouriço",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Escrever 'Parabéns'",
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-56afc603-52a7-4a74-877d-eaa3f6402bc4-1",
+        "encomenda_id": "56afc603-52a7-4a74-877d-eaa3f6402bc4",
+        "produto_id": "4966d5c0-7eb7-42ac-8be6-9c56785ef855",
+        "produto_nome": "Pão da Avó",
+        "setor": "padaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-56afc603-52a7-4a74-877d-eaa3f6402bc4-2",
+        "encomenda_id": "56afc603-52a7-4a74-877d-eaa3f6402bc4",
+        "produto_id": "82f0c100-81e9-489b-9377-9e5dc48ff312",
+        "produto_nome": "Pão da Mealhada",
+        "setor": "padaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-56afc603-52a7-4a74-877d-eaa3f6402bc4-3",
+        "encomenda_id": "56afc603-52a7-4a74-877d-eaa3f6402bc4",
+        "produto_id": "43648ed7-6e34-4929-a530-7c1a1f998a3f",
+        "produto_nome": "Pão de Alfarroba",
+        "setor": "padaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-11T08:00:00+00:00"
+  },
+  {
+    "id": "7f65af21-a1f1-4ff0-8e31-9bcadf33b00f",
+    "numero_sequencial": 116,
+    "codigo": "ENC-DOM-116",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "6e2cc3ba-d9fb-4d3e-a596-b0d7c069034e",
+      "nome": "Manuel Fernando Pinho",
+      "telefone": "916789015",
+      "morada": "Mansores, Lugar do Outeiro, 4540-310 Arouca",
+      "notas_entrega": "Casa com portão verde"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
+    "carrinha_nome": "Carrinha 4 - Estação",
+    "data_agendamento": "2026-09-12",
+    "hora_agendamento": "08:30",
+    "hora_entrega_real": "08:30",
+    "ordem_rota": 7,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 08:30]",
+    "itens": [
+      {
+        "id": "item-7f65af21-a1f1-4ff0-8e31-9bcadf33b00f-0",
+        "encomenda_id": "7f65af21-a1f1-4ff0-8e31-9bcadf33b00f",
+        "produto_id": "43648ed7-6e34-4929-a530-7c1a1f998a3f",
+        "produto_nome": "Pão de Alfarroba",
+        "setor": "padaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-12T08:30:00+00:00"
+  },
+  {
+    "id": "d038bd1d-95e3-41c0-8f87-55bf2927e1d2",
+    "numero_sequencial": 117,
+    "codigo": "ENC-LOJA2-117",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "48578695-1391-48ba-b9f4-09569d6798f3",
+      "nome": "Maria Clara Santos",
+      "telefone": "923456702",
+      "morada": "Lugar de Alvarenga, 4540-010 Arouca",
+      "notas_entrega": "Casa de pedra junto à ponte"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-13",
+    "hora_agendamento": "09:00",
+    "hora_entrega_real": "09:00",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 09:00]",
+    "itens": [
+      {
+        "id": "item-d038bd1d-95e3-41c0-8f87-55bf2927e1d2-0",
+        "encomenda_id": "d038bd1d-95e3-41c0-8f87-55bf2927e1d2",
+        "produto_id": "bf83f1b8-cae1-4623-81a3-2291ad9f570e",
+        "produto_nome": "Pão de Beterraba",
+        "setor": "padaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-d038bd1d-95e3-41c0-8f87-55bf2927e1d2-1",
+        "encomenda_id": "d038bd1d-95e3-41c0-8f87-55bf2927e1d2",
+        "produto_id": "ce9636e2-dbe4-41f2-87de-a0f7b5fbad9b",
+        "produto_nome": "Pão de Beterraba Pequeno",
+        "setor": "padaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-13T09:00:00+00:00"
+  },
+  {
+    "id": "794817f6-a653-4ba0-ae4e-d7d2fe66b776",
+    "numero_sequencial": 118,
+    "codigo": "ENC-DOM-118",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "50c8fdcf-b7ea-47e8-bc6a-83c71729b4ae",
+      "nome": "Maria Manuela Pinho",
+      "telefone": "913456702",
+      "morada": "Largo do Mosteiro de Santa Maria de Arouca, 4540-111 Arouca",
+      "notas_entrega": "Levantamento no balcão da Praça"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
+    "carrinha_nome": "Carrinha 2 (Fabrico Central)",
+    "data_agendamento": "2026-09-14",
+    "hora_agendamento": "09:30",
+    "hora_entrega_real": "10:03",
+    "ordem_rota": 9,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 10:03]",
+    "itens": [
+      {
+        "id": "item-794817f6-a653-4ba0-ae4e-d7d2fe66b776-0",
+        "encomenda_id": "794817f6-a653-4ba0-ae4e-d7d2fe66b776",
+        "produto_id": "154690ff-0395-4545-90b1-0ca4d7ccdec4",
+        "produto_nome": "Pão de Canela",
+        "setor": "padaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-794817f6-a653-4ba0-ae4e-d7d2fe66b776-1",
+        "encomenda_id": "794817f6-a653-4ba0-ae4e-d7d2fe66b776",
+        "produto_id": "9083a4ac-715e-4708-8a16-45bcd0a7028d",
+        "produto_nome": "Pão de Forma",
+        "setor": "padaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-794817f6-a653-4ba0-ae4e-d7d2fe66b776-2",
+        "encomenda_id": "794817f6-a653-4ba0-ae4e-d7d2fe66b776",
+        "produto_id": "9dc5b77b-71e3-4c85-b042-9c6acc697317",
+        "produto_nome": "Pão de Forma Cereais",
+        "setor": "padaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-14T09:30:00+00:00"
+  },
+  {
+    "id": "c1b06428-f275-4071-ab53-ea2bd63c85e7",
+    "numero_sequencial": 119,
+    "codigo": "ENC-LOJA1-119",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "806d6eca-2f6d-42b3-ac76-78db92948a5e",
+      "nome": "Maria Manuela Resende",
+      "telefone": "913221155",
+      "morada": "Padaria da Vila I (Praça)",
+      "notas_entrega": ""
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-15",
+    "hora_agendamento": "10:00",
+    "hora_entrega_real": "10:02",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 10:02]",
+    "itens": [
+      {
+        "id": "item-c1b06428-f275-4071-ab53-ea2bd63c85e7-0",
+        "encomenda_id": "c1b06428-f275-4071-ab53-ea2bd63c85e7",
+        "produto_id": "bc9b4c3f-ba07-4bdf-9da5-af41869f6700",
+        "produto_nome": "Pão de Forma Pequeno",
+        "setor": "padaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-c1b06428-f275-4071-ab53-ea2bd63c85e7-1",
+        "encomenda_id": "c1b06428-f275-4071-ab53-ea2bd63c85e7",
+        "produto_id": "f4d2b8a4-0646-4542-9128-84959726fda8",
+        "produto_nome": "Pão de Hanburger",
+        "setor": "padaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-c1b06428-f275-4071-ab53-ea2bd63c85e7-2",
+        "encomenda_id": "c1b06428-f275-4071-ab53-ea2bd63c85e7",
+        "produto_id": "25039971-deb7-490f-8634-20e7719c0b99",
+        "produto_nome": "Pão de Leite",
+        "setor": "padaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-c1b06428-f275-4071-ab53-ea2bd63c85e7-3",
+        "encomenda_id": "c1b06428-f275-4071-ab53-ea2bd63c85e7",
+        "produto_id": "067fb587-f1ff-40af-8b7c-94890127ce46",
+        "produto_nome": "Pão de Ló",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-15T10:00:00+00:00"
+  },
+  {
+    "id": "c9bdfc9e-b983-4dc9-aae3-c70f93f369ee",
+    "numero_sequencial": 120,
+    "codigo": "ENC-DOM-120",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "e153dc86-8a8d-4ec2-96aa-a8e146e94949",
+      "nome": "Patrícia Helena Gomes",
+      "telefone": "963456782",
+      "morada": "Lugar da Várzea, 4540-650 Arouca",
+      "notas_entrega": "Ligar antes de entregar"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
+    "carrinha_nome": "Carrinha 4 - Estação",
+    "data_agendamento": "2026-09-06",
+    "hora_agendamento": "10:30",
+    "hora_entrega_real": "10:30",
+    "ordem_rota": 1,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "Cliente habitual - embalar em saco duplo [ENTREGUE: 10:30]",
+    "itens": [
+      {
+        "id": "item-c9bdfc9e-b983-4dc9-aae3-c70f93f369ee-0",
+        "encomenda_id": "c9bdfc9e-b983-4dc9-aae3-c70f93f369ee",
+        "produto_id": "067fb587-f1ff-40af-8b7c-94890127ce46",
+        "produto_nome": "Pão de Ló",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Escrever 'Parabéns'",
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-06T10:30:00+00:00"
+  },
+  {
+    "id": "19343a97-3aa8-438c-a792-912e9425316e",
+    "numero_sequencial": 121,
+    "codigo": "ENC-LOJA3-121",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "33591e35-b23a-4334-b19a-602340fd0052",
+      "nome": "Rosa Maria Matos",
+      "telefone": "917890106",
+      "morada": "Rua do Souto, Mansores, 4540-410 Arouca",
+      "notas_entrega": "Tocar à campainha da frente"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-07",
+    "hora_agendamento": "11:00",
+    "hora_entrega_real": "11:36",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 11:36]",
+    "itens": [
+      {
+        "id": "item-19343a97-3aa8-438c-a792-912e9425316e-0",
+        "encomenda_id": "19343a97-3aa8-438c-a792-912e9425316e",
+        "produto_id": "230e1426-14b4-4697-9921-14601ae09f4f",
+        "produto_nome": "Pão Integral",
+        "setor": "padaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-19343a97-3aa8-438c-a792-912e9425316e-1",
+        "encomenda_id": "19343a97-3aa8-438c-a792-912e9425316e",
+        "produto_id": "6e255632-0f13-4998-87e1-cd680b9fb2f7",
+        "produto_nome": "Pão Italiano",
+        "setor": "padaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-07T11:00:00+00:00"
+  },
+  {
+    "id": "d9c8b6f9-284e-414e-bc32-e34ceaec42f5",
+    "numero_sequencial": 122,
+    "codigo": "ENC-DOM-122",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "806d28e5-60fd-41ce-9c16-2fc65b7d3423",
+      "nome": "Rui Miguel Azevedo",
+      "telefone": "932345671",
+      "morada": "Lugar de Rossas, 4540-600 Arouca",
+      "notas_entrega": "Moradia isolada junto ao cruzeiro"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
+    "carrinha_nome": "Carrinha 2 (Fabrico Central)",
+    "data_agendamento": "2026-09-08",
+    "hora_agendamento": "11:30",
+    "hora_entrega_real": "11:30",
+    "ordem_rota": 3,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 11:30]",
+    "itens": [
+      {
+        "id": "item-d9c8b6f9-284e-414e-bc32-e34ceaec42f5-0",
+        "encomenda_id": "d9c8b6f9-284e-414e-bc32-e34ceaec42f5",
+        "produto_id": "c1a421f7-2da6-4714-bdb9-f11a1b0c5d26",
+        "produto_nome": "Pão Pizza",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Massa bem cozida",
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-d9c8b6f9-284e-414e-bc32-e34ceaec42f5-1",
+        "encomenda_id": "d9c8b6f9-284e-414e-bc32-e34ceaec42f5",
+        "produto_id": "5c08ccef-1408-4169-b4d3-aa6856e1f402",
+        "produto_nome": "Pão Ralado",
+        "setor": "padaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-d9c8b6f9-284e-414e-bc32-e34ceaec42f5-2",
+        "encomenda_id": "d9c8b6f9-284e-414e-bc32-e34ceaec42f5",
+        "produto_id": "d9ea0db1-84f2-4fb8-ac70-60042b7d8c71",
+        "produto_nome": "Pão Saloio",
+        "setor": "padaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-08T11:30:00+00:00"
+  },
+  {
+    "id": "ba236f58-5443-49b8-8f31-52b29e1e1b90",
+    "numero_sequencial": 123,
+    "codigo": "ENC-LOJA2-123",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "321c2d51-7081-4fd3-9b07-6d3e29988c1e",
+      "nome": "Sandra Cristina Martins",
+      "telefone": "929012348",
+      "morada": "Lugar de Tropeço, 4540-580 Arouca",
+      "notas_entrega": "Em frente ao café central"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-09",
+    "hora_agendamento": "14:00",
+    "hora_entrega_real": "14:01",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 14:01]",
+    "itens": [
+      {
+        "id": "item-ba236f58-5443-49b8-8f31-52b29e1e1b90-0",
+        "encomenda_id": "ba236f58-5443-49b8-8f31-52b29e1e1b90",
+        "produto_id": "1cd4b73f-f75f-49c0-9a34-b665375dc164",
+        "produto_nome": "Pasteis",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Sem canela",
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-ba236f58-5443-49b8-8f31-52b29e1e1b90-1",
+        "encomenda_id": "ba236f58-5443-49b8-8f31-52b29e1e1b90",
+        "produto_id": "9801a217-4d18-469c-ac02-36b8d308f015",
+        "produto_nome": "Pasteis Miniatura Kg",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-ba236f58-5443-49b8-8f31-52b29e1e1b90-2",
+        "encomenda_id": "ba236f58-5443-49b8-8f31-52b29e1e1b90",
+        "produto_id": "6052a0b5-9a40-4fa0-a18f-14cd9ea76d5b",
+        "produto_nome": "Pastel Miniatura Uni",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-ba236f58-5443-49b8-8f31-52b29e1e1b90-3",
+        "encomenda_id": "ba236f58-5443-49b8-8f31-52b29e1e1b90",
+        "produto_id": "1eecf267-b7f4-4c10-ab11-67e0e33ea87d",
+        "produto_nome": "Pastel Recheado",
+        "setor": "pastelaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-09T14:00:00+00:00"
+  },
+  {
+    "id": "ee74be71-379b-41ad-8bef-36e1d17a1d7a",
+    "numero_sequencial": 124,
+    "codigo": "ENC-DOM-124",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "5d2042bc-5a94-4097-83cd-a352fa6f28f9",
+      "nome": "Teresa de Jesus Duarte",
+      "telefone": "915678904",
+      "morada": "Rua das Flores, Alvarenga, 4540-020 Arouca",
+      "notas_entrega": "Casa térrea junto aos Passadiços do Paiva"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
+    "carrinha_nome": "Carrinha 4 - Estação",
+    "data_agendamento": "2026-09-10",
+    "hora_agendamento": "15:30",
+    "hora_entrega_real": "16:09",
+    "ordem_rota": 5,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 16:09]",
+    "itens": [
+      {
+        "id": "item-ee74be71-379b-41ad-8bef-36e1d17a1d7a-0",
+        "encomenda_id": "ee74be71-379b-41ad-8bef-36e1d17a1d7a",
+        "produto_id": "1eecf267-b7f4-4c10-ab11-67e0e33ea87d",
+        "produto_nome": "Pastel Recheado",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Creme de ovo suave",
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-10T15:30:00+00:00"
+  },
+  {
+    "id": "d3930516-4cac-427d-bf25-9ce8fd2698d9",
+    "numero_sequencial": 125,
+    "codigo": "ENC-LOJA1-125",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "004aae21-4b73-476f-bad8-d879047383a6",
+      "nome": "Teresa Maria Brandão",
+      "telefone": "965678904",
+      "morada": "Santa Eulália, Rua Principal 45, 4540-520 Arouca",
+      "notas_entrega": "Entregar de manhã até às 11h"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-11",
+    "hora_agendamento": "16:00",
+    "hora_entrega_real": "16:00",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "Cliente habitual - embalar em saco duplo [ENTREGUE: 16:00]",
+    "itens": [
+      {
+        "id": "item-d3930516-4cac-427d-bf25-9ce8fd2698d9-0",
+        "encomenda_id": "d3930516-4cac-427d-bf25-9ce8fd2698d9",
+        "produto_id": "7bf261c4-dc6d-4f3f-bef3-0415e7cd49d2",
+        "produto_nome": "Pizza Pequena",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Escrever 'Parabéns'",
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-d3930516-4cac-427d-bf25-9ce8fd2698d9-1",
+        "encomenda_id": "d3930516-4cac-427d-bf25-9ce8fd2698d9",
+        "produto_id": "479cfb8a-1d70-4ea9-9953-086f18649192",
+        "produto_nome": "Pudim",
+        "setor": "pastelaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-11T16:00:00+00:00"
+  },
+  {
+    "id": "24b5850a-26ab-4a0e-917c-91ba810288d0",
+    "numero_sequencial": 126,
+    "codigo": "ENC-DOM-126",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "c62a94f2-2ad1-45ea-8bd1-d8451ad4c0f7",
+      "nome": "Vítor Hugo Teixeira",
+      "telefone": "918901237",
+      "morada": "Lugar de Fermedo, 4540-280 Arouca",
+      "notas_entrega": "Oficina mecânica"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
+    "carrinha_nome": "Carrinha 2 (Fabrico Central)",
+    "data_agendamento": "2026-09-12",
+    "hora_agendamento": "17:00",
+    "hora_entrega_real": "17:00",
+    "ordem_rota": 7,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 17:00]",
+    "itens": [
+      {
+        "id": "item-24b5850a-26ab-4a0e-917c-91ba810288d0-0",
+        "encomenda_id": "24b5850a-26ab-4a0e-917c-91ba810288d0",
+        "produto_id": "8e450646-7681-447f-9930-4ac9325107a0",
+        "produto_nome": "Raspas de Chocolate",
+        "setor": "pastelaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Sem frutos secos",
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-24b5850a-26ab-4a0e-917c-91ba810288d0-1",
+        "encomenda_id": "24b5850a-26ab-4a0e-917c-91ba810288d0",
+        "produto_id": "c328eda2-bf66-4b38-96b0-f3b9809a039a",
+        "produto_nome": "Regueifa Branca",
+        "setor": "padaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-24b5850a-26ab-4a0e-917c-91ba810288d0-2",
+        "encomenda_id": "24b5850a-26ab-4a0e-917c-91ba810288d0",
+        "produto_id": "0bd90792-4dcf-4b28-b5b2-b17d5f8bdf1a",
+        "produto_nome": "Regueifa Canela",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-12T17:00:00+00:00"
+  },
+  {
+    "id": "a0f5d539-56d0-4442-9a22-83564dfc4c63",
+    "numero_sequencial": 127,
+    "codigo": "ENC-LOJA3-127",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "8bc4a996-6bc8-42fa-9cc1-dd27530c8fb9",
+      "nome": "Zz",
+      "telefone": "+3519352336",
+      "morada": null,
+      "notas_entrega": null
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-13",
+    "hora_agendamento": "18:00",
+    "hora_entrega_real": "18:42",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 18:42]",
+    "itens": [
+      {
+        "id": "item-a0f5d539-56d0-4442-9a22-83564dfc4c63-0",
+        "encomenda_id": "a0f5d539-56d0-4442-9a22-83564dfc4c63",
+        "produto_id": "da4b1f00-f298-4034-ad13-5f69dc03e757",
+        "produto_nome": "Regueifa Côco",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Massa bem cozida",
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-a0f5d539-56d0-4442-9a22-83564dfc4c63-1",
+        "encomenda_id": "a0f5d539-56d0-4442-9a22-83564dfc4c63",
+        "produto_id": "893530d5-ef2d-4c40-a1e0-39bf3e6d617a",
+        "produto_nome": "Regueifa Doce",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-a0f5d539-56d0-4442-9a22-83564dfc4c63-2",
+        "encomenda_id": "a0f5d539-56d0-4442-9a22-83564dfc4c63",
+        "produto_id": "0f3e6f65-ee9b-43bd-a8d8-897fbc4c6f7e",
+        "produto_nome": "Regueifa Miniatura",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-a0f5d539-56d0-4442-9a22-83564dfc4c63-3",
+        "encomenda_id": "a0f5d539-56d0-4442-9a22-83564dfc4c63",
+        "produto_id": "8c913441-6b0f-4ca8-a5e2-3c724226ccc0",
+        "produto_nome": "Rosca",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-13T18:00:00+00:00"
+  },
+  {
+    "id": "4b3b085d-dc68-431d-9c81-2642bbc7dd16",
+    "numero_sequencial": 128,
+    "codigo": "ENC-DOM-128",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "b0880586-81f6-47e7-9c9a-8dacc701f4ba",
+      "nome": "Ana Sofia Ferreira",
+      "telefone": "919012308",
+      "morada": "Lugar da Merujal, Serra da Freita, 4540-610 Arouca",
+      "notas_entrega": "Casa em granito perto do parque de campismo"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
+    "carrinha_nome": "Carrinha 4 - Estação",
+    "data_agendamento": "2026-09-14",
+    "hora_agendamento": "07:30",
+    "hora_entrega_real": "07:31",
+    "ordem_rota": 9,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 07:31]",
+    "itens": [
+      {
+        "id": "item-4b3b085d-dc68-431d-9c81-2642bbc7dd16-0",
+        "encomenda_id": "4b3b085d-dc68-431d-9c81-2642bbc7dd16",
+        "produto_id": "8c913441-6b0f-4ca8-a5e2-3c724226ccc0",
+        "produto_nome": "Rosca",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Sem canela",
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-14T07:30:00+00:00"
+  },
+  {
+    "id": "cf9a492c-f457-4b30-b9b7-001404198764",
+    "numero_sequencial": 129,
+    "codigo": "ENC-LOJA2-129",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "df2fbf0f-375c-4eb7-b131-3e2cad6e0295",
+      "nome": "António Rodrigues Silva",
+      "telefone": "912345601",
+      "morada": "Rua Dr. Teixeira de Brito, 14, 4540-100 Arouca",
+      "notas_entrega": "Portão preto lateral, entregar de manhã"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-15",
+    "hora_agendamento": "08:00",
+    "hora_entrega_real": "08:02",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 08:02]",
+    "itens": [
+      {
+        "id": "item-cf9a492c-f457-4b30-b9b7-001404198764-0",
+        "encomenda_id": "cf9a492c-f457-4b30-b9b7-001404198764",
+        "produto_id": "35955671-7c02-42a5-bf89-4223c39f364c",
+        "produto_nome": "Semi-frio",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Creme de ovo suave",
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-cf9a492c-f457-4b30-b9b7-001404198764-1",
+        "encomenda_id": "cf9a492c-f457-4b30-b9b7-001404198764",
+        "produto_id": "f6e98e77-8e58-43e6-a722-684339d85ec7",
+        "produto_nome": "Sonhos",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-15T08:00:00+00:00"
+  },
+  {
+    "id": "44b4b191-7d9a-4ff9-a413-bc04377f64ee",
+    "numero_sequencial": 130,
+    "codigo": "ENC-DOM-130",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "f6af84a8-3428-4e16-b708-9141abd29169",
+      "nome": "Beatriz Sousa Pinto",
+      "telefone": "921234560",
+      "morada": "Rua 1º de Maio, 88, 4540-105 Arouca",
+      "notas_entrega": "Campainha Sousa"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
+    "carrinha_nome": "Carrinha 2 (Fabrico Central)",
+    "data_agendamento": "2026-09-06",
+    "hora_agendamento": "08:30",
+    "hora_entrega_real": "08:45",
+    "ordem_rota": 1,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "Cliente habitual - embalar em saco duplo [ENTREGUE: 08:45]",
+    "itens": [
+      {
+        "id": "item-44b4b191-7d9a-4ff9-a413-bc04377f64ee-0",
+        "encomenda_id": "44b4b191-7d9a-4ff9-a413-bc04377f64ee",
+        "produto_id": "2e213c12-5698-4de3-9e85-bcbdae9d721b",
+        "produto_nome": "Tarte de Fruta",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Escrever 'Parabéns'",
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-44b4b191-7d9a-4ff9-a413-bc04377f64ee-1",
+        "encomenda_id": "44b4b191-7d9a-4ff9-a413-bc04377f64ee",
+        "produto_id": "1f8c24a7-0152-49b9-8bce-205ce409940b",
+        "produto_nome": "Tartes de Fruta",
+        "setor": "pastelaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-44b4b191-7d9a-4ff9-a413-bc04377f64ee-2",
+        "encomenda_id": "44b4b191-7d9a-4ff9-a413-bc04377f64ee",
+        "produto_id": "fd8adf34-89a2-4216-9ae0-3abd4e7e4fe2",
+        "produto_nome": "Telha",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-06T08:30:00+00:00"
+  },
+  {
+    "id": "aecffc88-692e-4947-bd52-7a55b59cf3d5",
+    "numero_sequencial": 131,
+    "codigo": "ENC-LOJA1-131",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "2b914a5b-b30f-4023-a2ab-0cefff095199",
+      "nome": "Carlos Alberto Resende",
+      "telefone": "918901207",
+      "morada": "Avenida 25 de Abril, Escariz, 4540-320 Arouca",
+      "notas_entrega": "Zona comercial de Escariz"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-07",
+    "hora_agendamento": "09:00",
+    "hora_entrega_real": "09:00",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 09:00]",
+    "itens": [
+      {
+        "id": "item-aecffc88-692e-4947-bd52-7a55b59cf3d5-0",
+        "encomenda_id": "aecffc88-692e-4947-bd52-7a55b59cf3d5",
+        "produto_id": "d52f51ee-e38f-4555-b1d5-a2c9b51e162c",
+        "produto_nome": "Teste",
+        "setor": "padaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-aecffc88-692e-4947-bd52-7a55b59cf3d5-1",
+        "encomenda_id": "aecffc88-692e-4947-bd52-7a55b59cf3d5",
+        "produto_id": "e1c23a54-7027-4bc6-9998-0eb0adc970ce",
+        "produto_nome": "Torre Profiteroles",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-aecffc88-692e-4947-bd52-7a55b59cf3d5-2",
+        "encomenda_id": "aecffc88-692e-4947-bd52-7a55b59cf3d5",
+        "produto_id": "059aac54-1ae3-4121-94d9-af7160cd866d",
+        "produto_nome": "Tosta Teste",
+        "setor": "padaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-aecffc88-692e-4947-bd52-7a55b59cf3d5-3",
+        "encomenda_id": "aecffc88-692e-4947-bd52-7a55b59cf3d5",
+        "produto_id": "7e63af46-d1a3-4885-b661-c76caa5cdbb0",
+        "produto_nome": "Trança",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-07T09:00:00+00:00"
+  },
+  {
+    "id": "653e794f-a9d8-410d-84bf-0e9005191adb",
+    "numero_sequencial": 132,
+    "codigo": "ENC-DOM-132",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "2ccb42f0-bbe9-4c1b-ba92-d0bafea931f7",
+      "nome": "Carlos Alberto Rocha",
+      "telefone": "910123459",
+      "morada": "Lugar de Moldes de Cima, 4540-420 Arouca",
+      "notas_entrega": "Casa perto da capela"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
+    "carrinha_nome": "Carrinha 4 - Estação",
+    "data_agendamento": "2026-09-08",
+    "hora_agendamento": "09:30",
+    "hora_entrega_real": "09:30",
+    "ordem_rota": 3,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 09:30]",
+    "itens": [
+      {
+        "id": "item-653e794f-a9d8-410d-84bf-0e9005191adb-0",
+        "encomenda_id": "653e794f-a9d8-410d-84bf-0e9005191adb",
+        "produto_id": "7e63af46-d1a3-4885-b661-c76caa5cdbb0",
+        "produto_nome": "Trança",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Massa bem cozida",
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-08T09:30:00+00:00"
+  },
+  {
+    "id": "f8077016-c422-4ea9-8952-162d6b946676",
+    "numero_sequencial": 133,
+    "codigo": "ENC-LOJA3-133",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "b16c4461-58fd-446a-8f22-13ca1bc8506e",
+      "nome": "Domingos Ferreira Bastos",
+      "telefone": "914567893",
+      "morada": "Lugar de Urrô, 4540-700 Arouca",
+      "notas_entrega": "Portão da quinta"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-09",
+    "hora_agendamento": "10:00",
+    "hora_entrega_real": "10:18",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 10:18]",
+    "itens": [
+      {
+        "id": "item-f8077016-c422-4ea9-8952-162d6b946676-0",
+        "encomenda_id": "f8077016-c422-4ea9-8952-162d6b946676",
+        "produto_id": "882a046c-1937-4c5b-8c92-51e12aa49d9d",
+        "produto_nome": "Triga Milha",
+        "setor": "padaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-f8077016-c422-4ea9-8952-162d6b946676-1",
+        "encomenda_id": "f8077016-c422-4ea9-8952-162d6b946676",
+        "produto_id": "13c7cd7e-43ae-462d-8822-a23b917181ed",
+        "produto_nome": "Almendrado",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-09T10:00:00+00:00"
+  },
+  {
+    "id": "ab101b3f-e4cb-49e7-907d-339610ba8d2a",
+    "numero_sequencial": 134,
+    "codigo": "ENC-DOM-134",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "0d5d5c3a-428f-43ac-a2fd-c71f96e61dc5",
+      "nome": "Fernanda Isabel Duarte",
+      "telefone": "939012318",
+      "morada": "Serra da Freita, Lugar de Merujal, 4540-410 Arouca",
+      "notas_entrega": "Restaurante típico"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
+    "carrinha_nome": "Carrinha 2 (Fabrico Central)",
+    "data_agendamento": "2026-09-10",
+    "hora_agendamento": "10:30",
+    "hora_entrega_real": "10:32",
+    "ordem_rota": 5,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 10:32]",
+    "itens": [
+      {
+        "id": "item-ab101b3f-e4cb-49e7-907d-339610ba8d2a-0",
+        "encomenda_id": "ab101b3f-e4cb-49e7-907d-339610ba8d2a",
+        "produto_id": "760d70c4-eeaa-4613-812c-c9a8cfccdf1c",
+        "produto_nome": "Bola de Carne",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Creme de ovo suave",
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-ab101b3f-e4cb-49e7-907d-339610ba8d2a-1",
+        "encomenda_id": "ab101b3f-e4cb-49e7-907d-339610ba8d2a",
+        "produto_id": "7d72b412-371a-4c22-a5d4-a984e9b0ab83",
+        "produto_nome": "Bolo c/ Sardinhas",
+        "setor": "padaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-ab101b3f-e4cb-49e7-907d-339610ba8d2a-2",
+        "encomenda_id": "ab101b3f-e4cb-49e7-907d-339610ba8d2a",
+        "produto_id": "ede288e0-9ab2-4808-b313-b81a6eaad854",
+        "produto_nome": "Bolo de Aniversário",
+        "setor": "pastelaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-10T10:30:00+00:00"
+  },
+  {
+    "id": "d087066e-6088-4eb6-8dc6-8c62cfebb9b9",
+    "numero_sequencial": 135,
+    "codigo": "ENC-LOJA2-135",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "44a8827a-97a8-47db-85af-d5c80fa2e3cd",
+      "nome": "Francisco José Valente",
+      "telefone": "936789015",
+      "morada": "Rua do Mosteiro, 3, 4540-100 Arouca",
+      "notas_entrega": "Apartamento 1º Dto"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-11",
+    "hora_agendamento": "11:00",
+    "hora_entrega_real": "11:00",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "Cliente habitual - embalar em saco duplo [ENTREGUE: 11:00]",
+    "itens": [
+      {
+        "id": "item-d087066e-6088-4eb6-8dc6-8c62cfebb9b9-0",
+        "encomenda_id": "d087066e-6088-4eb6-8dc6-8c62cfebb9b9",
+        "produto_id": "973aeeda-a967-4a04-9171-b99e8548b35a",
+        "produto_nome": "Bolo de Casamento",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Escrever 'Parabéns'",
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-d087066e-6088-4eb6-8dc6-8c62cfebb9b9-1",
+        "encomenda_id": "d087066e-6088-4eb6-8dc6-8c62cfebb9b9",
+        "produto_id": "b5265bc7-1d64-407d-82b5-465750e8d4d1",
+        "produto_nome": "Bolo de Comunhão",
+        "setor": "pastelaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-d087066e-6088-4eb6-8dc6-8c62cfebb9b9-2",
+        "encomenda_id": "d087066e-6088-4eb6-8dc6-8c62cfebb9b9",
+        "produto_id": "e2b97eb6-8c28-42ea-bc92-0729eb386a87",
+        "produto_nome": "Bolo Rei",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-d087066e-6088-4eb6-8dc6-8c62cfebb9b9-3",
+        "encomenda_id": "d087066e-6088-4eb6-8dc6-8c62cfebb9b9",
+        "produto_id": "b8b62528-c374-435f-9b89-4bda4f156f05",
+        "produto_nome": "Bolo Rei Escangalhado",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-11T11:00:00+00:00"
+  },
+  {
+    "id": "7720439e-b798-4aa6-94c3-9745ebfe54ae",
+    "numero_sequencial": 136,
+    "codigo": "ENC-DOM-136",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "85a086e8-35ce-4410-b19d-2db0ca54d198",
+      "nome": "Helena Margarida Cunha",
+      "telefone": "925678904",
+      "morada": "Canelas, Estrada das Minas, 4540-150 Arouca",
+      "notas_entrega": "Deixar no alpendre se não estiver"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
+    "carrinha_nome": "Carrinha 4 - Estação",
+    "data_agendamento": "2026-09-12",
+    "hora_agendamento": "11:30",
+    "hora_entrega_real": "11:51",
+    "ordem_rota": 7,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 11:51]",
+    "itens": [
+      {
+        "id": "item-7720439e-b798-4aa6-94c3-9745ebfe54ae-0",
+        "encomenda_id": "7720439e-b798-4aa6-94c3-9745ebfe54ae",
+        "produto_id": "b8b62528-c374-435f-9b89-4bda4f156f05",
+        "produto_nome": "Bolo Rei Escangalhado",
+        "setor": "pastelaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Sem frutos secos",
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-12T11:30:00+00:00"
+  },
+  {
+    "id": "429152ad-3175-4b47-9bb5-7dcf0ddc3824",
+    "numero_sequencial": 137,
+    "codigo": "ENC-LOJA1-137",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "b64fdccc-7803-49dc-bfd9-39796eba0cc3",
+      "nome": "Inês Filipa Moreira",
+      "telefone": "967890126",
+      "morada": "Lugar de Chave, 4540-250 Arouca",
+      "notas_entrega": "Entregar à D. Maria"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-13",
+    "hora_agendamento": "14:00",
+    "hora_entrega_real": "14:00",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 14:00]",
+    "itens": [
+      {
+        "id": "item-429152ad-3175-4b47-9bb5-7dcf0ddc3824-0",
+        "encomenda_id": "429152ad-3175-4b47-9bb5-7dcf0ddc3824",
+        "produto_id": "5a0b42ce-4e7b-4629-8c58-a3d2de065afc",
+        "produto_nome": "Broa",
+        "setor": "padaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-429152ad-3175-4b47-9bb5-7dcf0ddc3824-1",
+        "encomenda_id": "429152ad-3175-4b47-9bb5-7dcf0ddc3824",
+        "produto_id": "18d2eb00-f11c-4865-a975-7ee9746121db",
+        "produto_nome": "Broa Centeio",
+        "setor": "padaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-13T14:00:00+00:00"
+  },
+  {
+    "id": "7b0f15bb-c4a3-4ae0-a7f7-fcd38dcbdde7",
+    "numero_sequencial": 138,
+    "codigo": "ENC-DOM-138",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "71b565b3-373d-42f9-b470-d060241e7105",
+      "nome": "Joaquim Fernandes Couto",
+      "telefone": "914567803",
+      "morada": "Avenida Reinaldo dos Santos, 22, 4540-105 Arouca",
+      "notas_entrega": "Edifício Parque, 2º Dto"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
+    "carrinha_nome": "Carrinha 2 (Fabrico Central)",
+    "data_agendamento": "2026-09-14",
+    "hora_agendamento": "15:30",
+    "hora_entrega_real": "15:31",
+    "ordem_rota": 9,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 15:31]",
+    "itens": [
+      {
+        "id": "item-7b0f15bb-c4a3-4ae0-a7f7-fcd38dcbdde7-0",
+        "encomenda_id": "7b0f15bb-c4a3-4ae0-a7f7-fcd38dcbdde7",
+        "produto_id": "413a9168-c3c6-43f8-9f8b-98ce961f6618",
+        "produto_nome": "Broas de Mel",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Sem canela",
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-7b0f15bb-c4a3-4ae0-a7f7-fcd38dcbdde7-1",
+        "encomenda_id": "7b0f15bb-c4a3-4ae0-a7f7-fcd38dcbdde7",
+        "produto_id": "7c3fa4bd-3570-489b-9090-8d9b49d5db62",
+        "produto_nome": "Broinha de Mistura",
+        "setor": "padaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-7b0f15bb-c4a3-4ae0-a7f7-fcd38dcbdde7-2",
+        "encomenda_id": "7b0f15bb-c4a3-4ae0-a7f7-fcd38dcbdde7",
+        "produto_id": "d39830a9-82cd-4d40-80f8-807e1e70bdf7",
+        "produto_nome": "Cacete",
+        "setor": "padaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-14T15:30:00+00:00"
+  },
+  {
+    "id": "81e70922-3e1e-4ba0-b26b-14073796a3e2",
+    "numero_sequencial": 139,
+    "codigo": "ENC-LOJA3-139",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "45ced891-5586-4ac5-ac89-ccf133983551",
+      "nome": "Joaquim Pedro Tavares",
+      "telefone": "928901207",
+      "morada": "Escariz, Zona Industrial, Lote 8, 4540-200 Arouca",
+      "notas_entrega": "Portaria da fábrica"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-15",
+    "hora_agendamento": "16:00",
+    "hora_entrega_real": "16:24",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 16:24]",
+    "itens": [
+      {
+        "id": "item-81e70922-3e1e-4ba0-b26b-14073796a3e2-0",
+        "encomenda_id": "81e70922-3e1e-4ba0-b26b-14073796a3e2",
+        "produto_id": "5f633c41-7b50-4356-bbf4-54c97b27b687",
+        "produto_nome": "Carcaça",
+        "setor": "padaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-81e70922-3e1e-4ba0-b26b-14073796a3e2-1",
+        "encomenda_id": "81e70922-3e1e-4ba0-b26b-14073796a3e2",
+        "produto_id": "e1694cc6-eb86-418e-a445-f520bc95c8f7",
+        "produto_nome": "Castanhas Doces",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-81e70922-3e1e-4ba0-b26b-14073796a3e2-2",
+        "encomenda_id": "81e70922-3e1e-4ba0-b26b-14073796a3e2",
+        "produto_id": "1f3e1e2f-d437-4c26-98dd-6cdd0f9cbc18",
+        "produto_nome": "Cavacas",
+        "setor": "pastelaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-81e70922-3e1e-4ba0-b26b-14073796a3e2-3",
+        "encomenda_id": "81e70922-3e1e-4ba0-b26b-14073796a3e2",
+        "produto_id": "f13b5274-a257-4bb8-985e-7cd42274be83",
+        "produto_nome": "Chá Hungaro",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-15T16:00:00+00:00"
+  },
+  {
+    "id": "a322116f-b1d2-45ce-8925-e0391ec8c5bb",
+    "numero_sequencial": 140,
+    "codigo": "ENC-DOM-140",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "f5246e1a-68fb-43e1-bb60-f3a6c0279489",
+      "nome": "José Carlos Oliveira",
+      "telefone": "934567803",
+      "morada": "Avenida 25 de Abril, 102, 4540-102 Arouca",
+      "notas_entrega": "Entregar na loja de pronto a vestir"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
+    "carrinha_nome": "Carrinha 4 - Estação",
+    "data_agendamento": "2026-09-06",
+    "hora_agendamento": "17:00",
+    "hora_entrega_real": "17:00",
+    "ordem_rota": 1,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "Cliente habitual - embalar em saco duplo [ENTREGUE: 17:00]",
+    "itens": [
+      {
+        "id": "item-a322116f-b1d2-45ce-8925-e0391ec8c5bb-0",
+        "encomenda_id": "a322116f-b1d2-45ce-8925-e0391ec8c5bb",
+        "produto_id": "f13b5274-a257-4bb8-985e-7cd42274be83",
+        "produto_nome": "Chá Hungaro",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Escrever 'Parabéns'",
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-06T17:00:00+00:00"
+  },
+  {
+    "id": "0f2df0cb-755a-4439-b4da-ac582b75af39",
+    "numero_sequencial": 141,
+    "codigo": "ENC-LOJA2-141",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "bf23bcc5-2c2b-4572-b805-c9f8d66152e8",
+      "nome": "Luís Carreiras",
+      "telefone": "935241876",
+      "morada": "Travessa do Poço da Água Lote 4 Coimbra",
+      "notas_entrega": "Entregar na porta principal"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-07",
+    "hora_agendamento": "18:00",
+    "hora_entrega_real": "18:00",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 18:00]",
+    "itens": [
+      {
+        "id": "item-0f2df0cb-755a-4439-b4da-ac582b75af39-0",
+        "encomenda_id": "0f2df0cb-755a-4439-b4da-ac582b75af39",
+        "produto_id": "e9f1ac0f-5e43-4d44-90d5-f0844b7948af",
+        "produto_nome": "Fatia Bola de Carne",
+        "setor": "pastelaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Sem frutos secos",
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-0f2df0cb-755a-4439-b4da-ac582b75af39-1",
+        "encomenda_id": "0f2df0cb-755a-4439-b4da-ac582b75af39",
+        "produto_id": "d075f44e-da7d-442c-8758-e58e987652f6",
+        "produto_nome": "Fatia de Bolo",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-07T18:00:00+00:00"
+  },
+  {
+    "id": "32c76cd9-85a6-457f-9771-95d377bd8756",
+    "numero_sequencial": 142,
+    "codigo": "ENC-DOM-142",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "896e30f3-2d24-4864-83a6-82b8cd14d6e5",
+      "nome": "Manuel Fernando Brandão",
+      "telefone": "916789005",
+      "morada": "Lugar da Granja, Santa Eulália, 4540-520 Arouca",
+      "notas_entrega": "Deixar na mercearia local se não estiver"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
+    "carrinha_nome": "Carrinha 2 (Fabrico Central)",
+    "data_agendamento": "2026-09-08",
+    "hora_agendamento": "07:30",
+    "hora_entrega_real": null,
+    "ordem_rota": 3,
+    "estado": "cancelado",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-32c76cd9-85a6-457f-9771-95d377bd8756-0",
+        "encomenda_id": "32c76cd9-85a6-457f-9771-95d377bd8756",
+        "produto_id": "6f9ef3b0-d0e2-483f-bf1f-b18b3ce06654",
+        "produto_nome": "Fermento de Padeiro",
+        "setor": "padaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-32c76cd9-85a6-457f-9771-95d377bd8756-1",
+        "encomenda_id": "32c76cd9-85a6-457f-9771-95d377bd8756",
+        "produto_id": "c71d6135-a6a6-49a6-af5f-d2cd69f3fa4a",
+        "produto_nome": "Fios D'ovos",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-32c76cd9-85a6-457f-9771-95d377bd8756-2",
+        "encomenda_id": "32c76cd9-85a6-457f-9771-95d377bd8756",
+        "produto_id": "318643dc-3772-4d81-a554-6b5ed2790311",
+        "produto_nome": "Fogaça",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-08T07:30:00+00:00"
+  },
+  {
+    "id": "7ecdc948-c581-4177-9a7e-af68ef4a7902",
+    "numero_sequencial": 143,
+    "codigo": "ENC-LOJA1-143",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "6e2cc3ba-d9fb-4d3e-a596-b0d7c069034e",
+      "nome": "Manuel Fernando Pinho",
+      "telefone": "916789015",
+      "morada": "Mansores, Lugar do Outeiro, 4540-310 Arouca",
+      "notas_entrega": "Casa com portão verde"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-09",
+    "hora_agendamento": "08:00",
+    "hora_entrega_real": "08:01",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 08:01]",
+    "itens": [
+      {
+        "id": "item-7ecdc948-c581-4177-9a7e-af68ef4a7902-0",
+        "encomenda_id": "7ecdc948-c581-4177-9a7e-af68ef4a7902",
+        "produto_id": "ffa1654f-604c-441a-ade6-a362d403597e",
+        "produto_nome": "Lanche Misto",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Sem canela",
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-7ecdc948-c581-4177-9a7e-af68ef4a7902-1",
+        "encomenda_id": "7ecdc948-c581-4177-9a7e-af68ef4a7902",
+        "produto_id": "9e926846-a0db-4db0-83e3-0328da2279b6",
+        "produto_nome": "Massa Folhada",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-7ecdc948-c581-4177-9a7e-af68ef4a7902-2",
+        "encomenda_id": "7ecdc948-c581-4177-9a7e-af68ef4a7902",
+        "produto_id": "bc2a1035-0e0b-45eb-bd92-158e68bbe074",
+        "produto_nome": "Meia Bola de Carne",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-7ecdc948-c581-4177-9a7e-af68ef4a7902-3",
+        "encomenda_id": "7ecdc948-c581-4177-9a7e-af68ef4a7902",
+        "produto_id": "e176b6ac-58e9-48d0-8ffc-cb682e2883fb",
+        "produto_nome": "Meia Lua",
+        "setor": "pastelaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-09T08:00:00+00:00"
+  },
+  {
+    "id": "6efbc59e-1f7d-4073-9596-b243e4f87138",
+    "numero_sequencial": 144,
+    "codigo": "ENC-DOM-144",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "48578695-1391-48ba-b9f4-09569d6798f3",
+      "nome": "Maria Clara Santos",
+      "telefone": "923456702",
+      "morada": "Lugar de Alvarenga, 4540-010 Arouca",
+      "notas_entrega": "Casa de pedra junto à ponte"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
+    "carrinha_nome": "Carrinha 4 - Estação",
+    "data_agendamento": "2026-09-10",
+    "hora_agendamento": "08:30",
+    "hora_entrega_real": "08:32",
+    "ordem_rota": 5,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 08:32]",
+    "itens": [
+      {
+        "id": "item-6efbc59e-1f7d-4073-9596-b243e4f87138-0",
+        "encomenda_id": "6efbc59e-1f7d-4073-9596-b243e4f87138",
+        "produto_id": "e176b6ac-58e9-48d0-8ffc-cb682e2883fb",
+        "produto_nome": "Meia Lua",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Creme de ovo suave",
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-10T08:30:00+00:00"
+  },
+  {
+    "id": "f7c7f8d5-3cc8-4e81-b14b-f6c1c3127447",
+    "numero_sequencial": 145,
+    "codigo": "ENC-LOJA3-145",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "50c8fdcf-b7ea-47e8-bc6a-83c71729b4ae",
+      "nome": "Maria Manuela Pinho",
+      "telefone": "913456702",
+      "morada": "Largo do Mosteiro de Santa Maria de Arouca, 4540-111 Arouca",
+      "notas_entrega": "Levantamento no balcão da Praça"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-11",
+    "hora_agendamento": "09:00",
+    "hora_entrega_real": "09:30",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "Cliente habitual - embalar em saco duplo [ENTREGUE: 09:30]",
+    "itens": [
+      {
+        "id": "item-f7c7f8d5-3cc8-4e81-b14b-f6c1c3127447-0",
+        "encomenda_id": "f7c7f8d5-3cc8-4e81-b14b-f6c1c3127447",
+        "produto_id": "8dd8e171-e457-49be-9f54-27a31548e77e",
+        "produto_nome": "Mini Pão da Avó",
+        "setor": "padaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-f7c7f8d5-3cc8-4e81-b14b-f6c1c3127447-1",
+        "encomenda_id": "f7c7f8d5-3cc8-4e81-b14b-f6c1c3127447",
+        "produto_id": "398cb1e9-19df-477d-bb4e-c99a451d206f",
+        "produto_nome": "Ovo de Páscoa",
+        "setor": "pastelaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-11T09:00:00+00:00"
+  },
+  {
+    "id": "45addc60-b9ca-456a-b20d-801d2f351ff6",
+    "numero_sequencial": 146,
+    "codigo": "ENC-DOM-146",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "806d6eca-2f6d-42b3-ac76-78db92948a5e",
+      "nome": "Maria Manuela Resende",
+      "telefone": "913221155",
+      "morada": "Padaria da Vila I (Praça)",
+      "notas_entrega": ""
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
+    "carrinha_nome": "Carrinha 2 (Fabrico Central)",
+    "data_agendamento": "2026-09-12",
+    "hora_agendamento": "09:30",
+    "hora_entrega_real": "09:30",
+    "ordem_rota": 7,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 09:30]",
+    "itens": [
+      {
+        "id": "item-45addc60-b9ca-456a-b20d-801d2f351ff6-0",
+        "encomenda_id": "45addc60-b9ca-456a-b20d-801d2f351ff6",
+        "produto_id": "6c99a29d-46c1-4925-a281-827ed82017ef",
+        "produto_nome": "Padinhas",
+        "setor": "padaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-45addc60-b9ca-456a-b20d-801d2f351ff6-1",
+        "encomenda_id": "45addc60-b9ca-456a-b20d-801d2f351ff6",
+        "produto_id": "368ad493-fd3a-4ab5-b5e7-259ba4e04eea",
+        "produto_nome": "Padinhas Alfarroba",
+        "setor": "padaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-45addc60-b9ca-456a-b20d-801d2f351ff6-2",
+        "encomenda_id": "45addc60-b9ca-456a-b20d-801d2f351ff6",
+        "produto_id": "b22aa2cb-aab2-480b-b448-fc8362d1be14",
+        "produto_nome": "Panettone",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-12T09:30:00+00:00"
+  },
+  {
+    "id": "882653e7-27bf-4d49-beb3-c193887df84a",
+    "numero_sequencial": 147,
+    "codigo": "ENC-LOJA2-147",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "e153dc86-8a8d-4ec2-96aa-a8e146e94949",
+      "nome": "Patrícia Helena Gomes",
+      "telefone": "963456782",
+      "morada": "Lugar da Várzea, 4540-650 Arouca",
+      "notas_entrega": "Ligar antes de entregar"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-13",
+    "hora_agendamento": "10:00",
+    "hora_entrega_real": "10:00",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 10:00]",
+    "itens": [
+      {
+        "id": "item-882653e7-27bf-4d49-beb3-c193887df84a-0",
+        "encomenda_id": "882653e7-27bf-4d49-beb3-c193887df84a",
+        "produto_id": "efcf6c84-e29f-43ab-8236-7138292a38d6",
+        "produto_nome": "Pão",
+        "setor": "padaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-882653e7-27bf-4d49-beb3-c193887df84a-1",
+        "encomenda_id": "882653e7-27bf-4d49-beb3-c193887df84a",
+        "produto_id": "ce0bb303-7b7a-4e00-bbf2-8cf4d081d454",
+        "produto_nome": "Pão 7 Grãos Pequeno",
+        "setor": "padaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-882653e7-27bf-4d49-beb3-c193887df84a-2",
+        "encomenda_id": "882653e7-27bf-4d49-beb3-c193887df84a",
+        "produto_id": "abad98cb-b121-47f4-b17b-995334aa9f67",
+        "produto_nome": "Pão c/  Sementes",
+        "setor": "padaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-882653e7-27bf-4d49-beb3-c193887df84a-3",
+        "encomenda_id": "882653e7-27bf-4d49-beb3-c193887df84a",
+        "produto_id": "034c0563-440d-4ee8-bb1b-464458efd3ca",
+        "produto_nome": "Pão Cereais Fatiado",
+        "setor": "padaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-13T10:00:00+00:00"
+  },
+  {
+    "id": "04e62550-923f-4ba0-b051-33071f9a40c7",
+    "numero_sequencial": 148,
+    "codigo": "ENC-DOM-148",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "33591e35-b23a-4334-b19a-602340fd0052",
+      "nome": "Rosa Maria Matos",
+      "telefone": "917890106",
+      "morada": "Rua do Souto, Mansores, 4540-410 Arouca",
+      "notas_entrega": "Tocar à campainha da frente"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
+    "carrinha_nome": "Carrinha 4 - Estação",
+    "data_agendamento": "2026-09-14",
+    "hora_agendamento": "10:30",
+    "hora_entrega_real": "11:03",
+    "ordem_rota": 9,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 11:03]",
+    "itens": [
+      {
+        "id": "item-04e62550-923f-4ba0-b051-33071f9a40c7-0",
+        "encomenda_id": "04e62550-923f-4ba0-b051-33071f9a40c7",
+        "produto_id": "034c0563-440d-4ee8-bb1b-464458efd3ca",
+        "produto_nome": "Pão Cereais Fatiado",
+        "setor": "padaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-14T10:30:00+00:00"
+  },
+  {
+    "id": "a3db7283-69e0-4c17-93f5-e343271fd49b",
+    "numero_sequencial": 149,
+    "codigo": "ENC-LOJA1-149",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "806d28e5-60fd-41ce-9c16-2fc65b7d3423",
+      "nome": "Rui Miguel Azevedo",
+      "telefone": "932345671",
+      "morada": "Lugar de Rossas, 4540-600 Arouca",
+      "notas_entrega": "Moradia isolada junto ao cruzeiro"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-15",
+    "hora_agendamento": "11:00",
+    "hora_entrega_real": "11:02",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 11:02]",
+    "itens": [
+      {
+        "id": "item-a3db7283-69e0-4c17-93f5-e343271fd49b-0",
+        "encomenda_id": "a3db7283-69e0-4c17-93f5-e343271fd49b",
+        "produto_id": "82f0c100-81e9-489b-9377-9e5dc48ff312",
+        "produto_nome": "Pão da Mealhada",
+        "setor": "padaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-a3db7283-69e0-4c17-93f5-e343271fd49b-1",
+        "encomenda_id": "a3db7283-69e0-4c17-93f5-e343271fd49b",
+        "produto_id": "43648ed7-6e34-4929-a530-7c1a1f998a3f",
+        "produto_nome": "Pão de Alfarroba",
+        "setor": "padaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-15T11:00:00+00:00"
+  },
+  {
+    "id": "78fd05f7-6bb7-409b-bd9b-7910ed09b2e7",
+    "numero_sequencial": 150,
+    "codigo": "ENC-DOM-150",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "321c2d51-7081-4fd3-9b07-6d3e29988c1e",
+      "nome": "Sandra Cristina Martins",
+      "telefone": "929012348",
+      "morada": "Lugar de Tropeço, 4540-580 Arouca",
+      "notas_entrega": "Em frente ao café central"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
+    "carrinha_nome": "Carrinha 2 (Fabrico Central)",
+    "data_agendamento": "2026-09-06",
+    "hora_agendamento": "11:30",
+    "hora_entrega_real": "11:30",
+    "ordem_rota": 1,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "Cliente habitual - embalar em saco duplo [ENTREGUE: 11:30]",
+    "itens": [
+      {
+        "id": "item-78fd05f7-6bb7-409b-bd9b-7910ed09b2e7-0",
+        "encomenda_id": "78fd05f7-6bb7-409b-bd9b-7910ed09b2e7",
+        "produto_id": "9a355c4b-8758-4d94-828c-d5ebb7563b77",
+        "produto_nome": "Pão de Alho",
+        "setor": "padaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-78fd05f7-6bb7-409b-bd9b-7910ed09b2e7-1",
+        "encomenda_id": "78fd05f7-6bb7-409b-bd9b-7910ed09b2e7",
+        "produto_id": "bf83f1b8-cae1-4623-81a3-2291ad9f570e",
+        "produto_nome": "Pão de Beterraba",
+        "setor": "padaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-78fd05f7-6bb7-409b-bd9b-7910ed09b2e7-2",
+        "encomenda_id": "78fd05f7-6bb7-409b-bd9b-7910ed09b2e7",
+        "produto_id": "ce9636e2-dbe4-41f2-87de-a0f7b5fbad9b",
+        "produto_nome": "Pão de Beterraba Pequeno",
+        "setor": "padaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-06T11:30:00+00:00"
+  },
+  {
+    "id": "f0438e8c-c803-435f-b993-01f156df3aed",
+    "numero_sequencial": 151,
+    "codigo": "ENC-LOJA3-151",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "5d2042bc-5a94-4097-83cd-a352fa6f28f9",
+      "nome": "Teresa de Jesus Duarte",
+      "telefone": "915678904",
+      "morada": "Rua das Flores, Alvarenga, 4540-020 Arouca",
+      "notas_entrega": "Casa térrea junto aos Passadiços do Paiva"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "14:00",
+    "hora_entrega_real": null,
+    "estado": "pendente",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-f0438e8c-c803-435f-b993-01f156df3aed-0",
+        "encomenda_id": "f0438e8c-c803-435f-b993-01f156df3aed",
+        "produto_id": "313b9c76-01a6-445c-89c8-9e9ca4888307",
+        "produto_nome": "Pão de Cachorro",
+        "setor": "padaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-f0438e8c-c803-435f-b993-01f156df3aed-1",
+        "encomenda_id": "f0438e8c-c803-435f-b993-01f156df3aed",
+        "produto_id": "154690ff-0395-4545-90b1-0ca4d7ccdec4",
+        "produto_nome": "Pão de Canela",
+        "setor": "padaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-f0438e8c-c803-435f-b993-01f156df3aed-2",
+        "encomenda_id": "f0438e8c-c803-435f-b993-01f156df3aed",
+        "produto_id": "9083a4ac-715e-4708-8a16-45bcd0a7028d",
+        "produto_nome": "Pão de Forma",
+        "setor": "padaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-f0438e8c-c803-435f-b993-01f156df3aed-3",
+        "encomenda_id": "f0438e8c-c803-435f-b993-01f156df3aed",
+        "produto_id": "9dc5b77b-71e3-4c85-b042-9c6acc697317",
+        "produto_nome": "Pão de Forma Cereais",
+        "setor": "padaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-16T14:00:00+00:00"
+  },
+  {
+    "id": "196e6b1a-47e6-47fc-974c-1e18c1e6602b",
+    "numero_sequencial": 152,
+    "codigo": "ENC-DOM-152",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "004aae21-4b73-476f-bad8-d879047383a6",
+      "nome": "Teresa Maria Brandão",
+      "telefone": "965678904",
+      "morada": "Santa Eulália, Rua Principal 45, 4540-520 Arouca",
+      "notas_entrega": "Entregar de manhã até às 11h"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
+    "carrinha_nome": "Carrinha 4 - Estação",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "15:30",
+    "hora_entrega_real": null,
+    "ordem_rota": 3,
+    "estado": "pendente",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-196e6b1a-47e6-47fc-974c-1e18c1e6602b-0",
+        "encomenda_id": "196e6b1a-47e6-47fc-974c-1e18c1e6602b",
+        "produto_id": "9dc5b77b-71e3-4c85-b042-9c6acc697317",
+        "produto_nome": "Pão de Forma Cereais",
+        "setor": "padaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-16T15:30:00+00:00"
+  },
+  {
+    "id": "bf175221-e0f9-4431-a2cf-fd1b6e69ddb8",
+    "numero_sequencial": 153,
+    "codigo": "ENC-LOJA2-153",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "c62a94f2-2ad1-45ea-8bd1-d8451ad4c0f7",
+      "nome": "Vítor Hugo Teixeira",
+      "telefone": "918901237",
+      "morada": "Lugar de Fermedo, 4540-280 Arouca",
+      "notas_entrega": "Oficina mecânica"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "16:00",
+    "hora_entrega_real": null,
+    "estado": "pendente",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-bf175221-e0f9-4431-a2cf-fd1b6e69ddb8-0",
+        "encomenda_id": "bf175221-e0f9-4431-a2cf-fd1b6e69ddb8",
+        "produto_id": "25039971-deb7-490f-8634-20e7719c0b99",
+        "produto_nome": "Pão de Leite",
+        "setor": "padaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-bf175221-e0f9-4431-a2cf-fd1b6e69ddb8-1",
+        "encomenda_id": "bf175221-e0f9-4431-a2cf-fd1b6e69ddb8",
+        "produto_id": "067fb587-f1ff-40af-8b7c-94890127ce46",
+        "produto_nome": "Pão de Ló",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-16T16:00:00+00:00"
+  },
+  {
+    "id": "20ea69d3-8c59-4e34-bd9d-2e2775521cc5",
+    "numero_sequencial": 154,
+    "codigo": "ENC-DOM-154",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "8bc4a996-6bc8-42fa-9cc1-dd27530c8fb9",
+      "nome": "Zz",
+      "telefone": "+3519352336",
+      "morada": null,
+      "notas_entrega": null
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
+    "carrinha_nome": "Carrinha 2 (Fabrico Central)",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "17:00",
+    "hora_entrega_real": null,
+    "ordem_rota": 5,
+    "estado": "pendente",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-20ea69d3-8c59-4e34-bd9d-2e2775521cc5-0",
+        "encomenda_id": "20ea69d3-8c59-4e34-bd9d-2e2775521cc5",
+        "produto_id": "48036f45-d227-4e27-8472-793b10d95a70",
+        "produto_nome": "Pão Doce",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Creme de ovo suave",
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-20ea69d3-8c59-4e34-bd9d-2e2775521cc5-1",
+        "encomenda_id": "20ea69d3-8c59-4e34-bd9d-2e2775521cc5",
+        "produto_id": "230e1426-14b4-4697-9921-14601ae09f4f",
+        "produto_nome": "Pão Integral",
+        "setor": "padaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-20ea69d3-8c59-4e34-bd9d-2e2775521cc5-2",
+        "encomenda_id": "20ea69d3-8c59-4e34-bd9d-2e2775521cc5",
+        "produto_id": "6e255632-0f13-4998-87e1-cd680b9fb2f7",
+        "produto_nome": "Pão Italiano",
+        "setor": "padaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-16T17:00:00+00:00"
+  },
+  {
+    "id": "e4181916-c256-497e-98a0-09b45fdb767a",
+    "numero_sequencial": 155,
+    "codigo": "ENC-LOJA1-155",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "b0880586-81f6-47e7-9c9a-8dacc701f4ba",
+      "nome": "Ana Sofia Ferreira",
+      "telefone": "919012308",
+      "morada": "Lugar da Merujal, Serra da Freita, 4540-610 Arouca",
+      "notas_entrega": "Casa em granito perto do parque de campismo"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "18:00",
+    "hora_entrega_real": null,
+    "estado": "pendente",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "Cliente habitual - embalar em saco duplo",
+    "itens": [
+      {
+        "id": "item-e4181916-c256-497e-98a0-09b45fdb767a-0",
+        "encomenda_id": "e4181916-c256-497e-98a0-09b45fdb767a",
+        "produto_id": "024009c9-e4df-4bc1-ab4c-7025a2d7e373",
+        "produto_nome": "Pão Mistura",
+        "setor": "padaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-e4181916-c256-497e-98a0-09b45fdb767a-1",
+        "encomenda_id": "e4181916-c256-497e-98a0-09b45fdb767a",
+        "produto_id": "c1a421f7-2da6-4714-bdb9-f11a1b0c5d26",
+        "produto_nome": "Pão Pizza",
+        "setor": "pastelaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-e4181916-c256-497e-98a0-09b45fdb767a-2",
+        "encomenda_id": "e4181916-c256-497e-98a0-09b45fdb767a",
+        "produto_id": "5c08ccef-1408-4169-b4d3-aa6856e1f402",
+        "produto_nome": "Pão Ralado",
+        "setor": "padaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-e4181916-c256-497e-98a0-09b45fdb767a-3",
+        "encomenda_id": "e4181916-c256-497e-98a0-09b45fdb767a",
+        "produto_id": "d9ea0db1-84f2-4fb8-ac70-60042b7d8c71",
+        "produto_nome": "Pão Saloio",
+        "setor": "padaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-16T18:00:00+00:00"
+  },
+  {
+    "id": "9c45e9c0-fde4-4501-92c8-430a6c0e4663",
+    "numero_sequencial": 156,
+    "codigo": "ENC-DOM-156",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "df2fbf0f-375c-4eb7-b131-3e2cad6e0295",
+      "nome": "António Rodrigues Silva",
+      "telefone": "912345601",
+      "morada": "Rua Dr. Teixeira de Brito, 14, 4540-100 Arouca",
+      "notas_entrega": "Portão preto lateral, entregar de manhã"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
+    "carrinha_nome": "Carrinha 4 - Estação",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "07:30",
+    "hora_entrega_real": null,
+    "ordem_rota": 7,
+    "estado": "pendente",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-9c45e9c0-fde4-4501-92c8-430a6c0e4663-0",
+        "encomenda_id": "9c45e9c0-fde4-4501-92c8-430a6c0e4663",
+        "produto_id": "d9ea0db1-84f2-4fb8-ac70-60042b7d8c71",
+        "produto_nome": "Pão Saloio",
+        "setor": "padaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-16T07:30:00+00:00"
+  },
+  {
+    "id": "77c5a2c0-154b-44cf-a3b1-e570241d42fc",
+    "numero_sequencial": 157,
+    "codigo": "ENC-LOJA3-157",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "f6af84a8-3428-4e16-b708-9141abd29169",
+      "nome": "Beatriz Sousa Pinto",
+      "telefone": "921234560",
+      "morada": "Rua 1º de Maio, 88, 4540-105 Arouca",
+      "notas_entrega": "Campainha Sousa"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "08:00",
+    "hora_entrega_real": null,
+    "estado": "pendente",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-77c5a2c0-154b-44cf-a3b1-e570241d42fc-0",
+        "encomenda_id": "77c5a2c0-154b-44cf-a3b1-e570241d42fc",
+        "produto_id": "6052a0b5-9a40-4fa0-a18f-14cd9ea76d5b",
+        "produto_nome": "Pastel Miniatura Uni",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Massa bem cozida",
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-77c5a2c0-154b-44cf-a3b1-e570241d42fc-1",
+        "encomenda_id": "77c5a2c0-154b-44cf-a3b1-e570241d42fc",
+        "produto_id": "1eecf267-b7f4-4c10-ab11-67e0e33ea87d",
+        "produto_nome": "Pastel Recheado",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-16T08:00:00+00:00"
+  },
+  {
+    "id": "a9e3be0d-43c6-422a-8295-36e63ff71b17",
+    "numero_sequencial": 158,
+    "codigo": "ENC-DOM-158",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "2b914a5b-b30f-4023-a2ab-0cefff095199",
+      "nome": "Carlos Alberto Resende",
+      "telefone": "918901207",
+      "morada": "Avenida 25 de Abril, Escariz, 4540-320 Arouca",
+      "notas_entrega": "Zona comercial de Escariz"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
+    "carrinha_nome": "Carrinha 2 (Fabrico Central)",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "08:30",
+    "hora_entrega_real": null,
+    "ordem_rota": 9,
+    "estado": "pendente",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-a9e3be0d-43c6-422a-8295-36e63ff71b17-0",
+        "encomenda_id": "a9e3be0d-43c6-422a-8295-36e63ff71b17",
+        "produto_id": "382df3c8-bbec-4785-a451-877136620fc5",
+        "produto_nome": "Pizza Média",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Sem canela",
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-a9e3be0d-43c6-422a-8295-36e63ff71b17-1",
+        "encomenda_id": "a9e3be0d-43c6-422a-8295-36e63ff71b17",
+        "produto_id": "7bf261c4-dc6d-4f3f-bef3-0415e7cd49d2",
+        "produto_nome": "Pizza Pequena",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-a9e3be0d-43c6-422a-8295-36e63ff71b17-2",
+        "encomenda_id": "a9e3be0d-43c6-422a-8295-36e63ff71b17",
+        "produto_id": "479cfb8a-1d70-4ea9-9953-086f18649192",
+        "produto_nome": "Pudim",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-16T08:30:00+00:00"
+  },
+  {
+    "id": "4ca812b9-d0ee-4ff6-ab89-58a3ece943b1",
+    "numero_sequencial": 159,
+    "codigo": "ENC-LOJA2-159",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "2ccb42f0-bbe9-4c1b-ba92-d0bafea931f7",
+      "nome": "Carlos Alberto Rocha",
+      "telefone": "910123459",
+      "morada": "Lugar de Moldes de Cima, 4540-420 Arouca",
+      "notas_entrega": "Casa perto da capela"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "09:00",
+    "hora_entrega_real": null,
+    "estado": "em_producao",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-4ca812b9-d0ee-4ff6-ab89-58a3ece943b1-0",
+        "encomenda_id": "4ca812b9-d0ee-4ff6-ab89-58a3ece943b1",
+        "produto_id": "2ee0cd98-3c6d-4ac1-bd5c-782be4958bbc",
+        "produto_nome": "Rabanadas",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Creme de ovo suave",
+        "estado_producao": "em_preparo"
+      },
+      {
+        "id": "item-4ca812b9-d0ee-4ff6-ab89-58a3ece943b1-1",
+        "encomenda_id": "4ca812b9-d0ee-4ff6-ab89-58a3ece943b1",
+        "produto_id": "8e450646-7681-447f-9930-4ac9325107a0",
+        "produto_nome": "Raspas de Chocolate",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-4ca812b9-d0ee-4ff6-ab89-58a3ece943b1-2",
+        "encomenda_id": "4ca812b9-d0ee-4ff6-ab89-58a3ece943b1",
+        "produto_id": "c328eda2-bf66-4b38-96b0-f3b9809a039a",
+        "produto_nome": "Regueifa Branca",
+        "setor": "padaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-4ca812b9-d0ee-4ff6-ab89-58a3ece943b1-3",
+        "encomenda_id": "4ca812b9-d0ee-4ff6-ab89-58a3ece943b1",
+        "produto_id": "0bd90792-4dcf-4b28-b5b2-b17d5f8bdf1a",
+        "produto_nome": "Regueifa Canela",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-16T09:00:00+00:00"
+  },
+  {
+    "id": "e04b1389-97dd-4ae7-b688-1cd067027c62",
+    "numero_sequencial": 160,
+    "codigo": "ENC-DOM-160",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "b16c4461-58fd-446a-8f22-13ca1bc8506e",
+      "nome": "Domingos Ferreira Bastos",
+      "telefone": "914567893",
+      "morada": "Lugar de Urrô, 4540-700 Arouca",
+      "notas_entrega": "Portão da quinta"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
+    "carrinha_nome": "Carrinha 4 - Estação",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "09:30",
+    "hora_entrega_real": null,
+    "ordem_rota": 1,
+    "estado": "em_producao",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "Cliente habitual - embalar em saco duplo",
+    "itens": [
+      {
+        "id": "item-e04b1389-97dd-4ae7-b688-1cd067027c62-0",
+        "encomenda_id": "e04b1389-97dd-4ae7-b688-1cd067027c62",
+        "produto_id": "0bd90792-4dcf-4b28-b5b2-b17d5f8bdf1a",
+        "produto_nome": "Regueifa Canela",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Escrever 'Parabéns'",
+        "estado_producao": "em_preparo"
+      }
+    ],
+    "criado_em": "2026-09-16T09:30:00+00:00"
+  },
+  {
+    "id": "7791af22-4de5-4d1f-9ff6-6d1e47925e31",
+    "numero_sequencial": 161,
+    "codigo": "ENC-LOJA1-161",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "0d5d5c3a-428f-43ac-a2fd-c71f96e61dc5",
+      "nome": "Fernanda Isabel Duarte",
+      "telefone": "939012318",
+      "morada": "Serra da Freita, Lugar de Merujal, 4540-410 Arouca",
+      "notas_entrega": "Restaurante típico"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "10:00",
+    "hora_entrega_real": null,
+    "estado": "em_producao",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-7791af22-4de5-4d1f-9ff6-6d1e47925e31-0",
+        "encomenda_id": "7791af22-4de5-4d1f-9ff6-6d1e47925e31",
+        "produto_id": "0f3e6f65-ee9b-43bd-a8d8-897fbc4c6f7e",
+        "produto_nome": "Regueifa Miniatura",
+        "setor": "pastelaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Sem frutos secos",
+        "estado_producao": "em_preparo"
+      },
+      {
+        "id": "item-7791af22-4de5-4d1f-9ff6-6d1e47925e31-1",
+        "encomenda_id": "7791af22-4de5-4d1f-9ff6-6d1e47925e31",
+        "produto_id": "8c913441-6b0f-4ca8-a5e2-3c724226ccc0",
+        "produto_nome": "Rosca",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-16T10:00:00+00:00"
+  },
+  {
+    "id": "5d0e9d1f-c669-41ac-b1e6-e0a89522f4fa",
+    "numero_sequencial": 162,
+    "codigo": "ENC-DOM-162",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "44a8827a-97a8-47db-85af-d5c80fa2e3cd",
+      "nome": "Francisco José Valente",
+      "telefone": "936789015",
+      "morada": "Rua do Mosteiro, 3, 4540-100 Arouca",
+      "notas_entrega": "Apartamento 1º Dto"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
+    "carrinha_nome": "Carrinha 2 (Fabrico Central)",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "10:30",
+    "hora_entrega_real": null,
+    "ordem_rota": 3,
+    "estado": "em_producao",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-5d0e9d1f-c669-41ac-b1e6-e0a89522f4fa-0",
+        "encomenda_id": "5d0e9d1f-c669-41ac-b1e6-e0a89522f4fa",
+        "produto_id": "79c9bdcd-4e97-49e2-85ae-5042f3d33aed",
+        "produto_nome": "Saco Mini Tostas",
+        "setor": "padaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "em_preparo"
+      },
+      {
+        "id": "item-5d0e9d1f-c669-41ac-b1e6-e0a89522f4fa-1",
+        "encomenda_id": "5d0e9d1f-c669-41ac-b1e6-e0a89522f4fa",
+        "produto_id": "35955671-7c02-42a5-bf89-4223c39f364c",
+        "produto_nome": "Semi-frio",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-5d0e9d1f-c669-41ac-b1e6-e0a89522f4fa-2",
+        "encomenda_id": "5d0e9d1f-c669-41ac-b1e6-e0a89522f4fa",
+        "produto_id": "f6e98e77-8e58-43e6-a722-684339d85ec7",
+        "produto_nome": "Sonhos",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-16T10:30:00+00:00"
+  },
+  {
+    "id": "f968b1a7-a5ee-4ae2-add3-87299d35d59e",
+    "numero_sequencial": 163,
+    "codigo": "ENC-LOJA3-163",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "85a086e8-35ce-4410-b19d-2db0ca54d198",
+      "nome": "Helena Margarida Cunha",
+      "telefone": "925678904",
+      "morada": "Canelas, Estrada das Minas, 4540-150 Arouca",
+      "notas_entrega": "Deixar no alpendre se não estiver"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "11:00",
+    "hora_entrega_real": null,
+    "estado": "em_producao",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-f968b1a7-a5ee-4ae2-add3-87299d35d59e-0",
+        "encomenda_id": "f968b1a7-a5ee-4ae2-add3-87299d35d59e",
+        "produto_id": "08af0d35-85ec-4b35-8edc-3cdf81581cc1",
+        "produto_nome": "Tabuleiro de Pizza",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Sem canela",
+        "estado_producao": "em_preparo"
+      },
+      {
+        "id": "item-f968b1a7-a5ee-4ae2-add3-87299d35d59e-1",
+        "encomenda_id": "f968b1a7-a5ee-4ae2-add3-87299d35d59e",
+        "produto_id": "2e213c12-5698-4de3-9e85-bcbdae9d721b",
+        "produto_nome": "Tarte de Fruta",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-f968b1a7-a5ee-4ae2-add3-87299d35d59e-2",
+        "encomenda_id": "f968b1a7-a5ee-4ae2-add3-87299d35d59e",
+        "produto_id": "1f8c24a7-0152-49b9-8bce-205ce409940b",
+        "produto_nome": "Tartes de Fruta",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-f968b1a7-a5ee-4ae2-add3-87299d35d59e-3",
+        "encomenda_id": "f968b1a7-a5ee-4ae2-add3-87299d35d59e",
+        "produto_id": "fd8adf34-89a2-4216-9ae0-3abd4e7e4fe2",
+        "produto_nome": "Telha",
+        "setor": "pastelaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-16T11:00:00+00:00"
+  },
+  {
+    "id": "f9641a5d-817e-4efe-bf41-5e333e08230a",
+    "numero_sequencial": 164,
+    "codigo": "ENC-DOM-164",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "b64fdccc-7803-49dc-bfd9-39796eba0cc3",
+      "nome": "Inês Filipa Moreira",
+      "telefone": "967890126",
+      "morada": "Lugar de Chave, 4540-250 Arouca",
+      "notas_entrega": "Entregar à D. Maria"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
+    "carrinha_nome": "Carrinha 4 - Estação",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "11:30",
+    "hora_entrega_real": null,
+    "ordem_rota": 5,
+    "estado": "em_producao",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-f9641a5d-817e-4efe-bf41-5e333e08230a-0",
+        "encomenda_id": "f9641a5d-817e-4efe-bf41-5e333e08230a",
+        "produto_id": "fd8adf34-89a2-4216-9ae0-3abd4e7e4fe2",
+        "produto_nome": "Telha",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Creme de ovo suave",
+        "estado_producao": "em_preparo"
+      }
+    ],
+    "criado_em": "2026-09-16T11:30:00+00:00"
+  },
+  {
+    "id": "99137faf-992c-4c51-a79f-39a87f86e9a1",
+    "numero_sequencial": 165,
+    "codigo": "ENC-LOJA2-165",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "71b565b3-373d-42f9-b470-d060241e7105",
+      "nome": "Joaquim Fernandes Couto",
+      "telefone": "914567803",
+      "morada": "Avenida Reinaldo dos Santos, 22, 4540-105 Arouca",
+      "notas_entrega": "Edifício Parque, 2º Dto"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "14:00",
+    "hora_entrega_real": null,
+    "estado": "em_producao",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "Cliente habitual - embalar em saco duplo",
+    "itens": [
+      {
+        "id": "item-99137faf-992c-4c51-a79f-39a87f86e9a1-0",
+        "encomenda_id": "99137faf-992c-4c51-a79f-39a87f86e9a1",
+        "produto_id": "059aac54-1ae3-4121-94d9-af7160cd866d",
+        "produto_nome": "Tosta Teste",
+        "setor": "padaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "em_preparo"
+      },
+      {
+        "id": "item-99137faf-992c-4c51-a79f-39a87f86e9a1-1",
+        "encomenda_id": "99137faf-992c-4c51-a79f-39a87f86e9a1",
+        "produto_id": "7e63af46-d1a3-4885-b661-c76caa5cdbb0",
+        "produto_nome": "Trança",
+        "setor": "pastelaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-16T14:00:00+00:00"
+  },
+  {
+    "id": "6d93f7b4-b057-4ef0-bf10-892130d2c008",
+    "numero_sequencial": 166,
+    "codigo": "ENC-DOM-166",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "45ced891-5586-4ac5-ac89-ccf133983551",
+      "nome": "Joaquim Pedro Tavares",
+      "telefone": "928901207",
+      "morada": "Escariz, Zona Industrial, Lote 8, 4540-200 Arouca",
+      "notas_entrega": "Portaria da fábrica"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
+    "carrinha_nome": "Carrinha 2 (Fabrico Central)",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "15:30",
+    "hora_entrega_real": null,
+    "ordem_rota": 7,
+    "estado": "em_producao",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-6d93f7b4-b057-4ef0-bf10-892130d2c008-0",
+        "encomenda_id": "6d93f7b4-b057-4ef0-bf10-892130d2c008",
+        "produto_id": "91baf8ae-17ca-45d9-899d-ac0367cdc717",
+        "produto_nome": "Trança Folhada Frutos Secos",
+        "setor": "pastelaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Sem frutos secos",
+        "estado_producao": "em_preparo"
+      },
+      {
+        "id": "item-6d93f7b4-b057-4ef0-bf10-892130d2c008-1",
+        "encomenda_id": "6d93f7b4-b057-4ef0-bf10-892130d2c008",
+        "produto_id": "882a046c-1937-4c5b-8c92-51e12aa49d9d",
+        "produto_nome": "Triga Milha",
+        "setor": "padaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-6d93f7b4-b057-4ef0-bf10-892130d2c008-2",
+        "encomenda_id": "6d93f7b4-b057-4ef0-bf10-892130d2c008",
+        "produto_id": "13c7cd7e-43ae-462d-8822-a23b917181ed",
+        "produto_nome": "Almendrado",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-16T15:30:00+00:00"
+  },
+  {
+    "id": "400fa949-2849-435b-9bfb-08862d07b365",
+    "numero_sequencial": 167,
+    "codigo": "ENC-LOJA1-167",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "f5246e1a-68fb-43e1-bb60-f3a6c0279489",
+      "nome": "José Carlos Oliveira",
+      "telefone": "934567803",
+      "morada": "Avenida 25 de Abril, 102, 4540-102 Arouca",
+      "notas_entrega": "Entregar na loja de pronto a vestir"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "16:00",
+    "hora_entrega_real": null,
+    "estado": "em_producao",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-400fa949-2849-435b-9bfb-08862d07b365-0",
+        "encomenda_id": "400fa949-2849-435b-9bfb-08862d07b365",
+        "produto_id": "18900043-ae36-4a74-b5cd-fb5b4f8ce109",
+        "produto_nome": "Baguete",
+        "setor": "padaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "em_preparo"
+      },
+      {
+        "id": "item-400fa949-2849-435b-9bfb-08862d07b365-1",
+        "encomenda_id": "400fa949-2849-435b-9bfb-08862d07b365",
+        "produto_id": "760d70c4-eeaa-4613-812c-c9a8cfccdf1c",
+        "produto_nome": "Bola de Carne",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-400fa949-2849-435b-9bfb-08862d07b365-2",
+        "encomenda_id": "400fa949-2849-435b-9bfb-08862d07b365",
+        "produto_id": "7d72b412-371a-4c22-a5d4-a984e9b0ab83",
+        "produto_nome": "Bolo c/ Sardinhas",
+        "setor": "padaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-400fa949-2849-435b-9bfb-08862d07b365-3",
+        "encomenda_id": "400fa949-2849-435b-9bfb-08862d07b365",
+        "produto_id": "ede288e0-9ab2-4808-b313-b81a6eaad854",
+        "produto_nome": "Bolo de Aniversário",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-16T16:00:00+00:00"
+  },
+  {
+    "id": "f4aab08c-7108-47b0-bfd4-8360e66af47d",
+    "numero_sequencial": 168,
+    "codigo": "ENC-DOM-168",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "bf23bcc5-2c2b-4572-b805-c9f8d66152e8",
+      "nome": "Luís Carreiras",
+      "telefone": "935241876",
+      "morada": "Travessa do Poço da Água Lote 4 Coimbra",
+      "notas_entrega": "Entregar na porta principal"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
+    "carrinha_nome": "Carrinha 4 - Estação",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "17:00",
+    "hora_entrega_real": null,
+    "ordem_rota": 9,
+    "estado": "pronto_loja",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-f4aab08c-7108-47b0-bfd4-8360e66af47d-0",
+        "encomenda_id": "f4aab08c-7108-47b0-bfd4-8360e66af47d",
+        "produto_id": "ede288e0-9ab2-4808-b313-b81a6eaad854",
+        "produto_nome": "Bolo de Aniversário",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Sem canela",
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-16T17:00:00+00:00"
+  },
+  {
+    "id": "42f5e337-11bb-4c0f-8379-c36f3259cbdf",
+    "numero_sequencial": 169,
+    "codigo": "ENC-LOJA3-169",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "896e30f3-2d24-4864-83a6-82b8cd14d6e5",
+      "nome": "Manuel Fernando Brandão",
+      "telefone": "916789005",
+      "morada": "Lugar da Granja, Santa Eulália, 4540-520 Arouca",
+      "notas_entrega": "Deixar na mercearia local se não estiver"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "18:00",
+    "hora_entrega_real": null,
+    "estado": "pronto_loja",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-42f5e337-11bb-4c0f-8379-c36f3259cbdf-0",
+        "encomenda_id": "42f5e337-11bb-4c0f-8379-c36f3259cbdf",
+        "produto_id": "e2b97eb6-8c28-42ea-bc92-0729eb386a87",
+        "produto_nome": "Bolo Rei",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Creme de ovo suave",
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-42f5e337-11bb-4c0f-8379-c36f3259cbdf-1",
+        "encomenda_id": "42f5e337-11bb-4c0f-8379-c36f3259cbdf",
+        "produto_id": "b8b62528-c374-435f-9b89-4bda4f156f05",
+        "produto_nome": "Bolo Rei Escangalhado",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-16T18:00:00+00:00"
+  },
+  {
+    "id": "725213de-fe88-48b5-8f19-b11d71fec1b8",
+    "numero_sequencial": 170,
+    "codigo": "ENC-DOM-170",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "6e2cc3ba-d9fb-4d3e-a596-b0d7c069034e",
+      "nome": "Manuel Fernando Pinho",
+      "telefone": "916789015",
+      "morada": "Mansores, Lugar do Outeiro, 4540-310 Arouca",
+      "notas_entrega": "Casa com portão verde"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
+    "carrinha_nome": "Carrinha 2 (Fabrico Central)",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "07:30",
+    "hora_entrega_real": null,
+    "ordem_rota": 1,
+    "estado": "pronto_loja",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "Cliente habitual - embalar em saco duplo",
+    "itens": [
+      {
+        "id": "item-725213de-fe88-48b5-8f19-b11d71fec1b8-0",
+        "encomenda_id": "725213de-fe88-48b5-8f19-b11d71fec1b8",
+        "produto_id": "01a58bef-1587-45a5-abeb-1e839ba8235c",
+        "produto_nome": "Brigadeiros",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Escrever 'Parabéns'",
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-725213de-fe88-48b5-8f19-b11d71fec1b8-1",
+        "encomenda_id": "725213de-fe88-48b5-8f19-b11d71fec1b8",
+        "produto_id": "5a0b42ce-4e7b-4629-8c58-a3d2de065afc",
+        "produto_nome": "Broa",
+        "setor": "padaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-725213de-fe88-48b5-8f19-b11d71fec1b8-2",
+        "encomenda_id": "725213de-fe88-48b5-8f19-b11d71fec1b8",
+        "produto_id": "18d2eb00-f11c-4865-a975-7ee9746121db",
+        "produto_nome": "Broa Centeio",
+        "setor": "padaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-16T07:30:00+00:00"
+  },
+  {
+    "id": "ea82f564-9530-42bc-8a58-54c5491858b2",
+    "numero_sequencial": 171,
+    "codigo": "ENC-LOJA2-171",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "48578695-1391-48ba-b9f4-09569d6798f3",
+      "nome": "Maria Clara Santos",
+      "telefone": "923456702",
+      "morada": "Lugar de Alvarenga, 4540-010 Arouca",
+      "notas_entrega": "Casa de pedra junto à ponte"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "08:00",
+    "hora_entrega_real": null,
+    "estado": "pronto_loja",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-ea82f564-9530-42bc-8a58-54c5491858b2-0",
+        "encomenda_id": "ea82f564-9530-42bc-8a58-54c5491858b2",
+        "produto_id": "763750ac-6167-4637-96e8-bbc8dce6194d",
+        "produto_nome": "Broa com Chouriço",
+        "setor": "padaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-ea82f564-9530-42bc-8a58-54c5491858b2-1",
+        "encomenda_id": "ea82f564-9530-42bc-8a58-54c5491858b2",
+        "produto_id": "413a9168-c3c6-43f8-9f8b-98ce961f6618",
+        "produto_nome": "Broas de Mel",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-ea82f564-9530-42bc-8a58-54c5491858b2-2",
+        "encomenda_id": "ea82f564-9530-42bc-8a58-54c5491858b2",
+        "produto_id": "7c3fa4bd-3570-489b-9090-8d9b49d5db62",
+        "produto_nome": "Broinha de Mistura",
+        "setor": "padaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-ea82f564-9530-42bc-8a58-54c5491858b2-3",
+        "encomenda_id": "ea82f564-9530-42bc-8a58-54c5491858b2",
+        "produto_id": "d39830a9-82cd-4d40-80f8-807e1e70bdf7",
+        "produto_nome": "Cacete",
+        "setor": "padaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-16T08:00:00+00:00"
+  },
+  {
+    "id": "44a16ffc-29fe-4c90-99a4-8cd646967547",
+    "numero_sequencial": 172,
+    "codigo": "ENC-DOM-172",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "50c8fdcf-b7ea-47e8-bc6a-83c71729b4ae",
+      "nome": "Maria Manuela Pinho",
+      "telefone": "913456702",
+      "morada": "Largo do Mosteiro de Santa Maria de Arouca, 4540-111 Arouca",
+      "notas_entrega": "Levantamento no balcão da Praça"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
+    "carrinha_nome": "Carrinha 4 - Estação",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "08:30",
+    "hora_entrega_real": null,
+    "ordem_rota": 3,
+    "estado": "pronto_loja",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-44a16ffc-29fe-4c90-99a4-8cd646967547-0",
+        "encomenda_id": "44a16ffc-29fe-4c90-99a4-8cd646967547",
+        "produto_id": "d39830a9-82cd-4d40-80f8-807e1e70bdf7",
+        "produto_nome": "Cacete",
+        "setor": "padaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-16T08:30:00+00:00"
+  },
+  {
+    "id": "f69f3278-c303-49c4-99c8-ea5c1b95fb9d",
+    "numero_sequencial": 173,
+    "codigo": "ENC-LOJA1-173",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "806d6eca-2f6d-42b3-ac76-78db92948a5e",
+      "nome": "Maria Manuela Resende",
+      "telefone": "913221155",
+      "morada": "Padaria da Vila I (Praça)",
+      "notas_entrega": ""
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "09:00",
+    "hora_entrega_real": null,
+    "estado": "pronto_loja",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-f69f3278-c303-49c4-99c8-ea5c1b95fb9d-0",
+        "encomenda_id": "f69f3278-c303-49c4-99c8-ea5c1b95fb9d",
+        "produto_id": "1f3e1e2f-d437-4c26-98dd-6cdd0f9cbc18",
+        "produto_nome": "Cavacas",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Sem canela",
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-f69f3278-c303-49c4-99c8-ea5c1b95fb9d-1",
+        "encomenda_id": "f69f3278-c303-49c4-99c8-ea5c1b95fb9d",
+        "produto_id": "f13b5274-a257-4bb8-985e-7cd42274be83",
+        "produto_nome": "Chá Hungaro",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-16T09:00:00+00:00"
+  },
+  {
+    "id": "8dac8e32-8812-4136-8d63-4aba9d621c87",
+    "numero_sequencial": 174,
+    "codigo": "ENC-DOM-174",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "e153dc86-8a8d-4ec2-96aa-a8e146e94949",
+      "nome": "Patrícia Helena Gomes",
+      "telefone": "963456782",
+      "morada": "Lugar da Várzea, 4540-650 Arouca",
+      "notas_entrega": "Ligar antes de entregar"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
+    "carrinha_nome": "Carrinha 2 (Fabrico Central)",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "09:30",
+    "hora_entrega_real": null,
+    "ordem_rota": 5,
+    "estado": "pronto_loja",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-8dac8e32-8812-4136-8d63-4aba9d621c87-0",
+        "encomenda_id": "8dac8e32-8812-4136-8d63-4aba9d621c87",
+        "produto_id": "43750423-88ef-4eb6-accb-ce91ec24e743",
+        "produto_nome": "Farinha",
+        "setor": "padaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-8dac8e32-8812-4136-8d63-4aba9d621c87-1",
+        "encomenda_id": "8dac8e32-8812-4136-8d63-4aba9d621c87",
+        "produto_id": "e9f1ac0f-5e43-4d44-90d5-f0844b7948af",
+        "produto_nome": "Fatia Bola de Carne",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-8dac8e32-8812-4136-8d63-4aba9d621c87-2",
+        "encomenda_id": "8dac8e32-8812-4136-8d63-4aba9d621c87",
+        "produto_id": "d075f44e-da7d-442c-8758-e58e987652f6",
+        "produto_nome": "Fatia de Bolo",
+        "setor": "pastelaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-16T09:30:00+00:00"
+  },
+  {
+    "id": "c083051d-24a6-401c-aefc-9d8aa5fafb68",
+    "numero_sequencial": 175,
+    "codigo": "ENC-LOJA3-175",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "33591e35-b23a-4334-b19a-602340fd0052",
+      "nome": "Rosa Maria Matos",
+      "telefone": "917890106",
+      "morada": "Rua do Souto, Mansores, 4540-410 Arouca",
+      "notas_entrega": "Tocar à campainha da frente"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "10:00",
+    "hora_entrega_real": null,
+    "estado": "pronto_loja",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "Cliente habitual - embalar em saco duplo",
+    "itens": [
+      {
+        "id": "item-c083051d-24a6-401c-aefc-9d8aa5fafb68-0",
+        "encomenda_id": "c083051d-24a6-401c-aefc-9d8aa5fafb68",
+        "produto_id": "53df5098-7d17-4d41-9738-c01b14363cf4",
+        "produto_nome": "Fatia Pão de Ló",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Escrever 'Parabéns'",
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-c083051d-24a6-401c-aefc-9d8aa5fafb68-1",
+        "encomenda_id": "c083051d-24a6-401c-aefc-9d8aa5fafb68",
+        "produto_id": "6f9ef3b0-d0e2-483f-bf1f-b18b3ce06654",
+        "produto_nome": "Fermento de Padeiro",
+        "setor": "padaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-c083051d-24a6-401c-aefc-9d8aa5fafb68-2",
+        "encomenda_id": "c083051d-24a6-401c-aefc-9d8aa5fafb68",
+        "produto_id": "c71d6135-a6a6-49a6-af5f-d2cd69f3fa4a",
+        "produto_nome": "Fios D'ovos",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-c083051d-24a6-401c-aefc-9d8aa5fafb68-3",
+        "encomenda_id": "c083051d-24a6-401c-aefc-9d8aa5fafb68",
+        "produto_id": "318643dc-3772-4d81-a554-6b5ed2790311",
+        "produto_nome": "Fogaça",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-16T10:00:00+00:00"
+  },
+  {
+    "id": "22d63bf7-bfab-45dd-985d-3c155dfd4ef4",
+    "numero_sequencial": 176,
+    "codigo": "ENC-DOM-176",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "806d28e5-60fd-41ce-9c16-2fc65b7d3423",
+      "nome": "Rui Miguel Azevedo",
+      "telefone": "932345671",
+      "morada": "Lugar de Rossas, 4540-600 Arouca",
+      "notas_entrega": "Moradia isolada junto ao cruzeiro"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
+    "carrinha_nome": "Carrinha 4 - Estação",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "10:30",
+    "hora_entrega_real": null,
+    "ordem_rota": 7,
+    "estado": "em_rota",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-22d63bf7-bfab-45dd-985d-3c155dfd4ef4-0",
+        "encomenda_id": "22d63bf7-bfab-45dd-985d-3c155dfd4ef4",
+        "produto_id": "318643dc-3772-4d81-a554-6b5ed2790311",
+        "produto_nome": "Fogaça",
+        "setor": "pastelaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Sem frutos secos",
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-16T10:30:00+00:00"
+  },
+  {
+    "id": "8b35d883-e74c-41c9-b139-2e3e08b3567c",
+    "numero_sequencial": 177,
+    "codigo": "ENC-LOJA2-177",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "321c2d51-7081-4fd3-9b07-6d3e29988c1e",
+      "nome": "Sandra Cristina Martins",
+      "telefone": "929012348",
+      "morada": "Lugar de Tropeço, 4540-580 Arouca",
+      "notas_entrega": "Em frente ao café central"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "11:00",
+    "hora_entrega_real": null,
+    "estado": "pronto_loja",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-8b35d883-e74c-41c9-b139-2e3e08b3567c-0",
+        "encomenda_id": "8b35d883-e74c-41c9-b139-2e3e08b3567c",
+        "produto_id": "bc2a1035-0e0b-45eb-bd92-158e68bbe074",
+        "produto_nome": "Meia Bola de Carne",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Massa bem cozida",
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-8b35d883-e74c-41c9-b139-2e3e08b3567c-1",
+        "encomenda_id": "8b35d883-e74c-41c9-b139-2e3e08b3567c",
+        "produto_id": "e176b6ac-58e9-48d0-8ffc-cb682e2883fb",
+        "produto_nome": "Meia Lua",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-16T11:00:00+00:00"
+  },
+  {
+    "id": "73aaf392-5095-4828-ad89-c1866aec5218",
+    "numero_sequencial": 178,
+    "codigo": "ENC-DOM-178",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "5d2042bc-5a94-4097-83cd-a352fa6f28f9",
+      "nome": "Teresa de Jesus Duarte",
+      "telefone": "915678904",
+      "morada": "Rua das Flores, Alvarenga, 4540-020 Arouca",
+      "notas_entrega": "Casa térrea junto aos Passadiços do Paiva"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
+    "carrinha_nome": "Carrinha 2 (Fabrico Central)",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "11:30",
+    "hora_entrega_real": null,
+    "ordem_rota": 9,
+    "estado": "em_rota",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-73aaf392-5095-4828-ad89-c1866aec5218-0",
+        "encomenda_id": "73aaf392-5095-4828-ad89-c1866aec5218",
+        "produto_id": "4d5b2947-0858-4e8a-8be4-201d0e341a58",
+        "produto_nome": "Mini Broa c/ Chouriço",
+        "setor": "padaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-73aaf392-5095-4828-ad89-c1866aec5218-1",
+        "encomenda_id": "73aaf392-5095-4828-ad89-c1866aec5218",
+        "produto_id": "8dd8e171-e457-49be-9f54-27a31548e77e",
+        "produto_nome": "Mini Pão da Avó",
+        "setor": "padaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-73aaf392-5095-4828-ad89-c1866aec5218-2",
+        "encomenda_id": "73aaf392-5095-4828-ad89-c1866aec5218",
+        "produto_id": "398cb1e9-19df-477d-bb4e-c99a451d206f",
+        "produto_nome": "Ovo de Páscoa",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-16T11:30:00+00:00"
+  },
+  {
+    "id": "2452d224-7019-4ed8-a7a0-c7580e030c6a",
+    "numero_sequencial": 179,
+    "codigo": "ENC-LOJA1-179",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "004aae21-4b73-476f-bad8-d879047383a6",
+      "nome": "Teresa Maria Brandão",
+      "telefone": "965678904",
+      "morada": "Santa Eulália, Rua Principal 45, 4540-520 Arouca",
+      "notas_entrega": "Entregar de manhã até às 11h"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "14:00",
+    "hora_entrega_real": "14:03",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 14:03]",
+    "itens": [
+      {
+        "id": "item-2452d224-7019-4ed8-a7a0-c7580e030c6a-0",
+        "encomenda_id": "2452d224-7019-4ed8-a7a0-c7580e030c6a",
+        "produto_id": "17cef10f-0498-4cee-bb1f-88a6bea44aea",
+        "produto_nome": "Padas",
+        "setor": "padaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-2452d224-7019-4ed8-a7a0-c7580e030c6a-1",
+        "encomenda_id": "2452d224-7019-4ed8-a7a0-c7580e030c6a",
+        "produto_id": "6c99a29d-46c1-4925-a281-827ed82017ef",
+        "produto_nome": "Padinhas",
+        "setor": "padaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-2452d224-7019-4ed8-a7a0-c7580e030c6a-2",
+        "encomenda_id": "2452d224-7019-4ed8-a7a0-c7580e030c6a",
+        "produto_id": "368ad493-fd3a-4ab5-b5e7-259ba4e04eea",
+        "produto_nome": "Padinhas Alfarroba",
+        "setor": "padaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-2452d224-7019-4ed8-a7a0-c7580e030c6a-3",
+        "encomenda_id": "2452d224-7019-4ed8-a7a0-c7580e030c6a",
+        "produto_id": "b22aa2cb-aab2-480b-b448-fc8362d1be14",
+        "produto_nome": "Panettone",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-16T14:00:00+00:00"
+  },
+  {
+    "id": "6ad09c44-f633-4c68-b31f-dd7b18dbee43",
+    "numero_sequencial": 180,
+    "codigo": "ENC-DOM-180",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "c62a94f2-2ad1-45ea-8bd1-d8451ad4c0f7",
+      "nome": "Vítor Hugo Teixeira",
+      "telefone": "918901237",
+      "morada": "Lugar de Fermedo, 4540-280 Arouca",
+      "notas_entrega": "Oficina mecânica"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
+    "carrinha_nome": "Carrinha 4 - Estação",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "15:30",
+    "hora_entrega_real": "15:33",
+    "ordem_rota": 1,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "Cliente habitual - embalar em saco duplo [ENTREGUE: 15:33]",
+    "itens": [
+      {
+        "id": "item-6ad09c44-f633-4c68-b31f-dd7b18dbee43-0",
+        "encomenda_id": "6ad09c44-f633-4c68-b31f-dd7b18dbee43",
+        "produto_id": "b22aa2cb-aab2-480b-b448-fc8362d1be14",
+        "produto_nome": "Panettone",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Escrever 'Parabéns'",
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-16T15:30:00+00:00"
+  },
+  {
+    "id": "0a2a1fa0-cef9-49c4-879b-9344128c1518",
+    "numero_sequencial": 181,
+    "codigo": "ENC-LOJA3-181",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "8bc4a996-6bc8-42fa-9cc1-dd27530c8fb9",
+      "nome": "Zz",
+      "telefone": "+3519352336",
+      "morada": null,
+      "notas_entrega": null
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "16:00",
+    "hora_entrega_real": "16:03",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 16:03]",
+    "itens": [
+      {
+        "id": "item-0a2a1fa0-cef9-49c4-879b-9344128c1518-0",
+        "encomenda_id": "0a2a1fa0-cef9-49c4-879b-9344128c1518",
+        "produto_id": "abad98cb-b121-47f4-b17b-995334aa9f67",
+        "produto_nome": "Pão c/  Sementes",
+        "setor": "padaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-0a2a1fa0-cef9-49c4-879b-9344128c1518-1",
+        "encomenda_id": "0a2a1fa0-cef9-49c4-879b-9344128c1518",
+        "produto_id": "034c0563-440d-4ee8-bb1b-464458efd3ca",
+        "produto_nome": "Pão Cereais Fatiado",
+        "setor": "padaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-16T16:00:00+00:00"
+  },
+  {
+    "id": "7d88f00a-3f05-47d6-b8f8-eb2d580cc6c0",
+    "numero_sequencial": 182,
+    "codigo": "ENC-DOM-182",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "b0880586-81f6-47e7-9c9a-8dacc701f4ba",
+      "nome": "Ana Sofia Ferreira",
+      "telefone": "919012308",
+      "morada": "Lugar da Merujal, Serra da Freita, 4540-610 Arouca",
+      "notas_entrega": "Casa em granito perto do parque de campismo"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
+    "carrinha_nome": "Carrinha 2 (Fabrico Central)",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "17:00",
+    "hora_entrega_real": "17:25",
+    "ordem_rota": 3,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 17:25]",
+    "itens": [
+      {
+        "id": "item-7d88f00a-3f05-47d6-b8f8-eb2d580cc6c0-0",
+        "encomenda_id": "7d88f00a-3f05-47d6-b8f8-eb2d580cc6c0",
+        "produto_id": "4966d5c0-7eb7-42ac-8be6-9c56785ef855",
+        "produto_nome": "Pão da Avó",
+        "setor": "padaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-7d88f00a-3f05-47d6-b8f8-eb2d580cc6c0-1",
+        "encomenda_id": "7d88f00a-3f05-47d6-b8f8-eb2d580cc6c0",
+        "produto_id": "82f0c100-81e9-489b-9377-9e5dc48ff312",
+        "produto_nome": "Pão da Mealhada",
+        "setor": "padaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-7d88f00a-3f05-47d6-b8f8-eb2d580cc6c0-2",
+        "encomenda_id": "7d88f00a-3f05-47d6-b8f8-eb2d580cc6c0",
+        "produto_id": "43648ed7-6e34-4929-a530-7c1a1f998a3f",
+        "produto_nome": "Pão de Alfarroba",
+        "setor": "padaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-16T17:00:00+00:00"
+  },
+  {
+    "id": "e252105e-4155-4510-97df-f5b8e359f0cb",
+    "numero_sequencial": 183,
+    "codigo": "ENC-LOJA2-183",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "df2fbf0f-375c-4eb7-b131-3e2cad6e0295",
+      "nome": "António Rodrigues Silva",
+      "telefone": "912345601",
+      "morada": "Rua Dr. Teixeira de Brito, 14, 4540-100 Arouca",
+      "notas_entrega": "Portão preto lateral, entregar de manhã"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "18:00",
+    "hora_entrega_real": "18:03",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 18:03]",
+    "itens": [
+      {
+        "id": "item-e252105e-4155-4510-97df-f5b8e359f0cb-0",
+        "encomenda_id": "e252105e-4155-4510-97df-f5b8e359f0cb",
+        "produto_id": "ac7b605d-ba59-431d-8f83-f0bb0189b44a",
+        "produto_nome": "Pão de Alfarroba Pequeno",
+        "setor": "padaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-e252105e-4155-4510-97df-f5b8e359f0cb-1",
+        "encomenda_id": "e252105e-4155-4510-97df-f5b8e359f0cb",
+        "produto_id": "9a355c4b-8758-4d94-828c-d5ebb7563b77",
+        "produto_nome": "Pão de Alho",
+        "setor": "padaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-e252105e-4155-4510-97df-f5b8e359f0cb-2",
+        "encomenda_id": "e252105e-4155-4510-97df-f5b8e359f0cb",
+        "produto_id": "bf83f1b8-cae1-4623-81a3-2291ad9f570e",
+        "produto_nome": "Pão de Beterraba",
+        "setor": "padaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-e252105e-4155-4510-97df-f5b8e359f0cb-3",
+        "encomenda_id": "e252105e-4155-4510-97df-f5b8e359f0cb",
+        "produto_id": "ce9636e2-dbe4-41f2-87de-a0f7b5fbad9b",
+        "produto_nome": "Pão de Beterraba Pequeno",
+        "setor": "padaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-16T18:00:00+00:00"
+  },
+  {
+    "id": "9a583d8a-f952-4a5b-8c27-feb60434aca6",
+    "numero_sequencial": 184,
+    "codigo": "ENC-DOM-184",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "f6af84a8-3428-4e16-b708-9141abd29169",
+      "nome": "Beatriz Sousa Pinto",
+      "telefone": "921234560",
+      "morada": "Rua 1º de Maio, 88, 4540-105 Arouca",
+      "notas_entrega": "Campainha Sousa"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
+    "carrinha_nome": "Carrinha 4 - Estação",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "07:30",
+    "hora_entrega_real": "07:33",
+    "ordem_rota": 5,
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "[ENTREGUE: 07:33]",
+    "itens": [
+      {
+        "id": "item-9a583d8a-f952-4a5b-8c27-feb60434aca6-0",
+        "encomenda_id": "9a583d8a-f952-4a5b-8c27-feb60434aca6",
+        "produto_id": "ce9636e2-dbe4-41f2-87de-a0f7b5fbad9b",
+        "produto_nome": "Pão de Beterraba Pequeno",
+        "setor": "padaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-16T07:30:00+00:00"
+  },
+  {
+    "id": "474cf87c-ae25-4163-883d-6af4064aa022",
+    "numero_sequencial": 185,
+    "codigo": "ENC-LOJA1-185",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "2b914a5b-b30f-4023-a2ab-0cefff095199",
+      "nome": "Carlos Alberto Resende",
+      "telefone": "918901207",
+      "morada": "Avenida 25 de Abril, Escariz, 4540-320 Arouca",
+      "notas_entrega": "Zona comercial de Escariz"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-16",
+    "hora_agendamento": "08:00",
+    "hora_entrega_real": "08:03",
+    "estado": "entregue",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "Cliente habitual - embalar em saco duplo [ENTREGUE: 08:03]",
+    "itens": [
+      {
+        "id": "item-474cf87c-ae25-4163-883d-6af4064aa022-0",
+        "encomenda_id": "474cf87c-ae25-4163-883d-6af4064aa022",
+        "produto_id": "9083a4ac-715e-4708-8a16-45bcd0a7028d",
+        "produto_nome": "Pão de Forma",
+        "setor": "padaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      },
+      {
+        "id": "item-474cf87c-ae25-4163-883d-6af4064aa022-1",
+        "encomenda_id": "474cf87c-ae25-4163-883d-6af4064aa022",
+        "produto_id": "9dc5b77b-71e3-4c85-b042-9c6acc697317",
+        "produto_nome": "Pão de Forma Cereais",
+        "setor": "padaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pronto"
+      }
+    ],
+    "criado_em": "2026-09-16T08:00:00+00:00"
+  },
+  {
+    "id": "eb94e29c-f9a4-4599-8b20-ced6976eaeaf",
+    "numero_sequencial": 186,
+    "codigo": "ENC-DOM-186",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "2ccb42f0-bbe9-4c1b-ba92-d0bafea931f7",
+      "nome": "Carlos Alberto Rocha",
+      "telefone": "910123459",
+      "morada": "Lugar de Moldes de Cima, 4540-420 Arouca",
+      "notas_entrega": "Casa perto da capela"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
+    "carrinha_nome": "Carrinha 2 (Fabrico Central)",
+    "data_agendamento": "2026-09-18",
+    "hora_agendamento": "08:30",
+    "hora_entrega_real": null,
+    "ordem_rota": 7,
+    "estado": "pendente",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-eb94e29c-f9a4-4599-8b20-ced6976eaeaf-0",
+        "encomenda_id": "eb94e29c-f9a4-4599-8b20-ced6976eaeaf",
+        "produto_id": "f4d2b8a4-0646-4542-9128-84959726fda8",
+        "produto_nome": "Pão de Hanburger",
+        "setor": "padaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-eb94e29c-f9a4-4599-8b20-ced6976eaeaf-1",
+        "encomenda_id": "eb94e29c-f9a4-4599-8b20-ced6976eaeaf",
+        "produto_id": "25039971-deb7-490f-8634-20e7719c0b99",
+        "produto_nome": "Pão de Leite",
+        "setor": "padaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-eb94e29c-f9a4-4599-8b20-ced6976eaeaf-2",
+        "encomenda_id": "eb94e29c-f9a4-4599-8b20-ced6976eaeaf",
+        "produto_id": "067fb587-f1ff-40af-8b7c-94890127ce46",
+        "produto_nome": "Pão de Ló",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-18T08:30:00+00:00"
+  },
+  {
+    "id": "09a5d3bc-1232-443c-8c4f-a0e5bff32687",
+    "numero_sequencial": 187,
+    "codigo": "ENC-LOJA3-187",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "b16c4461-58fd-446a-8f22-13ca1bc8506e",
+      "nome": "Domingos Ferreira Bastos",
+      "telefone": "914567893",
+      "morada": "Lugar de Urrô, 4540-700 Arouca",
+      "notas_entrega": "Portão da quinta"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-19",
+    "hora_agendamento": "09:00",
+    "hora_entrega_real": null,
+    "estado": "pendente",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-09a5d3bc-1232-443c-8c4f-a0e5bff32687-0",
+        "encomenda_id": "09a5d3bc-1232-443c-8c4f-a0e5bff32687",
+        "produto_id": "8fa0d571-c22b-40d5-88ab-258f2fd66fac",
+        "produto_nome": "Pão de Ló de Ovar",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Massa bem cozida",
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-09a5d3bc-1232-443c-8c4f-a0e5bff32687-1",
+        "encomenda_id": "09a5d3bc-1232-443c-8c4f-a0e5bff32687",
+        "produto_id": "48036f45-d227-4e27-8472-793b10d95a70",
+        "produto_nome": "Pão Doce",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-09a5d3bc-1232-443c-8c4f-a0e5bff32687-2",
+        "encomenda_id": "09a5d3bc-1232-443c-8c4f-a0e5bff32687",
+        "produto_id": "230e1426-14b4-4697-9921-14601ae09f4f",
+        "produto_nome": "Pão Integral",
+        "setor": "padaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-09a5d3bc-1232-443c-8c4f-a0e5bff32687-3",
+        "encomenda_id": "09a5d3bc-1232-443c-8c4f-a0e5bff32687",
+        "produto_id": "6e255632-0f13-4998-87e1-cd680b9fb2f7",
+        "produto_nome": "Pão Italiano",
+        "setor": "padaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-19T09:00:00+00:00"
+  },
+  {
+    "id": "561661ac-9472-414b-8848-ca9bc30f7dc4",
+    "numero_sequencial": 188,
+    "codigo": "ENC-DOM-188",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "0d5d5c3a-428f-43ac-a2fd-c71f96e61dc5",
+      "nome": "Fernanda Isabel Duarte",
+      "telefone": "939012318",
+      "morada": "Serra da Freita, Lugar de Merujal, 4540-410 Arouca",
+      "notas_entrega": "Restaurante típico"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
+    "carrinha_nome": "Carrinha 4 - Estação",
+    "data_agendamento": "2026-09-17",
+    "hora_agendamento": "09:30",
+    "hora_entrega_real": null,
+    "ordem_rota": 9,
+    "estado": "pendente",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-561661ac-9472-414b-8848-ca9bc30f7dc4-0",
+        "encomenda_id": "561661ac-9472-414b-8848-ca9bc30f7dc4",
+        "produto_id": "6e255632-0f13-4998-87e1-cd680b9fb2f7",
+        "produto_nome": "Pão Italiano",
+        "setor": "padaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-17T09:30:00+00:00"
+  },
+  {
+    "id": "d9c13457-43e3-45a4-8b1b-34f324ed25e7",
+    "numero_sequencial": 189,
+    "codigo": "ENC-LOJA2-189",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "44a8827a-97a8-47db-85af-d5c80fa2e3cd",
+      "nome": "Francisco José Valente",
+      "telefone": "936789015",
+      "morada": "Rua do Mosteiro, 3, 4540-100 Arouca",
+      "notas_entrega": "Apartamento 1º Dto"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-18",
+    "hora_agendamento": "10:00",
+    "hora_entrega_real": null,
+    "estado": "pendente",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-d9c13457-43e3-45a4-8b1b-34f324ed25e7-0",
+        "encomenda_id": "d9c13457-43e3-45a4-8b1b-34f324ed25e7",
+        "produto_id": "5c08ccef-1408-4169-b4d3-aa6856e1f402",
+        "produto_nome": "Pão Ralado",
+        "setor": "padaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-d9c13457-43e3-45a4-8b1b-34f324ed25e7-1",
+        "encomenda_id": "d9c13457-43e3-45a4-8b1b-34f324ed25e7",
+        "produto_id": "d9ea0db1-84f2-4fb8-ac70-60042b7d8c71",
+        "produto_nome": "Pão Saloio",
+        "setor": "padaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-18T10:00:00+00:00"
+  },
+  {
+    "id": "e504eb39-973e-4dff-b3a0-5d8f186abcd7",
+    "numero_sequencial": 190,
+    "codigo": "ENC-DOM-190",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "85a086e8-35ce-4410-b19d-2db0ca54d198",
+      "nome": "Helena Margarida Cunha",
+      "telefone": "925678904",
+      "morada": "Canelas, Estrada das Minas, 4540-150 Arouca",
+      "notas_entrega": "Deixar no alpendre se não estiver"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
+    "carrinha_nome": "Carrinha 2 (Fabrico Central)",
+    "data_agendamento": "2026-09-19",
+    "hora_agendamento": "10:30",
+    "hora_entrega_real": null,
+    "ordem_rota": 1,
+    "estado": "pendente",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "Cliente habitual - embalar em saco duplo",
+    "itens": [
+      {
+        "id": "item-e504eb39-973e-4dff-b3a0-5d8f186abcd7-0",
+        "encomenda_id": "e504eb39-973e-4dff-b3a0-5d8f186abcd7",
+        "produto_id": "9801a217-4d18-469c-ac02-36b8d308f015",
+        "produto_nome": "Pasteis Miniatura Kg",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Escrever 'Parabéns'",
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-e504eb39-973e-4dff-b3a0-5d8f186abcd7-1",
+        "encomenda_id": "e504eb39-973e-4dff-b3a0-5d8f186abcd7",
+        "produto_id": "6052a0b5-9a40-4fa0-a18f-14cd9ea76d5b",
+        "produto_nome": "Pastel Miniatura Uni",
+        "setor": "pastelaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-e504eb39-973e-4dff-b3a0-5d8f186abcd7-2",
+        "encomenda_id": "e504eb39-973e-4dff-b3a0-5d8f186abcd7",
+        "produto_id": "1eecf267-b7f4-4c10-ab11-67e0e33ea87d",
+        "produto_nome": "Pastel Recheado",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-19T10:30:00+00:00"
+  },
+  {
+    "id": "808bcc91-7704-4caa-9440-b2262816f6ea",
+    "numero_sequencial": 191,
+    "codigo": "ENC-LOJA1-191",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "b64fdccc-7803-49dc-bfd9-39796eba0cc3",
+      "nome": "Inês Filipa Moreira",
+      "telefone": "967890126",
+      "morada": "Lugar de Chave, 4540-250 Arouca",
+      "notas_entrega": "Entregar à D. Maria"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-17",
+    "hora_agendamento": "11:00",
+    "hora_entrega_real": null,
+    "estado": "pendente",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-808bcc91-7704-4caa-9440-b2262816f6ea-0",
+        "encomenda_id": "808bcc91-7704-4caa-9440-b2262816f6ea",
+        "produto_id": "08e7dab3-1768-4ea8-932c-f86885f5aa94",
+        "produto_nome": "Pizza Grande",
+        "setor": "pastelaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Sem frutos secos",
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-808bcc91-7704-4caa-9440-b2262816f6ea-1",
+        "encomenda_id": "808bcc91-7704-4caa-9440-b2262816f6ea",
+        "produto_id": "382df3c8-bbec-4785-a451-877136620fc5",
+        "produto_nome": "Pizza Média",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-808bcc91-7704-4caa-9440-b2262816f6ea-2",
+        "encomenda_id": "808bcc91-7704-4caa-9440-b2262816f6ea",
+        "produto_id": "7bf261c4-dc6d-4f3f-bef3-0415e7cd49d2",
+        "produto_nome": "Pizza Pequena",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-808bcc91-7704-4caa-9440-b2262816f6ea-3",
+        "encomenda_id": "808bcc91-7704-4caa-9440-b2262816f6ea",
+        "produto_id": "479cfb8a-1d70-4ea9-9953-086f18649192",
+        "produto_nome": "Pudim",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-17T11:00:00+00:00"
+  },
+  {
+    "id": "f934697e-34e1-44ec-b4ce-e87a9ffe6e26",
+    "numero_sequencial": 192,
+    "codigo": "ENC-DOM-192",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "71b565b3-373d-42f9-b470-d060241e7105",
+      "nome": "Joaquim Fernandes Couto",
+      "telefone": "914567803",
+      "morada": "Avenida Reinaldo dos Santos, 22, 4540-105 Arouca",
+      "notas_entrega": "Edifício Parque, 2º Dto"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
+    "carrinha_nome": "Carrinha 4 - Estação",
+    "data_agendamento": "2026-09-18",
+    "hora_agendamento": "11:30",
+    "hora_entrega_real": null,
+    "ordem_rota": 3,
+    "estado": "pendente",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-f934697e-34e1-44ec-b4ce-e87a9ffe6e26-0",
+        "encomenda_id": "f934697e-34e1-44ec-b4ce-e87a9ffe6e26",
+        "produto_id": "479cfb8a-1d70-4ea9-9953-086f18649192",
+        "produto_nome": "Pudim",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Massa bem cozida",
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-18T11:30:00+00:00"
+  },
+  {
+    "id": "22aec44b-4b8e-4afe-bf71-e560a5994be3",
+    "numero_sequencial": 193,
+    "codigo": "ENC-LOJA3-193",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "45ced891-5586-4ac5-ac89-ccf133983551",
+      "nome": "Joaquim Pedro Tavares",
+      "telefone": "928901207",
+      "morada": "Escariz, Zona Industrial, Lote 8, 4540-200 Arouca",
+      "notas_entrega": "Portaria da fábrica"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-19",
+    "hora_agendamento": "14:00",
+    "hora_entrega_real": null,
+    "estado": "pendente",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-22aec44b-4b8e-4afe-bf71-e560a5994be3-0",
+        "encomenda_id": "22aec44b-4b8e-4afe-bf71-e560a5994be3",
+        "produto_id": "c328eda2-bf66-4b38-96b0-f3b9809a039a",
+        "produto_nome": "Regueifa Branca",
+        "setor": "padaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-22aec44b-4b8e-4afe-bf71-e560a5994be3-1",
+        "encomenda_id": "22aec44b-4b8e-4afe-bf71-e560a5994be3",
+        "produto_id": "0bd90792-4dcf-4b28-b5b2-b17d5f8bdf1a",
+        "produto_nome": "Regueifa Canela",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-19T14:00:00+00:00"
+  },
+  {
+    "id": "4ea8cb57-2ec1-4e08-a65f-004c8661ea18",
+    "numero_sequencial": 194,
+    "codigo": "ENC-DOM-194",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "f5246e1a-68fb-43e1-bb60-f3a6c0279489",
+      "nome": "José Carlos Oliveira",
+      "telefone": "934567803",
+      "morada": "Avenida 25 de Abril, 102, 4540-102 Arouca",
+      "notas_entrega": "Entregar na loja de pronto a vestir"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
+    "carrinha_nome": "Carrinha 2 (Fabrico Central)",
+    "data_agendamento": "2026-09-17",
+    "hora_agendamento": "15:30",
+    "hora_entrega_real": null,
+    "ordem_rota": 5,
+    "estado": "pendente",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-4ea8cb57-2ec1-4e08-a65f-004c8661ea18-0",
+        "encomenda_id": "4ea8cb57-2ec1-4e08-a65f-004c8661ea18",
+        "produto_id": "893530d5-ef2d-4c40-a1e0-39bf3e6d617a",
+        "produto_nome": "Regueifa Doce",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Creme de ovo suave",
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-4ea8cb57-2ec1-4e08-a65f-004c8661ea18-1",
+        "encomenda_id": "4ea8cb57-2ec1-4e08-a65f-004c8661ea18",
+        "produto_id": "0f3e6f65-ee9b-43bd-a8d8-897fbc4c6f7e",
+        "produto_nome": "Regueifa Miniatura",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-4ea8cb57-2ec1-4e08-a65f-004c8661ea18-2",
+        "encomenda_id": "4ea8cb57-2ec1-4e08-a65f-004c8661ea18",
+        "produto_id": "8c913441-6b0f-4ca8-a5e2-3c724226ccc0",
+        "produto_nome": "Rosca",
+        "setor": "pastelaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-17T15:30:00+00:00"
+  },
+  {
+    "id": "ddb69f4e-0788-4002-8c1a-b9d693717de0",
+    "numero_sequencial": 195,
+    "codigo": "ENC-LOJA2-195",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "bf23bcc5-2c2b-4572-b805-c9f8d66152e8",
+      "nome": "Luís Carreiras",
+      "telefone": "935241876",
+      "morada": "Travessa do Poço da Água Lote 4 Coimbra",
+      "notas_entrega": "Entregar na porta principal"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-18",
+    "hora_agendamento": "16:00",
+    "hora_entrega_real": null,
+    "estado": "pendente",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "Cliente habitual - embalar em saco duplo",
+    "itens": [
+      {
+        "id": "item-ddb69f4e-0788-4002-8c1a-b9d693717de0-0",
+        "encomenda_id": "ddb69f4e-0788-4002-8c1a-b9d693717de0",
+        "produto_id": "4fc071f3-53a6-4719-b8d4-496ce67226cf",
+        "produto_nome": "Rosca de Amêndoa",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Escrever 'Parabéns'",
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-ddb69f4e-0788-4002-8c1a-b9d693717de0-1",
+        "encomenda_id": "ddb69f4e-0788-4002-8c1a-b9d693717de0",
+        "produto_id": "79c9bdcd-4e97-49e2-85ae-5042f3d33aed",
+        "produto_nome": "Saco Mini Tostas",
+        "setor": "padaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-ddb69f4e-0788-4002-8c1a-b9d693717de0-2",
+        "encomenda_id": "ddb69f4e-0788-4002-8c1a-b9d693717de0",
+        "produto_id": "35955671-7c02-42a5-bf89-4223c39f364c",
+        "produto_nome": "Semi-frio",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-ddb69f4e-0788-4002-8c1a-b9d693717de0-3",
+        "encomenda_id": "ddb69f4e-0788-4002-8c1a-b9d693717de0",
+        "produto_id": "f6e98e77-8e58-43e6-a722-684339d85ec7",
+        "produto_nome": "Sonhos",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-18T16:00:00+00:00"
+  },
+  {
+    "id": "b5f17dae-8dac-439d-aa10-d3f06ac3a382",
+    "numero_sequencial": 196,
+    "codigo": "ENC-DOM-196",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "896e30f3-2d24-4864-83a6-82b8cd14d6e5",
+      "nome": "Manuel Fernando Brandão",
+      "telefone": "916789005",
+      "morada": "Lugar da Granja, Santa Eulália, 4540-520 Arouca",
+      "notas_entrega": "Deixar na mercearia local se não estiver"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
+    "carrinha_nome": "Carrinha 4 - Estação",
+    "data_agendamento": "2026-09-19",
+    "hora_agendamento": "17:00",
+    "hora_entrega_real": null,
+    "ordem_rota": 7,
+    "estado": "pendente",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-b5f17dae-8dac-439d-aa10-d3f06ac3a382-0",
+        "encomenda_id": "b5f17dae-8dac-439d-aa10-d3f06ac3a382",
+        "produto_id": "f6e98e77-8e58-43e6-a722-684339d85ec7",
+        "produto_nome": "Sonhos",
+        "setor": "pastelaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Sem frutos secos",
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-19T17:00:00+00:00"
+  },
+  {
+    "id": "a068e8a3-a834-40d7-a779-64680aaada8d",
+    "numero_sequencial": 197,
+    "codigo": "ENC-LOJA1-197",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "6e2cc3ba-d9fb-4d3e-a596-b0d7c069034e",
+      "nome": "Manuel Fernando Pinho",
+      "telefone": "916789015",
+      "morada": "Mansores, Lugar do Outeiro, 4540-310 Arouca",
+      "notas_entrega": "Casa com portão verde"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-17",
+    "hora_agendamento": "18:00",
+    "hora_entrega_real": null,
+    "estado": "pendente",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-a068e8a3-a834-40d7-a779-64680aaada8d-0",
+        "encomenda_id": "a068e8a3-a834-40d7-a779-64680aaada8d",
+        "produto_id": "1f8c24a7-0152-49b9-8bce-205ce409940b",
+        "produto_nome": "Tartes de Fruta",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Massa bem cozida",
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-a068e8a3-a834-40d7-a779-64680aaada8d-1",
+        "encomenda_id": "a068e8a3-a834-40d7-a779-64680aaada8d",
+        "produto_id": "fd8adf34-89a2-4216-9ae0-3abd4e7e4fe2",
+        "produto_nome": "Telha",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-17T18:00:00+00:00"
+  },
+  {
+    "id": "8a85e3b5-d28d-4a2c-941b-fa8c532da985",
+    "numero_sequencial": 198,
+    "codigo": "ENC-DOM-198",
+    "loja_id": "778dae33-00ea-4ae7-8e36-e1f5fb067dab",
+    "loja_nome": "Padaria da Vila II (Av. 25 de Abril)",
+    "cliente": {
+      "id": "48578695-1391-48ba-b9f4-09569d6798f3",
+      "nome": "Maria Clara Santos",
+      "telefone": "923456702",
+      "morada": "Lugar de Alvarenga, 4540-010 Arouca",
+      "notas_entrega": "Casa de pedra junto à ponte"
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
+    "carrinha_nome": "Carrinha 2 (Fabrico Central)",
+    "data_agendamento": "2026-09-18",
+    "hora_agendamento": "07:30",
+    "hora_entrega_real": null,
+    "ordem_rota": 9,
+    "estado": "pendente",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-8a85e3b5-d28d-4a2c-941b-fa8c532da985-0",
+        "encomenda_id": "8a85e3b5-d28d-4a2c-941b-fa8c532da985",
+        "produto_id": "e1c23a54-7027-4bc6-9998-0eb0adc970ce",
+        "produto_nome": "Torre Profiteroles",
+        "setor": "pastelaria",
+        "quantidade": 4,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Sem canela",
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-8a85e3b5-d28d-4a2c-941b-fa8c532da985-1",
+        "encomenda_id": "8a85e3b5-d28d-4a2c-941b-fa8c532da985",
+        "produto_id": "059aac54-1ae3-4121-94d9-af7160cd866d",
+        "produto_nome": "Tosta Teste",
+        "setor": "padaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-8a85e3b5-d28d-4a2c-941b-fa8c532da985-2",
+        "encomenda_id": "8a85e3b5-d28d-4a2c-941b-fa8c532da985",
+        "produto_id": "7e63af46-d1a3-4885-b661-c76caa5cdbb0",
+        "produto_nome": "Trança",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-18T07:30:00+00:00"
+  },
+  {
+    "id": "9f05130c-a8e9-4c4d-8231-7b4f985d3352",
+    "numero_sequencial": 199,
+    "codigo": "ENC-LOJA3-199",
+    "loja_id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+    "loja_nome": "Padaria da Vila III",
+    "cliente": {
+      "id": "50c8fdcf-b7ea-47e8-bc6a-83c71729b4ae",
+      "nome": "Maria Manuela Pinho",
+      "telefone": "913456702",
+      "morada": "Largo do Mosteiro de Santa Maria de Arouca, 4540-111 Arouca",
+      "notas_entrega": "Levantamento no balcão da Praça"
+    },
+    "tipo": "levantamento_loja",
+    "data_agendamento": "2026-09-19",
+    "hora_agendamento": "08:00",
+    "hora_entrega_real": null,
+    "estado": "pendente",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "itens": [
+      {
+        "id": "item-9f05130c-a8e9-4c4d-8231-7b4f985d3352-0",
+        "encomenda_id": "9f05130c-a8e9-4c4d-8231-7b4f985d3352",
+        "produto_id": "beb635fb-f94c-4d55-8780-f082072d44b9",
+        "produto_nome": "Trança de Amendoa",
+        "setor": "pastelaria",
+        "quantidade": 5,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Creme de ovo suave",
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-9f05130c-a8e9-4c4d-8231-7b4f985d3352-1",
+        "encomenda_id": "9f05130c-a8e9-4c4d-8231-7b4f985d3352",
+        "produto_id": "91baf8ae-17ca-45d9-899d-ac0367cdc717",
+        "produto_nome": "Trança Folhada Frutos Secos",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-9f05130c-a8e9-4c4d-8231-7b4f985d3352-2",
+        "encomenda_id": "9f05130c-a8e9-4c4d-8231-7b4f985d3352",
+        "produto_id": "882a046c-1937-4c5b-8c92-51e12aa49d9d",
+        "produto_nome": "Triga Milha",
+        "setor": "padaria",
+        "quantidade": 2,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      },
+      {
+        "id": "item-9f05130c-a8e9-4c4d-8231-7b4f985d3352-3",
+        "encomenda_id": "9f05130c-a8e9-4c4d-8231-7b4f985d3352",
+        "produto_id": "13c7cd7e-43ae-462d-8822-a23b917181ed",
+        "produto_nome": "Almendrado",
+        "setor": "pastelaria",
+        "quantidade": 3,
+        "preco_unitario": 0,
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-19T08:00:00+00:00"
+  },
+  {
+    "id": "ca84509b-250f-463f-a334-a15b43d1262f",
+    "numero_sequencial": 200,
+    "codigo": "ENC-DOM-200",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "loja_nome": "Padaria da Vila I (Praça)",
+    "cliente": {
+      "id": "806d6eca-2f6d-42b3-ac76-78db92948a5e",
+      "nome": "Maria Manuela Resende",
+      "telefone": "913221155",
+      "morada": "Padaria da Vila I (Praça)",
+      "notas_entrega": ""
+    },
+    "tipo": "entrega_domicilio",
+    "carrinha_id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
+    "carrinha_nome": "Carrinha 4 - Estação",
+    "data_agendamento": "2026-09-17",
+    "hora_agendamento": "08:30",
+    "hora_entrega_real": null,
+    "ordem_rota": 1,
+    "estado": "pendente",
+    "estado_pagamento": "pago",
+    "total": 0,
+    "notas_cliente": "Cliente habitual - embalar em saco duplo",
+    "itens": [
+      {
+        "id": "item-ca84509b-250f-463f-a334-a15b43d1262f-0",
+        "encomenda_id": "ca84509b-250f-463f-a334-a15b43d1262f",
+        "produto_id": "13c7cd7e-43ae-462d-8822-a23b917181ed",
+        "produto_nome": "Almendrado",
+        "setor": "pastelaria",
+        "quantidade": 1,
+        "preco_unitario": 0,
+        "notas_personalizacao": "Escrever 'Parabéns'",
+        "estado_producao": "pendente"
+      }
+    ],
+    "criado_em": "2026-09-17T08:30:00+00:00"
+  }
+];

@@ -42,7 +42,8 @@ export default function ProducaoPage() {
 
   // Filtro de Calendário
   const [filtroPeriodo, setFiltroPeriodo] = useState<'hoje' | 'amanha' | 'todos' | 'personalizado'>('hoje');
-  const [dataPersonalizada, setDataPersonalizada] = useState('');
+  const [dataInicioPersonalizada, setDataInicioPersonalizada] = useState('');
+  const [dataFimPersonalizada, setDataFimPersonalizada] = useState('');
 
   // Carregar encomendas reais da base de dados Supabase
   useEffect(() => {
@@ -73,14 +74,20 @@ export default function ProducaoPage() {
         ? true
         : e.itens.some((item) => item.setor === setorAtivo);
 
-    // 3. Filtro Temporal / Calendário
+    // 3. Filtro Temporal / Calendário (Suporte a Período de Dias)
     let matchData = true;
     if (filtroPeriodo === 'hoje') {
       matchData = e.data_agendamento === hoje;
     } else if (filtroPeriodo === 'amanha') {
       matchData = e.data_agendamento === amanha;
-    } else if (filtroPeriodo === 'personalizado' && dataPersonalizada) {
-      matchData = e.data_agendamento === dataPersonalizada;
+    } else if (filtroPeriodo === 'personalizado') {
+      if (dataInicioPersonalizada && dataFimPersonalizada) {
+        matchData = e.data_agendamento >= dataInicioPersonalizada && e.data_agendamento <= dataFimPersonalizada;
+      } else if (dataInicioPersonalizada) {
+        matchData = e.data_agendamento >= dataInicioPersonalizada;
+      } else if (dataFimPersonalizada) {
+        matchData = e.data_agendamento <= dataFimPersonalizada;
+      }
     }
 
     return matchLoja && temItensDoSetor && matchData;
@@ -272,14 +279,38 @@ export default function ProducaoPage() {
           </div>
 
           {filtroPeriodo === 'personalizado' && (
-            <div className="flex items-center gap-2 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200">
-              <label className="text-xs font-bold text-amber-950">Data:</label>
-              <input
-                type="date"
-                value={dataPersonalizada}
-                onChange={(e) => setDataPersonalizada(e.target.value)}
-                className="text-xs px-2 py-1 rounded bg-white border border-amber-300 font-medium text-gray-900"
-              />
+            <div className="flex flex-wrap items-center gap-2 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200">
+              <span className="text-xs font-bold text-amber-950">Período:</span>
+              <div className="flex items-center gap-1">
+                <span className="text-[11px] text-gray-600 font-medium">De:</span>
+                <input
+                  type="date"
+                  value={dataInicioPersonalizada}
+                  onChange={(e) => setDataInicioPersonalizada(e.target.value)}
+                  className="text-xs px-2 py-1 rounded bg-white border border-amber-300 font-medium text-gray-900"
+                />
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-[11px] text-gray-600 font-medium">Até:</span>
+                <input
+                  type="date"
+                  value={dataFimPersonalizada}
+                  onChange={(e) => setDataFimPersonalizada(e.target.value)}
+                  className="text-xs px-2 py-1 rounded bg-white border border-amber-300 font-medium text-gray-900"
+                />
+              </div>
+              {(dataInicioPersonalizada || dataFimPersonalizada) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDataInicioPersonalizada('');
+                    setDataFimPersonalizada('');
+                  }}
+                  className="text-[11px] text-amber-800 hover:text-red-700 underline font-bold ml-1"
+                >
+                  Limpar
+                </button>
+              )}
             </div>
           )}
 
@@ -335,7 +366,7 @@ export default function ProducaoPage() {
                           onClick={() => moverEncomendaKanban(enc.id, 'em_producao')}
                           className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs shadow-xs transition"
                         >
-                          <span>Iniciar Preparo 👨‍🍳</span>
+                          <span>Iniciar Preparação 👨‍🍳</span>
                           <ArrowRight className="h-3.5 w-3.5" />
                         </button>
                       )}
@@ -650,7 +681,7 @@ export default function ProducaoPage() {
                                               onClick={() => atualizarEstadoItem(enc.id, item.id, 'em_preparo')}
                                               className="rounded-lg bg-amber-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-amber-700 transition cursor-pointer"
                                             >
-                                              Iniciar Preparo
+                                              Iniciar Preparação
                                             </button>
                                           )}
                                           {item.estado_producao === 'em_preparo' && (
@@ -678,7 +709,7 @@ export default function ProducaoPage() {
                                         </>
                                       ) : (
                                         <span className="text-xs font-bold text-stone-500">
-                                          {item.estado_producao === 'pronto' ? '✓ Pronto na Bancada' : item.estado_producao === 'em_preparo' ? 'Em Preparo' : 'Pendente'}
+                                          {item.estado_producao === 'pronto' ? '✓ Pronto na Bancada' : item.estado_producao === 'em_preparo' ? 'Em Preparação' : 'Pendente'}
                                         </span>
                                       )}
                                     </div>
