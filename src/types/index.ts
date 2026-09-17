@@ -130,3 +130,23 @@ export interface PerfilUtilizador {
   atualizado_em?: string;
 }
 
+export type ModuloApp = 'encomendas' | 'producao' | 'loja' | 'entregas' | 'gestao';
+
+export interface LogAuditoria {
+  id: string;
+  encomenda_id?: string;
+  codigo_encomenda?: string;
+  cliente_nome?: string;
+  utilizador_id: string;
+  utilizador_nome: string;
+  utilizador_role: Role | string;
+  loja_id?: string;
+  loja_nome?: string;
+  painel: ModuloApp | string;
+  acao: string;
+  detalhes: string;
+  data: string; // YYYY-MM-DD
+  hora: string; // HH:MM:SS ou HH:MM
+  criado_em: string; // ISO 8601
+}
+

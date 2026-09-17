@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
-import { Encomenda, ItemEncomenda, EstadoEncomenda, EstadoProducaoItem, Cliente, Produto, Loja, Carrinha, PerfilUtilizador } from '../types';
+import { Encomenda, ItemEncomenda, EstadoEncomenda, EstadoProducaoItem, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, LogAuditoria } from '../types';
+import { LOGS_AUDITORIA_MOCK } from './mockData';
 
 export function parseEncomendasFromDb(data: any[]): Encomenda[] {
   if (!data || !Array.isArray(data)) return [];
@@ -877,4 +878,112 @@ export async function eliminarPerfilAcessoDb(perfilId: string): Promise<PerfilUt
   const novaLista = listaAtual.filter((p) => p.id !== perfilId);
   await salvarTodosPerfisSupabase(novaLista);
   return novaLista;
+}
+
+// ---------------- LOGS DE AUDITORIA & HISTÓRICO DE UTILIZADORES ---------------- //
+
+const AUDIT_LOGS_STORAGE_KEY = 'app_logs_auditoria';
+
+export async function carregarLogsAuditoriaSupabase(): Promise<LogAuditoria[]> {
+  // 1. Tentar ler do Supabase se a tabela existir
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('logs_auditoria')
+        .select('*')
+        .order('criado_em', { ascending: false });
+
+      if (!error && data && data.length > 0) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(AUDIT_LOGS_STORAGE_KEY, JSON.stringify(data));
+        }
+        return data as LogAuditoria[];
+      }
+    } catch (e) {
+      console.warn('Tabela logs_auditoria não acessível no Supabase, a utilizar fallback local:', e);
+    }
+  }
+
+  // 2. Fallback para localStorage
+  if (typeof window !== 'undefined') {
+    const cached = localStorage.getItem(AUDIT_LOGS_STORAGE_KEY);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      } catch (e) {}
+    }
+  }
+
+  // 3. Fallback para Mock inicial estruturado
+  if (typeof window !== 'undefined' && LOGS_AUDITORIA_MOCK && LOGS_AUDITORIA_MOCK.length > 0) {
+    try {
+      localStorage.setItem(AUDIT_LOGS_STORAGE_KEY, JSON.stringify(LOGS_AUDITORIA_MOCK));
+    } catch (e) {}
+  }
+
+  return LOGS_AUDITORIA_MOCK || [];
+}
+
+export async function registarLogAuditoria(
+  dados: Omit<LogAuditoria, 'id' | 'criado_em'> & { id?: string; criado_em?: string }
+): Promise<LogAuditoria> {
+  const agora = new Date();
+  const dataHoje = dados.data || agora.toISOString().split('T')[0];
+  const horaAgora = dados.hora || agora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+  const novoLog: LogAuditoria = {
+    id: dados.id || `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    encomenda_id: dados.encomenda_id,
+    codigo_encomenda: dados.codigo_encomenda,
+    cliente_nome: dados.cliente_nome,
+    utilizador_id: dados.utilizador_id,
+    utilizador_nome: dados.utilizador_nome,
+    utilizador_role: dados.utilizador_role,
+    loja_id: dados.loja_id,
+    loja_nome: dados.loja_nome,
+    painel: dados.painel,
+    acao: dados.acao,
+    detalhes: dados.detalhes,
+    data: dataHoje,
+    hora: horaAgora,
+    criado_em: dados.criado_em || agora.toISOString(),
+  };
+
+  // 1. Gravar em Supabase se disponível
+  if (supabase) {
+    try {
+      await supabase.from('logs_auditoria').insert([novoLog]);
+    } catch (err) {
+      console.warn('Erro ao inserir log em Supabase (persistindo em local):', err);
+    }
+  }
+
+  // 2. Gravar em localStorage
+  if (typeof window !== 'undefined') {
+    try {
+      const cached = localStorage.getItem(AUDIT_LOGS_STORAGE_KEY);
+      let logsAtuais: LogAuditoria[] = [];
+      if (cached) {
+        logsAtuais = JSON.parse(cached);
+      } else {
+        logsAtuais = [...LOGS_AUDITORIA_MOCK];
+      }
+      logsAtuais.unshift(novoLog);
+      localStorage.setItem(AUDIT_LOGS_STORAGE_KEY, JSON.stringify(logsAtuais));
+    } catch (e) {
+      console.error('Erro ao gravar log no localStorage:', e);
+    }
+  }
+
+  return novoLog;
+}
+
+export async function reiniciarLogsAuditoriaParaMock(): Promise<LogAuditoria[]> {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(AUDIT_LOGS_STORAGE_KEY, JSON.stringify(LOGS_AUDITORIA_MOCK));
+  }
+  return LOGS_AUDITORIA_MOCK;
 }

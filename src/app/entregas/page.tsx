@@ -10,7 +10,8 @@ import {
   atualizarEstadoEncomendaDb,
   alternarTipoEntregaDb,
   atribuirCarrinhaDb,
-  concluirEntregaComTimestampDb
+  concluirEntregaComTimestampDb,
+  registarLogAuditoria 
 } from '../../lib/encomendasService';
 import { Encomenda, EstadoRota } from '../../types';
 import { useTranslation } from '../../lib/i18n';
@@ -39,7 +40,8 @@ import {
 
 export default function EntregasPage() {
   const { t } = useTranslation();
-  const { podeEditar } = useAuth();
+  const { podeEditar, usuario } = useAuth();
+  const currentUser = usuario || { id: 'user-motorista', nome: 'Rui Oliveira (Motorista Carrinha 1)', role: 'motorista' };
   const temPermissaoEdicao = podeEditar('entregas');
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
   const [carrinhaSelecionadaId, setCarrinhaSelecionadaId] = useState<string>('todas');
@@ -137,6 +139,17 @@ export default function EntregasPage() {
         horaInicio: agora,
       },
     }));
+    const carrinhaObj = CARRINHAS_MOCK.find((c) => c.id === carrinhaSelecionadaId);
+    registarLogAuditoria({
+      utilizador_id: currentUser.id,
+      utilizador_nome: currentUser.nome,
+      utilizador_role: currentUser.role,
+      loja_id: lojaAtual.id,
+      loja_nome: lojaAtual.nome,
+      painel: 'entregas',
+      acao: 'Início de Rota de Entregas',
+      detalhes: `Motorista ${currentUser.nome} iniciou o circuito de distribuição da ${carrinhaObj?.identificador || 'Carrinha'}. Total de ${totalParagens} paragem(ns).`,
+    });
   };
 
   // Concluir Rota de Entregas
@@ -150,12 +163,40 @@ export default function EntregasPage() {
         horaFim: agora,
       },
     }));
+    const carrinhaObj = CARRINHAS_MOCK.find((c) => c.id === carrinhaSelecionadaId);
+    registarLogAuditoria({
+      utilizador_id: currentUser.id,
+      utilizador_nome: currentUser.nome,
+      utilizador_role: currentUser.role,
+      loja_id: lojaAtual.id,
+      loja_nome: lojaAtual.nome,
+      painel: 'entregas',
+      acao: 'Conclusão de Rota de Entregas',
+      detalhes: `Circuito de distribuição da ${carrinhaObj?.identificador || 'Carrinha'} finalizado com ${paragensConcluidas} entrega(s) concluídas.`,
+    });
   };
 
   // Concluir entrega com registo de timestamp real
   const confirmarEntrega = async (encomendaId: string) => {
     const agora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     await concluirEntregaComTimestampDb(encomendaId, agora);
+    const enc = encomendas.find((e) => e.id === encomendaId);
+    if (enc) {
+      await registarLogAuditoria({
+        encomenda_id: enc.id,
+        codigo_encomenda: enc.codigo,
+        cliente_nome: enc.cliente.nome,
+        utilizador_id: currentUser.id,
+        utilizador_nome: currentUser.nome,
+        utilizador_role: currentUser.role,
+        loja_id: enc.loja_id,
+        loja_nome: enc.loja_nome,
+        painel: 'entregas',
+        acao: 'Entrega Efetuada ao Domicílio',
+        detalhes: `Entrega física concluída com sucesso na morada ${enc.cliente.morada || 'Arouca'} às ${agora}. Registado por ${currentUser.nome}.`,
+      });
+    }
+
     setEncomendas((prev) =>
       prev.map((e) =>
         e.id === encomendaId
@@ -176,12 +217,41 @@ export default function EntregasPage() {
       ...prev,
       [rotaKey]: sorted.map((e) => e.id),
     }));
+    registarLogAuditoria({
+      utilizador_id: currentUser.id,
+      utilizador_nome: currentUser.nome,
+      utilizador_role: currentUser.role,
+      loja_id: lojaAtual.id,
+      loja_nome: lojaAtual.nome,
+      painel: 'entregas',
+      acao: 'Otimização de Rota',
+      detalhes: `Sequência de paragens reordenada e otimizada automaticamente por horário e proximidade geográfica por ${currentUser.nome}.`,
+    });
   };
 
   // Atribuir encomenda a uma carrinha
   const handleAtribuirCarrinha = async (encomendaId: string, carrinhaId: string | null) => {
     await atribuirCarrinhaDb(encomendaId, carrinhaId);
+    const enc = encomendas.find((e) => e.id === encomendaId);
     const carrinhaObj = CARRINHAS_MOCK.find((c) => c.id === carrinhaId);
+    if (enc) {
+      await registarLogAuditoria({
+        encomenda_id: enc.id,
+        codigo_encomenda: enc.codigo,
+        cliente_nome: enc.cliente.nome,
+        utilizador_id: currentUser.id,
+        utilizador_nome: currentUser.nome,
+        utilizador_role: currentUser.role,
+        loja_id: enc.loja_id,
+        loja_nome: enc.loja_nome,
+        painel: 'entregas',
+        acao: 'Atribuição a Carrinha',
+        detalhes: carrinhaId 
+          ? `Pedido ${enc.codigo} atribuído à ${carrinhaObj?.identificador || 'carrinha'} por ${currentUser.nome}.`
+          : `Pedido ${enc.codigo} desatribuído da carrinha (devolvido ao pool) por ${currentUser.nome}.`,
+      });
+    }
+
     setEncomendas((prev) =>
       prev.map((e) =>
         e.id === encomendaId
@@ -218,13 +288,26 @@ export default function EntregasPage() {
     if (novaMorada === null || !novaMorada.trim()) return;
 
     const moradaLimpa = novaMorada.trim();
-
     if (supabase && enc.cliente.id) {
       await supabase
         .from('clientes')
         .update({ morada: moradaLimpa })
         .eq('id', enc.cliente.id);
     }
+
+    await registarLogAuditoria({
+      encomenda_id: enc.id,
+      codigo_encomenda: enc.codigo,
+      cliente_nome: enc.cliente.nome,
+      utilizador_id: currentUser.id,
+      utilizador_nome: currentUser.nome,
+      utilizador_role: currentUser.role,
+      loja_id: enc.loja_id,
+      loja_nome: enc.loja_nome,
+      painel: 'entregas',
+      acao: 'Alteração de Morada de Entrega',
+      detalhes: `Morada de entrega atualizada para "${moradaLimpa}" por ${currentUser.nome}.`,
+    });
 
     setEncomendas((prev) =>
       prev.map((e) =>

@@ -23,7 +23,9 @@ import {
   eliminarProdutoDb,
   formatarNomeEntidade,
   upsertClientesEmLote,
-  upsertProdutosEmLote
+  upsertProdutosEmLote,
+  carregarLogsAuditoriaSupabase,
+  reiniciarLogsAuditoriaParaMock
 } from '../../lib/encomendasService';
 import { 
   ReceiptConfig, 
@@ -31,7 +33,7 @@ import {
   saveReceiptConfig, 
   DEFAULT_RECEIPT_CONFIG 
 } from '../../lib/receiptConfig';
-import { Encomenda, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, Role, NivelAcesso } from '../../types';
+import { Encomenda, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, Role, NivelAcesso, LogAuditoria } from '../../types';
 import { useTranslation } from '../../lib/i18n';
 import { useAuth } from '../../lib/authContext';
 import { 
@@ -58,12 +60,15 @@ import {
   Eye,
   Lock,
   AlertTriangle,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  Award,
-  TrendingUp,
-  User
+  Clock, 
+  CheckCircle2, 
+  XCircle, 
+  Award, 
+  TrendingUp, 
+  User,
+  ChefHat,
+  X,
+  RotateCcw
 } from 'lucide-react';
 
 export default function AdminPage() {
@@ -71,7 +76,29 @@ export default function AdminPage() {
   const { podeEditar } = useAuth();
   const temPermissaoEdicaoGestao = podeEditar('gestao');
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
-  const [activeTab, setActiveTab] = useState<'metricas' | 'lojas_carrinhas' | 'database' | 'talao' | 'acessos'>('metricas');
+  const [activeTab, setActiveTab] = useState<'metricas' | 'lojas_carrinhas' | 'database' | 'logs' | 'talao' | 'acessos'>('metricas');
+
+  // Histórico & Logs de Auditoria de Utilizadores
+  const [logsAuditoria, setLogsAuditoria] = useState<LogAuditoria[]>([]);
+  const [carregandoLogs, setCarregandoLogs] = useState(false);
+  const [paginaAtualLogs, setPaginaAtualLogs] = useState(1);
+  const [registosPorPaginaLogs, setRegistosPorPaginaLogs] = useState<number | 'todos'>(50);
+  const [sortLogs, setSortLogs] = useState<{
+    col: 'data_hora' | 'codigo' | 'cliente' | 'utilizador' | 'role' | 'painel' | 'acao' | 'detalhes';
+    dir: 'asc' | 'desc';
+  }>({ col: 'data_hora', dir: 'desc' });
+  const [filtroLogs, setFiltroLogs] = useState({
+    codigo: '',
+    cliente: '',
+    utilizador: 'todos',
+    role: 'todos',
+    painel: 'todos',
+    acao: 'todas',
+    detalhes: '',
+    dataInicio: '',
+    dataFim: '',
+    periodoRapido: 'todos',
+  });
 
   // Filtros Temporais e Formato de Entrega
   const [periodoSelecionado, setPeriodoSelecionado] = useState<'dia' | 'semana' | 'mes' | 'ano' | 'todos'>('todos');
@@ -138,13 +165,14 @@ export default function AdminPage() {
   // Carregamento Inicial
   useEffect(() => {
     async function carregar() {
-      const [encs, clis, prods, ljs, cars, pfs] = await Promise.all([
+      const [encs, clis, prods, ljs, cars, pfs, logs] = await Promise.all([
         carregarEncomendasSupabase(),
         carregarClientesSupabase(),
         carregarProdutosSupabase(),
         carregarLojasSupabase(),
         carregarCarrinhasSupabase(),
         carregarPerfisAcessoSupabase(),
+        carregarLogsAuditoriaSupabase(),
       ]);
       setEncomendas(encs);
       if (clis.length) setClientes(clis);
@@ -152,6 +180,7 @@ export default function AdminPage() {
       if (ljs.length) setLojas(ljs);
       if (cars.length) setCarrinhas(cars);
       if (pfs.length) setPerfis(pfs);
+      if (logs.length) setLogsAuditoria(logs);
       setReceiptConfig(getReceiptConfig());
     }
     carregar();
@@ -406,6 +435,131 @@ export default function AdminPage() {
 
     return list;
   }, [produtos, filtroProdutos, sortProdutos]);
+
+  // Ações da Tabela Interativa de Logs de Auditoria
+  const handleToggleSortLogs = (col: 'data_hora' | 'codigo' | 'cliente' | 'utilizador' | 'role' | 'painel' | 'acao' | 'detalhes') => {
+    setSortLogs(prev => ({
+      col,
+      dir: prev.col === col && prev.dir === 'desc' ? 'asc' : 'desc'
+    }));
+  };
+
+  const utilizadoresLogsUnicos = useMemo(() => {
+    const s = new Set<string>();
+    logsAuditoria.forEach(l => { if (l.utilizador_nome) s.add(l.utilizador_nome); });
+    return Array.from(s).sort();
+  }, [logsAuditoria]);
+
+  const rolesLogsUnicas = useMemo(() => {
+    const s = new Set<string>();
+    logsAuditoria.forEach(l => { if (l.utilizador_role) s.add(String(l.utilizador_role)); });
+    return Array.from(s).sort();
+  }, [logsAuditoria]);
+
+  const paineisLogsUnicos = useMemo(() => {
+    const s = new Set<string>();
+    logsAuditoria.forEach(l => { if (l.painel) s.add(String(l.painel)); });
+    return Array.from(s).sort();
+  }, [logsAuditoria]);
+
+  const acoesLogsUnicas = useMemo(() => {
+    const s = new Set<string>();
+    logsAuditoria.forEach(l => { if (l.acao) s.add(l.acao); });
+    return Array.from(s).sort();
+  }, [logsAuditoria]);
+
+  const logsFiltradosEOrdenados = useMemo(() => {
+    const hojeStr = new Date().toISOString().split('T')[0];
+    const dHoje = new Date();
+    const dOntem = new Date(dHoje);
+    dOntem.setDate(dOntem.getDate() - 1);
+    const ontemStr = dOntem.toISOString().split('T')[0];
+    const dSemana = new Date(dHoje);
+    dSemana.setDate(dSemana.getDate() - 7);
+    const semanaStr = dSemana.toISOString().split('T')[0];
+
+    const filtrados = logsAuditoria.filter((log) => {
+      // 1. Filtro de Loja Global
+      if (selectedLojaId !== 'todas' && log.loja_id && log.loja_id !== selectedLojaId) {
+        return false;
+      }
+
+      // 2. Filtro de Período Rápido / Datas
+      if (filtroLogs.periodoRapido === 'hoje' && log.data !== hojeStr) return false;
+      if (filtroLogs.periodoRapido === 'ontem' && log.data !== ontemStr) return false;
+      if (filtroLogs.periodoRapido === 'semana' && log.data < semanaStr) return false;
+      if (filtroLogs.dataInicio && log.data < filtroLogs.dataInicio) return false;
+      if (filtroLogs.dataFim && log.data > filtroLogs.dataFim) return false;
+
+      // 3. Filtros por Coluna
+      if (filtroLogs.codigo && !(log.codigo_encomenda || '').toLowerCase().includes(filtroLogs.codigo.toLowerCase().trim())) {
+        return false;
+      }
+      if (filtroLogs.cliente && !(log.cliente_nome || '').toLowerCase().includes(filtroLogs.cliente.toLowerCase().trim())) {
+        return false;
+      }
+      if (filtroLogs.utilizador !== 'todos' && log.utilizador_nome !== filtroLogs.utilizador) {
+        return false;
+      }
+      if (filtroLogs.role !== 'todos' && log.utilizador_role !== filtroLogs.role) {
+        return false;
+      }
+      if (filtroLogs.painel !== 'todos' && log.painel !== filtroLogs.painel) {
+        return false;
+      }
+      if (filtroLogs.acao !== 'todas' && log.acao !== filtroLogs.acao) {
+        return false;
+      }
+      if (filtroLogs.detalhes && !(log.detalhes || '').toLowerCase().includes(filtroLogs.detalhes.toLowerCase().trim())) {
+        return false;
+      }
+
+      return true;
+    });
+
+    filtrados.sort((a, b) => {
+      let res = 0;
+      switch (sortLogs.col) {
+        case 'data_hora':
+          res = `${a.data} ${a.hora}`.localeCompare(`${b.data} ${b.hora}`);
+          break;
+        case 'codigo':
+          res = (a.codigo_encomenda || '').localeCompare(b.codigo_encomenda || '');
+          break;
+        case 'cliente':
+          res = (a.cliente_nome || '').localeCompare(b.cliente_nome || '');
+          break;
+        case 'utilizador':
+          res = (a.utilizador_nome || '').localeCompare(b.utilizador_nome || '');
+          break;
+        case 'role':
+          res = (String(a.utilizador_role) || '').localeCompare(String(b.utilizador_role) || '');
+          break;
+        case 'painel':
+          res = (String(a.painel) || '').localeCompare(String(b.painel) || '');
+          break;
+        case 'acao':
+          res = (a.acao || '').localeCompare(b.acao || '');
+          break;
+        case 'detalhes':
+          res = (a.detalhes || '').localeCompare(b.detalhes || '');
+          break;
+        default:
+          res = `${a.data} ${a.hora}`.localeCompare(`${b.data} ${b.hora}`);
+      }
+      return sortLogs.dir === 'asc' ? res : -res;
+    });
+
+    return filtrados;
+  }, [logsAuditoria, selectedLojaId, filtroLogs, sortLogs]);
+
+  const logsPaginados = useMemo(() => {
+    if (registosPorPaginaLogs === 'todos') return logsFiltradosEOrdenados;
+    const inicio = (paginaAtualLogs - 1) * registosPorPaginaLogs;
+    return logsFiltradosEOrdenados.slice(inicio, inicio + registosPorPaginaLogs);
+  }, [logsFiltradosEOrdenados, paginaAtualLogs, registosPorPaginaLogs]);
+
+  const totalPaginasLogs = registosPorPaginaLogs === 'todos' ? 1 : Math.ceil(logsFiltradosEOrdenados.length / registosPorPaginaLogs);
 
   const handleSalvarEdicaoProdutoModal = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -667,6 +821,56 @@ export default function AdminPage() {
     ]));
   };
 
+  const exportarLogsAuditoria = () => {
+    const colunas = [
+      'Data',
+      'Hora',
+      'Código Encomenda',
+      'Cliente',
+      'Colaborador/Utilizador',
+      'Perfil/Cargo',
+      'Módulo/Painel',
+      'Ação Realizada',
+      'Detalhes da Operação',
+      'Loja'
+    ];
+    const linhas = logsFiltradosEOrdenados.map((l) => [
+      l.data,
+      l.hora,
+      l.codigo_encomenda || 'N/A',
+      l.cliente_nome || 'N/A',
+      l.utilizador_nome,
+      l.utilizador_role,
+      l.painel,
+      l.acao,
+      l.detalhes,
+      l.loja_nome || 'Todas as Lojas'
+    ]);
+    exportarExcel('historico_auditoria_padaria', 'Logs Auditoria', colunas, linhas);
+  };
+
+  const recarregarLogs = async () => {
+    setCarregandoLogs(true);
+    try {
+      const logs = await carregarLogsAuditoriaSupabase();
+      setLogsAuditoria(logs);
+    } finally {
+      setCarregandoLogs(false);
+    }
+  };
+
+  const reiniciarLogs = async () => {
+    if (!window.confirm('Deseja repor o histórico com os registos de auditoria estruturados de exemplo das 100 encomendas?')) return;
+    setCarregandoLogs(true);
+    try {
+      const logs = await reiniciarLogsAuditoriaParaMock();
+      setLogsAuditoria(logs);
+      alert('Histórico de auditoria reposto com sucesso!');
+    } finally {
+      setCarregandoLogs(false);
+    }
+  };
+
   // Download de Templates em Excel (.xlsx)
   const descarregarTemplate = (tipo: 'clientes' | 'produtos') => {
     if (tipo === 'clientes') {
@@ -868,6 +1072,16 @@ export default function AdminPage() {
           >
             <FileSpreadsheet className="h-4 w-4" />
             {t.tabDatabase}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('logs')}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'logs' ? 'bg-bakery-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <Clock className="h-4 w-4" />
+            Auditoria & Histórico ({logsAuditoria.length})
           </button>
 
           <button
@@ -1791,7 +2005,652 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ----------------- ABA 4: CONFIGURADOR DE TALÃO ----------------- */}
+        {/* ----------------- ABA 4: HISTÓRICO & AUDITORIA DE UTILIZADORES (NOVO v1.8.0) ----------------- */}
+        {activeTab === 'logs' && (
+          <div className="space-y-6">
+            {/* Cabeçalho da Aba de Auditoria */}
+            <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-base font-black text-gray-900 flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-bakery-600" />
+                  Histórico & Auditoria de Ações dos Utilizadores
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Rastreabilidade e carimbo temporal de todas as ações operacionais desde o registo inicial da encomenda à entrega final ao cliente.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={recarregarLogs}
+                  disabled={carregandoLogs}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-gray-200 bg-white text-gray-700 font-bold text-xs hover:bg-gray-50 transition shadow-2xs cursor-pointer"
+                  title="Atualizar lista de registos de auditoria"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 text-bakery-600 ${carregandoLogs ? 'animate-spin' : ''}`} />
+                  Recarregar
+                </button>
+
+                <button
+                  type="button"
+                  onClick={exportarLogsAuditoria}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition shadow-xs cursor-pointer"
+                  title="Exportar todos os registos filtrados para Excel"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Exportar Excel (.xlsx)
+                </button>
+
+                {temPermissaoEdicaoGestao && (
+                  <button
+                    type="button"
+                    onClick={reiniciarLogs}
+                    className="flex items-center gap-1 px-2.5 py-2 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 font-bold text-xs hover:bg-amber-100 transition shadow-2xs cursor-pointer"
+                    title="Repor registos estruturados de exemplo das 100 encomendas"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5 text-amber-700" />
+                    Repor Exemplo
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Cartões de Métricas / Resumo dos Logs */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Ações Auditadas</span>
+                  <Clock className="h-4 w-4 text-bakery-600" />
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-black text-gray-900">{logsAuditoria.length}</span>
+                  {logsFiltradosEOrdenados.length !== logsAuditoria.length && (
+                    <span className="text-xs font-bold text-bakery-600">({logsFiltradosEOrdenados.length} filtradas)</span>
+                  )}
+                </div>
+                <p className="text-[11px] text-gray-400 mt-1">Registos de auditoria em sistema</p>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Ações de Hoje</span>
+                  <Calendar className="h-4 w-4 text-blue-600" />
+                </div>
+                <div className="text-2xl font-black text-blue-700">
+                  {logsAuditoria.filter(l => l.data === new Date().toISOString().split('T')[0]).length}
+                </div>
+                <p className="text-[11px] text-gray-400 mt-1">Operações efetuadas no turno atual</p>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Colaboradores</span>
+                  <Users className="h-4 w-4 text-purple-600" />
+                </div>
+                <div className="text-2xl font-black text-purple-700">
+                  {utilizadoresLogsUnicos.length}
+                </div>
+                <p className="text-[11px] text-gray-400 mt-1">Utilizadores com ações registadas</p>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Entregas Concluídas</span>
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                </div>
+                <div className="text-2xl font-black text-emerald-700">
+                  {logsAuditoria.filter(l => l.acao.includes('Entrega Efetuada')).length}
+                </div>
+                <p className="text-[11px] text-gray-400 mt-1">Auditorias com carimbo de entrega real</p>
+              </div>
+            </div>
+
+            {/* Barra de Atalhos Rápidos de Período e Limpeza */}
+            <div className="bg-white p-3.5 rounded-2xl border border-gray-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="font-bold text-gray-600 mr-1 flex items-center gap-1">
+                  <Calendar className="h-3.5 w-3.5 text-bakery-600" />
+                  Período Rápido:
+                </span>
+                {[
+                  { id: 'todos', label: 'Todo o Histórico' },
+                  { id: 'hoje', label: 'Hoje' },
+                  { id: 'ontem', label: 'Ontem' },
+                  { id: 'semana', label: 'Últimos 7 Dias' },
+                ].map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => {
+                      setFiltroLogs(prev => ({ ...prev, periodoRapido: p.id, dataInicio: '', dataFim: '' }));
+                      setPaginaAtualLogs(1);
+                    }}
+                    className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer ${
+                      filtroLogs.periodoRapido === p.id && !filtroLogs.dataInicio
+                        ? 'bg-bakery-600 text-white shadow-xs'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-gray-500 font-medium">De:</span>
+                  <input
+                    type="date"
+                    value={filtroLogs.dataInicio}
+                    onChange={(e) => {
+                      setFiltroLogs(prev => ({ ...prev, dataInicio: e.target.value, periodoRapido: 'personalizado' }));
+                      setPaginaAtualLogs(1);
+                    }}
+                    className="px-2.5 py-1 rounded-xl border border-gray-200 bg-white font-medium text-xs focus:outline-hidden"
+                  />
+                  <span className="text-gray-500 font-medium">Até:</span>
+                  <input
+                    type="date"
+                    value={filtroLogs.dataFim}
+                    onChange={(e) => {
+                      setFiltroLogs(prev => ({ ...prev, dataFim: e.target.value, periodoRapido: 'personalizado' }));
+                      setPaginaAtualLogs(1);
+                    }}
+                    className="px-2.5 py-1 rounded-xl border border-gray-200 bg-white font-medium text-xs focus:outline-hidden"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFiltroLogs({
+                      codigo: '',
+                      cliente: '',
+                      utilizador: 'todos',
+                      role: 'todos',
+                      painel: 'todos',
+                      acao: 'todas',
+                      detalhes: '',
+                      dataInicio: '',
+                      dataFim: '',
+                      periodoRapido: 'todos',
+                    });
+                    setPaginaAtualLogs(1);
+                  }}
+                  className="px-2.5 py-1.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100 font-bold transition flex items-center gap-1 cursor-pointer"
+                  title="Limpar todos os filtros da tabela"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Limpar Filtros
+                </button>
+              </div>
+            </div>
+
+            {/* Tabela Completa de Auditoria com Filtros e Ordenação em TODAS as Colunas */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead className="bg-stone-50 border-b border-gray-200 text-gray-700">
+                    {/* Linha 1 de Cabeçalho: Títulos e Botões de Ordenação */}
+                    <tr className="border-b border-gray-200">
+                      <th className="p-3 whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSortLogs('data_hora')}
+                          className="flex items-center gap-1 font-black text-gray-800 hover:text-bakery-600 transition cursor-pointer"
+                        >
+                          Data & Hora
+                          <ArrowUpDown className={`h-3.5 w-3.5 ${sortLogs.col === 'data_hora' ? 'text-bakery-600 font-black' : 'text-gray-400'}`} />
+                        </button>
+                      </th>
+
+                      <th className="p-3 whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSortLogs('codigo')}
+                          className="flex items-center gap-1 font-black text-gray-800 hover:text-bakery-600 transition cursor-pointer"
+                        >
+                          Encomenda
+                          <ArrowUpDown className={`h-3.5 w-3.5 ${sortLogs.col === 'codigo' ? 'text-bakery-600 font-black' : 'text-gray-400'}`} />
+                        </button>
+                      </th>
+
+                      <th className="p-3 whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSortLogs('cliente')}
+                          className="flex items-center gap-1 font-black text-gray-800 hover:text-bakery-600 transition cursor-pointer"
+                        >
+                          Cliente
+                          <ArrowUpDown className={`h-3.5 w-3.5 ${sortLogs.col === 'cliente' ? 'text-bakery-600 font-black' : 'text-gray-400'}`} />
+                        </button>
+                      </th>
+
+                      <th className="p-3 whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSortLogs('utilizador')}
+                          className="flex items-center gap-1 font-black text-gray-800 hover:text-bakery-600 transition cursor-pointer"
+                        >
+                          Colaborador
+                          <ArrowUpDown className={`h-3.5 w-3.5 ${sortLogs.col === 'utilizador' ? 'text-bakery-600 font-black' : 'text-gray-400'}`} />
+                        </button>
+                      </th>
+
+                      <th className="p-3 whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSortLogs('role')}
+                          className="flex items-center gap-1 font-black text-gray-800 hover:text-bakery-600 transition cursor-pointer"
+                        >
+                          Cargo / Perfil
+                          <ArrowUpDown className={`h-3.5 w-3.5 ${sortLogs.col === 'role' ? 'text-bakery-600 font-black' : 'text-gray-400'}`} />
+                        </button>
+                      </th>
+
+                      <th className="p-3 whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSortLogs('painel')}
+                          className="flex items-center gap-1 font-black text-gray-800 hover:text-bakery-600 transition cursor-pointer"
+                        >
+                          Módulo
+                          <ArrowUpDown className={`h-3.5 w-3.5 ${sortLogs.col === 'painel' ? 'text-bakery-600 font-black' : 'text-gray-400'}`} />
+                        </button>
+                      </th>
+
+                      <th className="p-3 whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSortLogs('acao')}
+                          className="flex items-center gap-1 font-black text-gray-800 hover:text-bakery-600 transition cursor-pointer"
+                        >
+                          Ação Realizada
+                          <ArrowUpDown className={`h-3.5 w-3.5 ${sortLogs.col === 'acao' ? 'text-bakery-600 font-black' : 'text-gray-400'}`} />
+                        </button>
+                      </th>
+
+                      <th className="p-3 min-w-[280px]">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSortLogs('detalhes')}
+                          className="flex items-center gap-1 font-black text-gray-800 hover:text-bakery-600 transition cursor-pointer"
+                        >
+                          Detalhes da Operação
+                          <ArrowUpDown className={`h-3.5 w-3.5 ${sortLogs.col === 'detalhes' ? 'text-bakery-600 font-black' : 'text-gray-400'}`} />
+                        </button>
+                      </th>
+                    </tr>
+
+                    {/* Linha 2 de Cabeçalho: Controlos de Filtro em Cada Coluna */}
+                    <tr className="bg-stone-100/80">
+                      {/* Filtro Data */}
+                      <th className="p-2">
+                        <input
+                          type="date"
+                          value={filtroLogs.dataInicio}
+                          onChange={(e) => {
+                            setFiltroLogs(prev => ({ ...prev, dataInicio: e.target.value, periodoRapido: 'personalizado' }));
+                            setPaginaAtualLogs(1);
+                          }}
+                          className="w-full px-2 py-1 rounded-lg border border-gray-300 bg-white text-[11px] font-medium focus:outline-hidden"
+                          title="Filtrar por data"
+                        />
+                      </th>
+
+                      {/* Filtro Código Encomenda */}
+                      <th className="p-2">
+                        <input
+                          type="text"
+                          placeholder="Filtrar cód..."
+                          value={filtroLogs.codigo}
+                          onChange={(e) => {
+                            setFiltroLogs(prev => ({ ...prev, codigo: e.target.value }));
+                            setPaginaAtualLogs(1);
+                          }}
+                          className="w-full px-2 py-1 rounded-lg border border-gray-300 bg-white text-[11px] font-medium focus:outline-hidden"
+                        />
+                      </th>
+
+                      {/* Filtro Cliente */}
+                      <th className="p-2">
+                        <input
+                          type="text"
+                          placeholder="Filtrar cliente..."
+                          value={filtroLogs.cliente}
+                          onChange={(e) => {
+                            setFiltroLogs(prev => ({ ...prev, cliente: e.target.value }));
+                            setPaginaAtualLogs(1);
+                          }}
+                          className="w-full px-2 py-1 rounded-lg border border-gray-300 bg-white text-[11px] font-medium focus:outline-hidden"
+                        />
+                      </th>
+
+                      {/* Filtro Utilizador */}
+                      <th className="p-2">
+                        <select
+                          value={filtroLogs.utilizador}
+                          onChange={(e) => {
+                            setFiltroLogs(prev => ({ ...prev, utilizador: e.target.value }));
+                            setPaginaAtualLogs(1);
+                          }}
+                          className="w-full px-2 py-1 rounded-lg border border-gray-300 bg-white text-[11px] font-bold focus:outline-hidden cursor-pointer"
+                        >
+                          <option value="todos">Todos os Colaboradores</option>
+                          {utilizadoresLogsUnicos.map((u) => (
+                            <option key={u} value={u}>{u}</option>
+                          ))}
+                        </select>
+                      </th>
+
+                      {/* Filtro Cargo / Role */}
+                      <th className="p-2">
+                        <select
+                          value={filtroLogs.role}
+                          onChange={(e) => {
+                            setFiltroLogs(prev => ({ ...prev, role: e.target.value }));
+                            setPaginaAtualLogs(1);
+                          }}
+                          className="w-full px-2 py-1 rounded-lg border border-gray-300 bg-white text-[11px] font-bold focus:outline-hidden cursor-pointer"
+                        >
+                          <option value="todos">Todos os Cargos</option>
+                          {rolesLogsUnicas.map((r) => (
+                            <option key={r} value={r}>{r}</option>
+                          ))}
+                        </select>
+                      </th>
+
+                      {/* Filtro Módulo */}
+                      <th className="p-2">
+                        <select
+                          value={filtroLogs.painel}
+                          onChange={(e) => {
+                            setFiltroLogs(prev => ({ ...prev, painel: e.target.value }));
+                            setPaginaAtualLogs(1);
+                          }}
+                          className="w-full px-2 py-1 rounded-lg border border-gray-300 bg-white text-[11px] font-bold focus:outline-hidden cursor-pointer"
+                        >
+                          <option value="todos">Todos os Módulos</option>
+                          {paineisLogsUnicos.map((p) => (
+                            <option key={p} value={p}>{p}</option>
+                          ))}
+                        </select>
+                      </th>
+
+                      {/* Filtro Ação */}
+                      <th className="p-2">
+                        <select
+                          value={filtroLogs.acao}
+                          onChange={(e) => {
+                            setFiltroLogs(prev => ({ ...prev, acao: e.target.value }));
+                            setPaginaAtualLogs(1);
+                          }}
+                          className="w-full px-2 py-1 rounded-lg border border-gray-300 bg-white text-[11px] font-bold focus:outline-hidden cursor-pointer"
+                        >
+                          <option value="todas">Todas as Ações</option>
+                          {acoesLogsUnicas.map((a) => (
+                            <option key={a} value={a}>{a}</option>
+                          ))}
+                        </select>
+                      </th>
+
+                      {/* Filtro Detalhes */}
+                      <th className="p-2">
+                        <input
+                          type="text"
+                          placeholder="Pesquisar nos detalhes..."
+                          value={filtroLogs.detalhes}
+                          onChange={(e) => {
+                            setFiltroLogs(prev => ({ ...prev, detalhes: e.target.value }));
+                            setPaginaAtualLogs(1);
+                          }}
+                          className="w-full px-2 py-1 rounded-lg border border-gray-300 bg-white text-[11px] font-medium focus:outline-hidden"
+                        />
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody className="divide-y divide-gray-100 font-medium text-gray-800">
+                    {logsPaginados.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="p-8 text-center text-gray-400">
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            <Clock className="h-8 w-8 text-gray-300" />
+                            <p className="font-bold text-gray-600">Nenhum registo de auditoria encontrado com os filtros selecionados.</p>
+                            <button
+                              type="button"
+                              onClick={() => setFiltroLogs({
+                                codigo: '', cliente: '', utilizador: 'todos', role: 'todos',
+                                painel: 'todos', acao: 'todas', detalhes: '', dataInicio: '', dataFim: '', periodoRapido: 'todos'
+                              })}
+                              className="text-xs text-bakery-600 font-bold hover:underline cursor-pointer mt-1"
+                            >
+                              Limpar filtros aplicados
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      logsPaginados.map((log) => {
+                        const encAlvo = encomendas.find(
+                          (e) => e.codigo === log.codigo_encomenda || e.id === log.encomenda_id
+                        );
+
+                        return (
+                          <tr key={log.id} className="hover:bg-amber-50/40 transition">
+                            {/* Data & Hora */}
+                            <td className="p-3 whitespace-nowrap">
+                              <div className="flex flex-col">
+                                <span className="font-mono font-bold text-gray-900">{log.data}</span>
+                                <span className="font-mono text-[11px] text-gray-500">{log.hora}</span>
+                              </div>
+                            </td>
+
+                            {/* Código Encomenda */}
+                            <td className="p-3 whitespace-nowrap">
+                              {log.codigo_encomenda ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (encAlvo) {
+                                      setEncomendaTesteTalão(encAlvo);
+                                    } else {
+                                      alert(`Encomenda ${log.codigo_encomenda} registada no log.`);
+                                    }
+                                  }}
+                                  className="px-2 py-1 rounded-lg font-mono font-bold text-[11px] bg-stone-100 hover:bg-amber-100 text-stone-800 hover:text-amber-900 transition border border-stone-200 cursor-pointer flex items-center gap-1"
+                                  title="Clique para ver o talão térmico"
+                                >
+                                  <Printer className="h-3 w-3 text-bakery-600" />
+                                  {log.codigo_encomenda}
+                                </button>
+                              ) : (
+                                <span className="text-gray-400 font-mono text-[11px]">N/A</span>
+                              )}
+                            </td>
+
+                            {/* Cliente */}
+                            <td className="p-3 whitespace-nowrap">
+                              <span className="font-bold text-gray-900">{log.cliente_nome || 'Cliente'}</span>
+                            </td>
+
+                            {/* Colaborador */}
+                            <td className="p-3 whitespace-nowrap">
+                              <div className="flex items-center gap-1.5">
+                                <div className="p-1 rounded-md bg-stone-100 text-gray-700">
+                                  <User className="h-3.5 w-3.5" />
+                                </div>
+                                <span className="font-bold text-gray-900">{log.utilizador_nome}</span>
+                              </div>
+                            </td>
+
+                            {/* Cargo / Perfil */}
+                            <td className="p-3 whitespace-nowrap">
+                              {(() => {
+                                const r = String(log.utilizador_role);
+                                if (r === 'admin') {
+                                  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-100 text-purple-800 border border-purple-200">Administrador</span>;
+                                }
+                                if (r === 'gerente_loja') {
+                                  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-100 text-blue-800 border border-blue-200">Gerente</span>;
+                                }
+                                if (r === 'atendente') {
+                                  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">Atendente</span>;
+                                }
+                                if (r === 'operador_padaria') {
+                                  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-200">Chefe Padeiro</span>;
+                                }
+                                if (r === 'operador_pastelaria') {
+                                  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-pink-100 text-pink-800 border border-pink-200">Pastelaria</span>;
+                                }
+                                if (r === 'motorista') {
+                                  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-orange-100 text-orange-800 border border-orange-200">Motorista</span>;
+                                }
+                                return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-700">{r}</span>;
+                              })()}
+                            </td>
+
+                            {/* Módulo / Painel */}
+                            <td className="p-3 whitespace-nowrap">
+                              {(() => {
+                                const p = String(log.painel);
+                                if (p === 'encomendas') {
+                                  return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200"><FileSpreadsheet className="h-3 w-3" /> Encomendas</span>;
+                                }
+                                if (p === 'producao') {
+                                  return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200"><ChefHat className="h-3 w-3" /> Produção</span>;
+                                }
+                                if (p === 'loja') {
+                                  return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"><Store className="h-3 w-3" /> Balcão</span>;
+                                }
+                                if (p === 'entregas') {
+                                  return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-50 text-orange-700 border border-orange-200"><Truck className="h-3 w-3" /> Entregas</span>;
+                                }
+                                return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200"><BarChart3 className="h-3 w-3" /> Gestão</span>;
+                              })()}
+                            </td>
+
+                            {/* Ação Realizada */}
+                            <td className="p-3 whitespace-nowrap">
+                              {(() => {
+                                const a = log.acao;
+                                if (a.includes('Entrega')) {
+                                  return (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                                      {a}
+                                    </span>
+                                  );
+                                }
+                                if (a.includes('Registo')) {
+                                  return (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-black bg-blue-100 text-blue-800 border border-blue-200">
+                                      <Plus className="h-3.5 w-3.5 text-blue-600" />
+                                      {a}
+                                    </span>
+                                  );
+                                }
+                                if (a.includes('Preparação') || a.includes('Fabrico') || a.includes('Pronto')) {
+                                  return (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-black bg-amber-100 text-amber-800 border border-amber-200">
+                                      <ChefHat className="h-3.5 w-3.5 text-amber-600" />
+                                      {a}
+                                    </span>
+                                  );
+                                }
+                                if (a.includes('Carrinha') || a.includes('Rota')) {
+                                  return (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-black bg-indigo-100 text-indigo-800 border border-indigo-200">
+                                      <Truck className="h-3.5 w-3.5 text-indigo-600" />
+                                      {a}
+                                    </span>
+                                  );
+                                }
+                                if (a.includes('Eliminação') || a.includes('Cancelamento')) {
+                                  return (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-black bg-red-100 text-red-800 border border-red-200">
+                                      <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                                      {a}
+                                    </span>
+                                  );
+                                }
+                                return (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-black bg-stone-100 text-stone-800 border border-stone-200">
+                                    <Edit3 className="h-3.5 w-3.5 text-stone-600" />
+                                    {a}
+                                  </span>
+                                );
+                              })()}
+                            </td>
+
+                            {/* Detalhes da Operação */}
+                            <td className="p-3 text-[11px] text-gray-600">
+                              <p className="leading-snug">{log.detalhes}</p>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Barra de Paginação e Controlo de Registos */}
+              <div className="bg-stone-50 px-4 py-3 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                <div className="text-gray-600 font-medium">
+                  A mostrar <b>{logsFiltradosEOrdenados.length === 0 ? 0 : (paginaAtualLogs - 1) * (registosPorPaginaLogs === 'todos' ? logsFiltradosEOrdenados.length : registosPorPaginaLogs) + 1}</b> a <b>{registosPorPaginaLogs === 'todos' ? logsFiltradosEOrdenados.length : Math.min(paginaAtualLogs * registosPorPaginaLogs, logsFiltradosEOrdenados.length)}</b> de <b>{logsFiltradosEOrdenados.length}</b> registos filtrados (Total em arquivo: {logsAuditoria.length})
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-gray-500 font-medium">Linhas por página:</span>
+                    <select
+                      value={registosPorPaginaLogs}
+                      onChange={(e) => {
+                        const v = e.target.value === 'todos' ? 'todos' : Number(e.target.value);
+                        setRegistosPorPaginaLogs(v);
+                        setPaginaAtualLogs(1);
+                      }}
+                      className="px-2 py-1 rounded-lg border border-gray-200 bg-white font-bold text-xs cursor-pointer focus:outline-hidden"
+                    >
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                      <option value="todos">Todas</option>
+                    </select>
+                  </div>
+
+                  {registosPorPaginaLogs !== 'todos' && totalPaginasLogs > 1 && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setPaginaAtualLogs(p => Math.max(1, p - 1))}
+                        disabled={paginaAtualLogs === 1}
+                        className="px-2.5 py-1 rounded-lg border border-gray-200 bg-white text-gray-700 font-bold hover:bg-gray-100 disabled:opacity-40 transition cursor-pointer"
+                      >
+                        Anterior
+                      </button>
+                      <span className="text-gray-600 font-bold px-1">
+                        {paginaAtualLogs} / {totalPaginasLogs}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setPaginaAtualLogs(p => Math.min(totalPaginasLogs, p + 1))}
+                        disabled={paginaAtualLogs === totalPaginasLogs}
+                        className="px-2.5 py-1 rounded-lg border border-gray-200 bg-white text-gray-700 font-bold hover:bg-gray-100 disabled:opacity-40 transition cursor-pointer"
+                      >
+                        Seguinte
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ----------------- ABA 5: CONFIGURADOR DE TALÃO ----------------- */}
         {activeTab === 'talao' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <form onSubmit={handleSalvarConfigTalao} className="lg:col-span-7 bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4 text-xs">
@@ -1969,41 +2828,39 @@ export default function AdminPage() {
 
                 {receiptConfig.showSectionSeparation ? (
                   <>
-                    <p className="font-bold text-[10px]">{t.receiptBakerySection}</p>
-                    <div className="flex justify-between">
+                    <p className="font-bold text-[10px] uppercase tracking-wider">{t.receiptBakerySection}</p>
+                    <div className="py-0.5 font-bold">
                       <span>2x Pão Alentejano</span>
-                      <span>3.20 €</span>
                     </div>
 
-                    <p className="font-bold text-[10px] mt-2">{t.receiptPastrySection}</p>
-                    <div className="flex justify-between">
+                    <p className="font-bold text-[10px] uppercase tracking-wider mt-2">{t.receiptPastrySection}</p>
+                    <div className="py-0.5 font-bold">
                       <span>1x Bolo Aniversário</span>
-                      <span>18.50 €</span>
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="flex justify-between">
+                    <p className="font-bold text-[10px] uppercase tracking-wider">{t.receiptAllItemsSection}</p>
+                    <div className="py-0.5 font-bold">
                       <span>2x Pão Alentejano</span>
-                      <span>3.20 €</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="py-0.5 font-bold">
                       <span>1x Bolo Aniversário</span>
-                      <span>18.50 €</span>
                     </div>
                   </>
                 )}
 
                 {receiptConfig.highlightCakeNotes && (
                   <div className="bg-gray-100 p-1 border border-black my-1 text-[9px]">
-                    <b>NOTA:</b> Parabéns Mãe!
+                    <p className="font-bold">{t.customizationNotes}</p>
+                    <p>Parabéns Mãe!</p>
                   </div>
                 )}
 
                 <div className="my-2 border-b border-dashed border-black" />
-                <div className="flex justify-between font-black">
-                  <span>{t.total}:</span>
-                  <span>21.70 €</span>
+                <div className="flex justify-between font-black text-xs uppercase border-t border-b border-black py-1">
+                  <span>{t.totalItems}:</span>
+                  <span>3 un.</span>
                 </div>
 
                 <div className="text-center pt-3 text-[9px] space-y-0.5">

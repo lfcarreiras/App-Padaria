@@ -57,6 +57,7 @@ O projeto adere estritamente à [[solutions_versioning_and_retrofit|Diretiva de 
 Consulte o histórico detalhado em `[[CHANGELOG]]`.
 
 | Versão | Tag Git | Commit | Data | Marco Funcional Principal |
+| **v1.8.0** | `v1.8.0` | `HEAD` | 2026-09-17 | Histórico de auditoria de utilizadores em todos os painéis, remoção de preços no configurador de talão e exportação de folhas de fabrico Excel por setor (Padaria e Pastelaria) |
 | **v1.7.1** | `v1.7.1` | `4dca984` | 2026-09-16 | Correção do corte no talão pré-impressão (layout de bloco sem flex stretch) e remoção do duplo + no botão |
 | **v1.7.0** | `v1.7.0` | `cdadbf7` | 2026-09-16 | Tabela réplica do Supabase, filtros consolidada, restrição criação lojas/carrinhas, Title Case e 100 encomendas |
 | **v1.6.1** | `v1.6.1` | `751663f` | 2026-09-16 | Correção sintaxe JSX no modal de impressão térmica (ThermalReceipt) para compilação Vercel |

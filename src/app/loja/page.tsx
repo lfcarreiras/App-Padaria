@@ -7,7 +7,8 @@ import { LOJAS_MOCK } from '../../lib/mockData';
 import { 
   carregarEncomendasSupabase, 
   atualizarEstadoEncomendaDb, 
-  alternarTipoEntregaDb 
+  alternarTipoEntregaDb,
+  registarLogAuditoria 
 } from '../../lib/encomendasService';
 import { Encomenda, TipoEntrega } from '../../types';
 import { useTranslation } from '../../lib/i18n';
@@ -28,7 +29,8 @@ import {
 
 export default function EntregaLojaPage() {
   const { t } = useTranslation();
-  const { podeEditar } = useAuth();
+  const { podeEditar, usuario } = useAuth();
+  const currentUser = usuario || { id: 'user-balcao', nome: 'Marta Santos (Atendente Balcão)', role: 'atendente' };
   const temPermissaoEdicao = podeEditar('loja');
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
@@ -89,6 +91,24 @@ export default function EntregaLojaPage() {
   // Concluir Levantamento no Balcão
   const handleConcluirLevantamento = async (encId: string) => {
     await atualizarEstadoEncomendaDb(encId, 'entregue', 'pago');
+    const enc = encomendas.find((e) => e.id === encId);
+    if (enc) {
+      const agora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      await registarLogAuditoria({
+        encomenda_id: enc.id,
+        codigo_encomenda: enc.codigo,
+        cliente_nome: enc.cliente.nome,
+        utilizador_id: currentUser.id,
+        utilizador_nome: currentUser.nome,
+        utilizador_role: currentUser.role,
+        loja_id: enc.loja_id,
+        loja_nome: enc.loja_nome,
+        painel: 'loja',
+        acao: 'Entrega Efetuada ao Balcão',
+        detalhes: `Cliente levantou a encomenda no balcão da loja às ${agora}. Pagamento e entrega conferidos por ${currentUser.nome}.`,
+      });
+    }
+
     setEncomendas((prev) =>
       prev.map((e) =>
         e.id === encId
@@ -108,6 +128,20 @@ export default function EntregaLojaPage() {
 
     const ok = await alternarTipoEntregaDb(enc.id, 'entrega_domicilio', enc.loja_id);
     if (ok) {
+      await registarLogAuditoria({
+        encomenda_id: enc.id,
+        codigo_encomenda: enc.codigo,
+        cliente_nome: enc.cliente.nome,
+        utilizador_id: currentUser.id,
+        utilizador_nome: currentUser.nome,
+        utilizador_role: currentUser.role,
+        loja_id: enc.loja_id,
+        loja_nome: enc.loja_nome,
+        painel: 'loja',
+        acao: 'Alteração para Entrega ao Domicílio',
+        detalhes: `Pedido transferido do balcão para Entrega ao Domicílio na morada "${morada.trim()}" por ${currentUser.nome}.`,
+      });
+
       setEncomendas((prev) =>
         prev.map((e) =>
           e.id === enc.id

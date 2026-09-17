@@ -7,11 +7,13 @@ import { LOJAS_MOCK } from '../../lib/mockData';
 import { 
   carregarEncomendasSupabase, 
   atualizarEstadoItemDb, 
-  atualizarEstadoEncomendaDb 
+  atualizarEstadoEncomendaDb,
+  registarLogAuditoria 
 } from '../../lib/encomendasService';
 import { Encomenda, SetorProducao, EstadoProducaoItem, TipoEntrega } from '../../types';
 import { useTranslation } from '../../lib/i18n';
 import { useAuth } from '../../lib/authContext';
+import * as XLSX from 'xlsx';
 import { 
   ChefHat, 
   Clock, 
@@ -27,12 +29,15 @@ import {
   Columns,
   ListFilter,
   ArrowRight,
-  RotateCcw
+  RotateCcw,
+  FileSpreadsheet,
+  Download
 } from 'lucide-react';
 
 export default function ProducaoPage() {
   const { t } = useTranslation();
-  const { podeEditar } = useAuth();
+  const { podeEditar, usuario } = useAuth();
+  const currentUser = usuario || { id: 'user-padeiro', nome: 'Carlos Ferreira (Chefe Padeiro)', role: 'operador_padaria' };
   const temPermissaoEdicao = podeEditar('producao');
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
   const [setorAtivo, setSetorAtivo] = useState<SetorProducao | 'todos'>('todos');
@@ -97,6 +102,24 @@ export default function ProducaoPage() {
   const atualizarEstadoItem = async (encomendaId: string, itemId: string, novoEstado: EstadoProducaoItem) => {
     await atualizarEstadoItemDb(itemId, novoEstado);
 
+    const encAlvo = encomendas.find((e) => e.id === encomendaId);
+    const itemAlvo = encAlvo?.itens.find((i) => i.id === itemId);
+    if (encAlvo && itemAlvo) {
+      await registarLogAuditoria({
+        encomenda_id: encAlvo.id,
+        codigo_encomenda: encAlvo.codigo,
+        cliente_nome: encAlvo.cliente.nome,
+        utilizador_id: currentUser.id,
+        utilizador_nome: currentUser.nome,
+        utilizador_role: currentUser.role,
+        loja_id: encAlvo.loja_id,
+        loja_nome: encAlvo.loja_nome,
+        painel: 'producao',
+        acao: novoEstado === 'pronto' ? 'Conclusão de Artigo / Pronto' : 'Início de Fabrico de Artigo',
+        detalhes: `Artigo "${itemAlvo.produto_nome}" (${itemAlvo.quantidade} un) alterado para "${novoEstado}" por ${currentUser.nome}.`,
+      });
+    }
+
     setEncomendas((prev) =>
       prev.map((enc) => {
         if (enc.id !== encomendaId) return enc;
@@ -124,6 +147,34 @@ export default function ProducaoPage() {
 
     await atualizarEstadoEncomendaDb(encomendaId, novoEstadoEncomenda);
 
+    const encAlvo = encomendas.find((e) => e.id === encomendaId);
+    if (encAlvo) {
+      const acaoDescricao = 
+        novoEstadoEncomenda === 'em_producao' ? 'Início de Preparação' :
+        novoEstadoEncomenda === 'pronto_loja' ? 'Conclusão de Fabrico / Pronto' : 'Retorno a Pendente';
+
+      const detalheDescricao = 
+        novoEstadoEncomenda === 'em_producao'
+          ? `Iniciado o fabrico dos artigos no forno/cozinha por ${currentUser.nome}.`
+          : novoEstadoEncomenda === 'pronto_loja'
+          ? `Fabrico concluído e embalado por ${currentUser.nome}. Pedido pronto para expedição/balcão.`
+          : `Estado da encomenda devolvido a pendente por ${currentUser.nome}.`;
+
+      await registarLogAuditoria({
+        encomenda_id: encAlvo.id,
+        codigo_encomenda: encAlvo.codigo,
+        cliente_nome: encAlvo.cliente.nome,
+        utilizador_id: currentUser.id,
+        utilizador_nome: currentUser.nome,
+        utilizador_role: currentUser.role,
+        loja_id: encAlvo.loja_id,
+        loja_nome: encAlvo.loja_nome,
+        painel: 'producao',
+        acao: acaoDescricao,
+        detalhes: detalheDescricao,
+      });
+    }
+
     setEncomendas((prev) =>
       prev.map((enc) => {
         if (enc.id !== encomendaId) return enc;
@@ -141,6 +192,233 @@ export default function ProducaoPage() {
         };
       })
     );
+  };
+
+  // Exportação para Excel da Folha de Produção (separada por Padaria e Pastelaria)
+  const exportarFolhaProducaoExcel = async () => {
+    // 1. Obter encomendas que cumprem o filtro temporal e de loja selecionados
+    const encomendasParaExportar = encomendas.filter((e) => {
+      const matchLoja = selectedLojaId === 'todas' || e.loja_id === selectedLojaId;
+
+      let matchData = true;
+      if (filtroPeriodo === 'hoje') {
+        matchData = e.data_agendamento === hoje;
+      } else if (filtroPeriodo === 'amanha') {
+        matchData = e.data_agendamento === amanha;
+      } else if (filtroPeriodo === 'personalizado') {
+        if (dataInicioPersonalizada && dataFimPersonalizada) {
+          matchData = e.data_agendamento >= dataInicioPersonalizada && e.data_agendamento <= dataFimPersonalizada;
+        } else if (dataInicioPersonalizada) {
+          matchData = e.data_agendamento >= dataInicioPersonalizada;
+        } else if (dataFimPersonalizada) {
+          matchData = e.data_agendamento <= dataFimPersonalizada;
+        }
+      }
+      return matchLoja && matchData;
+    });
+
+    if (encomendasParaExportar.length === 0) {
+      alert('Não existem encomendas para a data e loja selecionadas.');
+      return;
+    }
+
+    // 2. Ordenar cronologicamente por hora de agendamento e código
+    const encomendasOrdenadas = [...encomendasParaExportar].sort((a, b) => {
+      const compData = a.data_agendamento.localeCompare(b.data_agendamento);
+      if (compData !== 0) return compData;
+      const compHora = a.hora_agendamento.localeCompare(b.hora_agendamento);
+      if (compHora !== 0) return compHora;
+      return a.codigo.localeCompare(b.codigo);
+    });
+
+    // 3. Preparar Linhas para Folha de Padaria
+    const colunasPadaria = [
+      'Hora Agendada',
+      'Código Encomenda',
+      'Cliente',
+      'Contacto',
+      'Destino / Modalidade',
+      'Artigo de Padaria',
+      'Qtd.',
+      'Personalização / Notas de Fabrico',
+      'Observações Gerais',
+      'Estado Atual',
+      'Conferência [  ]'
+    ];
+
+    const linhasPadaria: (string | number)[][] = [];
+
+    // 4. Preparar Linhas para Folha de Pastelaria
+    const colunasPastelaria = [
+      'Hora Agendada',
+      'Código Encomenda',
+      'Cliente',
+      'Contacto',
+      'Destino / Modalidade',
+      'Artigo de Pastelaria',
+      'Qtd.',
+      'Personalização / Mensagem de Bolo',
+      'Observações Gerais',
+      'Estado Atual',
+      'Conferência [  ]'
+    ];
+
+    const linhasPastelaria: (string | number)[][] = [];
+
+    // Mapa para Resumo Consolidado de Totais a Produzir
+    const totaisMap: Record<string, { setor: string; produto: string; totalQtd: number; encs: Set<string> }> = {};
+
+    encomendasOrdenadas.forEach((enc) => {
+      const modalidadeDestino =
+        enc.tipo === 'levantamento_loja'
+          ? `Loja: ${enc.loja_nome || 'Balcão'}`
+          : `Domicílio: ${enc.carrinha_nome || 'Carrinha'}${enc.cliente.morada ? ` (${enc.cliente.morada})` : ''}`;
+
+      enc.itens.forEach((item) => {
+        const estadoTraduzido =
+          item.estado_producao === 'pronto'
+            ? 'PRONTO'
+            : item.estado_producao === 'em_preparo'
+            ? 'EM PREPARAÇÃO'
+            : 'PENDENTE';
+
+        // Resumo de totais
+        const keyTotais = `${item.setor || 'padaria'}_${item.produto_nome}`;
+        if (!totaisMap[keyTotais]) {
+          totaisMap[keyTotais] = {
+            setor: item.setor === 'pastelaria' ? 'Pastelaria' : 'Padaria',
+            produto: item.produto_nome,
+            totalQtd: 0,
+            encs: new Set()
+          };
+        }
+        totaisMap[keyTotais].totalQtd += item.quantidade;
+        totaisMap[keyTotais].encs.add(enc.codigo);
+
+        if (item.setor === 'pastelaria') {
+          linhasPastelaria.push([
+            enc.hora_agendamento,
+            enc.codigo,
+            enc.cliente.nome,
+            enc.cliente.telefone,
+            modalidadeDestino,
+            item.produto_nome,
+            item.quantidade,
+            item.notas_personalizacao || '-',
+            enc.notas_cliente || '-',
+            estadoTraduzido,
+            '[   ]'
+          ]);
+        } else {
+          // Padaria (ou default)
+          linhasPadaria.push([
+            enc.hora_agendamento,
+            enc.codigo,
+            enc.cliente.nome,
+            enc.cliente.telefone,
+            modalidadeDestino,
+            item.produto_nome,
+            item.quantidade,
+            item.notas_personalizacao || '-',
+            enc.notas_cliente || '-',
+            estadoTraduzido,
+            '[   ]'
+          ]);
+        }
+      });
+    });
+
+    // 5. Preparar Linhas para Resumo Consolidado de Fabrico
+    const colunasResumo = [
+      'Setor de Fabrico',
+      'Artigo a Produzir',
+      'Quantidade Total',
+      'Total de Encomendas',
+      'Encomendas a Atender',
+      'Visto Conclusão [  ]'
+    ];
+
+    const linhasResumo = Object.values(totaisMap)
+      .sort((a, b) => a.setor.localeCompare(b.setor) || a.produto.localeCompare(b.produto))
+      .map((t) => [
+        t.setor.toUpperCase(),
+        t.produto,
+        t.totalQtd,
+        t.encs.size,
+        Array.from(t.encs).join(', '),
+        '[   ]'
+      ]);
+
+    // 6. Construir Workbook com Folhas
+    const wb = XLSX.utils.book_new();
+
+    const colWidths = [
+      { wch: 14 }, // Hora
+      { wch: 18 }, // Código
+      { wch: 26 }, // Cliente
+      { wch: 14 }, // Contacto
+      { wch: 32 }, // Destino
+      { wch: 28 }, // Artigo
+      { wch: 8 },  // Qtd
+      { wch: 35 }, // Personalização
+      { wch: 25 }, // Obs Gerais
+      { wch: 16 }, // Estado
+      { wch: 18 }  // Visto
+    ];
+
+    // Folha 1: Linha Padaria
+    const wsPadaria = XLSX.utils.aoa_to_sheet([colunasPadaria, ...linhasPadaria]);
+    wsPadaria['!cols'] = colWidths;
+    XLSX.utils.book_append_sheet(wb, wsPadaria, 'Linha Padaria');
+
+    // Folha 2: Linha Pastelaria
+    const wsPastelaria = XLSX.utils.aoa_to_sheet([colunasPastelaria, ...linhasPastelaria]);
+    wsPastelaria['!cols'] = colWidths;
+    XLSX.utils.book_append_sheet(wb, wsPastelaria, 'Linha Pastelaria');
+
+    // Folha 3: Resumo Consolidado de Fabrico
+    const wsResumo = XLSX.utils.aoa_to_sheet([colunasResumo, ...linhasResumo]);
+    wsResumo['!cols'] = [
+      { wch: 18 }, // Setor
+      { wch: 32 }, // Artigo
+      { wch: 18 }, // Total Qtd
+      { wch: 20 }, // Total Encs
+      { wch: 45 }, // Códigos
+      { wch: 20 }  // Visto
+    ];
+    XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo Totais Fabrico');
+
+    // 7. Nome do Ficheiro
+    let periodoTexto = hoje;
+    if (filtroPeriodo === 'amanha') periodoTexto = amanha;
+    else if (filtroPeriodo === 'personalizado') {
+      periodoTexto = `${dataInicioPersonalizada || 'inicio'}_a_${dataFimPersonalizada || 'fim'}`;
+    } else if (filtroPeriodo === 'todos') {
+      periodoTexto = 'todas_as_datas';
+    }
+
+    const lojaStr =
+      selectedLojaId === 'todas'
+        ? 'todas_lojas'
+        : (lojaAtual.nome || 'loja').toLowerCase().replace(/\s+/g, '_');
+
+    const nomeFicheiro = `folha_producao_${periodoTexto}_${lojaStr}.xlsx`;
+    XLSX.writeFile(wb, nomeFicheiro);
+
+    // 8. Registar Log de Auditoria
+    await registarLogAuditoria({
+      encomenda_id: 'fabrico-exportacao',
+      codigo_encomenda: 'EXP-FABRICO',
+      cliente_nome: 'Linha de Fabrico',
+      utilizador_id: currentUser.id,
+      utilizador_nome: currentUser.nome,
+      utilizador_role: currentUser.role,
+      loja_id: selectedLojaId === 'todas' ? 'todas' : lojaAtual.id,
+      loja_nome: selectedLojaId === 'todas' ? 'Todas as Lojas' : lojaAtual.nome,
+      painel: 'producao',
+      acao: 'Exportação Folha de Fabrico (Excel)',
+      detalhes: `Exportação de folha de produção para o período "${periodoTexto}" (${linhasPadaria.length} itens padaria, ${linhasPastelaria.length} itens pastelaria) gerada para entrega em papel à linha de fabrico.`,
+    });
   };
 
   // Separação para as 3 colunas táteis do Kanban
@@ -314,8 +592,21 @@ export default function ProducaoPage() {
             </div>
           )}
 
-          <div className="text-xs font-bold text-gray-500">
-            Total: <span className="text-amber-700 font-black">{encomendasFiltradas.length}</span> encomenda(s)
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="text-xs font-bold text-gray-500">
+              Total: <span className="text-amber-700 font-black">{encomendasFiltradas.length}</span> encomenda(s)
+            </div>
+
+            {/* Botão de Exportação para Linha de Fabrico (Excel) */}
+            <button
+              type="button"
+              onClick={exportarFolhaProducaoExcel}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs transition active:scale-95 cursor-pointer"
+              title="Exportar folha de produção em Excel com separadores independentes para Padaria e Pastelaria para entrega em papel na fábrica"
+            >
+              <FileSpreadsheet className="h-4 w-4 shrink-0" />
+              <span>Exportar Linha de Fabrico (Excel)</span>
+            </button>
           </div>
         </div>
 

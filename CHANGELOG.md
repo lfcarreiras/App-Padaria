@@ -42,6 +42,32 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v1.8.0] - 2026-09-17
+### 🛡️ Histórico & Auditoria de Ações de Utilizadores
+- **Registo Contínuo End-to-End**: Implementado sistema de auditoria completo (`LogAuditoria`) que monitoriza e audita todas as ações executadas pelos utilizadores em todos os painéis da aplicação (desde a criação da encomenda, alterações, início/conclusão de fabrico na produção, atribuição e rota nas entregas, até ao levantamento em loja).
+- **Instrumentação em Todos os Módulos**:
+  - `Encomendas`: registo na criação, edição de artigos, cancelamento/eliminação e alteração de modalidade de entrega.
+  - `Produção`: registo ao avançar no Kanban e na alteração de estado individual de artigos de padaria e pastelaria.
+  - `Entregas`: registo na atribuição de carrinhas, início e conclusão de rota, reordenação de paragens e registo de entrega concluída com timestamp real.
+  - `Loja`: registo na entrega ao balcão e conversão de encomendas para entrega domiciliária.
+- **Painel de Auditoria & Histórico no Admin (`/admin`)**:
+  - Nova aba "Auditoria & Histórico" com métricas de eventos no topo (Total, Encomendas Criadas, Fabrico, Entregas/Balcão).
+  - Tabela avançada com ordenação com 1 clique (ascendente/descendente) e filtros independentes nas 8 colunas (Data/Hora, Código Encomenda, Cliente, Colaborador, Cargo/Role, Módulo/Painel, Ação, Detalhes).
+  - Atalhos de período rápido (Hoje, Últimos 7 Dias, Últimos 30 Dias, Todos), paginação dinâmica e exportação nativa para Excel (`.xlsx`).
+  - Persistência e sincronização híbrida com tabela `logs_auditoria` no Supabase e fallback resiliente em `localStorage`.
+
+### 🧾 Remoção de Preços na Pré-Visualização do Talão no Painel de Gestão
+- **Alinhamento com o Talão Térmico Real**: Removidos todos os valores monetários residuais (`3.20 €`, `18.50 €`, `21.70 €`) da pré-visualização estática do talão térmico no "Configurador de Talão" do `/admin`.
+- **Foco em Artigos e Quantidades**: A pré-visualização apresenta agora de forma limpa e fiel os artigos, quantidades e a indicação `TOTAL DE ARTIGOS: 3 UN.`, exatamente como no talão impresso de 80mm/58mm.
+
+### 📊 Exportação de Folhas de Fabrico em Excel para a Linha de Produção (`/producao`)
+- **Separação por Linhas de Fabrico (Padaria e Pastelaria)**: Novo botão "Exportar Linha de Fabrico (Excel)" na barra de filtros de produção que gera um ficheiro Excel estruturado em múltiplas folhas independentes:
+  - **Folha "Linha Padaria"**: Lista cronológica de todas as encomendas da data selecionada com itens de padaria, quantidades, notas de fabrico/personalização, observações e caixa de conferência `[  ]` para visto manual à caneta.
+  - **Folha "Linha Pastelaria"**: Lista cronológica de encomendas com artigos de pastelaria, destaque para mensagens e especificações de bolos, destino e campo de conferência.
+  - **Folha "Resumo Totais Fabrico"**: Folha consolidada com somatório de unidades a produzir por artigo e por setor, permitindo aos chefes de padaria e pastelaria planearem as fornadas e lotes de produção com rapidez.
+- **Pronto a Imprimir**: Formatação otimizada de larguras de coluna (`!cols`) para impressão direta em papel A4 e entrega à equipa de fabrico nas primeiras horas da madrugada.
+- **Registo de Auditoria**: Cada exportação da folha de produção gera automaticamente um log no histórico de auditoria.
+
 ## [v1.7.1] - 2026-09-16
 ### 🧾 Resolução do Corte no Talão de Pré-Visualização
 - **Eliminação do Bug de Flexbox Height**: O contentor de scroll da pré-visualização do talão térmico (`ThermalReceipt.tsx`) foi refatorado de `display: flex` para um contentor de bloco padrão com `mx-auto block h-auto`, eliminando o comportamento de esticamento vertical (`align-items: stretch`) que causava o corte da folha branca do talão aos ~500px e deixava o QR Code e o rodapé a transbordar sobre o fundo cinzento. A folha branca e o picotado passam a envolver 100% dos dados desde o cabeçalho até ao rodapé final, com espaçamento seguro (`pb-12`).

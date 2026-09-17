@@ -13,7 +13,8 @@ import {
   eliminarClienteDb,
   eliminarEncomendaDb,
   atualizarEncomendaDb,
-  alternarTipoEntregaDb 
+  alternarTipoEntregaDb,
+  registarLogAuditoria 
 } from '../../lib/encomendasService';
 import { Encomenda, Produto, ItemEncomenda, TipoEntrega, MetodoPagamento, Cliente } from '../../types';
 import { useTranslation } from '../../lib/i18n';
@@ -44,7 +45,8 @@ import {
 
 export default function EncomendasPage() {
   const { t, language } = useTranslation();
-  const { podeEditar } = useAuth();
+  const { podeEditar, usuario } = useAuth();
+  const currentUser = usuario || { id: 'user-balcao', nome: 'Marta Santos (Atendente Balcão)', role: 'atendente' };
   const temPermissaoEdicao = podeEditar('encomendas');
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
   const [activeTab, setActiveTab] = useState<'novo' | 'clientes' | 'historico'>('novo');
@@ -461,6 +463,23 @@ Observações: [ex: Pão fatiado / Frase no bolo / Campainha]`;
         criado_em: new Date().toISOString(),
       };
 
+      // Registar Log de Auditoria
+      const qtdTotalArtigos = carrinho.reduce((acc, it) => acc + (Number(it.quantidade) || 1), 0);
+      const resumoArtigos = carrinho.slice(0, 3).map((it) => `${it.quantidade}x ${it.produto_nome}`).join(', ') + (carrinho.length > 3 ? ` e mais ${carrinho.length - 3} artigo(s)` : '');
+      await registarLogAuditoria({
+        encomenda_id: encomendaId,
+        codigo_encomenda: codigoGerado,
+        cliente_nome: nomeCliente.trim(),
+        utilizador_id: currentUser.id,
+        utilizador_nome: currentUser.nome,
+        utilizador_role: currentUser.role,
+        loja_id: lojaAtual.id,
+        loja_nome: lojaAtual.nome,
+        painel: 'encomendas',
+        acao: 'Registo de Encomenda',
+        detalhes: `Registado pedido com ${qtdTotalArtigos} artigo(s) (${resumoArtigos}). Modalidade: ${tipoEntrega === 'entrega_domicilio' ? 'Entrega ao Domicílio' : 'Levantamento no Balcão'}. Agendado para ${dataAgendamento} às ${horaAgendamento}.`,
+      });
+
       setEncomendas((prev) => [novaEncomenda, ...prev]);
       setEncomendaParaImprimir(novaEncomenda);
 
@@ -524,8 +543,23 @@ Observações: [ex: Pão fatiado / Frase no bolo / Campainha]`;
   // Eliminar Encomenda
   const handleEliminarEncomenda = async (encId: string, encCodigo: string) => {
     if (!window.confirm(`Tem a certeza de que deseja eliminar a encomenda ${encCodigo}? Esta ação não pode ser anulada.`)) return;
+    const encAlvo = encomendas.find((e) => e.id === encId);
     const ok = await eliminarEncomendaDb(encId);
     if (ok) {
+      await registarLogAuditoria({
+        encomenda_id: encId,
+        codigo_encomenda: encCodigo,
+        cliente_nome: encAlvo?.cliente.nome,
+        utilizador_id: currentUser.id,
+        utilizador_nome: currentUser.nome,
+        utilizador_role: currentUser.role,
+        loja_id: encAlvo?.loja_id,
+        loja_nome: encAlvo?.loja_nome,
+        painel: 'encomendas',
+        acao: 'Eliminação de Encomenda',
+        detalhes: `Encomenda ${encCodigo} eliminada definitivamente por ${currentUser.nome}.`,
+      });
+
       setEncomendas((prev) => prev.filter((e) => e.id !== encId));
       if (encomendaEmEdicao?.id === encId) {
         setEncomendaEmEdicao(null);
@@ -540,6 +574,20 @@ Observações: [ex: Pão fatiado / Frase no bolo / Campainha]`;
     if (!encomendaEmEdicao) return;
     const ok = await atualizarEncomendaDb(encomendaEmEdicao);
     if (ok) {
+      await registarLogAuditoria({
+        encomenda_id: encomendaEmEdicao.id,
+        codigo_encomenda: encomendaEmEdicao.codigo,
+        cliente_nome: encomendaEmEdicao.cliente.nome,
+        utilizador_id: currentUser.id,
+        utilizador_nome: currentUser.nome,
+        utilizador_role: currentUser.role,
+        loja_id: encomendaEmEdicao.loja_id,
+        loja_nome: encomendaEmEdicao.loja_nome,
+        painel: 'encomendas',
+        acao: 'Edição de Encomenda',
+        detalhes: `Dados da encomenda atualizados por ${currentUser.nome}: Agendado para ${encomendaEmEdicao.data_agendamento} às ${encomendaEmEdicao.hora_agendamento}. Estado: ${encomendaEmEdicao.estado}.`,
+      });
+
       setEncomendas((prev) =>
         prev.map((enc) => (enc.id === encomendaEmEdicao.id ? { ...encomendaEmEdicao } : enc))
       );
@@ -574,6 +622,20 @@ Observações: [ex: Pão fatiado / Frase no bolo / Campainha]`;
 
     const sucesso = await alternarTipoEntregaDb(enc.id, novoTipo, enc.loja_id);
     if (sucesso) {
+      await registarLogAuditoria({
+        encomenda_id: enc.id,
+        codigo_encomenda: enc.codigo,
+        cliente_nome: enc.cliente.nome,
+        utilizador_id: currentUser.id,
+        utilizador_nome: currentUser.nome,
+        utilizador_role: currentUser.role,
+        loja_id: enc.loja_id,
+        loja_nome: enc.loja_nome,
+        painel: 'encomendas',
+        acao: novoTipo === 'entrega_domicilio' ? 'Alteração para Entrega ao Domicílio' : 'Alteração para Levantamento em Loja',
+        detalhes: `Modalidade de entrega alterada por ${currentUser.nome} para ${novoTipo === 'entrega_domicilio' ? 'Entrega ao Domicílio' : 'Levantamento no Balcão'}. Morada: ${moradaDestino || 'Balcão da Loja'}.`,
+      });
+
       setEncomendas((prev) =>
         prev.map((e) =>
           e.id === enc.id
