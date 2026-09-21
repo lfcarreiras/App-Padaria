@@ -7,6 +7,7 @@ import { Store, ShoppingBag, ChefHat, Truck, BarChart3, Globe, LogOut, UserCheck
 import { LOJAS_MOCK } from '../lib/mockData';
 import { useTranslation } from '../lib/i18n';
 import { useAuth, PainelApp } from '../lib/authContext';
+import { obterConfiguracaoMarca } from '../lib/tinaContent';
 
 interface NavbarProps {
   selectedLojaId: string;
@@ -14,6 +15,7 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId, onSelectLoja }) => {
+  const configMarca = obterConfiguracaoMarca();
   const pathname = usePathname();
   const router = useRouter();
   const { language, setLanguage, t } = useTranslation();
@@ -46,11 +48,11 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId, onSelectLoja }) 
           <Link href={links[0]?.href || '/login'} className="flex items-center gap-2">
             <img
               src="/logo-padaria.jpg"
-              alt="Padaria da Vila"
+              alt={configMarca.nomeEmpresa || 'Padaria da Vila'}
               className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl object-cover shadow-xs border border-amber-200 shrink-0"
             />
             <span className="text-xs sm:text-sm font-black text-gray-900 tracking-tight whitespace-nowrap">
-              Padaria da Vila
+              {configMarca.nomeEmpresa || 'Padaria da Vila'}
             </span>
           </Link>
 

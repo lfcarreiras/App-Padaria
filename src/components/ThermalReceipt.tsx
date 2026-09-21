@@ -6,6 +6,7 @@ import { Encomenda, Loja } from '../types';
 import { Printer, X, QrCode } from 'lucide-react';
 import { ReceiptConfig, getReceiptConfig } from '../lib/receiptConfig';
 import { useTranslation } from '../lib/i18n';
+import { obterConfiguracaoMarca } from '../lib/tinaContent';
 
 interface ThermalReceiptProps {
   encomenda: Encomenda;
@@ -17,6 +18,7 @@ interface ThermalReceiptProps {
 export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja, config, onClose }) => {
   const { t, language } = useTranslation();
   const cfg = config || getReceiptConfig();
+  const tinaMarca = obterConfiguracaoMarca();
   const [montado, setMontado] = useState(false);
 
   useEffect(() => {
@@ -83,13 +85,15 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
             {/* Cabeçalho da Loja */}
             <div className="text-center">
               <p className="font-bold text-sm uppercase">
-                {cfg.storeNameOverride || loja?.nome || encomenda.loja_nome || 'Padaria & Pastelaria'}
+                {cfg.storeNameOverride || loja?.nome || encomenda.loja_nome || tinaMarca.nomeEmpresa || 'Padaria & Pastelaria'}
               </p>
-              {cfg.slogan && <p className="text-[10px] text-gray-700 italic">{cfg.slogan}</p>}
+              {(cfg.slogan || tinaMarca.slogan) && (
+                <p className="text-[10px] text-gray-700 italic">{cfg.slogan || tinaMarca.slogan}</p>
+              )}
               {cfg.showAddress && <p className="text-[11px]">{loja?.morada || 'Lisboa, Portugal'}</p>}
-              {cfg.showPhone && <p className="text-[11px]">{t.phone}: {loja?.telefone || '210 000 000'}</p>}
-              {cfg.showNif && (loja?.nif || '500100201') && (
-                <p className="text-[10px]">{t.nif}: {loja?.nif || '500100201'}</p>
+              {cfg.showPhone && <p className="text-[11px]">{t.phone}: {loja?.telefone || tinaMarca.telefoneGeral || '210 000 000'}</p>}
+              {cfg.showNif && (loja?.nif || tinaMarca.nif || '500100201') && (
+                <p className="text-[10px]">{t.nif}: {loja?.nif || tinaMarca.nif || '500100201'}</p>
               )}
             </div>
 
@@ -224,7 +228,7 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
                 </div>
               )}
               <p>{t.receiptIssuedAt}: {new Date().toLocaleString(language === 'en' ? 'en-GB' : 'pt-PT')}</p>
-              <p className="font-bold text-xs mt-1">{cfg.footerMessage || t.receiptThankYou}</p>
+              <p className="font-bold text-xs mt-1">{cfg.footerMessage || tinaMarca.rodapeTalao || t.receiptThankYou}</p>
               <p className="text-[9px] tracking-widest text-gray-700 mt-1">{t.receiptSystemNotice}</p>
             </div>
           </div>

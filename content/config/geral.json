@@ -1,0 +1,9 @@
+{
+  "nomeEmpresa": "Padaria da Vila",
+  "slogan": "Pão quente e pastelaria tradicional a toda a hora",
+  "telefoneGeral": "210 000 001",
+  "nif": "500100201",
+  "email": "encomendas@padariadavila.pt",
+  "rodapeTalao": "Pão é saúde! Obrigado pela sua preferência.",
+  "modeloWhatsApp": "Olá! Gostaria de fazer uma encomenda para a Padaria da Vila:\n\n*Cliente:* [Nome]\n*Contacto:* [Telefone]\n*Loja/Destino:* [Loja 1 / Domicílio]\n*Data e Hora:* [Hoje / Amanhã às 10:30]\n*Artigos:* \n- [Qtd]x [Nome do Produto] ([Observações])\n\nObrigado!"
+}

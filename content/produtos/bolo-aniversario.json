@@ -1,0 +1,9 @@
+{
+  "nome": "Bolo de Aniversário Especial",
+  "categoria": "pastelaria",
+  "unidade": "unidade",
+  "descricao": "Bolo artesanal personalizado com massa tradicional de pão de ló, recheios personalizáveis (ovos moles, brigadeiro, frutos vermelhos) e placa com dedicatória escrita à mão.",
+  "alergenios": "Glúten, Ovos, Leite. Pode conter vestígios de frutos de casca rija.",
+  "foto": "/uploads/bolo-aniversario.jpg",
+  "destaqueMontra": true
+}

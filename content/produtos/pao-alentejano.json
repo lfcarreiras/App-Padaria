@@ -1,0 +1,9 @@
+{
+  "nome": "Pão Alentejano Tradicional",
+  "categoria": "padaria",
+  "unidade": "unidade",
+  "descricao": "Pão de fermentação lenta com massa-mãe natural, côdea estaladiça e miolo denso e saboroso. Cozido em forno de pedra.",
+  "alergenios": "Glúten (Trigo).",
+  "foto": "/uploads/pao-alentejano.jpg",
+  "destaqueMontra": true
+}

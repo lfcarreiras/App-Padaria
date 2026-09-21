@@ -1,0 +1,11 @@
+{
+  "id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+  "codigo": "LOJA-1",
+  "nome": "Padaria da Vila I (Praça)",
+  "morada": "Praça Brandão de Vasconcelos, 4540-102 Arouca",
+  "telefone": "210 000 001",
+  "horario": "Seg - Sáb: 06:30 - 20:00 | Dom: 07:00 - 13:00",
+  "nif": "500100201",
+  "foto": "/uploads/loja-1.jpg",
+  "ativo": true
+}

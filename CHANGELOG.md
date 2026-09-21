@@ -42,6 +42,17 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v1.9.0] - 2026-09-21
+### 🎨 Integração do TinaCMS (Git-Backed Content Management)
+- **Arquitetura Híbrida Oficial**: Integração do TinaCMS para gestão visual de conteúdos institucionais e de montra em conformidade com o padrão oficial Inprooval® / EyeQ Lda (`Next.js + TinaCMS + GitHub + Vercel`), mantendo o Supabase para a operação transacional em tempo real (encomendas, Kanban, rotas e auditoria).
+- **Esquema de Coleções (`tina/config.ts`)**:
+  - **`configuracao`**: Coleção global para nome da marca, slogan, telefone geral, NIF, mensagem de rodapé do talão térmico e modelo estruturado de WhatsApp.
+  - **`lojas`**: Coleção de lojas físicas com código, nome, morada, telefone, horário de funcionamento, NIF e fotografia de fachada.
+  - **`produtos`**: Catálogo de montra com fotos de bolos, categorias (padaria/pastelaria), unidades, descrição detalhada e declaração de alergénios.
+- **Camada Resiliente de Consumo (`src/lib/tinaContent.ts`)**: Módulo com fallbacks seguros e tipagem estrita que alimenta a Navbar e o Talão Térmico (`ThermalReceipt.tsx`) a partir de ficheiros estáticos Git-backed (`content/config/geral.json`, `content/lojas/*.json`, `content/produtos/*.json`) com zero impacto de latência na renderização.
+- **Atalho no Painel Executivo (`/admin`)**: Adicionado botão destacado "Editor Visual (TinaCMS) ↗" no menu de abas do painel executivo para abertura direta da interface SPA do TinaCMS.
+- **Configuração de Variáveis de Ambiente**: Criação de `.env.example` e ativação de `TINA_PUBLIC_IS_LOCAL=true` para desenvolvimento e testes locais com suporte nativo a Tina Cloud em produção na Vercel.
+
 ## [v1.8.0] - 2026-09-17
 ### 🛡️ Histórico & Auditoria de Ações de Utilizadores
 - **Registo Contínuo End-to-End**: Implementado sistema de auditoria completo (`LogAuditoria`) que monitoriza e audita todas as ações executadas pelos utilizadores em todos os painéis da aplicação (desde a criação da encomenda, alterações, início/conclusão de fabrico na produção, atribuição e rota nas entregas, até ao levantamento em loja).

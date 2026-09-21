@@ -1103,6 +1103,17 @@ export default function AdminPage() {
             <Users className="h-4 w-4" />
             {t.tabAccess} ({perfis.length})
           </button>
+
+          <a
+            href="/cms/index.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black transition whitespace-nowrap bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-xs hover:from-teal-700 hover:to-emerald-700 ml-auto"
+            title="Abrir Editor Visual de Conteúdos TinaCMS (Marca, Lojas, Catálogo de Montra)"
+          >
+            <Sparkles className="h-4 w-4" />
+            Editor Visual (TinaCMS) ↗
+          </a>
         </div>
 
         {/* ----------------- ABA 1: MÉTRICAS & REPORTS COM FILTROS TEMPORAIS ----------------- */}

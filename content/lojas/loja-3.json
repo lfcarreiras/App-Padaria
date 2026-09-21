@@ -1,0 +1,11 @@
+{
+  "id": "4d475863-af72-4349-bd4a-66eb7a90304b",
+  "codigo": "LOJA-3",
+  "nome": "Padaria da Vila III (Ponto de Venda)",
+  "morada": "Rua do Mosteiro, 4540-108 Arouca",
+  "telefone": "210 000 003",
+  "horario": "Seg - Sex: 07:30 - 18:00",
+  "nif": "500100203",
+  "foto": "/uploads/loja-3.jpg",
+  "ativo": true
+}

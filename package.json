@@ -1,12 +1,14 @@
 {
   "name": "app-encomendas-padaria",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "tina:dev": "tinacms dev -c \"next dev\"",
+    "tina:build": "tinacms build"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.1",
