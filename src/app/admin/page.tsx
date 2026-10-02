@@ -68,7 +68,8 @@ import {
   User,
   ChefHat,
   X,
-  RotateCcw
+  RotateCcw,
+  Sparkles
 } from 'lucide-react';
 
 export default function AdminPage() {
