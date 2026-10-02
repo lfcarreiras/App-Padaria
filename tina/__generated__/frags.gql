@@ -1,0 +1,33 @@
+fragment ConfiguracaoParts on Configuracao {
+  __typename
+  nomeEmpresa
+  slogan
+  telefoneGeral
+  nif
+  email
+  rodapeTalao
+  modeloWhatsApp
+}
+
+fragment LojasParts on Lojas {
+  __typename
+  codigo
+  nome
+  morada
+  telefone
+  horario
+  nif
+  foto
+  ativo
+}
+
+fragment ProdutosParts on Produtos {
+  __typename
+  nome
+  categoria
+  unidade
+  descricao
+  alergenios
+  foto
+  destaqueMontra
+}

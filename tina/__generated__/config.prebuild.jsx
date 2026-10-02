@@ -1,128 +1,126 @@
+// tina/config.ts
 import { defineConfig } from "tinacms";
-
-// TinaCMS Configuration para App de Encomendas & Produção de Padaria
-export default defineConfig({
+var config_default = defineConfig({
   branch: process.env.HEAD || process.env.VERCEL_GIT_COMMIT_REF || "main",
   clientId: process.env.NEXT_PUBLIC_TINA_CLIENT_ID || "",
   token: process.env.TINA_TOKEN || "",
-
   build: {
     outputFolder: "admin",
-    publicFolder: "public",
+    publicFolder: "public"
   },
   media: {
     tina: {
       mediaRoot: "uploads",
-      publicFolder: "public",
-    },
+      publicFolder: "public"
+    }
   },
   schema: {
     collections: [
       {
         name: "configuracao",
-        label: "Configuração da Marca & Talão",
+        label: "Configura\xE7\xE3o da Marca & Tal\xE3o",
         path: "content/config",
         format: "json",
         ui: {
-          global: true,
+          global: true
         },
         fields: [
           {
             type: "string",
             name: "nomeEmpresa",
             label: "Nome da Empresa / Padaria",
-            required: true,
+            required: true
           },
           {
             type: "string",
             name: "slogan",
-            label: "Slogan / Assinatura da Marca",
+            label: "Slogan / Assinatura da Marca"
           },
           {
             type: "string",
             name: "telefoneGeral",
-            label: "Telefone Geral de Contacto",
+            label: "Telefone Geral de Contacto"
           },
           {
             type: "string",
             name: "nif",
-            label: "NIF da Empresa",
+            label: "NIF da Empresa"
           },
           {
             type: "string",
             name: "email",
-            label: "Email de Apoio ao Cliente",
+            label: "Email de Apoio ao Cliente"
           },
           {
             type: "string",
             name: "rodapeTalao",
-            label: "Mensagem de Rodapé do Talão Térmico",
+            label: "Mensagem de Rodap\xE9 do Tal\xE3o T\xE9rmico"
           },
           {
             type: "string",
             name: "modeloWhatsApp",
             label: "Modelo de Pedido WhatsApp",
             ui: {
-              component: "textarea",
-            },
-          },
-        ],
+              component: "textarea"
+            }
+          }
+        ]
       },
       {
         name: "lojas",
-        label: "Rede de Lojas Físicas",
+        label: "Rede de Lojas F\xEDsicas",
         path: "content/lojas",
         format: "json",
         fields: [
           {
             type: "string",
             name: "codigo",
-            label: "Código da Loja (ex: LOJA-1)",
-            required: true,
+            label: "C\xF3digo da Loja (ex: LOJA-1)",
+            required: true
           },
           {
             type: "string",
             name: "nome",
             label: "Nome da Loja",
             isTitle: true,
-            required: true,
+            required: true
           },
           {
             type: "string",
             name: "morada",
-            label: "Morada / Localização",
-            required: true,
+            label: "Morada / Localiza\xE7\xE3o",
+            required: true
           },
           {
             type: "string",
             name: "telefone",
-            label: "Telefone de Contacto",
+            label: "Telefone de Contacto"
           },
           {
             type: "string",
             name: "horario",
-            label: "Horário de Funcionamento",
+            label: "Hor\xE1rio de Funcionamento"
           },
           {
             type: "string",
             name: "nif",
-            label: "NIF da Loja",
+            label: "NIF da Loja"
           },
           {
             type: "image",
             name: "foto",
-            label: "Fotografia da Loja / Fachada",
+            label: "Fotografia da Loja / Fachada"
           },
           {
             type: "boolean",
             name: "ativo",
-            label: "Loja Ativa",
-          },
-        ],
+            label: "Loja Ativa"
+          }
+        ]
       },
       {
         name: "produtos",
-        label: "Catálogo de Montra & Bolos",
+        label: "Cat\xE1logo de Montra & Bolos",
         path: "content/produtos",
         format: "json",
         fields: [
@@ -131,17 +129,17 @@ export default defineConfig({
             name: "nome",
             label: "Nome do Artigo",
             isTitle: true,
-            required: true,
+            required: true
           },
           {
             type: "string",
             name: "categoria",
             label: "Setor / Categoria",
             options: [
-              { value: "padaria", label: "Padaria (Pães e Fornada)" },
-              { value: "pastelaria", label: "Pastelaria (Bolos e Sortidos)" },
+              { value: "padaria", label: "Padaria (P\xE3es e Fornada)" },
+              { value: "pastelaria", label: "Pastelaria (Bolos e Sortidos)" }
             ],
-            required: true,
+            required: true
           },
           {
             type: "string",
@@ -150,34 +148,37 @@ export default defineConfig({
             options: [
               { value: "unidade", label: "Unidade (un)" },
               { value: "kg", label: "Quilograma (kg)" },
-              { value: "cento", label: "Cento" },
-            ],
+              { value: "cento", label: "Cento" }
+            ]
           },
           {
             type: "string",
             name: "descricao",
-            label: "Descrição Comercial & Fabrico",
+            label: "Descri\xE7\xE3o Comercial & Fabrico",
             ui: {
-              component: "textarea",
-            },
+              component: "textarea"
+            }
           },
           {
             type: "string",
             name: "alergenios",
-            label: "Alergénios & Informação Alimentar",
+            label: "Alerg\xE9nios & Informa\xE7\xE3o Alimentar"
           },
           {
             type: "image",
             name: "foto",
-            label: "Fotografia do Produto",
+            label: "Fotografia do Produto"
           },
           {
             type: "boolean",
             name: "destaqueMontra",
-            label: "Destaque na Montra Principal",
-          },
-        ],
-      },
-    ],
-  },
+            label: "Destaque na Montra Principal"
+          }
+        ]
+      }
+    ]
+  }
 });
+export {
+  config_default as default
+};
