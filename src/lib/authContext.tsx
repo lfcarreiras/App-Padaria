@@ -148,13 +148,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!u) return '/login';
 
     if (u.role === 'admin' && (u.acesso_gestao === 'edicao' || u.acesso_gestao === 'leitura')) {
-      return '/admin';
+      return '/gestao';
     }
     if (u.acesso_encomendas !== 'sem_acesso') return '/encomendas';
     if (u.acesso_producao !== 'sem_acesso') return '/producao';
     if (u.acesso_loja !== 'sem_acesso') return '/loja';
     if (u.acesso_entregas !== 'sem_acesso') return '/entregas';
-    if (u.acesso_gestao !== 'sem_acesso') return '/admin';
+    if (u.acesso_gestao !== 'sem_acesso') return '/gestao';
 
     return '/login';
   };

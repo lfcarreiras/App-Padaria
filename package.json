@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "tinacms build && next build",
     "start": "next start",
     "lint": "next lint",
     "tina:dev": "tinacms dev -c \"next dev\"",
@@ -19,9 +19,11 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tailwind-merge": "^2.5.4",
+    "tinacms": "^3.14.2",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@tinacms/cli": "^4.0.0",
     "@types/node": "^20.17.0",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",

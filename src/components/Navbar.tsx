@@ -31,7 +31,7 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId, onSelectLoja }) 
     { href: '/producao', label: t.navProducao, icon: ChefHat, panel: 'producao' },
     { href: '/loja', label: language === 'pt' ? 'Balcão' : 'Counter', icon: Store, panel: 'loja' },
     { href: '/entregas', label: language === 'pt' ? 'Entregas' : 'Deliveries', icon: Truck, panel: 'entregas' },
-    { href: '/admin', label: t.navGestao, icon: BarChart3, panel: 'gestao' },
+    { href: '/gestao', label: t.navGestao, icon: BarChart3, panel: 'gestao' },
   ];
 
   // Filtrar apenas os painéis onde o colaborador tem acesso

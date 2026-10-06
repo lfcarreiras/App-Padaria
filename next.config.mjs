@@ -9,6 +9,14 @@ const nextConfig = {
     // Evitar que avisos de tipagem estrita bloqueiem o deploy na Vercel
     ignoreBuildErrors: true,
   },
+  async rewrites() {
+    return [
+      {
+        source: '/admin',
+        destination: '/admin/index.html',
+      },
+    ];
+  },
 };
 
 export default nextConfig;
