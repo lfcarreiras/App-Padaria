@@ -6,13 +6,15 @@ import { ThermalReceipt } from '../../components/ThermalReceipt';
 import { LOJAS_MOCK } from '../../lib/mockData';
 import { 
   carregarEncomendasSupabase, 
+  carregarLojasSupabase,
   atualizarEstadoEncomendaDb, 
   alternarTipoEntregaDb,
   registarLogAuditoria 
 } from '../../lib/encomendasService';
-import { Encomenda, TipoEntrega } from '../../types';
+import { Encomenda, TipoEntrega, Loja } from '../../types';
 import { useTranslation } from '../../lib/i18n';
 import { useAuth } from '../../lib/authContext';
+import { obterConfiguracaoMarca } from '../../lib/tinaContent';
 import { 
   Store, 
   Clock, 
@@ -32,7 +34,9 @@ export default function EntregaLojaPage() {
   const { podeEditar, usuario } = useAuth();
   const currentUser = usuario || { id: 'user-balcao', nome: 'Marta Santos (Atendente Balcão)', role: 'atendente' };
   const temPermissaoEdicao = podeEditar('loja');
+  const configMarca = obterConfiguracaoMarca();
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
+  const [lojas, setLojas] = useState<Loja[]>(LOJAS_MOCK);
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
   const [filtroEstado, setFiltroEstado] = useState<'pendentes' | 'concluidos' | 'todos'>('pendentes');
   const [busca, setBusca] = useState('');
@@ -44,13 +48,17 @@ export default function EntregaLojaPage() {
 
   useEffect(() => {
     async function carregar() {
-      const dados = await carregarEncomendasSupabase();
+      const [dados, ljs] = await Promise.all([
+        carregarEncomendasSupabase(),
+        carregarLojasSupabase(),
+      ]);
       setEncomendas(dados);
+      if (ljs && ljs.length > 0) setLojas(ljs);
     }
     carregar();
   }, []);
 
-  const lojaAtual = LOJAS_MOCK.find((l) => l.id === selectedLojaId) || LOJAS_MOCK[0];
+  const lojaAtual = lojas.find((l) => l.id === selectedLojaId) || lojas[0] || LOJAS_MOCK[0];
 
   const hoje = new Date().toISOString().split('T')[0];
   const dHoje = new Date();
@@ -178,16 +186,32 @@ export default function EntregaLojaPage() {
               </div>
               <div>
                 <h2 className="text-lg sm:text-xl font-black text-gray-900 leading-tight">
-                  {t.storePickupTitle}
+                  {configMarca.tituloLojaBalcao || t.storePickupTitle} ({selectedLojaId === 'todas' ? t.allStores : lojaAtual.nome})
                 </h2>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Organização hierárquica de levantamento em loja por loja e hora de agendamento
+                  {configMarca.subtituloLojaBalcao || 'Organização hierárquica de levantamento em loja por loja e hora de agendamento'}
                 </p>
               </div>
             </div>
 
-            {/* Alternador de Estado */}
-            <div className="flex bg-gray-100 p-1 rounded-xl">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Seletor de Loja do Painel do Balcão */}
+              <div className="flex items-center gap-1.5 bg-stone-50 border border-amber-200 px-2.5 py-1.5 rounded-xl shadow-2xs">
+                <Store className="h-4 w-4 text-amber-700 shrink-0" />
+                <select
+                  value={selectedLojaId}
+                  onChange={(e) => setSelectedLojaId(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-gray-900 focus:outline-hidden cursor-pointer"
+                >
+                  <option value="todas">{t.allStores}</option>
+                  {lojas.map((l) => (
+                    <option key={l.id} value={l.id}>{l.nome}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Alternador de Estado */}
+              <div className="flex bg-gray-100 p-1 rounded-xl">
               <button
                 type="button"
                 onClick={() => setFiltroEstado('pendentes')}
@@ -221,6 +245,7 @@ export default function EntregaLojaPage() {
               >
                 Todos
               </button>
+              </div>
             </div>
           </div>
         </div>

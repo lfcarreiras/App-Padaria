@@ -26,6 +26,21 @@ export interface TinaConfiguracaoGeral {
   rotuloLevantamento?: string;
   rotuloEntrega?: string;
   btnRegistarEncomenda?: string;
+  // Painel Produção
+  tituloProducao?: string;
+  subtituloProducao?: string;
+  avisoProducao?: string;
+  // Painel Balcão / Loja
+  tituloLojaBalcao?: string;
+  subtituloLojaBalcao?: string;
+  instrucoesBalcao?: string;
+  // Painel Entregas
+  tituloEntregas?: string;
+  subtituloEntregas?: string;
+  avisoEntregas?: string;
+  // Painel Gestão
+  tituloGestao?: string;
+  subtituloGestao?: string;
 }
 
 export interface TinaLojaItem {
@@ -82,6 +97,17 @@ const CONFIG_GERAL_DEFAULT: TinaConfiguracaoGeral = {
   rotuloLevantamento: "Levantamento em Loja",
   rotuloEntrega: "Entrega ao Domicílio",
   btnRegistarEncomenda: "Registar Encomenda & Imprimir Talão",
+  tituloProducao: "Painel de Produção",
+  subtituloProducao: "Fila de fabrico com visualização Kanban e hierárquica por tipo e loja",
+  avisoProducao: "Forno a lenha aquecido para fornadas contínuas de padaria tradicional.",
+  tituloLojaBalcao: "Balcão de Levantamentos",
+  subtituloLojaBalcao: "Organização hierárquica de levantamento em loja por loja e hora de agendamento",
+  instrucoesBalcao: "Confirmar identificação do cliente e conferir artigos embalados antes da entrega.",
+  tituloEntregas: "Gestão de Entregas & Rotas",
+  subtituloEntregas: "Gestão e atribuição de rotas de distribuição porta a porta",
+  avisoEntregas: "Carga na Unidade Central de Fabrico & Sede",
+  tituloGestao: "Painel de Gestão & Indicadores",
+  subtituloGestao: "Métricas operacionais, análise de vendas e auditoria de sistema",
 };
 
 /**

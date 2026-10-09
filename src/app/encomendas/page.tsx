@@ -9,6 +9,7 @@ import {
   carregarEncomendasSupabase, 
   carregarClientesSupabase, 
   carregarProdutosSupabase,
+  carregarLojasSupabase,
   salvarClienteDb,
   eliminarClienteDb,
   eliminarEncomendaDb,
@@ -16,7 +17,7 @@ import {
   alternarTipoEntregaDb,
   registarLogAuditoria 
 } from '../../lib/encomendasService';
-import { Encomenda, Produto, ItemEncomenda, TipoEntrega, MetodoPagamento, Cliente } from '../../types';
+import { Encomenda, Produto, ItemEncomenda, TipoEntrega, MetodoPagamento, Cliente, Loja } from '../../types';
 import { useTranslation } from '../../lib/i18n';
 import { useAuth } from '../../lib/authContext';
 import { obterConfiguracaoMarca, obterProdutosMontra } from '../../lib/tinaContent';
@@ -54,6 +55,7 @@ export default function EncomendasPage() {
   const [activeTab, setActiveTab] = useState<'novo' | 'clientes' | 'historico'>('novo');
 
   // Dados Globais
+  const [lojas, setLojas] = useState<Loja[]>(LOJAS_MOCK);
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [produtos, setProdutos] = useState<Produto[]>(() => {
@@ -63,6 +65,7 @@ export default function EncomendasPage() {
   const [carregando, setCarregando] = useState(true);
 
   // Estados do Formulário de Novo Pedido
+  const [lojaPedidoId, setLojaPedidoId] = useState<string>(LOJAS_MOCK[0].id);
   const [carrinho, setCarrinho] = useState<ItemEncomenda[]>([]);
   const [nomeCliente, setNomeCliente] = useState('');
   const [telefoneCliente, setTelefoneCliente] = useState('');
@@ -94,14 +97,19 @@ export default function EncomendasPage() {
   useEffect(() => {
     async function carregar() {
       setCarregando(true);
-      const [encs, clis, prods] = await Promise.all([
+      const [encs, clis, prods, ljs] = await Promise.all([
         carregarEncomendasSupabase(),
         carregarClientesSupabase(),
         carregarProdutosSupabase(),
+        carregarLojasSupabase(),
       ]);
       setEncomendas(encs);
       setClientes(clis);
       if (prods && prods.length > 0) setProdutos(prods);
+      if (ljs && ljs.length > 0) {
+        setLojas(ljs);
+        setLojaPedidoId(ljs[0].id);
+      }
       setCarregando(false);
     }
     carregar();
@@ -117,7 +125,9 @@ export default function EncomendasPage() {
     };
   }, []);
 
-  const lojaAtual = LOJAS_MOCK.find((l) => l.id === selectedLojaId) || LOJAS_MOCK[0];
+  const lojaAtual = (tipoEntrega === 'levantamento_loja'
+    ? lojas.find((l) => l.id === lojaPedidoId)
+    : (selectedLojaId !== 'todas' ? lojas.find((l) => l.id === selectedLojaId) : null)) || lojas[0] || LOJAS_MOCK[0];
 
   // Pesquisa automática de cliente no formulário de pedido
   const handleTelefoneChange = async (tel: string) => {
@@ -611,8 +621,25 @@ export default function EncomendasPage() {
             </p>
           </div>
 
-          {/* Abas Principais */}
-          <div className="flex bg-white p-1 rounded-2xl border border-gray-200 shadow-2xs">
+          {/* Ações e Filtros de Loja do Painel */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Seletor de Loja do Painel de Encomendas */}
+            <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-2xl border border-gray-200 shadow-2xs">
+              <Store className="h-4 w-4 text-bakery-600 shrink-0" />
+              <select
+                value={selectedLojaId}
+                onChange={(e) => setSelectedLojaId(e.target.value)}
+                className="text-xs font-bold text-gray-900 bg-transparent focus:outline-hidden cursor-pointer"
+              >
+                <option value="todas">{t.allStores}</option>
+                {lojas.map((l) => (
+                  <option key={l.id} value={l.id}>{l.nome}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Abas Principais */}
+            <div className="flex bg-white p-1 rounded-2xl border border-gray-200 shadow-2xs">
             <button
               onClick={() => setActiveTab('novo')}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition ${
@@ -646,6 +673,7 @@ export default function EncomendasPage() {
               <Clock className="h-4 w-4" />
               {t.ordersHistory} ({encomendasFiltradas.length})
             </button>
+            </div>
           </div>
         </div>
 
@@ -737,6 +765,27 @@ export default function EncomendasPage() {
                     <span>{configMarca.rotuloEntrega || t.deliveryHome}</span>
                   </button>
                 </div>
+
+                {/* Loja de Levantamento (quando selecionado Levantamento em Loja) */}
+                {tipoEntrega === 'levantamento_loja' && (
+                  <div className="bg-amber-50/70 p-3 rounded-xl border border-amber-200">
+                    <label className="block text-[11px] font-bold text-amber-950 mb-1 flex items-center gap-1.5">
+                      <Store className="h-3.5 w-3.5 text-amber-700" />
+                      Loja de Levantamento *
+                    </label>
+                    <select
+                      value={lojaPedidoId}
+                      onChange={(e) => setLojaPedidoId(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-white rounded-lg border border-amber-300 font-bold text-gray-900 focus:outline-hidden focus:border-amber-500 cursor-pointer"
+                    >
+                      {lojas.map((l) => (
+                        <option key={l.id} value={l.id}>
+                          {l.nome}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 {/* Cliente: Telefone e Nome */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1416,6 +1465,34 @@ export default function EncomendasPage() {
                   Entrega ao Domicílio
                 </button>
               </div>
+
+              {/* Alterar Loja de Levantamento (quando levantamento em loja) */}
+              {encomendaEmEdicao.tipo === 'levantamento_loja' && (
+                <div className="bg-amber-50/70 p-3 rounded-xl border border-amber-200">
+                  <label className="block font-bold text-amber-950 mb-1 flex items-center gap-1.5 text-xs">
+                    <Store className="h-4 w-4 text-amber-700" />
+                    Loja de Levantamento *
+                  </label>
+                  <select
+                    value={encomendaEmEdicao.loja_id}
+                    onChange={(e) => {
+                      const novaLoja = lojas.find((l) => l.id === e.target.value);
+                      setEncomendaEmEdicao({
+                        ...encomendaEmEdicao,
+                        loja_id: e.target.value,
+                        loja_nome: novaLoja ? novaLoja.nome : encomendaEmEdicao.loja_nome,
+                      });
+                    }}
+                    className="w-full px-3 py-2 bg-white rounded-lg border border-amber-300 font-bold text-gray-900 focus:outline-hidden text-xs cursor-pointer"
+                  >
+                    {lojas.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.nome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Dados do Cliente */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

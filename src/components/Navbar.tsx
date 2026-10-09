@@ -10,11 +10,11 @@ import { useAuth, PainelApp } from '../lib/authContext';
 import { obterConfiguracaoMarca } from '../lib/tinaContent';
 
 interface NavbarProps {
-  selectedLojaId: string;
-  onSelectLoja: (lojaId: string) => void;
+  selectedLojaId?: string;
+  onSelectLoja?: (lojaId: string) => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId, onSelectLoja }) => {
+export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId = 'todas', onSelectLoja = () => {} }) => {
   const configMarca = obterConfiguracaoMarca();
   const pathname = usePathname();
   const router = useRouter();
@@ -55,23 +55,6 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId, onSelectLoja }) 
               {configMarca.nomeEmpresa || 'Padaria da Vila'}
             </span>
           </Link>
-
-          {/* Seletor de Loja Ativa */}
-          <div className="hidden xl:flex items-center gap-1.5 rounded-xl bg-bakery-50 border border-bakery-200 px-2 py-1">
-            <Store className="h-3.5 w-3.5 text-bakery-600 shrink-0" />
-            <select
-              value={selectedLojaId}
-              onChange={(e) => onSelectLoja(e.target.value)}
-              className="bg-transparent text-xs font-bold text-gray-900 focus:outline-hidden cursor-pointer max-w-[140px] truncate"
-            >
-              <option value="todas">{t.allStores}</option>
-              {LOJAS_MOCK.map((loja) => (
-                <option key={loja.id} value={loja.id}>
-                  {loja.nome}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
 
         {/* Links de Navegação Principal - Sem barras de navegação horizontal */}
@@ -160,25 +143,6 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId, onSelectLoja }) 
             <span className="text-[11px] font-bold">{language === 'pt' ? 'PT' : 'EN'}</span>
           </button>
         </div>
-      </div>
-
-      {/* Seletor de Loja para Mobile / Tablet */}
-      <div className="lg:hidden border-t border-bakery-100 bg-bakery-50 px-4 py-1.5 flex items-center justify-between">
-        <span className="text-xs font-semibold text-gray-600 flex items-center gap-1.5">
-          <Store className="h-3.5 w-3.5 text-bakery-600" /> {t.store}:
-        </span>
-        <select
-          value={selectedLojaId}
-          onChange={(e) => onSelectLoja(e.target.value)}
-          className="bg-white border border-bakery-200 rounded-lg px-2 py-1 text-xs font-bold text-gray-900"
-        >
-          <option value="todas">{t.allStores}</option>
-          {LOJAS_MOCK.map((loja) => (
-            <option key={loja.id} value={loja.id}>
-              {loja.nome}
-            </option>
-          ))}
-        </select>
       </div>
     </header>
   );

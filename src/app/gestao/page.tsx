@@ -36,6 +36,7 @@ import {
 import { Encomenda, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, Role, NivelAcesso, LogAuditoria } from '../../types';
 import { useTranslation } from '../../lib/i18n';
 import { useAuth } from '../../lib/authContext';
+import { obterConfiguracaoMarca } from '../../lib/tinaContent';
 import { 
   BarChart3, 
   Store, 
@@ -76,6 +77,7 @@ export default function AdminPage() {
   const { t, language } = useTranslation();
   const { podeEditar } = useAuth();
   const temPermissaoEdicaoGestao = podeEditar('gestao');
+  const configMarca = obterConfiguracaoMarca();
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
   const [activeTab, setActiveTab] = useState<'metricas' | 'lojas_carrinhas' | 'database' | 'logs' | 'talao' | 'acessos'>('metricas');
 
@@ -1020,10 +1022,10 @@ export default function AdminPage() {
           <div>
             <h2 className="text-xl sm:text-2xl font-black text-gray-900 flex items-center gap-2">
               <BarChart3 className="h-6 w-6 text-bakery-600" />
-              {t.managementTitle}
+              {configMarca.tituloGestao || t.managementTitle}
             </h2>
             <p className="text-xs sm:text-sm text-gray-500">
-              {t.managementSubtitle}
+              {configMarca.subtituloGestao || t.managementSubtitle}
             </p>
           </div>
 

@@ -7,15 +7,17 @@ import { LOJAS_MOCK, CARRINHAS_MOCK } from '../../lib/mockData';
 import { supabase } from '../../lib/supabase';
 import { 
   carregarEncomendasSupabase, 
+  carregarLojasSupabase,
   atualizarEstadoEncomendaDb,
   alternarTipoEntregaDb,
   atribuirCarrinhaDb,
   concluirEntregaComTimestampDb,
   registarLogAuditoria 
 } from '../../lib/encomendasService';
-import { Encomenda, EstadoRota } from '../../types';
+import { Encomenda, EstadoRota, Loja } from '../../types';
 import { useTranslation } from '../../lib/i18n';
 import { useAuth } from '../../lib/authContext';
+import { obterConfiguracaoMarca } from '../../lib/tinaContent';
 import { 
   Truck, 
   MapPin, 
@@ -43,7 +45,9 @@ export default function EntregasPage() {
   const { podeEditar, usuario } = useAuth();
   const currentUser = usuario || { id: 'user-motorista', nome: 'Rui Oliveira (Motorista Carrinha 1)', role: 'motorista' };
   const temPermissaoEdicao = podeEditar('entregas');
+  const configMarca = obterConfiguracaoMarca();
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
+  const [lojas, setLojas] = useState<Loja[]>(LOJAS_MOCK);
   const [carrinhaSelecionadaId, setCarrinhaSelecionadaId] = useState<string>('todas');
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
   const [encomendaParaImprimir, setEncomendaParaImprimir] = useState<Encomenda | null>(null);
@@ -66,13 +70,17 @@ export default function EntregasPage() {
 
   useEffect(() => {
     async function carregar() {
-      const dados = await carregarEncomendasSupabase();
+      const [dados, ljs] = await Promise.all([
+        carregarEncomendasSupabase(),
+        carregarLojasSupabase(),
+      ]);
       setEncomendas(dados);
+      if (ljs && ljs.length > 0) setLojas(ljs);
     }
     carregar();
   }, []);
 
-  const lojaAtual = LOJAS_MOCK.find((l) => l.id === selectedLojaId) || LOJAS_MOCK[0];
+  const lojaAtual = lojas.find((l) => l.id === selectedLojaId) || lojas[0] || LOJAS_MOCK[0];
   const carrinhasDaLoja = CARRINHAS_MOCK.filter(
     (c) => selectedLojaId === 'todas' || c.loja_id === selectedLojaId
   );
@@ -489,16 +497,31 @@ export default function EntregasPage() {
               </div>
               <div>
                 <h2 className="text-lg sm:text-xl font-black text-gray-900 leading-tight">
-                  {t.deliveriesTitle}
+                  {configMarca.tituloEntregas || t.deliveriesTitle} ({selectedLojaId === 'todas' ? t.allStores : lojaAtual.nome})
                 </h2>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  {t.deliveriesDesc} • Carga na Unidade Central de Fabrico & Sede
+                  {configMarca.subtituloEntregas || t.deliveriesDesc} • {configMarca.avisoEntregas || 'Carga na Unidade Central de Fabrico & Sede'}
                 </p>
               </div>
             </div>
 
-            {/* Dropzone & Seletor de Carrinha */}
+            {/* Dropzone & Seletor de Loja e Carrinha */}
             <div className="flex flex-wrap items-center gap-2">
+              {/* Seletor de Loja do Painel de Entregas */}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border bg-stone-50 border-stone-200">
+                <Store className="h-4 w-4 text-stone-700 shrink-0" />
+                <span className="text-xs font-semibold text-stone-900">{t.store}:</span>
+                <select
+                  value={selectedLojaId}
+                  onChange={(e) => setSelectedLojaId(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-stone-950 focus:outline-hidden cursor-pointer"
+                >
+                  <option value="todas">{t.allStores}</option>
+                  {lojas.map((l) => (
+                    <option key={l.id} value={l.id}>{l.nome}</option>
+                  ))}
+                </select>
+              </div>
               <div 
                 onDragOver={(e) => {
                   if (!temPermissaoEdicao) return;

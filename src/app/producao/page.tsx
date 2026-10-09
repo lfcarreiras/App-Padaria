@@ -6,13 +6,15 @@ import { ThermalReceipt } from '../../components/ThermalReceipt';
 import { LOJAS_MOCK } from '../../lib/mockData';
 import { 
   carregarEncomendasSupabase, 
+  carregarLojasSupabase,
   atualizarEstadoItemDb, 
   atualizarEstadoEncomendaDb,
   registarLogAuditoria 
 } from '../../lib/encomendasService';
-import { Encomenda, SetorProducao, EstadoProducaoItem, TipoEntrega } from '../../types';
+import { Encomenda, SetorProducao, EstadoProducaoItem, TipoEntrega, Loja } from '../../types';
 import { useTranslation } from '../../lib/i18n';
 import { useAuth } from '../../lib/authContext';
+import { obterConfiguracaoMarca } from '../../lib/tinaContent';
 import * as XLSX from 'xlsx';
 import { 
   ChefHat, 
@@ -39,7 +41,9 @@ export default function ProducaoPage() {
   const { podeEditar, usuario } = useAuth();
   const currentUser = usuario || { id: 'user-padeiro', nome: 'Carlos Ferreira (Chefe Padeiro)', role: 'operador_padaria' };
   const temPermissaoEdicao = podeEditar('producao');
+  const configMarca = obterConfiguracaoMarca();
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
+  const [lojas, setLojas] = useState<Loja[]>(LOJAS_MOCK);
   const [setorAtivo, setSetorAtivo] = useState<SetorProducao | 'todos'>('todos');
   const [modoVisualizacao, setModoVisualizacao] = useState<'kanban' | 'hierarquica'>('kanban');
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
@@ -53,13 +57,17 @@ export default function ProducaoPage() {
   // Carregar encomendas reais da base de dados Supabase
   useEffect(() => {
     async function carregar() {
-      const dados = await carregarEncomendasSupabase();
+      const [dados, ljs] = await Promise.all([
+        carregarEncomendasSupabase(),
+        carregarLojasSupabase(),
+      ]);
       setEncomendas(dados);
+      if (ljs && ljs.length > 0) setLojas(ljs);
     }
     carregar();
   }, []);
 
-  const lojaAtual = LOJAS_MOCK.find((l) => l.id === selectedLojaId) || LOJAS_MOCK[0];
+  const lojaAtual = lojas.find((l) => l.id === selectedLojaId) || lojas[0] || LOJAS_MOCK[0];
 
   // Datas de referência
   const hoje = new Date().toISOString().split('T')[0];
@@ -445,6 +453,16 @@ export default function ProducaoPage() {
           </div>
         )}
 
+        {/* Banner de Aviso de Produção */}
+        {configMarca.avisoProducao && (
+          <div className="mb-5 bg-amber-500 text-stone-950 font-black text-xs py-2 px-4 rounded-2xl shadow-2xs flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Flame className="h-4 w-4" />
+              <span>{configMarca.avisoProducao}</span>
+            </div>
+          </div>
+        )}
+
         {/* Barra Superior do Painel de Produção */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
           <div className="flex items-center gap-3">
@@ -453,15 +471,30 @@ export default function ProducaoPage() {
             </div>
             <div>
               <h2 className="text-xl font-black text-gray-900 leading-tight">
-                Painel de Produção ({selectedLojaId === 'todas' ? t.allStores : lojaAtual.nome})
+                {configMarca.tituloProducao || 'Painel de Produção'} ({selectedLojaId === 'todas' ? t.allStores : lojaAtual.nome})
               </h2>
               <p className="text-xs text-gray-500">
-                Fila de fabrico com visualização Kanban e hierárquica por tipo e loja
+                {configMarca.subtituloProducao || 'Fila de fabrico com visualização Kanban e hierárquica por tipo e loja'}
               </p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {/* Seletor de Loja do Painel de Produção */}
+            <div className="flex items-center gap-1.5 rounded-xl bg-stone-50 border border-gray-200 px-2.5 py-1.5 shadow-2xs">
+              <Store className="h-4 w-4 text-amber-600 shrink-0" />
+              <select
+                value={selectedLojaId}
+                onChange={(e) => setSelectedLojaId(e.target.value)}
+                className="bg-transparent text-xs font-bold text-gray-900 focus:outline-hidden cursor-pointer"
+              >
+                <option value="todas">{t.allStores}</option>
+                {lojas.map((l) => (
+                  <option key={l.id} value={l.id}>{l.nome}</option>
+                ))}
+              </select>
+            </div>
+
             {/* Toggle de Modo de Visualização */}
             <div className="flex bg-stone-100 p-1 rounded-xl font-bold text-xs">
               <button
