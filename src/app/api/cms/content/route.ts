@@ -4,7 +4,7 @@ import {
   obterLojasTina, 
   obterProdutosMontra, 
   obterLayoutBlocos 
-} from '../../../lib/tinaContent';
+} from '../../../../lib/tinaContent';
 
 export const dynamic = 'force-dynamic';
 
