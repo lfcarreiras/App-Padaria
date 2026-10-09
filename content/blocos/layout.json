@@ -9,17 +9,6 @@
     }
   },
   {
-    "id": "bloco-whatsapp",
-    "tipo": "info_encomendas",
-    "titulo": "Integração WhatsApp",
-    "ativo": true,
-    "dados": {
-      "tituloSecao": "Integração WhatsApp",
-      "descricao": "Importar mensagens estruturadas de clientes",
-      "telefoneApoio": "910 000 001"
-    }
-  },
-  {
     "id": "bloco-pesquisa-filtros",
     "tipo": "montra_destaques",
     "titulo": "Barra de Pesquisa & Filtros de Categoria",

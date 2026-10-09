@@ -133,7 +133,6 @@ export default function CmsFrontofficeReplicaPage() {
   const [indiceProdutoEmEdicao, setIndiceProdutoEmEdicao] = useState<number | null>(null);
 
   const [modalMarcaAberto, setModalMarcaAberto] = useState(false);
-  const [modalWhatsAppAberto, setModalWhatsAppAberto] = useState(false);
   const [modalLojasAberto, setModalLojasAberto] = useState(false);
   const [lojaEmEdicao, setLojaEmEdicao] = useState<TinaLojaItem | null>(null);
 
@@ -295,13 +294,6 @@ export default function CmsFrontofficeReplicaPage() {
   const salvarMarca = (e: React.FormEvent) => {
     e.preventDefault();
     setModalMarcaAberto(false);
-    marcarAlteracao();
-  };
-
-  // ------------------ GESTÃO DE WHATSAPP ------------------
-  const salvarWhatsApp = (e: React.FormEvent) => {
-    e.preventDefault();
-    setModalWhatsAppAberto(false);
     marcarAlteracao();
   };
 
@@ -730,62 +722,9 @@ export default function CmsFrontofficeReplicaPage() {
         {activeTab === 'novo' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* =============================================================== */}
-            {/* COLUNA ESQUERDA: INTEGRAÇÃO WHATSAPP, PESQUISA & GRELHA PRODUTOS */}
+            {/* COLUNA ESQUERDA: PESQUISA, CATEGORIAS & GRELHA DE PRODUTOS      */}
             {/* =============================================================== */}
             <div className="lg:col-span-7 space-y-4">
-              {/* Barra de Integração WhatsApp */}
-              <div className={`bg-emerald-50/90 border border-emerald-200 p-3 rounded-2xl flex flex-wrap items-center justify-between gap-2.5 shadow-2xs relative ${
-                modoCms === 'edicao' ? 'ring-2 ring-emerald-400/40' : ''
-              }`}>
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-xl bg-emerald-600 text-white shadow-2xs">
-                    <MessageSquare className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black text-emerald-950 flex items-center gap-1.5">
-                      {config.tituloWhatsApp || 'Integração WhatsApp'}
-                      {modoCms === 'edicao' && (
-                        <button
-                          type="button"
-                          onClick={() => setModalWhatsAppAberto(true)}
-                          className="p-0.5 rounded bg-emerald-200 text-emerald-900 hover:bg-emerald-300 transition"
-                          title="Editar Mensagem e Configurações de WhatsApp"
-                        >
-                          <Edit3 className="h-2.5 w-2.5" />
-                        </button>
-                      )}
-                    </h4>
-                    <p className="text-[11px] text-emerald-800">
-                      {config.subtituloWhatsApp || 'Importar mensagens estruturadas de clientes'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(config.modeloWhatsApp);
-                      alert('Modelo de mensagem de WhatsApp copiado para a área de transferência!');
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-emerald-100/50 text-emerald-800 border border-emerald-300 text-xs font-bold transition shadow-2xs cursor-pointer"
-                  >
-                    <Copy className="h-3.5 w-3.5" />
-                    <span>{config.btnCopiarModelo || 'Copiar Modelo'}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      alert('Janela de importação de mensagens do WhatsApp pronta para receber texto!');
-                    }}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition shadow-xs cursor-pointer"
-                  >
-                    <FileText className="h-3.5 w-3.5" />
-                    <span>{config.btnImportarWhatsApp || 'Importar Pedido'}</span>
-                  </button>
-                </div>
-              </div>
 
               {/* Pesquisa e Filtros de Categoria */}
               <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs flex flex-col sm:flex-row gap-3">
@@ -1490,81 +1429,7 @@ export default function CmsFrontofficeReplicaPage() {
         </div>
       )}
 
-      {/* MODAL: EDITAR CONFIGURAÇÕES DO WHATSAPP */}
-      {modalWhatsAppAberto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/60 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <h3 className="text-base font-black text-emerald-950 flex items-center gap-2">
-                <MessageSquare className="h-5 w-5 text-emerald-600" />
-                Configurar Módulo WhatsApp & Modelo de Pedido
-              </h3>
-              <button
-                type="button"
-                onClick={() => setModalWhatsAppAberto(false)}
-                className="p-1 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
 
-            <form onSubmit={salvarWhatsApp} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Título da Caixa WhatsApp
-                  </label>
-                  <input
-                    type="text"
-                    value={config.tituloWhatsApp || ''}
-                    onChange={(e) => setConfig({ ...config, tituloWhatsApp: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Subtítulo Informativo
-                  </label>
-                  <input
-                    type="text"
-                    value={config.subtituloWhatsApp || ''}
-                    onChange={(e) => setConfig({ ...config, subtituloWhatsApp: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">
-                  Modelo Estruturado de Mensagem (Copiar para Clientes)
-                </label>
-                <textarea
-                  rows={8}
-                  value={config.modeloWhatsApp}
-                  onChange={(e) => setConfig({ ...config, modeloWhatsApp: e.target.value })}
-                  className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-gray-300 focus:outline-none"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
-                <button
-                  type="button"
-                  onClick={() => setModalWhatsAppAberto(false)}
-                  className="px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-xl"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs"
-                >
-                  Confirmar
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* MODAL: EDITAR LOJAS */}
       {modalLojasAberto && (

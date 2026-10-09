@@ -76,10 +76,6 @@ export default function EncomendasPage() {
   const [buscaProduto, setBuscaProduto] = useState('');
   const [aGravar, setAGravar] = useState(false);
 
-  // Modal de Importação do WhatsApp
-  const [whatsappModalAberto, setWhatsappModalAberto] = useState(false);
-  const [textoWhatsapp, setTextoWhatsapp] = useState('');
-
   // Modal de Talão
   const [encomendaParaImprimir, setEncomendaParaImprimir] = useState<Encomenda | null>(null);
 
@@ -190,152 +186,6 @@ export default function EncomendasPage() {
     setCarrinho((prev) =>
       prev.map((i) => (i.id === itemId ? { ...i, notas_personalizacao: nota } : i))
     );
-  };
-
-  // Modelo WhatsApp Padaria da Vila para copiar aos clientes
-  const modeloWhatsapp = configMarca.modeloWhatsApp || `*PEDIDO - PADARIA DA VILA*
-Nome: [O seu nome]
-Telefone: [O seu contacto telefónico]
-Tipo: [Levantamento em Loja OU Entrega ao Domicílio]
-Loja / Morada: [Praça / 25 de Abril / Arouca / Unidade Fabrico OU Morada completa em Arouca]
-Data: [Hoje / Amanhã ou AAAA-MM-DD]
-Hora: [ex: 08:30]
-Artigos:
-- 2x Pão de Arouca
-- 1x Pão de Ló de Arouca
-Observações: [ex: Pão fatiado / Frase no bolo / Campainha]`;
-
-  const handleCopiarModelo = () => {
-    navigator.clipboard.writeText(modeloWhatsapp);
-    alert(t.whatsappTemplateCopied);
-  };
-
-  // Processar mensagem estruturada de WhatsApp colada pelo operador
-  const handleProcessarWhatsapp = () => {
-    if (!textoWhatsapp.trim()) return;
-
-    const linhas = textoWhatsapp.split('\n').map((l) => l.trim()).filter(Boolean);
-
-    let nomeEncontrado = '';
-    let telEncontrado = '';
-    let tipoEncontrado: TipoEntrega = 'levantamento_loja';
-    let moradaEncontrada = '';
-    let dataEncontrada = dataAgendamento;
-    let horaEncontrada = horaAgendamento;
-    let notasEncontradas = '';
-    const itensParaAdicionar: ItemEncomenda[] = [];
-
-    for (const linha of linhas) {
-      const linhaLower = linha.toLowerCase();
-
-      if (linhaLower.startsWith('nome:') || linhaLower.startsWith('cliente:')) {
-        nomeEncontrado = linha.split(':')[1]?.trim().replace(/^\[|\]$/g, '') || '';
-      } else if (
-        linhaLower.startsWith('telefone:') ||
-        linhaLower.startsWith('tel:') ||
-        linhaLower.startsWith('contacto:') ||
-        linhaLower.startsWith('telemovel:') ||
-        linhaLower.startsWith('telemóvel:')
-      ) {
-        telEncontrado = linha.split(':')[1]?.trim().replace(/^\[|\]$/g, '') || '';
-      } else if (linhaLower.startsWith('tipo:')) {
-        const val = linha.split(':')[1]?.toLowerCase() || '';
-        if (val.includes('entrega') || val.includes('domicilio') || val.includes('domicílio') || val.includes('carrinha')) {
-          tipoEncontrado = 'entrega_domicilio';
-        } else {
-          tipoEncontrado = 'levantamento_loja';
-        }
-      } else if (
-        linhaLower.startsWith('morada:') ||
-        linhaLower.startsWith('loja / morada:') ||
-        linhaLower.startsWith('endereco:') ||
-        linhaLower.startsWith('endereço:')
-      ) {
-        moradaEncontrada = linha.split(':')[1]?.trim().replace(/^\[|\]$/g, '') || '';
-      } else if (linhaLower.startsWith('data:')) {
-        const val = linha.split(':')[1]?.trim().replace(/^\[|\]$/g, '') || '';
-        if (val.toLowerCase() === 'hoje') {
-          dataEncontrada = new Date().toISOString().split('T')[0];
-        } else if (val.toLowerCase() === 'amanhã' || val.toLowerCase() === 'amanha') {
-          const amanha = new Date();
-          amanha.setDate(amanha.getDate() + 1);
-          dataEncontrada = amanha.toISOString().split('T')[0];
-        } else if (val.includes('-')) {
-          dataEncontrada = val;
-        } else if (val.includes('/')) {
-          const [d, m, y] = val.split('/');
-          if (d && m && y) {
-            dataEncontrada = `${y.trim()}-${m.trim().padStart(2, '0')}-${d.trim().padStart(2, '0')}`;
-          }
-        }
-      } else if (
-        linhaLower.startsWith('hora:') ||
-        linhaLower.startsWith('horário:') ||
-        linhaLower.startsWith('horario:')
-      ) {
-        const val = linha.split(':')[1]?.trim().replace(/^\[|\]$/g, '') || '';
-        const matchHora = val.match(/(\d{1,2})[h:](\d{2})?/i);
-        if (matchHora) {
-          const h = matchHora[1].padStart(2, '0');
-          const m = matchHora[2] ? matchHora[2].padStart(2, '0') : '00';
-          horaEncontrada = `${h}:${m}`;
-        }
-      } else if (
-        linhaLower.startsWith('observações:') ||
-        linhaLower.startsWith('observacoes:') ||
-        linhaLower.startsWith('notas:') ||
-        linhaLower.startsWith('obs:')
-      ) {
-        notasEncontradas = linha.split(':')[1]?.trim().replace(/^\[|\]$/g, '') || '';
-      } else if (linha.startsWith('-') || linha.startsWith('•') || /^\d+\s*(x|un)\b/i.test(linha)) {
-        const textoItem = linha.replace(/^[-•*]\s*/, '').trim();
-        const matchQty = textoItem.match(/^(\d+)\s*(?:x|un)?\s+(.+)$/i);
-        if (matchQty) {
-          const qty = parseInt(matchQty[1], 10);
-          const nomeArtigo = matchQty[2].replace(/\(.*?\)/g, '').trim();
-
-          const prodEncontrado = produtos.find(
-            (p) =>
-              p.nome.toLowerCase().includes(nomeArtigo.toLowerCase()) ||
-              nomeArtigo.toLowerCase().includes(p.nome.toLowerCase())
-          );
-
-          if (prodEncontrado) {
-            itensParaAdicionar.push({
-              id: `item-${Date.now()}-${Math.random()}`,
-              encomenda_id: '',
-              produto_id: prodEncontrado.id,
-              produto_nome: prodEncontrado.nome,
-              setor: prodEncontrado.categoria === 'padaria' ? 'padaria' : 'pastelaria',
-              quantidade: qty,
-              preco_unitario: 0,
-              estado_producao: 'pendente',
-              notas_personalizacao: '',
-            });
-          } else {
-            notasEncontradas = notasEncontradas
-              ? `${notasEncontradas} | ${qty}x ${nomeArtigo}`
-              : `${qty}x ${nomeArtigo}`;
-          }
-        }
-      }
-    }
-
-    if (nomeEncontrado) setNomeCliente(nomeEncontrado);
-    if (telEncontrado) handleTelefoneChange(telEncontrado);
-    if (tipoEncontrado) setTipoEntrega(tipoEncontrado);
-    if (moradaEncontrada) setMoradaCliente(moradaEncontrada);
-    if (dataEncontrada) setDataAgendamento(dataEncontrada);
-    if (horaEncontrada) setHoraAgendamento(horaEncontrada);
-    if (notasEncontradas) setNotasGerais(notasEncontradas);
-
-    if (itensParaAdicionar.length > 0) {
-      setCarrinho((prev) => [...prev, ...itensParaAdicionar]);
-    }
-
-    setWhatsappModalAberto(false);
-    setTextoWhatsapp('');
-    alert('Pedido do WhatsApp processado com sucesso! Verifique os dados no formulário.');
   };
 
   // Submeter Encomenda
@@ -804,43 +654,6 @@ Observações: [ex: Pão fatiado / Frase no bolo / Campainha]`;
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Coluna Esquerda: Catálogo de Produtos */}
             <div className="lg:col-span-7 space-y-4">
-              {/* Barra de Integração WhatsApp */}
-              <div className="bg-emerald-50/90 border border-emerald-200 p-3 rounded-2xl flex flex-wrap items-center justify-between gap-2.5 shadow-2xs">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-xl bg-emerald-600 text-white shadow-2xs">
-                    <MessageSquare className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black text-emerald-950">
-                      {configMarca.tituloWhatsApp || 'Integração WhatsApp'}
-                    </h4>
-                    <p className="text-[11px] text-emerald-800">
-                      {configMarca.subtituloWhatsApp || 'Importar mensagens estruturadas de clientes'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleCopiarModelo}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-emerald-100/50 text-emerald-800 border border-emerald-300 text-xs font-bold transition shadow-2xs cursor-pointer"
-                  >
-                    <Copy className="h-3.5 w-3.5" />
-                    <span>{configMarca.btnCopiarModelo || t.whatsappCopyTemplate}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setWhatsappModalAberto(true)}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition shadow-xs cursor-pointer"
-                  >
-                    <FileText className="h-3.5 w-3.5" />
-                    <span>{configMarca.btnImportarWhatsApp || t.whatsappOrderBtn}</span>
-                  </button>
-                </div>
-              </div>
-
               {/* Pesquisa e Filtros de Categoria */}
               <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
@@ -1548,67 +1361,7 @@ Observações: [ex: Pão fatiado / Frase no bolo / Campainha]`;
         </div>
       )}
 
-      {/* MODAL DE IMPORTAÇÃO WHATSAPP */}
-      {whatsappModalAberto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-200 space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-emerald-600 text-white shadow-2xs">
-                  <MessageSquare className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-black text-gray-900">{t.whatsappModalTitle}</h3>
-                  <p className="text-xs text-gray-500">Cole a mensagem enviada pelo cliente no WhatsApp</p>
-                </div>
-              </div>
-              <button onClick={() => setWhatsappModalAberto(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
 
-            <div className="space-y-3">
-              <textarea
-                rows={7}
-                value={textoWhatsapp}
-                onChange={(e) => setTextoWhatsapp(e.target.value)}
-                placeholder={t.whatsappPastePlaceholder}
-                className="w-full p-3.5 rounded-2xl border border-gray-300 font-mono text-xs focus:outline-hidden focus:border-emerald-500 bg-stone-50"
-              />
-
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <button
-                  type="button"
-                  onClick={handleCopiarModelo}
-                  className="flex items-center gap-1 font-bold text-emerald-700 hover:underline cursor-pointer"
-                >
-                  <Copy className="h-3.5 w-3.5" />
-                  {t.whatsappCopyTemplate}
-                </button>
-                <span>Reconhece nome, telefone, morada, data e artigos</span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
-              <button
-                type="button"
-                onClick={() => setWhatsappModalAberto(false)}
-                className="px-4 py-2.5 rounded-xl bg-gray-100 text-xs font-bold text-gray-700 hover:bg-gray-200 transition"
-              >
-                {t.cancel}
-              </button>
-              <button
-                type="button"
-                onClick={handleProcessarWhatsapp}
-                disabled={!textoWhatsapp.trim()}
-                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-md transition disabled:opacity-50 cursor-pointer"
-              >
-                {t.whatsappParseBtn}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* MODAL DE EDIÇÃO DE ENCOMENDA */}
       {encomendaEmEdicao && (
