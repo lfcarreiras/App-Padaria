@@ -5,6 +5,7 @@ import loja2Raw from '../../content/lojas/loja-2.json';
 import loja3Raw from '../../content/lojas/loja-3.json';
 import boloAniversarioRaw from '../../content/produtos/bolo-aniversario.json';
 import paoAlentejanoRaw from '../../content/produtos/pao-alentejano.json';
+import layoutRaw from '../../content/blocos/layout.json';
 
 export interface TinaConfiguracaoGeral {
   nomeEmpresa: string;
@@ -36,6 +37,14 @@ export interface TinaProdutoItem {
   alergenios: string;
   foto?: string;
   destaqueMontra: boolean;
+}
+
+export interface TinaBlocoLayout {
+  id: string;
+  tipo: 'banner_aviso' | 'hero_marca' | 'montra_destaques' | 'rede_lojas' | 'info_encomendas' | 'bloco_livre';
+  titulo: string;
+  ativo: boolean;
+  dados: Record<string, any>;
 }
 
 // Configuração Geral Padrão
@@ -80,6 +89,17 @@ export function obterLojasTina(): TinaLojaItem[] {
 export function obterProdutosMontra(): TinaProdutoItem[] {
   try {
     return [boloAniversarioRaw, paoAlentejanoRaw] as TinaProdutoItem[];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Obtém os blocos de layout e ordem de secções da app
+ */
+export function obterLayoutBlocos(): TinaBlocoLayout[] {
+  try {
+    return (layoutRaw as unknown as TinaBlocoLayout[]) || [];
   } catch {
     return [];
   }

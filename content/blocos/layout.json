@@ -1,0 +1,58 @@
+[
+  {
+    "id": "bloco-banner",
+    "tipo": "banner_aviso",
+    "titulo": "Faixa de Informação & Alertas",
+    "ativo": true,
+    "dados": {
+      "mensagem": "🥖 Pão quente a sair do forno às 07:00, 11:30 e 17:00 em todas as nossas lojas!",
+      "tipoAlerta": "info",
+      "linkTexto": "Consultar Lojas",
+      "linkUrl": "#lojas"
+    }
+  },
+  {
+    "id": "bloco-hero",
+    "tipo": "hero_marca",
+    "titulo": "Cabeçalho da Marca & Apresentação",
+    "ativo": true,
+    "dados": {
+      "badge": "Desde 1965 • Tradição e Qualidade",
+      "tituloPrincipal": "O Verdadeiro Sabor do Fabrico Tradicional",
+      "subtitulo": "Fornos a lenha, fermentação lenta e pastelaria confecionada diariamente pelas nossas equipas.",
+      "imagemDestaque": "/login-bg.jpg"
+    }
+  },
+  {
+    "id": "bloco-montra",
+    "tipo": "montra_destaques",
+    "titulo": "Montra de Produtos em Destaque",
+    "ativo": true,
+    "dados": {
+      "tituloSecao": "Especialidades em Destaque",
+      "descricao": "Produtos selecionados com fabrico diário, prontos para encomenda imediata.",
+      "mostrarFiltros": true
+    }
+  },
+  {
+    "id": "bloco-lojas",
+    "tipo": "rede_lojas",
+    "titulo": "Rede de Lojas Físicas & Contactos",
+    "ativo": true,
+    "dados": {
+      "tituloSecao": "Onde Encontrar as Nossas Lojas",
+      "descricao": "Visite-nos ou selecione a sua loja mais próxima para levantamento em balcão."
+    }
+  },
+  {
+    "id": "bloco-whatsapp",
+    "tipo": "info_encomendas",
+    "titulo": "Encomendas Rápidas via WhatsApp",
+    "ativo": true,
+    "dados": {
+      "tituloSecao": "Linha Direta de Encomendas & Eventos",
+      "descricao": "Bolos de aniversário à medida, sortidos para eventos ou entregas ao domicílio.",
+      "telefoneApoio": "910 000 001"
+    }
+  }
+]

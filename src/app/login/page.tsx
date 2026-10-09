@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '../../lib/authContext';
 import { useTranslation } from '../../lib/i18n';
 import { Lock, User, Eye, EyeOff, Globe, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
@@ -142,9 +143,18 @@ export default function LoginPage() {
         </div>
 
         {/* Rodapé Informativo */}
-        <div className="bg-stone-50 p-3.5 border-t border-stone-200 text-center text-[11px] text-gray-500 font-medium">
-          <ShieldCheck className="h-3.5 w-3.5 inline mr-1 text-emerald-600" />
-          Acesso seguro e restrito a colaboradores autorizados
+        <div className="bg-stone-50 p-3.5 border-t border-stone-200 text-[11px] text-gray-500 font-medium flex items-center justify-between px-4">
+          <div className="flex items-center">
+            <ShieldCheck className="h-3.5 w-3.5 inline mr-1 text-emerald-600" />
+            Acesso seguro e restrito a colaboradores autorizados
+          </div>
+          <Link
+            href="/cms"
+            title="Acesso Reservado Studio CMS"
+            className="text-stone-400 hover:text-stone-700 text-[10px] font-semibold transition"
+          >
+            Studio CMS
+          </Link>
         </div>
       </div>
     </div>
