@@ -19,6 +19,7 @@ import {
 import { Encomenda, Produto, ItemEncomenda, TipoEntrega, MetodoPagamento, Cliente } from '../../types';
 import { useTranslation } from '../../lib/i18n';
 import { useAuth } from '../../lib/authContext';
+import { obterConfiguracaoMarca, obterProdutosMontra } from '../../lib/tinaContent';
 import { 
   ShoppingBag, 
   Search, 
@@ -48,13 +49,17 @@ export default function EncomendasPage() {
   const { podeEditar, usuario } = useAuth();
   const currentUser = usuario || { id: 'user-balcao', nome: 'Marta Santos (Atendente Balcão)', role: 'atendente' };
   const temPermissaoEdicao = podeEditar('encomendas');
+  const configMarca = obterConfiguracaoMarca();
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
   const [activeTab, setActiveTab] = useState<'novo' | 'clientes' | 'historico'>('novo');
 
   // Dados Globais
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [produtos, setProdutos] = useState<Produto[]>(PRODUTOS_MOCK);
+  const [produtos, setProdutos] = useState<Produto[]>(() => {
+    const montra = obterProdutosMontra();
+    return (montra && montra.length > 0) ? (montra as any) : PRODUTOS_MOCK;
+  });
   const [carregando, setCarregando] = useState(true);
 
   // Estados do Formulário de Novo Pedido
@@ -188,7 +193,7 @@ export default function EncomendasPage() {
   };
 
   // Modelo WhatsApp Padaria da Vila para copiar aos clientes
-  const modeloWhatsapp = `*PEDIDO - PADARIA DA VILA*
+  const modeloWhatsapp = configMarca.modeloWhatsApp || `*PEDIDO - PADARIA DA VILA*
 Nome: [O seu nome]
 Telefone: [O seu contacto telefónico]
 Tipo: [Levantamento em Loja OU Entrega ao Domicílio]
@@ -737,15 +742,22 @@ Observações: [ex: Pão fatiado / Frase no bolo / Campainha]`;
           </div>
         )}
 
+        {/* Banner de Aviso de Fornadas / Informações */}
+        {configMarca.bannerAvisoAtivo && configMarca.bannerAvisoTexto && (
+          <div className="mb-5 bg-amber-500 text-stone-950 font-black text-xs py-2 px-4 rounded-2xl shadow-2xs flex items-center justify-between">
+            <span>{configMarca.bannerAvisoTexto}</span>
+          </div>
+        )}
+
         {/* Barra Superior com Título e Seletor de Abas */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h2 className="text-xl sm:text-2xl font-black text-gray-900 flex items-center gap-2">
               <ShoppingBag className="h-6 w-6 text-bakery-600" />
-              {t.navEncomendas}
+              {configMarca.tituloBalcao || t.navEncomendas}
             </h2>
             <p className="text-xs sm:text-sm text-gray-500">
-              Registo rápido, gestão de contactos de clientes e histórico de pedidos.
+              {configMarca.subtituloBalcao || 'Registo rápido, gestão de contactos de clientes e histórico de pedidos.'}
             </p>
           </div>
 
@@ -799,8 +811,12 @@ Observações: [ex: Pão fatiado / Frase no bolo / Campainha]`;
                     <MessageSquare className="h-4 w-4" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-black text-emerald-950">Integração WhatsApp</h4>
-                    <p className="text-[11px] text-emerald-800">Importar mensagens estruturadas de clientes</p>
+                    <h4 className="text-xs font-black text-emerald-950">
+                      {configMarca.tituloWhatsApp || 'Integração WhatsApp'}
+                    </h4>
+                    <p className="text-[11px] text-emerald-800">
+                      {configMarca.subtituloWhatsApp || 'Importar mensagens estruturadas de clientes'}
+                    </p>
                   </div>
                 </div>
 
@@ -811,7 +827,7 @@ Observações: [ex: Pão fatiado / Frase no bolo / Campainha]`;
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-emerald-100/50 text-emerald-800 border border-emerald-300 text-xs font-bold transition shadow-2xs cursor-pointer"
                   >
                     <Copy className="h-3.5 w-3.5" />
-                    <span>{t.whatsappCopyTemplate}</span>
+                    <span>{configMarca.btnCopiarModelo || t.whatsappCopyTemplate}</span>
                   </button>
 
                   <button
@@ -820,7 +836,7 @@ Observações: [ex: Pão fatiado / Frase no bolo / Campainha]`;
                     className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition shadow-xs cursor-pointer"
                   >
                     <FileText className="h-3.5 w-3.5" />
-                    <span>{t.whatsappOrderBtn}</span>
+                    <span>{configMarca.btnImportarWhatsApp || t.whatsappOrderBtn}</span>
                   </button>
                 </div>
               </div>
@@ -893,7 +909,7 @@ Observações: [ex: Pão fatiado / Frase no bolo / Campainha]`;
                     }`}
                   >
                     <Store className="h-4 w-4 text-bakery-600" />
-                    {t.pickupStore}
+                    <span>{configMarca.rotuloLevantamento || t.pickupStore}</span>
                   </button>
                   <button
                     type="button"
@@ -905,7 +921,7 @@ Observações: [ex: Pão fatiado / Frase no bolo / Campainha]`;
                     }`}
                   >
                     <Truck className="h-4 w-4 text-blue-600" />
-                    {t.deliveryHome}
+                    <span>{configMarca.rotuloEntrega || t.deliveryHome}</span>
                   </button>
                 </div>
 
@@ -1066,7 +1082,7 @@ Observações: [ex: Pão fatiado / Frase no bolo / Campainha]`;
                   className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-bakery-600 text-white font-black text-sm shadow-md hover:bg-bakery-700 disabled:opacity-50 transition cursor-pointer"
                 >
                   <Printer className="h-4 w-4" />
-                  {aGravar ? 'A registar...' : !temPermissaoEdicao ? `🚫 ${t.readOnlyMode}` : t.registerOrder}
+                  {aGravar ? 'A registar...' : !temPermissaoEdicao ? `🚫 ${t.readOnlyMode}` : (configMarca.btnRegistarEncomenda || t.registerOrder)}
                 </button>
               </form>
             </div>

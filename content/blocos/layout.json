@@ -1,58 +1,62 @@
 [
   {
-    "id": "bloco-banner",
+    "id": "bloco-aviso-topo",
     "tipo": "banner_aviso",
-    "titulo": "Faixa de Informação & Alertas",
+    "titulo": "Faixa de Alertas & Fornadas Quentes",
     "ativo": true,
     "dados": {
-      "mensagem": "🥖 Pão quente a sair do forno às 07:00, 11:30 e 17:00 em todas as nossas lojas!",
-      "tipoAlerta": "info",
-      "linkTexto": "Consultar Lojas",
-      "linkUrl": "#lojas"
-    }
-  },
-  {
-    "id": "bloco-hero",
-    "tipo": "hero_marca",
-    "titulo": "Cabeçalho da Marca & Apresentação",
-    "ativo": true,
-    "dados": {
-      "badge": "Desde 1965 • Tradição e Qualidade",
-      "tituloPrincipal": "O Verdadeiro Sabor do Fabrico Tradicional",
-      "subtitulo": "Fornos a lenha, fermentação lenta e pastelaria confecionada diariamente pelas nossas equipas.",
-      "imagemDestaque": "/login-bg.jpg"
-    }
-  },
-  {
-    "id": "bloco-montra",
-    "tipo": "montra_destaques",
-    "titulo": "Montra de Produtos em Destaque",
-    "ativo": true,
-    "dados": {
-      "tituloSecao": "Especialidades em Destaque",
-      "descricao": "Produtos selecionados com fabrico diário, prontos para encomenda imediata.",
-      "mostrarFiltros": true
-    }
-  },
-  {
-    "id": "bloco-lojas",
-    "tipo": "rede_lojas",
-    "titulo": "Rede de Lojas Físicas & Contactos",
-    "ativo": true,
-    "dados": {
-      "tituloSecao": "Onde Encontrar as Nossas Lojas",
-      "descricao": "Visite-nos ou selecione a sua loja mais próxima para levantamento em balcão."
+      "mensagem": "🥖 Pão quente a sair do forno às 07:00, 11:30 e 17:00 em todas as nossas lojas!"
     }
   },
   {
     "id": "bloco-whatsapp",
     "tipo": "info_encomendas",
-    "titulo": "Encomendas Rápidas via WhatsApp",
+    "titulo": "Integração WhatsApp",
     "ativo": true,
     "dados": {
-      "tituloSecao": "Linha Direta de Encomendas & Eventos",
-      "descricao": "Bolos de aniversário à medida, sortidos para eventos ou entregas ao domicílio.",
+      "tituloSecao": "Integração WhatsApp",
+      "descricao": "Importar mensagens estruturadas de clientes",
       "telefoneApoio": "910 000 001"
+    }
+  },
+  {
+    "id": "bloco-pesquisa-filtros",
+    "tipo": "montra_destaques",
+    "titulo": "Barra de Pesquisa & Filtros de Categoria",
+    "ativo": true,
+    "dados": {
+      "placeholderPesquisa": "Pesquisar por nome do produto...",
+      "mostrarCategorias": true
+    }
+  },
+  {
+    "id": "bloco-grelha-produtos",
+    "tipo": "montra_destaques",
+    "titulo": "Grelha de Especialidades & Artigos",
+    "ativo": true,
+    "dados": {
+      "colunas": 3,
+      "mostrarPrecos": true
+    }
+  },
+  {
+    "id": "bloco-formulario-encomenda",
+    "tipo": "hero_marca",
+    "titulo": "Painel de Encomenda & Carrinho",
+    "ativo": true,
+    "dados": {
+      "permitirDomicilio": true,
+      "permitirLevantamento": true
+    }
+  },
+  {
+    "id": "bloco-rodape-empresa",
+    "tipo": "rede_lojas",
+    "titulo": "Rodapé & Dados Fiscais da Empresa",
+    "ativo": true,
+    "dados": {
+      "mostrarNif": true,
+      "mostrarTelefone": true
     }
   }
 ]

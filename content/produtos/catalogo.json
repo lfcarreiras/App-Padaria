@@ -1,0 +1,162 @@
+[
+  {
+    "id": "prod-1",
+    "nome": "Pão de Arouca",
+    "categoria": "padaria",
+    "preco": 1.20,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "emoji": "🥖",
+    "ativo": true
+  },
+  {
+    "id": "prod-2",
+    "nome": "Pão de Ló de Arouca",
+    "categoria": "pastelaria",
+    "preco": 12.50,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "emoji": "🎂",
+    "ativo": true
+  },
+  {
+    "id": "prod-3",
+    "nome": "Baguete Tradicional",
+    "categoria": "padaria",
+    "preco": 1.10,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "emoji": "🥖",
+    "ativo": true
+  },
+  {
+    "id": "prod-4",
+    "nome": "Broa de Milho",
+    "categoria": "padaria",
+    "preco": 2.20,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "emoji": "🍞",
+    "ativo": true
+  },
+  {
+    "id": "prod-5",
+    "nome": "Broa com Chouriço",
+    "categoria": "padaria",
+    "preco": 2.80,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "emoji": "🥖",
+    "ativo": true
+  },
+  {
+    "id": "prod-6",
+    "nome": "Bola de Carne",
+    "categoria": "pastelaria",
+    "preco": 3.50,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "emoji": "🥧",
+    "ativo": true
+  },
+  {
+    "id": "prod-7",
+    "nome": "Bolo de Aniversário Personalizado",
+    "categoria": "pastelaria",
+    "preco": 25.00,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 120,
+    "emoji": "🎂",
+    "ativo": true
+  },
+  {
+    "id": "prod-8",
+    "nome": "Almendrado",
+    "categoria": "pastelaria",
+    "preco": 1.60,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "emoji": "🧁",
+    "ativo": true
+  },
+  {
+    "id": "prod-9",
+    "nome": "Carcaça Tradicional",
+    "categoria": "padaria",
+    "preco": 0.35,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 45,
+    "emoji": "🥖",
+    "ativo": true
+  },
+  {
+    "id": "prod-10",
+    "nome": "Broa Centeio",
+    "categoria": "padaria",
+    "preco": 1.95,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "emoji": "🍞",
+    "ativo": true
+  },
+  {
+    "id": "prod-11",
+    "nome": "Cavacas",
+    "categoria": "pastelaria",
+    "preco": 1.50,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "emoji": "🍪",
+    "ativo": true
+  },
+  {
+    "id": "prod-12",
+    "nome": "Castanhas Doces",
+    "categoria": "pastelaria",
+    "preco": 1.80,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 90,
+    "emoji": "🌰",
+    "ativo": true
+  },
+  {
+    "id": "prod-13",
+    "nome": "Bolo Rei Tradicional",
+    "categoria": "pastelaria",
+    "preco": 18.00,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 120,
+    "emoji": "👑",
+    "ativo": true
+  },
+  {
+    "id": "prod-14",
+    "nome": "Brigadeiros (Sortido)",
+    "categoria": "pastelaria",
+    "preco": 1.10,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "emoji": "🍫",
+    "ativo": true
+  },
+  {
+    "id": "prod-15",
+    "nome": "Bolo c/ Sardinhas",
+    "categoria": "padaria",
+    "preco": 3.20,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "emoji": "🐟",
+    "ativo": true
+  },
+  {
+    "id": "prod-16",
+    "nome": "Cacete Alentejano",
+    "categoria": "padaria",
+    "preco": 1.40,
+    "unidade": "unidade",
+    "tempo_preparo_minutos": 60,
+    "emoji": "🥖",
+    "ativo": true
+  }
+]

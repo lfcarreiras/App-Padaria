@@ -13,33 +13,60 @@ import {
   obterLayoutBlocos 
 } from '../../lib/tinaContent';
 import { 
-  GripVertical, 
-  MoveUp, 
-  MoveDown, 
-  Plus, 
-  Trash2, 
-  Edit3, 
-  Eye, 
-  Check, 
-  AlertCircle, 
-  Sparkles, 
-  Layers, 
   Store, 
+  ShoppingBag, 
   ChefHat, 
+  Truck, 
+  BarChart3, 
+  Search, 
+  Plus, 
+  Minus, 
+  Trash2, 
+  Printer, 
+  CheckCircle2, 
+  Clock, 
+  Users, 
+  Edit3, 
+  ArrowRightLeft, 
+  Calendar, 
+  Phone, 
+  MapPin, 
+  X, 
+  Eye, 
+  MessageSquare, 
+  Copy, 
+  FileText, 
+  GripVertical, 
+  Sparkles, 
   Lock, 
   Unlock, 
-  ExternalLink, 
   RefreshCw, 
-  Send, 
   Key, 
-  X
+  Send, 
+  AlertCircle, 
+  Check, 
+  ExternalLink,
+  Layers,
+  Save,
+  Upload
 } from 'lucide-react';
 
 const CMS_STORAGE_KEY_TOKEN = 'app_padaria_cms_github_token';
 const CMS_STORAGE_KEY_AUTH = 'app_padaria_cms_auth_unlocked';
 const DEFAULT_PASSKEY = 'padaria2026';
 
-export default function CmsStudioPage() {
+interface ItemCarrinhoSimulado {
+  id: string;
+  produtoId: string;
+  nome: string;
+  categoria: string;
+  quantidade: number;
+  emoji: string;
+  preco: number;
+  notas: string;
+}
+
+export default function CmsFrontofficeReplicaPage() {
   // Estado de montagem (evita mismatch de SSR e hidratação)
   const [montado, setMontado] = useState(false);
 
@@ -48,8 +75,10 @@ export default function CmsStudioPage() {
   const [passkeyInput, setPasskeyInput] = useState('');
   const [erroPasskey, setErroPasskey] = useState(false);
 
-  // Estados de Dados do CMS
-  const [tabAtiva, setTabAtiva] = useState<'layout' | 'marca' | 'lojas' | 'produtos' | 'preview'>('layout');
+  // Modo de Operação do CMS: 'edicao' (com controlos) ou 'preview' (réplica 100% limpa)
+  const [modoCms, setModoCms] = useState<'edicao' | 'preview'>('edicao');
+
+  // Estados de Dados do CMS (Fontes de Verdade sincronizadas com Git)
   const [config, setConfig] = useState<TinaConfiguracaoGeral>(obterConfiguracaoMarca());
   const [lojas, setLojas] = useState<TinaLojaItem[]>(obterLojasTina());
   const [produtos, setProdutos] = useState<TinaProdutoItem[]>(obterProdutosMontra());
@@ -58,7 +87,57 @@ export default function CmsStudioPage() {
   // Rastreio de Edições Não Publicadas
   const [alteracoesPendentes, setAlteracoesPendentes] = useState(0);
 
-  // Modal de Publicação GitHub / Vercel
+  // Estados Interativos do Frontoffice
+  const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
+  const [activeTab, setActiveTab] = useState<'novo' | 'clientes' | 'historico'>('novo');
+  const [categoriaAtiva, setCategoriaAtiva] = useState<'todas' | 'padaria' | 'pastelaria'>('todas');
+  const [buscaProduto, setBuscaProduto] = useState('');
+  const [tipoEntrega, setTipoEntrega] = useState<'levantamento_loja' | 'entrega_domicilio'>('levantamento_loja');
+  
+  // Carrinho Interativo de Demonstração
+  const [carrinho, setCarrinho] = useState<ItemCarrinhoSimulado[]>([
+    {
+      id: 'item-demo-1',
+      produtoId: 'prod-1',
+      nome: 'Pão de Arouca',
+      categoria: 'padaria',
+      quantidade: 2,
+      emoji: '🥖',
+      preco: 1.20,
+      notas: 'Bem cozido',
+    },
+    {
+      id: 'item-demo-2',
+      produtoId: 'prod-2',
+      nome: 'Pão de Ló de Arouca',
+      categoria: 'pastelaria',
+      quantidade: 1,
+      emoji: '🎂',
+      preco: 12.50,
+      notas: 'Embalagem de oferta',
+    }
+  ]);
+  const [telefoneCliente, setTelefoneCliente] = useState('912 345 678');
+  const [nomeCliente, setNomeCliente] = useState('Manuel Silva');
+  const [moradaCliente, setMoradaCliente] = useState('Rua Central de Arouca, nº 12');
+  const [dataAgendamento, setDataAgendamento] = useState(new Date().toISOString().split('T')[0]);
+  const [horaAgendamento, setHoraAgendamento] = useState('10:30');
+  const [notasGerais, setNotasGerais] = useState('');
+
+  // Drag & Drop de Produtos na Grelha
+  const [draggedProdIndex, setDraggedProdIndex] = useState<number | null>(null);
+
+  // Modais de Edição In-Place
+  const [modalProdutoAberto, setModalProdutoAberto] = useState(false);
+  const [produtoEmEdicao, setProdutoEmEdicao] = useState<TinaProdutoItem | null>(null);
+  const [indiceProdutoEmEdicao, setIndiceProdutoEmEdicao] = useState<number | null>(null);
+
+  const [modalMarcaAberto, setModalMarcaAberto] = useState(false);
+  const [modalWhatsAppAberto, setModalWhatsAppAberto] = useState(false);
+  const [modalLojasAberto, setModalLojasAberto] = useState(false);
+  const [lojaEmEdicao, setLojaEmEdicao] = useState<TinaLojaItem | null>(null);
+
+  // Modal de Publicação / Commit GitHub & Vercel
   const [modalPublicarAberto, setModalPublicarAberto] = useState(false);
   const [githubToken, setGithubToken] = useState('');
   const [lembrarToken, setLembrarToken] = useState(true);
@@ -71,16 +150,7 @@ export default function CmsStudioPage() {
     commitUrl?: string;
   } | null>(null);
 
-  // Estados de Edição de Itens
-  const [blocoEmEdicao, setBlocoEmEdicao] = useState<TinaBlocoLayout | null>(null);
-  const [lojaEmEdicao, setLojaEmEdicao] = useState<TinaLojaItem | null>(null);
-  const [produtoEmEdicao, setProdutoEmEdicao] = useState<TinaProdutoItem | null>(null);
-  const [modalNovoBlocoAberto, setModalNovoBlocoAberto] = useState(false);
-
-  // Drag & Drop State
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-
-  // Inicializar autenticação e token guardado
+  // Inicialização no Navegador
   useEffect(() => {
     setMontado(true);
     if (typeof window !== 'undefined') {
@@ -97,7 +167,11 @@ export default function CmsStudioPage() {
 
   const handleDesbloquear = (e: React.FormEvent) => {
     e.preventDefault();
-    if (passkeyInput.trim() === DEFAULT_PASSKEY || passkeyInput.trim() === 'admin' || passkeyInput.trim() === '1234') {
+    if (
+      passkeyInput.trim() === DEFAULT_PASSKEY || 
+      passkeyInput.trim() === 'admin' || 
+      passkeyInput.trim() === '1234'
+    ) {
       setDesbloqueado(true);
       setErroPasskey(false);
       sessionStorage.setItem(CMS_STORAGE_KEY_AUTH, 'true');
@@ -110,60 +184,141 @@ export default function CmsStudioPage() {
     setAlteracoesPendentes((prev) => prev + 1);
   };
 
-  // ------------------ REORDENAÇÃO DRAG & DROP ------------------
-  const handleDragStart = (index: number) => {
-    setDraggedIndex(index);
+  // ------------------ OPERAÇÕES DO CARRINHO INTERATIVO ------------------
+  const handleAdicionarAoCarrinho = (prod: TinaProdutoItem) => {
+    setCarrinho((prev) => {
+      const existe = prev.find((item) => item.produtoId === prod.id || item.nome === prod.nome);
+      if (existe) {
+        return prev.map((item) =>
+          item.id === existe.id ? { ...item, quantidade: item.quantidade + 1 } : item
+        );
+      }
+      return [
+        ...prev,
+        {
+          id: `item-${Date.now()}`,
+          produtoId: prod.id || `prod-${Date.now()}`,
+          nome: prod.nome,
+          categoria: prod.categoria,
+          quantidade: 1,
+          emoji: prod.emoji || (prod.categoria === 'padaria' ? '🥖' : '🎂'),
+          preco: prod.preco || 0,
+          notas: '',
+        },
+      ];
+    });
   };
 
-  const handleDragOver = (e: React.DragEvent, index: number) => {
+  const alterarQtdCarrinho = (id: string, delta: number) => {
+    setCarrinho((prev) =>
+      prev
+        .map((item) => (item.id === id ? { ...item, quantidade: Math.max(1, item.quantidade + delta) } : item))
+        .filter((item) => item.quantidade > 0)
+    );
+  };
+
+  const removerDoCarrinho = (id: string) => {
+    setCarrinho((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  // ------------------ REORDENAÇÃO DRAG & DROP DE PRODUTOS ------------------
+  const handleDragStartProduto = (index: number) => {
+    if (modoCms !== 'edicao') return;
+    setDraggedProdIndex(index);
+  };
+
+  const handleDragOverProduto = (e: React.DragEvent) => {
+    if (modoCms !== 'edicao') return;
     e.preventDefault();
   };
 
-  const handleDropBlocos = (targetIndex: number) => {
-    if (draggedIndex === null || draggedIndex === targetIndex) return;
-    const novos = [...layout];
-    const [removido] = novos.splice(draggedIndex, 1);
-    novos.splice(targetIndex, 0, removido);
-    setLayout(novos);
-    setDraggedIndex(null);
-    marcarAlteracao();
-  };
-
-  const handleDropLojas = (targetIndex: number) => {
-    if (draggedIndex === null || draggedIndex === targetIndex) return;
-    const novos = [...lojas];
-    const [removido] = novos.splice(draggedIndex, 1);
-    novos.splice(targetIndex, 0, removido);
-    setLojas(novos);
-    setDraggedIndex(null);
-    marcarAlteracao();
-  };
-
-  const handleDropProdutos = (targetIndex: number) => {
-    if (draggedIndex === null || draggedIndex === targetIndex) return;
+  const handleDropProduto = (targetIndex: number) => {
+    if (modoCms !== 'edicao' || draggedProdIndex === null || draggedProdIndex === targetIndex) return;
     const novos = [...produtos];
-    const [removido] = novos.splice(draggedIndex, 1);
-    novos.splice(targetIndex, 0, removido);
+    const [movido] = novos.splice(draggedProdIndex, 1);
+    novos.splice(targetIndex, 0, movido);
     setProdutos(novos);
-    setDraggedIndex(null);
+    setDraggedProdIndex(null);
     marcarAlteracao();
   };
 
-  // ------------------ MOVIMENTAÇÃO POR BOTÕES (▲ / ▼) ------------------
-  const moverBloco = (index: number, direcao: 'cima' | 'baixo') => {
-    const target = direcao === 'cima' ? index - 1 : index + 1;
-    if (target < 0 || target >= layout.length) return;
-    const novos = [...layout];
-    const [item] = novos.splice(index, 1);
-    novos.splice(target, 0, item);
-    setLayout(novos);
+  // ------------------ GESTÃO DE PRODUTOS (ADICIONAR / EDITAR / ELIMINAR) ------------------
+  const abrirModalNovoProduto = () => {
+    setProdutoEmEdicao({
+      id: `prod-${Date.now()}`,
+      nome: '',
+      categoria: 'padaria',
+      preco: 1.00,
+      unidade: 'unidade',
+      tempo_preparo_minutos: 60,
+      emoji: '🥖',
+      ativo: true,
+    });
+    setIndiceProdutoEmEdicao(null);
+    setModalProdutoAberto(true);
+  };
+
+  const abrirModalEditarProduto = (prod: TinaProdutoItem, index: number) => {
+    setProdutoEmEdicao({ ...prod });
+    setIndiceProdutoEmEdicao(index);
+    setModalProdutoAberto(true);
+  };
+
+  const salvarProduto = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!produtoEmEdicao || !produtoEmEdicao.nome.trim()) return;
+
+    if (indiceProdutoEmEdicao !== null) {
+      // Atualizar existente
+      const novos = [...produtos];
+      novos[indiceProdutoEmEdicao] = produtoEmEdicao;
+      setProdutos(novos);
+    } else {
+      // Adicionar novo no topo da grelha
+      setProdutos([produtoEmEdicao, ...produtos]);
+    }
+    setModalProdutoAberto(false);
     marcarAlteracao();
   };
 
-  const alternarAtivoBloco = (index: number) => {
-    const novos = [...layout];
-    novos[index].ativo = !novos[index].ativo;
-    setLayout(novos);
+  const eliminarProduto = (index: number) => {
+    const nome = produtos[index]?.nome || 'o artigo';
+    if (window.confirm(`Tem a certeza de que deseja remover "${nome}" do catálogo?`)) {
+      const novos = [...produtos];
+      novos.splice(index, 1);
+      setProdutos(novos);
+      marcarAlteracao();
+    }
+  };
+
+  // ------------------ GESTÃO DE MARCA E TEXTOS GERAIS ------------------
+  const salvarMarca = (e: React.FormEvent) => {
+    e.preventDefault();
+    setModalMarcaAberto(false);
+    marcarAlteracao();
+  };
+
+  // ------------------ GESTÃO DE WHATSAPP ------------------
+  const salvarWhatsApp = (e: React.FormEvent) => {
+    e.preventDefault();
+    setModalWhatsAppAberto(false);
+    marcarAlteracao();
+  };
+
+  // ------------------ GESTÃO DE LOJAS ------------------
+  const salvarLoja = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!lojaEmEdicao || !lojaEmEdicao.nome.trim()) return;
+
+    const existeIndex = lojas.findIndex((l) => l.id === lojaEmEdicao.id);
+    if (existeIndex >= 0) {
+      const novos = [...lojas];
+      novos[existeIndex] = lojaEmEdicao;
+      setLojas(novos);
+    } else {
+      setLojas([...lojas, lojaEmEdicao]);
+    }
+    setLojaEmEdicao(null);
     marcarAlteracao();
   };
 
@@ -171,7 +326,7 @@ export default function CmsStudioPage() {
   const abrirModalPublicar = () => {
     setResultadoPublicacao(null);
     if (!mensagemCommit) {
-      setMensagemCommit(`cms: atualização visual de conteúdos, montra e lojas (${new Date().toLocaleDateString('pt-PT')})`);
+      setMensagemCommit(`cms: atualização visual do frontoffice e catálogo (${new Date().toLocaleDateString('pt-PT')})`);
     }
     setModalPublicarAberto(true);
   };
@@ -208,7 +363,7 @@ export default function CmsStudioPage() {
       } else {
         setResultadoPublicacao({
           sucesso: true,
-          mensagem: data.message || 'Commit registado com sucesso no GitHub! O deploy da Vercel foi acionado.',
+          mensagem: data.message || 'Alterações gravadas com sucesso no GitHub! O deploy da Vercel foi acionado.',
           commitSha: data.commitSha,
           commitUrl: data.commitUrl,
         });
@@ -224,65 +379,84 @@ export default function CmsStudioPage() {
     }
   };
 
+  // Filtro de Produtos para Exibição na Grelha
+  const produtosFiltrados = produtos.filter((p) => {
+    const matchCat = categoriaAtiva === 'todas' || p.categoria === categoriaAtiva;
+    const matchBusca = p.nome.toLowerCase().includes(buscaProduto.toLowerCase());
+    return matchCat && matchBusca;
+  });
+
   // Prevenir desfasamentos de renderização entre SSR e Cliente
   if (!montado) {
     return (
-      <div className="min-h-screen bg-stone-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-stone-100 flex items-center justify-center p-4">
         <div className="flex flex-col items-center gap-3">
           <div className="h-12 w-12 rounded-2xl bg-amber-500 text-stone-950 flex items-center justify-center text-2xl font-black animate-bounce shadow-lg">
             🥖
           </div>
-          <p className="text-xs font-semibold text-stone-400">A carregar Studio CMS...</p>
+          <p className="text-xs font-semibold text-stone-600">A carregar réplica do Frontoffice CMS...</p>
         </div>
       </div>
     );
   }
 
-  // ------------------ TELA DE BLOQUEIO / LOGIN ------------------
+  // ------------------ TELA DE BLOQUEIO / PIN DE SEGURANÇA ------------------
   if (!desbloqueado) {
     return (
-      <div className="min-h-screen bg-stone-900 flex flex-col justify-center items-center p-4">
-        <div className="w-full max-w-md bg-stone-950 border border-stone-800 rounded-3xl p-8 shadow-2xl space-y-6 text-center">
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500 text-stone-950 text-3xl font-black shadow-lg">
+      <div className="min-h-screen bg-stone-100 flex flex-col justify-center items-center p-4">
+        <div className="w-full max-w-md bg-white border border-stone-200 rounded-3xl p-8 shadow-xl space-y-6 text-center">
+          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500 text-stone-950 text-3xl font-black shadow-md">
             🥖
           </div>
           <div>
-            <h1 className="text-xl font-black text-white tracking-tight">Backoffice & CMS Studio</h1>
-            <p className="text-xs text-stone-400 mt-1">Acesso reservado ao proprietário / administrador de desenvolvimento.</p>
+            <h1 className="text-xl font-black text-stone-900 tracking-tight">Studio CMS • Editor Frontoffice</h1>
+            <p className="text-xs text-stone-500 mt-1">
+              Área restrita de edição visual da aplicação (acesso com chave mestra).
+            </p>
           </div>
 
-          <form onSubmit={handleDesbloquear} className="space-y-4">
-            <div className="text-left">
-              <label className="text-xs font-bold text-stone-300 block mb-1.5">Chave Mestra de Acesso (PIN)</label>
+          <form onSubmit={handleDesbloquear} className="space-y-4 text-left">
+            <div>
+              <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
+                Palavra-passe Mestra
+              </label>
               <div className="relative">
                 <input
                   type="password"
                   value={passkeyInput}
-                  onChange={(e) => setPasskeyInput(e.target.value)}
-                  placeholder="Introduza a chave (ex: padaria2026)"
-                  className="w-full bg-stone-900 border border-stone-700 rounded-xl px-4 py-3 text-sm text-white placeholder-stone-500 focus:outline-none focus:border-amber-500"
+                  onChange={(e) => {
+                    setPasskeyInput(e.target.value);
+                    setErroPasskey(false);
+                  }}
+                  placeholder="Insira a chave mestre (ex: padaria2026)"
+                  className="w-full px-4 py-3 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+                  autoFocus
                 />
-                <Key className="absolute right-3.5 top-3.5 h-4 w-4 text-stone-500" />
+                <Key className="absolute right-3.5 top-3.5 h-4 w-4 text-stone-400" />
               </div>
               {erroPasskey && (
-                <p className="text-xs font-semibold text-rose-400 mt-1.5 flex items-center gap-1">
-                  <AlertCircle className="h-3.5 w-3.5" /> Chave incorreta. Tente "padaria2026" ou "admin".
+                <p className="text-xs font-medium text-red-600 mt-2 flex items-center gap-1">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  Chave mestra incorreta. Tente novamente.
                 </p>
               )}
             </div>
 
             <button
               type="submit"
-              className="w-full py-3 px-4 rounded-xl font-black text-sm bg-amber-500 hover:bg-amber-400 text-stone-950 shadow-lg transition flex items-center justify-center gap-2"
+              className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-stone-950 font-black text-xs uppercase tracking-wider rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
             >
               <Unlock className="h-4 w-4" />
-              Entrar no CMS Studio
+              Desbloquear Edição Frontoffice
             </button>
           </form>
 
-          <div className="pt-2 border-t border-stone-800/80">
-            <Link href="/gestao" className="text-xs text-stone-400 hover:text-white transition">
-              ← Voltar ao Painel da Padaria
+          <div className="pt-4 border-t border-stone-200">
+            <Link
+              href="/encomendas"
+              className="text-xs text-stone-500 hover:text-stone-800 font-bold transition flex items-center justify-center gap-1"
+            >
+              Voltar ao Balcão Operacional
             </Link>
           </div>
         </div>
@@ -291,1144 +465,1283 @@ export default function CmsStudioPage() {
   }
 
   return (
-    <div className="min-h-screen bg-stone-100 text-stone-900 pb-20">
-      {/* ================= BARRA DE TOPO & PUBLICAÇÃO GITHUB ================= */}
-      <header className="sticky top-0 z-40 bg-stone-950 text-white border-b border-stone-800 shadow-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <span className="h-9 w-9 rounded-xl bg-amber-500 text-stone-950 flex items-center justify-center text-lg font-black shrink-0">
+    <div className="min-h-screen flex flex-col bg-gray-50/70 relative">
+      {/* ========================================================================= */}
+      {/* 1. BARRA SUPERIOR STUDIO CMS (CONTROLOS DE EDIÇÃO & DEPLOY)                */}
+      {/* ========================================================================= */}
+      <div className="sticky top-0 z-50 bg-stone-950 text-white border-b border-stone-800 shadow-md">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-3">
+          {/* Identidade CMS */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500 text-stone-950 text-sm font-black shadow-xs">
               🥖
             </span>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-black text-sm sm:text-base tracking-tight">Padaria Studio CMS</span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-teal-500/20 text-teal-300 border border-teal-500/30">
-                  Git-Backed
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs sm:text-sm font-black text-amber-400 tracking-tight">Studio CMS</span>
+                <span className="hidden sm:inline-block text-[10px] font-bold px-1.5 py-0.5 rounded bg-stone-800 text-stone-300">
+                  Réplica Visual Frontoffice
                 </span>
               </div>
-              <p className="text-[11px] text-stone-400 hidden sm:block">Editor visual com reordenação drag & drop e commit automático no GitHub</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            {alteracoesPendentes > 0 ? (
-              <span className="px-3 py-1 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse flex items-center gap-1.5">
-                🟡 {alteracoesPendentes} {alteracoesPendentes === 1 ? 'edição pronta' : 'edições prontas'}
-              </span>
-            ) : (
-              <span className="hidden md:inline-flex px-3 py-1 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 items-center gap-1.5">
-                <Check className="h-3.5 w-3.5" /> Sincronizado
+          {/* Seletor de Modo: Edição vs Pré-visualização Real */}
+          <div className="flex items-center gap-2">
+            <div className="flex bg-stone-900 p-0.5 rounded-xl border border-stone-800">
+              <button
+                type="button"
+                onClick={() => setModoCms('edicao')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  modoCms === 'edicao'
+                    ? 'bg-amber-500 text-stone-950 shadow-xs'
+                    : 'text-stone-400 hover:text-stone-200'
+                }`}
+              >
+                <Edit3 className="h-3.5 w-3.5" />
+                <span>Modo Edição</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setModoCms('preview')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  modoCms === 'preview'
+                    ? 'bg-amber-500 text-stone-950 shadow-xs'
+                    : 'text-stone-400 hover:text-stone-200'
+                }`}
+              >
+                <Eye className="h-3.5 w-3.5" />
+                <span>Pré-visualização</span>
+              </button>
+            </div>
+
+            {/* Contador de alterações */}
+            {alteracoesPendentes > 0 && (
+              <span className="hidden md:inline-flex items-center gap-1 text-[11px] font-bold text-amber-300 bg-amber-950/60 border border-amber-800/80 px-2 py-1 rounded-lg">
+                <Sparkles className="h-3 w-3 animate-spin" />
+                {alteracoesPendentes} alteraç{alteracoesPendentes === 1 ? 'ão' : 'ões'}
               </span>
             )}
 
+            {/* Botão de Gravar & Deploy */}
             <button
+              type="button"
               onClick={abrirModalPublicar}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-black bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-stone-950 shadow-lg shadow-emerald-950/40 transition active:scale-95"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-stone-950 text-xs font-black shadow-md transition transform active:scale-95 cursor-pointer"
             >
-              <Send className="h-4 w-4" />
-              <span>Gravar no GitHub & Deploy Vercel</span>
-            </button>
-
-            <button
-              onClick={() => {
-                sessionStorage.removeItem(CMS_STORAGE_KEY_AUTH);
-                setDesbloqueado(false);
-              }}
-              title="Bloquear sessão"
-              className="p-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-400 hover:text-white transition border border-stone-800"
-            >
-              <Lock className="h-4 w-4" />
+              <Send className="h-3.5 w-3.5" />
+              <span>Gravar & Deploy Vercel</span>
             </button>
           </div>
         </div>
+      </div>
 
-        {/* NAVEGAÇÃO DE ABAS DO STUDIO */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex overflow-x-auto gap-1 border-t border-stone-800/70 pt-2 pb-2">
-          <button
-            onClick={() => setTabAtiva('layout')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-              tabAtiva === 'layout' ? 'bg-amber-500 text-stone-950 shadow-sm' : 'text-stone-300 hover:bg-stone-900'
-            }`}
-          >
-            <Layers className="h-4 w-4" />
-            1. Layout & Blocos (Drag & Drop)
-          </button>
-          <button
-            onClick={() => setTabAtiva('marca')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-              tabAtiva === 'marca' ? 'bg-amber-500 text-stone-950 shadow-sm' : 'text-stone-300 hover:bg-stone-900'
-            }`}
-          >
-            <Sparkles className="h-4 w-4" />
-            2. Identidade & Textos de Marca
-          </button>
-          <button
-            onClick={() => setTabAtiva('lojas')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-              tabAtiva === 'lojas' ? 'bg-amber-500 text-stone-950 shadow-sm' : 'text-stone-300 hover:bg-stone-900'
-            }`}
-          >
-            <Store className="h-4 w-4" />
-            3. Lojas Físicas ({lojas.length})
-          </button>
-          <button
-            onClick={() => setTabAtiva('produtos')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-              tabAtiva === 'produtos' ? 'bg-amber-500 text-stone-950 shadow-sm' : 'text-stone-300 hover:bg-stone-900'
-            }`}
-          >
-            <ChefHat className="h-4 w-4" />
-            4. Montra de Produtos ({produtos.length})
-          </button>
-          <button
-            onClick={() => setTabAtiva('preview')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ml-auto ${
-              tabAtiva === 'preview' ? 'bg-teal-500 text-stone-950 shadow-sm' : 'text-teal-300 hover:bg-stone-900 border border-teal-500/30'
-            }`}
-          >
-            <Eye className="h-4 w-4" />
-            Pré-visualização ao Vivo
-          </button>
+      {/* ========================================================================= */}
+      {/* 2. NAVBAR EXATA DO FRONTOFFICE (COM EDIÇÃO IN-PLACE NO MODO EDIÇÃO)       */}
+      {/* ========================================================================= */}
+      <header className={`sticky top-[49px] z-40 w-full border-b border-amber-200 bg-white/95 backdrop-blur shadow-xs ${
+        modoCms === 'edicao' ? 'ring-2 ring-amber-400/40' : ''
+      }`}>
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-3 py-2.5 sm:px-6">
+          {/* Identidade e Seletor de Loja */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <div className="flex items-center gap-2 relative group">
+              <img
+                src="/logo-padaria.jpg"
+                alt={config.nomeEmpresa}
+                className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl object-cover shadow-xs border border-amber-200 shrink-0"
+              />
+              <span className="text-xs sm:text-sm font-black text-gray-900 tracking-tight whitespace-nowrap">
+                {config.nomeEmpresa}
+              </span>
+
+              {/* Botão de Edição da Marca no Modo Edição */}
+              {modoCms === 'edicao' && (
+                <button
+                  type="button"
+                  onClick={() => setModalMarcaAberto(true)}
+                  className="ml-1 p-1 rounded-md bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-bold transition shadow-2xs"
+                  title="Editar Nome, Slogan e Informações da Marca"
+                >
+                  <Edit3 className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+
+            {/* Seletor de Loja Ativa */}
+            <div className="hidden xl:flex items-center gap-1.5 rounded-xl bg-amber-50 border border-amber-200 px-2 py-1 relative">
+              <Store className="h-3.5 w-3.5 text-amber-700 shrink-0" />
+              <select
+                value={selectedLojaId}
+                onChange={(e) => setSelectedLojaId(e.target.value)}
+                className="bg-transparent text-xs font-bold text-gray-900 focus:outline-none cursor-pointer max-w-[140px] truncate"
+              >
+                <option value="todas">Todas as Lojas</option>
+                {lojas.map((loja) => (
+                  <option key={loja.id} value={loja.id}>
+                    {loja.nome}
+                  </option>
+                ))}
+              </select>
+
+              {/* Botão de Edição de Lojas no Modo Edição */}
+              {modoCms === 'edicao' && (
+                <button
+                  type="button"
+                  onClick={() => setModalLojasAberto(true)}
+                  className="p-0.5 rounded bg-amber-200/60 hover:bg-amber-200 text-amber-900 transition"
+                  title="Gerir Lojas e Moradas"
+                >
+                  <Edit3 className="h-2.5 w-2.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Menu de Navegação Exato da App */}
+          <nav className="flex items-center gap-1 sm:gap-1.5 flex-nowrap">
+            <span className="flex items-center gap-1 sm:gap-1.5 rounded-xl px-2 sm:px-2.5 py-1.5 text-xs font-bold bg-amber-600 text-white shadow-xs shrink-0">
+              <ShoppingBag className="h-4 w-4 shrink-0" />
+              <span className="hidden sm:inline whitespace-nowrap">Encomendas</span>
+            </span>
+            <span className="flex items-center gap-1 sm:gap-1.5 rounded-xl px-2 sm:px-2.5 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-100 shrink-0 opacity-70">
+              <ChefHat className="h-4 w-4 shrink-0" />
+              <span className="hidden sm:inline whitespace-nowrap">Produção</span>
+            </span>
+            <span className="flex items-center gap-1 sm:gap-1.5 rounded-xl px-2 sm:px-2.5 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-100 shrink-0 opacity-70">
+              <Store className="h-4 w-4 shrink-0" />
+              <span className="hidden sm:inline whitespace-nowrap">Balcão</span>
+            </span>
+            <span className="flex items-center gap-1 sm:gap-1.5 rounded-xl px-2 sm:px-2.5 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-100 shrink-0 opacity-70">
+              <Truck className="h-4 w-4 shrink-0" />
+              <span className="hidden sm:inline whitespace-nowrap">Entregas</span>
+            </span>
+            <span className="flex items-center gap-1 sm:gap-1.5 rounded-xl px-2 sm:px-2.5 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-100 shrink-0 opacity-70">
+              <BarChart3 className="h-4 w-4 shrink-0" />
+              <span className="hidden sm:inline whitespace-nowrap">Gestão</span>
+            </span>
+          </nav>
+
+          {/* Área do Utilizador Demonstrativo */}
+          <div className="flex items-center gap-1.5 sm:gap-2 pl-1 sm:pl-2 border-l border-gray-200 shrink-0">
+            <div className="hidden lg:block text-right">
+              <span className="text-xs font-bold text-gray-900 block leading-tight truncate max-w-[110px]">
+                Marta Santos
+              </span>
+              <span className="text-[10px] text-gray-500 font-semibold block capitalize leading-tight">
+                Atendente Balcão
+              </span>
+            </div>
+            <div className="h-8 w-8 rounded-full bg-amber-100 border border-amber-300 flex items-center justify-center text-xs font-black text-amber-900">
+              MS
+            </div>
+          </div>
         </div>
       </header>
 
-      {/* ================= CONTEÚDO PRINCIPAL ================= */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        {/* ================= ABA 1: LAYOUT & BLOCOS (DRAG & DROP) ================= */}
-        {tabAtiva === 'layout' && (
-          <div className="space-y-6">
-            <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-base font-black text-stone-900 flex items-center gap-2">
-                  <Layers className="h-5 w-5 text-amber-600" />
-                  Estrutura e Ordem de Secções da Aplicação
-                </h2>
-                <p className="text-xs text-stone-500 mt-1">
-                  Arraste os blocos com o rato (Drag & Drop) para alterar a ordem no site, ou use os botões ▲ e ▼.
-                </p>
-              </div>
+      {/* ========================================================================= */}
+      {/* 3. BANNER DE AVISO SUPERIOR (SE ATIVADO)                                  */}
+      {/* ========================================================================= */}
+      {config.bannerAvisoAtivo && (
+        <div className="bg-amber-500 text-stone-950 font-black text-xs py-2 px-4 shadow-xs relative">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+            <span className="truncate">{config.bannerAvisoTexto}</span>
+            {modoCms === 'edicao' && (
               <button
-                onClick={() => setModalNovoBlocoAberto(true)}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-stone-950 shadow-xs transition"
+                type="button"
+                onClick={() => setModalMarcaAberto(true)}
+                className="px-2 py-0.5 bg-stone-950/20 hover:bg-stone-950/40 rounded text-[10px] uppercase font-bold shrink-0 transition"
               >
-                <Plus className="h-4 w-4" />
-                Novo Bloco / Secção
+                Editar Aviso
               </button>
-            </div>
+            )}
+          </div>
+        </div>
+      )}
 
-            {/* LISTA DRAGGABLE DE BLOCOS */}
-            <div className="space-y-3">
-              {layout.map((bloco, idx) => (
-                <div
-                  key={bloco.id}
-                  draggable
-                  onDragStart={() => handleDragStart(idx)}
-                  onDragOver={(e) => handleDragOver(e, idx)}
-                  onDrop={() => handleDropBlocos(idx)}
-                  className={`bg-white rounded-2xl border transition shadow-xs p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
-                    bloco.ativo ? 'border-stone-200 hover:border-amber-300' : 'border-stone-200 opacity-60 bg-stone-50'
-                  }`}
+      {/* ========================================================================= */}
+      {/* 4. CONTEÚDO PRINCIPAL: BALCÃO DE ENCOMENDAS (RÉPLICA EXATA DO FRONTOFFICE)*/}
+      {/* ========================================================================= */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 sm:px-6">
+        {/* Barra Superior com Título e Seletor de Abas */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div className="relative group">
+            <h2 className="text-xl sm:text-2xl font-black text-gray-900 flex items-center gap-2">
+              <ShoppingBag className="h-6 w-6 text-amber-600" />
+              <span>{config.tituloBalcao || 'Balcão de Encomendas'}</span>
+              {modoCms === 'edicao' && (
+                <button
+                  type="button"
+                  onClick={() => setModalMarcaAberto(true)}
+                  className="p-1 rounded-md bg-amber-100 text-amber-800 hover:bg-amber-200 transition"
+                  title="Editar Título e Subtítulo da Página"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="cursor-grab active:cursor-grabbing p-1.5 text-stone-400 hover:text-stone-700 bg-stone-100 rounded-lg">
-                      <GripVertical className="h-5 w-5" />
-                    </div>
+                  <Edit3 className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </h2>
+            <p className="text-xs sm:text-sm text-gray-500">
+              {config.subtituloBalcao || 'Registo rápido, gestão de contactos de clientes e histórico de pedidos.'}
+            </p>
+          </div>
 
-                    <span className="h-7 w-7 rounded-lg bg-stone-100 text-stone-700 text-xs font-black flex items-center justify-center">
-                      {idx + 1}
-                    </span>
+          {/* Abas Principais do Frontoffice */}
+          <div className="flex bg-white p-1 rounded-2xl border border-gray-200 shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setActiveTab('novo')}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition ${
+                activeTab === 'novo'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Plus className="h-4 w-4" />
+              <span>Novo Pedido</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('clientes')}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition ${
+                activeTab === 'clientes'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Users className="h-4 w-4" />
+              <span>Gestão de Clientes</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('historico')}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition ${
+                activeTab === 'historico'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Clock className="h-4 w-4" />
+              <span>Histórico de Encomendas</span>
+            </button>
+          </div>
+        </div>
 
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm text-stone-900">{bloco.titulo}</span>
-                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-stone-100 text-stone-600">
-                          {bloco.tipo}
-                        </span>
-                        {!bloco.ativo && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-700">
-                            Desativado
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-stone-500 mt-0.5 truncate max-w-md">
-                        {bloco.dados?.mensagem || bloco.dados?.tituloPrincipal || bloco.dados?.tituloSecao || 'Sem descrição'}
-                      </p>
-                    </div>
+        {/* ----------------- ABA 1: NOVO PEDIDO (RÉPLICA DO BALCÃO) ----------------- */}
+        {activeTab === 'novo' && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* =============================================================== */}
+            {/* COLUNA ESQUERDA: INTEGRAÇÃO WHATSAPP, PESQUISA & GRELHA PRODUTOS */}
+            {/* =============================================================== */}
+            <div className="lg:col-span-7 space-y-4">
+              {/* Barra de Integração WhatsApp */}
+              <div className={`bg-emerald-50/90 border border-emerald-200 p-3 rounded-2xl flex flex-wrap items-center justify-between gap-2.5 shadow-2xs relative ${
+                modoCms === 'edicao' ? 'ring-2 ring-emerald-400/40' : ''
+              }`}>
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-xl bg-emerald-600 text-white shadow-2xs">
+                    <MessageSquare className="h-4 w-4" />
                   </div>
+                  <div>
+                    <h4 className="text-xs font-black text-emerald-950 flex items-center gap-1.5">
+                      {config.tituloWhatsApp || 'Integração WhatsApp'}
+                      {modoCms === 'edicao' && (
+                        <button
+                          type="button"
+                          onClick={() => setModalWhatsAppAberto(true)}
+                          className="p-0.5 rounded bg-emerald-200 text-emerald-900 hover:bg-emerald-300 transition"
+                          title="Editar Mensagem e Configurações de WhatsApp"
+                        >
+                          <Edit3 className="h-2.5 w-2.5" />
+                        </button>
+                      )}
+                    </h4>
+                    <p className="text-[11px] text-emerald-800">
+                      {config.subtituloWhatsApp || 'Importar mensagens estruturadas de clientes'}
+                    </p>
+                  </div>
+                </div>
 
-                  <div className="flex items-center gap-2 self-end sm:self-center">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(config.modeloWhatsApp);
+                      alert('Modelo de mensagem de WhatsApp copiado para a área de transferência!');
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-emerald-100/50 text-emerald-800 border border-emerald-300 text-xs font-bold transition shadow-2xs cursor-pointer"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    <span>{config.btnCopiarModelo || 'Copiar Modelo'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      alert('Janela de importação de mensagens do WhatsApp pronta para receber texto!');
+                    }}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition shadow-xs cursor-pointer"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    <span>{config.btnImportarWhatsApp || 'Importar Pedido'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Pesquisa e Filtros de Categoria */}
+              <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={buscaProduto}
+                    onChange={(e) => setBuscaProduto(e.target.value)}
+                    placeholder="Pesquisar artigo por nome..."
+                    className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div className="flex gap-1.5 overflow-x-auto">
+                  {(['todas', 'padaria', 'pastelaria'] as const).map((cat) => (
                     <button
-                      onClick={() => moverBloco(idx, 'cima')}
-                      disabled={idx === 0}
-                      className="p-1.5 rounded-lg border border-stone-200 hover:bg-stone-100 disabled:opacity-30 disabled:pointer-events-none text-stone-600"
-                      title="Mover para cima"
-                    >
-                      <MoveUp className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => moverBloco(idx, 'baixo')}
-                      disabled={idx === layout.length - 1}
-                      className="p-1.5 rounded-lg border border-stone-200 hover:bg-stone-100 disabled:opacity-30 disabled:pointer-events-none text-stone-600"
-                      title="Mover para baixo"
-                    >
-                      <MoveDown className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => alternarAtivoBloco(idx)}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition border ${
-                        bloco.ativo
-                          ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                          : 'border-stone-300 bg-stone-100 text-stone-600'
+                      key={cat}
+                      type="button"
+                      onClick={() => setCategoriaAtiva(cat)}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold capitalize transition shrink-0 cursor-pointer ${
+                        categoriaAtiva === cat
+                          ? 'bg-amber-600 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
-                      {bloco.ativo ? 'Visível' : 'Oculto'}
+                      {cat === 'todas' ? 'Todas as Categorias' : cat === 'padaria' ? '🥖 Padaria' : '🎂 Pastelaria'}
                     </button>
-                    <button
-                      onClick={() => setBlocoEmEdicao(bloco)}
-                      className="p-1.5 rounded-lg border border-stone-200 hover:bg-stone-100 text-stone-700"
-                      title="Editar campos do bloco"
-                    >
-                      <Edit3 className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (confirm(`Remover o bloco "${bloco.titulo}"?`)) {
-                          const novos = layout.filter((b) => b.id !== bloco.id);
-                          setLayout(novos);
-                          marcarAlteracao();
-                        }
-                      }}
-                      className="p-1.5 rounded-lg border border-stone-200 hover:bg-rose-50 text-rose-600"
-                      title="Eliminar bloco"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+              </div>
 
-        {/* ================= ABA 2: IDENTIDADE & TEXTOS DE MARCA ================= */}
-        {tabAtiva === 'marca' && (
-          <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs space-y-6">
-            <div>
-              <h2 className="text-base font-black text-stone-900 flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-amber-600" />
-                Textos Institucionais, Marca & Talão
-              </h2>
-              <p className="text-xs text-stone-500 mt-1">
-                Altere o nome da padaria, o slogan oficial, contactos e os modelos predefinidos de mensagem.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Grelha de Produtos (Catálogo Real com Drag & Drop e Edição In-Place) */}
               <div>
-                <label className="text-xs font-bold text-stone-700 block mb-1">Nome da Empresa / Padaria</label>
-                <input
-                  type="text"
-                  value={config.nomeEmpresa}
-                  onChange={(e) => {
-                    setConfig({ ...config, nomeEmpresa: e.target.value });
-                    marcarAlteracao();
-                  }}
-                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-stone-900 focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-stone-700 block mb-1">Slogan Oficial da Marca</label>
-                <input
-                  type="text"
-                  value={config.slogan}
-                  onChange={(e) => {
-                    setConfig({ ...config, slogan: e.target.value });
-                    marcarAlteracao();
-                  }}
-                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-stone-900 focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-stone-700 block mb-1">Telefone Geral de Apoio</label>
-                <input
-                  type="text"
-                  value={config.telefoneGeral}
-                  onChange={(e) => {
-                    setConfig({ ...config, telefoneGeral: e.target.value });
-                    marcarAlteracao();
-                  }}
-                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-stone-900 focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-stone-700 block mb-1">NIF da Empresa</label>
-                <input
-                  type="text"
-                  value={config.nif}
-                  onChange={(e) => {
-                    setConfig({ ...config, nif: e.target.value });
-                    marcarAlteracao();
-                  }}
-                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-stone-900 focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-stone-700 block mb-1">Email de Apoio ao Cliente</label>
-                <input
-                  type="email"
-                  value={config.email}
-                  onChange={(e) => {
-                    setConfig({ ...config, email: e.target.value });
-                    marcarAlteracao();
-                  }}
-                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-stone-900 focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-stone-700 block mb-1">Mensagem de Rodapé do Talão Térmico</label>
-                <input
-                  type="text"
-                  value={config.rodapeTalao}
-                  onChange={(e) => {
-                    setConfig({ ...config, rodapeTalao: e.target.value });
-                    marcarAlteracao();
-                  }}
-                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-stone-900 focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="text-xs font-bold text-stone-700 block mb-1">Modelo de Encomenda por WhatsApp</label>
-                <textarea
-                  rows={4}
-                  value={config.modeloWhatsApp}
-                  onChange={(e) => {
-                    setConfig({ ...config, modeloWhatsApp: e.target.value });
-                    marcarAlteracao();
-                  }}
-                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-sm font-mono text-stone-900 focus:outline-none focus:border-amber-500"
-                />
-                <p className="text-[11px] text-stone-500 mt-1">Este modelo é carregado quando o operador ou cliente clica para encomendar via WhatsApp.</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ================= ABA 3: LOJAS FÍSICAS (DRAG & DROP) ================= */}
-        {tabAtiva === 'lojas' && (
-          <div className="space-y-6">
-            <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-base font-black text-stone-900 flex items-center gap-2">
-                  <Store className="h-5 w-5 text-amber-600" />
-                  Rede de Lojas Físicas & Contactos
-                </h2>
-                <p className="text-xs text-stone-500 mt-1">
-                  Arraste as lojas para definir a prioridade e ordem de apresentação.
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  const nova: TinaLojaItem = {
-                    id: `loja-${Date.now()}`,
-                    codigo: `LOJA-${lojas.length + 1}`,
-                    nome: `Loja ${lojas.length + 1}`,
-                    morada: 'Nova Morada, Portugal',
-                    telefone: '210 000 000',
-                    horario: 'Seg-Sáb: 07h00 - 20h00',
-                    nif: '500100201',
-                    ativo: true,
-                  };
-                  setLojaEmEdicao(nova);
-                }}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-stone-950 shadow-xs transition"
-              >
-                <Plus className="h-4 w-4" />
-                Adicionar Nova Loja
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {lojas.map((loja, idx) => (
-                <div
-                  key={loja.codigo || idx}
-                  draggable
-                  onDragStart={() => handleDragStart(idx)}
-                  onDragOver={(e) => handleDragOver(e, idx)}
-                  onDrop={() => handleDropLojas(idx)}
-                  className="bg-white rounded-2xl border border-stone-200 shadow-xs p-5 flex flex-col justify-between gap-4 hover:border-amber-400 transition"
-                >
-                  <div>
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="cursor-grab active:cursor-grabbing p-1 text-stone-400 hover:text-stone-700 bg-stone-100 rounded">
-                          <GripVertical className="h-4 w-4" />
-                        </div>
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-amber-100 text-amber-800">
-                          {loja.codigo}
-                        </span>
-                      </div>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${loja.ativo ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-100 text-stone-500'}`}>
-                        {loja.ativo ? 'Ativa' : 'Inativa'}
-                      </span>
-                    </div>
-
-                    <h3 className="text-base font-black text-stone-900">{loja.nome}</h3>
-                    <p className="text-xs text-stone-500 mt-1">{loja.morada}</p>
-                    <p className="text-xs font-semibold text-stone-700 mt-2">📞 {loja.telefone}</p>
-                    <p className="text-xs text-stone-500">⏰ {loja.horario}</p>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-stone-100">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    Catálogo de Artigos ({produtosFiltrados.length})
+                  </span>
+                  {modoCms === 'edicao' && (
                     <button
-                      onClick={() => setLojaEmEdicao(loja)}
-                      className="px-3 py-1.5 rounded-xl border border-stone-200 hover:bg-stone-50 text-xs font-bold text-stone-700 flex items-center gap-1.5"
+                      type="button"
+                      onClick={abrirModalNovoProduto}
+                      className="flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-300 px-2.5 py-1 rounded-xl transition cursor-pointer"
                     >
-                      <Edit3 className="h-3.5 w-3.5" /> Editar
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>Novo Artigo</span>
                     </button>
-                    <button
-                      onClick={() => {
-                        if (confirm(`Eliminar a loja "${loja.nome}"?`)) {
-                          const novos = lojas.filter((l) => l.codigo !== loja.codigo);
-                          setLojas(novos);
-                          marcarAlteracao();
-                        }
-                      }}
-                      className="p-1.5 rounded-xl border border-rose-200 hover:bg-rose-50 text-rose-600"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
 
-        {/* ================= ABA 4: PRODUTOS DA MONTRA (DRAG & DROP) ================= */}
-        {tabAtiva === 'produtos' && (
-          <div className="space-y-6">
-            <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-base font-black text-stone-900 flex items-center gap-2">
-                  <ChefHat className="h-5 w-5 text-amber-600" />
-                  Catálogo Visual da Montra & Fabrico
-                </h2>
-                <p className="text-xs text-stone-500 mt-1">
-                  Arraste os produtos para definir os que aparecem primeiro na montra principal.
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  const novo: TinaProdutoItem = {
-                    nome: 'Novo Artigo de Fornada',
-                    categoria: 'padaria',
-                    unidade: 'unidade',
-                    descricao: 'Descrição comercial e segredos do fabrico artesanal.',
-                    alergenios: 'Contém glúten.',
-                    destaqueMontra: true,
-                  };
-                  setProdutoEmEdicao(novo);
-                }}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-stone-950 shadow-xs transition"
-              >
-                <Plus className="h-4 w-4" />
-                Adicionar Produto
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {produtos.map((prod, idx) => (
-                <div
-                  key={prod.nome || idx}
-                  draggable
-                  onDragStart={() => handleDragStart(idx)}
-                  onDragOver={(e) => handleDragOver(e, idx)}
-                  onDrop={() => handleDropProdutos(idx)}
-                  className="bg-white rounded-2xl border border-stone-200 shadow-xs p-5 flex flex-col justify-between gap-4 hover:border-amber-400 transition"
-                >
-                  <div>
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="cursor-grab active:cursor-grabbing p-1 text-stone-400 hover:text-stone-700 bg-stone-100 rounded">
-                          <GripVertical className="h-4 w-4" />
-                        </div>
-                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase ${
-                          prod.categoria === 'padaria' ? 'bg-amber-100 text-amber-800' : 'bg-purple-100 text-purple-800'
-                        }`}>
-                          {prod.categoria}
-                        </span>
-                      </div>
-                      {prod.destaqueMontra && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-800">
-                          ⭐ Destaque
-                        </span>
-                      )}
-                    </div>
-
-                    <h3 className="text-base font-black text-stone-900">{prod.nome}</h3>
-                    <p className="text-xs text-stone-500 mt-1 line-clamp-2">{prod.descricao}</p>
-                    <p className="text-xs text-stone-400 mt-2 font-mono">Unidade: {prod.unidade}</p>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-stone-100">
-                    <button
-                      onClick={() => setProdutoEmEdicao(prod)}
-                      className="px-3 py-1.5 rounded-xl border border-stone-200 hover:bg-stone-50 text-xs font-bold text-stone-700 flex items-center gap-1.5"
-                    >
-                      <Edit3 className="h-3.5 w-3.5" /> Editar
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (confirm(`Eliminar o produto "${prod.nome}" da montra?`)) {
-                          const novos = produtos.filter((p) => p.nome !== prod.nome);
-                          setProdutos(novos);
-                          marcarAlteracao();
-                        }
-                      }}
-                      className="p-1.5 rounded-xl border border-rose-200 hover:bg-rose-50 text-rose-600"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ================= ABA 5: PRÉ-VISUALIZAÇÃO AO VIVO ================= */}
-        {tabAtiva === 'preview' && (
-          <div className="space-y-6">
-            <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-2xl flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2.5">
-                <Eye className="h-5 w-5 text-amber-600" />
-                <span className="text-xs sm:text-sm font-bold text-stone-900">
-                  Pré-visualização Dinâmica: Reflete em tempo real as edições de blocos, marca, montra e lojas.
-                </span>
-              </div>
-              <button
-                onClick={() => setTabAtiva('layout')}
-                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500 text-stone-950 hover:bg-amber-400"
-              >
-                Voltar ao Editor
-              </button>
-            </div>
-
-            {/* RENDERIZAÇÃO DOS BLOCOS ATIVOS NA ORDEM ESCOLHIDA */}
-            <div className="bg-white rounded-3xl border border-stone-200 shadow-xl overflow-hidden divide-y divide-stone-100">
-              {layout.filter((b) => b.ativo).map((bloco) => {
-                if (bloco.tipo === 'banner_aviso') {
-                  return (
-                    <div key={bloco.id} className="bg-amber-500 text-stone-950 px-4 py-2.5 text-center text-xs font-black flex items-center justify-center gap-3">
-                      <span>{bloco.dados?.mensagem || 'Aviso informativo'}</span>
-                      {bloco.dados?.linkTexto && (
-                        <span className="underline cursor-pointer hover:opacity-80">{bloco.dados.linkTexto} →</span>
-                      )}
-                    </div>
-                  );
-                }
-
-                if (bloco.tipo === 'hero_marca') {
-                  return (
-                    <div key={bloco.id} className="p-8 sm:p-12 text-center bg-stone-900 text-white space-y-4">
-                      <span className="px-3 py-1 rounded-full text-xs font-black bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                        {bloco.dados?.badge || 'Tradição & Qualidade'}
-                      </span>
-                      <h1 className="text-2xl sm:text-4xl font-black tracking-tight">{bloco.dados?.tituloPrincipal || config.nomeEmpresa}</h1>
-                      <p className="text-sm sm:text-base text-stone-300 max-w-2xl mx-auto">{bloco.dados?.subtitulo || config.slogan}</p>
-                    </div>
-                  );
-                }
-
-                if (bloco.tipo === 'montra_destaques') {
-                  return (
-                    <div key={bloco.id} className="p-8 space-y-6">
-                      <div className="text-center">
-                        <h2 className="text-xl font-black text-stone-900">{bloco.dados?.tituloSecao || 'Especialidades em Destaque'}</h2>
-                        <p className="text-xs text-stone-500 mt-1">{bloco.dados?.descricao}</p>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                        {produtos.map((p, pIdx) => (
-                          <div key={pIdx} className="p-4 rounded-2xl border border-stone-200 bg-stone-50/50 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-amber-100 text-amber-800">{p.categoria}</span>
-                              <span className="text-xs font-semibold text-stone-500">{p.unidade}</span>
-                            </div>
-                            <h3 className="font-bold text-sm text-stone-900">{p.nome}</h3>
-                            <p className="text-xs text-stone-500 line-clamp-2">{p.descricao}</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {produtosFiltrados.map((prod, index) => {
+                    const realIndex = produtos.findIndex((p) => p.id === prod.id);
+                    return (
+                      <div
+                        key={prod.id || index}
+                        draggable={modoCms === 'edicao'}
+                        onDragStart={() => handleDragStartProduto(realIndex)}
+                        onDragOver={handleDragOverProduto}
+                        onDrop={() => handleDropProduto(realIndex)}
+                        className={`relative group flex flex-col p-3.5 rounded-2xl bg-white border transition shadow-2xs select-none ${
+                          modoCms === 'edicao'
+                            ? 'border-amber-200/80 hover:border-amber-500 hover:shadow-md cursor-grab active:cursor-grabbing'
+                            : 'border-gray-200 hover:border-amber-400 hover:shadow-xs'
+                        }`}
+                      >
+                        {/* Controlos de Edição Rápida no Modo CMS */}
+                        {modoCms === 'edicao' && (
+                          <div className="absolute top-2 right-2 flex items-center gap-1 opacity-90 group-hover:opacity-100 transition z-10">
+                            <span 
+                              className="p-1 rounded bg-stone-100 hover:bg-stone-200 text-stone-600 transition" 
+                              title="Arrastar para reordenar"
+                            >
+                              <GripVertical className="h-3 w-3" />
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                abrirModalEditarProduto(prod, realIndex);
+                              }}
+                              className="p-1 rounded bg-amber-100 hover:bg-amber-200 text-amber-900 transition"
+                              title="Editar este produto"
+                            >
+                              <Edit3 className="h-3 w-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                eliminarProduto(realIndex);
+                              }}
+                              className="p-1 rounded bg-red-100 hover:bg-red-200 text-red-700 transition"
+                              title="Remover produto"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                }
+                        )}
 
-                if (bloco.tipo === 'rede_lojas') {
-                  return (
-                    <div key={bloco.id} className="p-8 bg-stone-50 space-y-6">
-                      <div className="text-center">
-                        <h2 className="text-xl font-black text-stone-900">{bloco.dados?.tituloSecao || 'Nossas Lojas'}</h2>
-                        <p className="text-xs text-stone-500 mt-1">{bloco.dados?.descricao}</p>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        {lojas.map((l, lIdx) => (
-                          <div key={lIdx} className="p-4 rounded-2xl bg-white border border-stone-200 space-y-1.5 shadow-xs">
-                            <span className="text-[10px] font-bold text-amber-700">{l.codigo}</span>
-                            <h3 className="font-bold text-sm text-stone-900">{l.nome}</h3>
-                            <p className="text-xs text-stone-500">{l.morada}</p>
-                            <p className="text-xs font-semibold text-stone-700 pt-1">📞 {l.telefone}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                }
-
-                if (bloco.tipo === 'info_encomendas') {
-                  return (
-                    <div key={bloco.id} className="p-8 bg-amber-500/10 border-t border-amber-500/20 text-center space-y-3">
-                      <h2 className="text-xl font-black text-stone-900">{bloco.dados?.tituloSecao || 'Encomendas Rápidas via WhatsApp'}</h2>
-                      <p className="text-xs text-stone-600 max-w-lg mx-auto">{bloco.dados?.descricao}</p>
-                      {bloco.dados?.telefoneApoio && (
-                        <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-md">
-                          💬 WhatsApp: {bloco.dados?.telefoneApoio}
+                        <span className="text-2xl mb-1.5">
+                          {prod.emoji || (prod.categoria === 'padaria' ? '🥖' : '🎂')}
                         </span>
-                      )}
-                    </div>
-                  );
-                }
 
-                return null;
-              })}
+                        <h4 className="text-xs font-bold text-gray-900 line-clamp-2 leading-tight">
+                          {prod.nome}
+                        </h4>
+
+                        <div className="mt-auto pt-3 flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-gray-400 uppercase">
+                            {prod.categoria}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleAdicionarAoCarrinho(prod)}
+                            className="text-[11px] font-black text-amber-700 hover:text-amber-800 uppercase cursor-pointer"
+                          >
+                            + Adicionar
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Cartão de Atalho para Novo Produto no Modo Edição */}
+                  {modoCms === 'edicao' && (
+                    <button
+                      type="button"
+                      onClick={abrirModalNovoProduto}
+                      className="flex flex-col items-center justify-center p-4 rounded-2xl border-2 border-dashed border-amber-300 hover:border-amber-500 bg-amber-50/40 hover:bg-amber-50 text-amber-800 transition min-h-[110px] cursor-pointer group"
+                    >
+                      <Plus className="h-6 w-6 mb-1 text-amber-600 group-hover:scale-110 transition" />
+                      <span className="text-xs font-black">+ Adicionar Artigo</span>
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
+
+            {/* =============================================================== */}
+            {/* COLUNA DIREITA: FORMULÁRIO DE PEDIDO & CARRINHO INTERATIVO      */}
+            {/* =============================================================== */}
+            <div className="lg:col-span-5 space-y-4">
+              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
+                {/* Modalidade de Entrega */}
+                <div className="grid grid-cols-2 gap-2 bg-gray-100 p-1 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setTipoEntrega('levantamento_loja')}
+                    className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      tipoEntrega === 'levantamento_loja'
+                        ? 'bg-white text-gray-900 shadow-2xs'
+                        : 'text-gray-500 hover:text-gray-900'
+                    }`}
+                  >
+                    <Store className="h-4 w-4 text-amber-600" />
+                    <span>{config.rotuloLevantamento || 'Levantamento em Loja'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTipoEntrega('entrega_domicilio')}
+                    className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      tipoEntrega === 'entrega_domicilio'
+                        ? 'bg-white text-gray-900 shadow-2xs'
+                        : 'text-gray-500 hover:text-gray-900'
+                    }`}
+                  >
+                    <Truck className="h-4 w-4 text-blue-600" />
+                    <span>{config.rotuloEntrega || 'Entrega ao Domicílio'}</span>
+                  </button>
+                </div>
+
+                {/* Cliente: Telefone e Nome */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-600 mb-1">
+                      Telefone (Contacto)
+                    </label>
+                    <input
+                      type="tel"
+                      value={telefoneCliente}
+                      onChange={(e) => setTelefoneCliente(e.target.value)}
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-600 mb-1">
+                      Nome do Cliente
+                    </label>
+                    <input
+                      type="text"
+                      value={nomeCliente}
+                      onChange={(e) => setNomeCliente(e.target.value)}
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Se Domicílio: Morada */}
+                {tipoEntrega === 'entrega_domicilio' && (
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-600 mb-1">
+                      Morada Completa de Entrega
+                    </label>
+                    <input
+                      type="text"
+                      value={moradaCliente}
+                      onChange={(e) => setMoradaCliente(e.target.value)}
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                )}
+
+                {/* Agendamento */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-600 mb-1">
+                      Data Agendamento
+                    </label>
+                    <input
+                      type="date"
+                      value={dataAgendamento}
+                      onChange={(e) => setDataAgendamento(e.target.value)}
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-600 mb-1">
+                      Hora Prevista
+                    </label>
+                    <input
+                      type="time"
+                      value={horaAgendamento}
+                      onChange={(e) => setHoraAgendamento(e.target.value)}
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Carrinho de Artigos */}
+                <div className="pt-2 border-t border-gray-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-black text-gray-900">
+                      Artigos Encomendados ({carrinho.length})
+                    </span>
+                    {carrinho.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setCarrinho([])}
+                        className="text-[11px] text-red-600 font-bold hover:underline cursor-pointer"
+                      >
+                        Limpar
+                      </button>
+                    )}
+                  </div>
+
+                  {carrinho.length === 0 ? (
+                    <div className="p-6 text-center rounded-xl bg-gray-50 border border-dashed border-gray-200 text-xs text-gray-400">
+                      Nenhum artigo adicionado. Clique nos produtos à esquerda para adicionar ao pedido.
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                      {carrinho.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-gray-50 border border-gray-100 text-xs"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-base">{item.emoji}</span>
+                            <span className="font-bold text-gray-900 truncate">{item.nome}</span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => alterarQtdCarrinho(item.id, -1)}
+                              className="p-1 rounded bg-white border border-gray-200 hover:bg-gray-100 font-bold cursor-pointer"
+                            >
+                              <Minus className="h-3 w-3" />
+                            </button>
+                            <span className="font-black w-5 text-center">{item.quantidade}</span>
+                            <button
+                              type="button"
+                              onClick={() => alterarQtdCarrinho(item.id, 1)}
+                              className="p-1 rounded bg-white border border-gray-200 hover:bg-gray-100 font-bold cursor-pointer"
+                            >
+                              <Plus className="h-3 w-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removerDoCarrinho(item.id)}
+                              className="p-1 rounded text-red-500 hover:bg-red-50 ml-1 cursor-pointer"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Observações Gerais */}
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-600 mb-1">
+                    Observações do Pedido
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={notasGerais}
+                    onChange={(e) => setNotasGerais(e.target.value)}
+                    placeholder="Instruções especiais de confeção, fatiamento ou embalagem..."
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none"
+                  />
+                </div>
+
+                {/* Botão de Ação do Frontoffice */}
+                <div className="relative group">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      alert('Simulação de Encomenda registada com sucesso! O talão térmico seria impresso aqui.');
+                    }}
+                    className="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-black uppercase tracking-wider shadow-md transition cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <Printer className="h-4 w-4" />
+                    <span>{config.btnRegistarEncomenda || 'Registar Encomenda & Imprimir Talão'}</span>
+                  </button>
+
+                  {modoCms === 'edicao' && (
+                    <button
+                      type="button"
+                      onClick={() => setModalMarcaAberto(true)}
+                      className="absolute right-2 top-2 p-1 rounded bg-amber-800 text-amber-200 hover:bg-amber-900 transition"
+                      title="Editar Rótulo deste Botão"
+                    >
+                      <Edit3 className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ----------------- ABA 2 & 3: INDICADORES VISUAIS ----------------- */}
+        {activeTab === 'clientes' && (
+          <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-xs text-center space-y-3">
+            <Users className="h-10 w-10 text-amber-600 mx-auto" />
+            <h3 className="text-base font-black text-gray-900">Módulo de Gestão de Contactos & Fichas de Cliente</h3>
+            <p className="text-xs text-gray-500 max-w-md mx-auto">
+              Visualização operacional de clientes registados na base de dados. As configurações visuais de marca e catálogo aplicam-se uniformemente a todos os ecrãs.
+            </p>
+          </div>
+        )}
+
+        {activeTab === 'historico' && (
+          <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-xs text-center space-y-3">
+            <Clock className="h-10 w-10 text-amber-600 mx-auto" />
+            <h3 className="text-base font-black text-gray-900">Módulo de Histórico de Encomendas & Levantamentos</h3>
+            <p className="text-xs text-gray-500 max-w-md mx-auto">
+              Lista e pesquisa de encomendas ativas, levantadas e entregues pelas carrinhas de distribuição.
+            </p>
           </div>
         )}
       </main>
 
-      {/* ================= MODAL DE PUBLICAÇÃO GITHUB & VERCEL ================= */}
-      {modalPublicarAberto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
-          <div className="bg-stone-950 border border-stone-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full text-white shadow-2xl space-y-5 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <span className="p-2 rounded-xl bg-emerald-500 text-stone-950">
-                  <Send className="h-5 w-5" />
-                </span>
-                <div>
-                  <h3 className="text-base font-black">Publicar no GitHub & Vercel</h3>
-                  <p className="text-xs text-stone-400">Gera um commit atómico no branch main e aciona o deploy.</p>
-                </div>
-              </div>
+      {/* ========================================================================= */}
+      {/* 5. RODAPÉ INSTITUCIONAL (COM DADOS FISCAIS E TALÃO EDITÁVEIS)             */}
+      {/* ========================================================================= */}
+      <footer className="mt-auto border-t border-gray-200 bg-white py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500">
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+            <span className="font-bold text-gray-900">{config.nomeEmpresa}</span>
+            <span>NIF: {config.nif}</span>
+            <span>Tel: {config.telefoneGeral}</span>
+            <span>Email: {config.email}</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="italic text-gray-400">"{config.rodapeTalao}"</span>
+            {modoCms === 'edicao' && (
               <button
-                onClick={() => setModalPublicarAberto(false)}
-                className="p-1 rounded-lg text-stone-400 hover:text-white"
+                type="button"
+                onClick={() => setModalMarcaAberto(true)}
+                className="p-1 rounded bg-amber-100 text-amber-800 hover:bg-amber-200 transition"
+                title="Editar Dados Fiscais e Rodapé do Talão"
+              >
+                <Edit3 className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        </div>
+      </footer>
+
+      {/* ========================================================================= */}
+      {/* 6. MODAIS DE EDIÇÃO IN-PLACE                                              */}
+      {/* ========================================================================= */}
+
+      {/* MODAL: EDITAR / NOVO PRODUTO */}
+      {modalProdutoAberto && produtoEmEdicao && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/60 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h3 className="text-base font-black text-gray-900 flex items-center gap-2">
+                <Edit3 className="h-5 w-5 text-amber-600" />
+                {indiceProdutoEmEdicao !== null ? 'Editar Artigo da Montra' : 'Novo Artigo para o Catálogo'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setModalProdutoAberto(false)}
+                className="p-1 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="space-y-4">
+            <form onSubmit={salvarProduto} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-stone-300 block mb-1">Mensagem do Commit</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Nome do Artigo
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={produtoEmEdicao.nome}
+                  onChange={(e) => setProdutoEmEdicao({ ...produtoEmEdicao, nome: e.target.value })}
+                  placeholder="ex: Pão de Arouca Especial"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Categoria
+                  </label>
+                  <select
+                    value={produtoEmEdicao.categoria}
+                    onChange={(e) => setProdutoEmEdicao({ ...produtoEmEdicao, categoria: e.target.value as any })}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:outline-none"
+                  >
+                    <option value="padaria">🥖 Padaria</option>
+                    <option value="pastelaria">🎂 Pastelaria</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Ícone / Emoji
+                  </label>
+                  <input
+                    type="text"
+                    value={produtoEmEdicao.emoji || ''}
+                    onChange={(e) => setProdutoEmEdicao({ ...produtoEmEdicao, emoji: e.target.value })}
+                    placeholder="🥖, 🎂, 🍞, 🥧, 👑"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Preço Sugerido (€)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.05"
+                    value={produtoEmEdicao.preco ?? 0}
+                    onChange={(e) => setProdutoEmEdicao({ ...produtoEmEdicao, preco: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Tempo Fabrico (min)
+                  </label>
+                  <input
+                    type="number"
+                    value={produtoEmEdicao.tempo_preparo_minutos ?? 60}
+                    onChange={(e) => setProdutoEmEdicao({ ...produtoEmEdicao, tempo_preparo_minutos: parseInt(e.target.value) || 60 })}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setModalProdutoAberto(false)}
+                  className="px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-xl"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-xs font-black text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-xs"
+                >
+                  Confirmar Alterações
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: EDITAR DADOS DA MARCA & TEXTOS GERAIS */}
+      {modalMarcaAberto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/60 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h3 className="text-base font-black text-gray-900 flex items-center gap-2">
+                <Store className="h-5 w-5 text-amber-600" />
+                Editar Informações da Marca & Textos da App
+              </h3>
+              <button
+                type="button"
+                onClick={() => setModalMarcaAberto(false)}
+                className="p-1 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={salvarMarca} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Nome da Empresa / Padaria
+                  </label>
+                  <input
+                    type="text"
+                    value={config.nomeEmpresa}
+                    onChange={(e) => setConfig({ ...config, nomeEmpresa: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Slogan Comercial
+                  </label>
+                  <input
+                    type="text"
+                    value={config.slogan}
+                    onChange={(e) => setConfig({ ...config, slogan: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Títulos do Balcão */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Título do Ecrã Balcão
+                  </label>
+                  <input
+                    type="text"
+                    value={config.tituloBalcao || ''}
+                    onChange={(e) => setConfig({ ...config, tituloBalcao: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Subtítulo do Ecrã
+                  </label>
+                  <input
+                    type="text"
+                    value={config.subtituloBalcao || ''}
+                    onChange={(e) => setConfig({ ...config, subtituloBalcao: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Faixa de Aviso Superior */}
+              <div className="p-3 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                    <span>Faixa Superior de Alertas / Fornadas</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-amber-900 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={config.bannerAvisoAtivo ?? true}
+                      onChange={(e) => setConfig({ ...config, bannerAvisoAtivo: e.target.checked })}
+                      className="rounded text-amber-600 focus:ring-0"
+                    />
+                    <span>Ativar Faixa</span>
+                  </label>
+                </div>
+                <input
+                  type="text"
+                  value={config.bannerAvisoTexto || ''}
+                  onChange={(e) => setConfig({ ...config, bannerAvisoTexto: e.target.value })}
+                  placeholder="Texto do alerta (ex: Pão quente a sair às 07:00, 11:30 e 17:00)"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-amber-300 bg-white focus:outline-none"
+                />
+              </div>
+
+              {/* Rótulos dos Botões */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Rótulo Levantamento Loja
+                  </label>
+                  <input
+                    type="text"
+                    value={config.rotuloLevantamento || ''}
+                    onChange={(e) => setConfig({ ...config, rotuloLevantamento: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Rótulo Entrega Domicílio
+                  </label>
+                  <input
+                    type="text"
+                    value={config.rotuloEntrega || ''}
+                    onChange={(e) => setConfig({ ...config, rotuloEntrega: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Texto do Botão de Gravar Encomenda
+                </label>
+                <input
+                  type="text"
+                  value={config.btnRegistarEncomenda || ''}
+                  onChange={(e) => setConfig({ ...config, btnRegistarEncomenda: e.target.value })}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:outline-none"
+                />
+              </div>
+
+              {/* Contactos & Rodapé */}
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-700 mb-1">Telefone Geral</label>
+                  <input
+                    type="text"
+                    value={config.telefoneGeral}
+                    onChange={(e) => setConfig({ ...config, telefoneGeral: e.target.value })}
+                    className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-gray-300 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-700 mb-1">NIF da Empresa</label>
+                  <input
+                    type="text"
+                    value={config.nif}
+                    onChange={(e) => setConfig({ ...config, nif: e.target.value })}
+                    className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-gray-300 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={config.email}
+                    onChange={(e) => setConfig({ ...config, email: e.target.value })}
+                    className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-gray-300 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Mensagem no Rodapé do Talão Térmico
+                </label>
+                <input
+                  type="text"
+                  value={config.rodapeTalao}
+                  onChange={(e) => setConfig({ ...config, rodapeTalao: e.target.value })}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setModalMarcaAberto(false)}
+                  className="px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-xl"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-xs font-black text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-xs"
+                >
+                  Salvar Textos
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: EDITAR CONFIGURAÇÕES DO WHATSAPP */}
+      {modalWhatsAppAberto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/60 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h3 className="text-base font-black text-emerald-950 flex items-center gap-2">
+                <MessageSquare className="h-5 w-5 text-emerald-600" />
+                Configurar Módulo WhatsApp & Modelo de Pedido
+              </h3>
+              <button
+                type="button"
+                onClick={() => setModalWhatsAppAberto(false)}
+                className="p-1 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={salvarWhatsApp} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Título da Caixa WhatsApp
+                  </label>
+                  <input
+                    type="text"
+                    value={config.tituloWhatsApp || ''}
+                    onChange={(e) => setConfig({ ...config, tituloWhatsApp: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Subtítulo Informativo
+                  </label>
+                  <input
+                    type="text"
+                    value={config.subtituloWhatsApp || ''}
+                    onChange={(e) => setConfig({ ...config, subtituloWhatsApp: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Modelo Estruturado de Mensagem (Copiar para Clientes)
+                </label>
+                <textarea
+                  rows={8}
+                  value={config.modeloWhatsApp}
+                  onChange={(e) => setConfig({ ...config, modeloWhatsApp: e.target.value })}
+                  className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-gray-300 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setModalWhatsAppAberto(false)}
+                  className="px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-xl"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs"
+                >
+                  Confirmar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: EDITAR LOJAS */}
+      {modalLojasAberto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/60 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h3 className="text-base font-black text-gray-900 flex items-center gap-2">
+                <Store className="h-5 w-5 text-amber-600" />
+                Lojas Físicas & Pontos de Venda
+              </h3>
+              <button
+                type="button"
+                onClick={() => setModalLojasAberto(false)}
+                className="p-1 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {lojas.map((loja, idx) => (
+                <div key={loja.id || idx} className="p-3 rounded-2xl bg-gray-50 border border-gray-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-gray-900">{loja.nome}</span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-200 text-gray-700">
+                      {loja.codigo}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-600">{loja.morada}</p>
+                  <p className="text-[11px] text-gray-500">Tel: {loja.telefone} • {loja.horario}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setModalLojasAberto(false)}
+                className="px-4 py-2 text-xs font-black text-white bg-amber-600 hover:bg-amber-700 rounded-xl"
+              >
+                Concluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 7. MODAL DE PUBLICAÇÃO: COMMIT GITHUB & DEPLOY NA VERCEL                 */}
+      {/* ========================================================================= */}
+      {modalPublicarAberto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/70 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-lg rounded-3xl bg-stone-900 border border-stone-800 p-6 shadow-2xl space-y-4 text-white">
+            <div className="flex items-center justify-between border-b border-stone-800 pb-3">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
+                <Send className="h-5 w-5 text-amber-500" />
+                Publicar Alterações (GitHub & Vercel)
+              </h3>
+              <button
+                type="button"
+                onClick={() => setModalPublicarAberto(false)}
+                className="p-1 rounded-xl text-stone-400 hover:text-white hover:bg-stone-800"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-stone-400">
+              As alterações serão registadas num <strong>commit atómico</strong> no repositório{' '}
+              <code className="text-amber-400 font-bold">lfcarreiras/App-Padaria</code> na branch{' '}
+              <code className="text-amber-400 font-bold">main</code>. A Vercel deteta o commit e inicia automaticamente o novo build.
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-stone-300 mb-1">
+                  Mensagem do Commit
+                </label>
                 <input
                   type="text"
                   value={mensagemCommit}
                   onChange={(e) => setMensagemCommit(e.target.value)}
-                  placeholder="Ex: cms: atualizar novos bolos e horários de feriado"
-                  className="w-full bg-stone-900 border border-stone-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-stone-500 focus:outline-none focus:border-emerald-500"
+                  placeholder="ex: cms: atualização visual de textos e produtos da montra"
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-stone-950 border border-stone-700 text-white focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-bold text-stone-300">GitHub Personal Access Token (PAT)</label>
+                  <label className="text-xs font-bold text-stone-300">
+                    GitHub Personal Access Token (PAT)
+                  </label>
                   <a
-                    href="https://github.com/settings/tokens/new?scopes=repo&description=Padaria-CMS-Token"
+                    href="https://github.com/settings/tokens/new?scopes=repo&description=AppPadariaCMS"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[11px] text-emerald-400 hover:underline flex items-center gap-1"
+                    className="text-[10px] text-amber-400 hover:underline flex items-center gap-0.5"
                   >
-                    Gerar token no GitHub <ExternalLink className="h-3 w-3" />
+                    <span>Criar Token</span>
+                    <ExternalLink className="h-2.5 w-2.5" />
                   </a>
                 </div>
                 <input
                   type="password"
                   value={githubToken}
                   onChange={(e) => setGithubToken(e.target.value)}
-                  placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                  className="w-full bg-stone-900 border border-stone-700 rounded-xl px-3.5 py-2.5 text-sm font-mono text-white placeholder-stone-500 focus:outline-none focus:border-emerald-500"
+                  placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-stone-950 border border-stone-700 text-white font-mono focus:outline-none focus:border-amber-500"
                 />
-                <p className="text-[11px] text-stone-400 mt-1">
-                  Requer permissão de <code className="text-emerald-400">repo</code> (ou <code className="text-emerald-400">contents: write</code>).
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="lembrarToken"
-                  checked={lembrarToken}
-                  onChange={(e) => setLembrarToken(e.target.checked)}
-                  className="rounded border-stone-700 text-emerald-500 focus:ring-emerald-500"
-                />
-                <label htmlFor="lembrarToken" className="text-xs text-stone-300 cursor-pointer">
-                  Lembrar token com segurança neste navegador
+                <label className="flex items-center gap-2 mt-1.5 text-[11px] text-stone-400 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={lembrarToken}
+                    onChange={(e) => setLembrarToken(e.target.checked)}
+                    className="rounded text-amber-500 focus:ring-0"
+                  />
+                  <span>Lembrar token com segurança neste navegador</span>
                 </label>
               </div>
 
               {resultadoPublicacao && (
-                <div
-                  className={`p-4 rounded-2xl text-xs font-semibold border ${
-                    resultadoPublicacao.sucesso
-                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                      : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
-                  }`}
-                >
-                  <p>{resultadoPublicacao.mensagem}</p>
-                  {resultadoPublicacao.commitUrl && (
-                    <a
-                      href={resultadoPublicacao.commitUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-2 inline-flex items-center gap-1 text-emerald-400 underline font-bold"
-                    >
-                      Ver commit no GitHub ({resultadoPublicacao.commitSha}) <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  )}
+                <div className={`p-3 rounded-2xl text-xs ${
+                  resultadoPublicacao.sucesso
+                    ? 'bg-emerald-950/70 border border-emerald-800 text-emerald-200'
+                    : 'bg-red-950/70 border border-red-800 text-red-200'
+                }`}>
+                  <div className="flex items-start gap-2">
+                    {resultadoPublicacao.sucesso ? (
+                      <Check className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+                    )}
+                    <div className="space-y-1">
+                      <p className="font-bold">{resultadoPublicacao.mensagem}</p>
+                      {resultadoPublicacao.commitUrl && (
+                        <a
+                          href={resultadoPublicacao.commitUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] text-amber-400 hover:underline flex items-center gap-1 font-mono"
+                        >
+                          Ver Commit {resultadoPublicacao.commitSha?.slice(0, 7)} no GitHub
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-2 border-t border-stone-800">
+            <div className="flex justify-end gap-2 pt-3 border-t border-stone-800">
               <button
+                type="button"
                 onClick={() => setModalPublicarAberto(false)}
-                className="px-4 py-2.5 rounded-xl text-xs font-bold text-stone-400 hover:text-white"
+                disabled={publicando}
+                className="px-4 py-2 text-xs font-bold text-stone-400 hover:text-white rounded-xl"
               >
-                Cancelar
+                Fechar
               </button>
               <button
+                type="button"
                 onClick={executarPublicacao}
                 disabled={publicando}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-stone-950 shadow-lg transition"
+                className="px-5 py-2 text-xs font-black text-stone-950 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 rounded-xl shadow-md flex items-center gap-2 cursor-pointer"
               >
                 {publicando ? (
                   <>
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                    A criar commit no GitHub...
+                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                    <span>A Criar Commit...</span>
                   </>
                 ) : (
                   <>
-                    <Check className="h-4 w-4" />
-                    Criar Commit & Fazer Deploy
+                    <Upload className="h-3.5 w-3.5" />
+                    <span>Publicar Agora</span>
                   </>
                 )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ================= MODAL EDIÇÃO DE BLOCO ================= */}
-      {blocoEmEdicao && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full text-stone-900 shadow-2xl space-y-5 animate-in fade-in">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-black flex items-center gap-2">
-                <Edit3 className="h-5 w-5 text-amber-600" />
-                Editar Bloco: {blocoEmEdicao.titulo}
-              </h3>
-              <button onClick={() => setBlocoEmEdicao(null)} className="p-1 text-stone-400 hover:text-stone-700">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-stone-700 block mb-1">Título do Bloco</label>
-                <input
-                  type="text"
-                  value={blocoEmEdicao.titulo}
-                  onChange={(e) => setBlocoEmEdicao({ ...blocoEmEdicao, titulo: e.target.value })}
-                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-sm font-semibold text-stone-900 focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              {blocoEmEdicao.tipo === 'banner_aviso' && (
-                <>
-                  <div>
-                    <label className="text-xs font-bold text-stone-700 block mb-1">Mensagem de Alerta</label>
-                    <input
-                      type="text"
-                      value={blocoEmEdicao.dados.mensagem || ''}
-                      onChange={(e) =>
-                        setBlocoEmEdicao({
-                          ...blocoEmEdicao,
-                          dados: { ...blocoEmEdicao.dados, mensagem: e.target.value },
-                        })
-                      }
-                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-stone-700 block mb-1">Texto do Link (opcional)</label>
-                    <input
-                      type="text"
-                      value={blocoEmEdicao.dados.linkTexto || ''}
-                      onChange={(e) =>
-                        setBlocoEmEdicao({
-                          ...blocoEmEdicao,
-                          dados: { ...blocoEmEdicao.dados, linkTexto: e.target.value },
-                        })
-                      }
-                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-                </>
-              )}
-
-              {blocoEmEdicao.tipo === 'hero_marca' && (
-                <>
-                  <div>
-                    <label className="text-xs font-bold text-stone-700 block mb-1">Badge Superior</label>
-                    <input
-                      type="text"
-                      value={blocoEmEdicao.dados.badge || ''}
-                      onChange={(e) =>
-                        setBlocoEmEdicao({
-                          ...blocoEmEdicao,
-                          dados: { ...blocoEmEdicao.dados, badge: e.target.value },
-                        })
-                      }
-                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-stone-700 block mb-1">Título Principal</label>
-                    <input
-                      type="text"
-                      value={blocoEmEdicao.dados.tituloPrincipal || ''}
-                      onChange={(e) =>
-                        setBlocoEmEdicao({
-                          ...blocoEmEdicao,
-                          dados: { ...blocoEmEdicao.dados, tituloPrincipal: e.target.value },
-                        })
-                      }
-                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-stone-700 block mb-1">Subtítulo / Descrição</label>
-                    <textarea
-                      rows={3}
-                      value={blocoEmEdicao.dados.subtitulo || ''}
-                      onChange={(e) =>
-                        setBlocoEmEdicao({
-                          ...blocoEmEdicao,
-                          dados: { ...blocoEmEdicao.dados, subtitulo: e.target.value },
-                        })
-                      }
-                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-                </>
-              )}
-
-              {(blocoEmEdicao.tipo === 'montra_destaques' || blocoEmEdicao.tipo === 'rede_lojas' || blocoEmEdicao.tipo === 'info_encomendas') && (
-                <>
-                  <div>
-                    <label className="text-xs font-bold text-stone-700 block mb-1">Título da Secção</label>
-                    <input
-                      type="text"
-                      value={blocoEmEdicao.dados.tituloSecao || ''}
-                      onChange={(e) =>
-                        setBlocoEmEdicao({
-                          ...blocoEmEdicao,
-                          dados: { ...blocoEmEdicao.dados, tituloSecao: e.target.value },
-                        })
-                      }
-                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-stone-700 block mb-1">Descrição</label>
-                    <textarea
-                      rows={3}
-                      value={blocoEmEdicao.dados.descricao || ''}
-                      onChange={(e) =>
-                        setBlocoEmEdicao({
-                          ...blocoEmEdicao,
-                          dados: { ...blocoEmEdicao.dados, descricao: e.target.value },
-                        })
-                      }
-                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-stone-200">
-              <button
-                onClick={() => setBlocoEmEdicao(null)}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-stone-500 hover:text-stone-800"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => {
-                  const novos = layout.map((b) => (b.id === blocoEmEdicao.id ? blocoEmEdicao : b));
-                  setLayout(novos);
-                  setBlocoEmEdicao(null);
-                  marcarAlteracao();
-                }}
-                className="px-4 py-2 rounded-xl text-xs font-black bg-amber-500 text-stone-950 hover:bg-amber-400"
-              >
-                Guardar Alterações
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ================= MODAL ADICIONAR NOVO BLOCO ================= */}
-      {modalNovoBlocoAberto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full text-stone-900 shadow-2xl space-y-4">
-            <h3 className="text-base font-black">Escolha o Tipo de Bloco a Adicionar</h3>
-            <div className="space-y-2">
-              {[
-                { tipo: 'banner_aviso', label: 'Faixa de Aviso / Horário Especial', desc: 'Barra colorida no topo com mensagem urgente' },
-                { tipo: 'hero_marca', label: 'Apresentação da Marca', desc: 'Destaque visual com títulos e fotos' },
-                { tipo: 'montra_destaques', label: 'Montra de Bolos & Pães', desc: 'Grelha com produtos artesanais' },
-                { tipo: 'rede_lojas', label: 'Lojas Físicas & Contactos', desc: 'Moradas, telefones e horários' },
-                { tipo: 'info_encomendas', label: 'Caixa de WhatsApp / Apoio', desc: 'Call-to-action para encomendas rápidas' },
-              ].map((opt) => (
-                <button
-                  key={opt.tipo}
-                  onClick={() => {
-                    const novo: TinaBlocoLayout = {
-                      id: `bloco-${Date.now()}`,
-                      tipo: opt.tipo as any,
-                      titulo: opt.label,
-                      ativo: true,
-                      dados: {
-                        tituloSecao: opt.label,
-                        descricao: opt.desc,
-                        mensagem: opt.label,
-                      },
-                    };
-                    setLayout([...layout, novo]);
-                    setModalNovoBlocoAberto(false);
-                    marcarAlteracao();
-                  }}
-                  className="w-full text-left p-3.5 rounded-2xl border border-stone-200 hover:border-amber-500 hover:bg-amber-50/50 transition group"
-                >
-                  <div className="font-bold text-xs text-stone-900 group-hover:text-amber-900">{opt.label}</div>
-                  <div className="text-[11px] text-stone-500">{opt.desc}</div>
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={() => setModalNovoBlocoAberto(false)}
-              className="w-full py-2 text-xs font-bold text-stone-500 hover:text-stone-800"
-            >
-              Cancelar
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ================= MODAL EDIÇÃO DE LOJA ================= */}
-      {lojaEmEdicao && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full text-stone-900 shadow-2xl space-y-4">
-            <h3 className="text-base font-black">Editar Loja Física</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-bold text-stone-700 block mb-1">Código</label>
-                <input
-                  type="text"
-                  value={lojaEmEdicao.codigo}
-                  onChange={(e) => setLojaEmEdicao({ ...lojaEmEdicao, codigo: e.target.value })}
-                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-xs font-semibold"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-stone-700 block mb-1">Nome da Loja</label>
-                <input
-                  type="text"
-                  value={lojaEmEdicao.nome}
-                  onChange={(e) => setLojaEmEdicao({ ...lojaEmEdicao, nome: e.target.value })}
-                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-xs font-semibold"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-stone-700 block mb-1">Morada</label>
-                <input
-                  type="text"
-                  value={lojaEmEdicao.morada}
-                  onChange={(e) => setLojaEmEdicao({ ...lojaEmEdicao, morada: e.target.value })}
-                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-xs"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-stone-700 block mb-1">Telefone</label>
-                <input
-                  type="text"
-                  value={lojaEmEdicao.telefone}
-                  onChange={(e) => setLojaEmEdicao({ ...lojaEmEdicao, telefone: e.target.value })}
-                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-xs"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-stone-700 block mb-1">Horário</label>
-                <input
-                  type="text"
-                  value={lojaEmEdicao.horario}
-                  onChange={(e) => setLojaEmEdicao({ ...lojaEmEdicao, horario: e.target.value })}
-                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-xs"
-                />
-              </div>
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="lojaAtivaCheck"
-                  checked={lojaEmEdicao.ativo}
-                  onChange={(e) => setLojaEmEdicao({ ...lojaEmEdicao, ativo: e.target.checked })}
-                  className="rounded text-amber-600 focus:ring-amber-500"
-                />
-                <label htmlFor="lojaAtivaCheck" className="text-xs font-bold text-stone-700 cursor-pointer">
-                  Loja Ativa
-                </label>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-stone-200">
-              <button onClick={() => setLojaEmEdicao(null)} className="px-3 py-2 text-xs font-bold text-stone-500">
-                Cancelar
-              </button>
-              <button
-                onClick={() => {
-                  const existe = lojas.some((l) => l.codigo === lojaEmEdicao.codigo);
-                  let novos: TinaLojaItem[] = [];
-                  if (existe) {
-                    novos = lojas.map((l) => (l.codigo === lojaEmEdicao.codigo ? lojaEmEdicao : l));
-                  } else {
-                    novos = [...lojas, lojaEmEdicao];
-                  }
-                  setLojas(novos);
-                  setLojaEmEdicao(null);
-                  marcarAlteracao();
-                }}
-                className="px-4 py-2 rounded-xl text-xs font-black bg-amber-500 text-stone-950 hover:bg-amber-400"
-              >
-                Guardar Loja
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ================= MODAL EDIÇÃO DE PRODUTO ================= */}
-      {produtoEmEdicao && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full text-stone-900 shadow-2xl space-y-4">
-            <h3 className="text-base font-black">Editar Artigo da Montra</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-bold text-stone-700 block mb-1">Nome do Artigo</label>
-                <input
-                  type="text"
-                  value={produtoEmEdicao.nome}
-                  onChange={(e) => setProdutoEmEdicao({ ...produtoEmEdicao, nome: e.target.value })}
-                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-xs font-semibold"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs font-bold text-stone-700 block mb-1">Setor</label>
-                  <select
-                    value={produtoEmEdicao.categoria}
-                    onChange={(e) => setProdutoEmEdicao({ ...produtoEmEdicao, categoria: e.target.value as any })}
-                    className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-xs font-semibold"
-                  >
-                    <option value="padaria">Padaria</option>
-                    <option value="pastelaria">Pastelaria</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-stone-700 block mb-1">Unidade</label>
-                  <select
-                    value={produtoEmEdicao.unidade}
-                    onChange={(e) => setProdutoEmEdicao({ ...produtoEmEdicao, unidade: e.target.value as any })}
-                    className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-xs font-semibold"
-                  >
-                    <option value="unidade">Unidade (un)</option>
-                    <option value="kg">Quilograma (kg)</option>
-                    <option value="cento">Cento</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-bold text-stone-700 block mb-1">Descrição</label>
-                <textarea
-                  rows={2}
-                  value={produtoEmEdicao.descricao}
-                  onChange={(e) => setProdutoEmEdicao({ ...produtoEmEdicao, descricao: e.target.value })}
-                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-xs"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-stone-700 block mb-1">Alergénios</label>
-                <input
-                  type="text"
-                  value={produtoEmEdicao.alergenios}
-                  onChange={(e) => setProdutoEmEdicao({ ...produtoEmEdicao, alergenios: e.target.value })}
-                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-xs"
-                />
-              </div>
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="prodDestaqueCheck"
-                  checked={produtoEmEdicao.destaqueMontra}
-                  onChange={(e) => setProdutoEmEdicao({ ...produtoEmEdicao, destaqueMontra: e.target.checked })}
-                  className="rounded text-amber-600 focus:ring-amber-500"
-                />
-                <label htmlFor="prodDestaqueCheck" className="text-xs font-bold text-stone-700 cursor-pointer">
-                  Destaque na Montra Principal
-                </label>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-stone-200">
-              <button onClick={() => setProdutoEmEdicao(null)} className="px-3 py-2 text-xs font-bold text-stone-500">
-                Cancelar
-              </button>
-              <button
-                onClick={() => {
-                  const existe = produtos.some((p) => p.nome === produtoEmEdicao.nome);
-                  let novos: TinaProdutoItem[] = [];
-                  if (existe) {
-                    novos = produtos.map((p) => (p.nome === produtoEmEdicao.nome ? produtoEmEdicao : p));
-                  } else {
-                    novos = [...produtos, produtoEmEdicao];
-                  }
-                  setProdutos(novos);
-                  setProdutoEmEdicao(null);
-                  marcarAlteracao();
-                }}
-                className="px-4 py-2 rounded-xl text-xs font-black bg-amber-500 text-stone-950 hover:bg-amber-400"
-              >
-                Guardar Artigo
               </button>
             </div>
           </div>

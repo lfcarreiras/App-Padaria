@@ -5,5 +5,16 @@
   "nif": "500100201",
   "email": "encomendas@padariadavila.pt",
   "rodapeTalao": "Pão é saúde! Obrigado pela sua preferência.",
-  "modeloWhatsApp": "Olá! Gostaria de fazer uma encomenda para a Padaria da Vila:\n\n*Cliente:* [Nome]\n*Contacto:* [Telefone]\n*Loja/Destino:* [Loja 1 / Domicílio]\n*Data e Hora:* [Hoje / Amanhã às 10:30]\n*Artigos:* \n- [Qtd]x [Nome do Produto] ([Observações])\n\nObrigado!"
+  "modeloWhatsApp": "*PEDIDO - PADARIA DA VILA*\nNome: [O seu nome]\nTelefone: [O seu contacto telefónico]\nTipo: [Levantamento em Loja OU Entrega ao Domicílio]\nLoja / Morada: [Praça / 25 de Abril / Arouca / Unidade Fabrico OU Morada completa em Arouca]\nData: [Hoje / Amanhã ou AAAA-MM-DD]\nHora: [ex: 08:30]\nArtigos:\n- 2x Pão de Arouca\n- 1x Pão de Ló de Arouca\nObservações: [ex: Pão fatiado / Frase no bolo / Campainha]",
+  "tituloBalcao": "Balcão de Encomendas",
+  "subtituloBalcao": "Registo rápido, gestão de contactos de clientes e histórico de pedidos.",
+  "bannerAvisoAtivo": true,
+  "bannerAvisoTexto": "🥖 Fornadas quentes a sair às 07:00, 11:30 e 17:00 em todas as nossas lojas!",
+  "tituloWhatsApp": "Integração WhatsApp",
+  "subtituloWhatsApp": "Importar mensagens estruturadas de clientes",
+  "btnCopiarModelo": "Copiar Modelo",
+  "btnImportarWhatsApp": "Importar Pedido",
+  "rotuloLevantamento": "Levantamento em Loja",
+  "rotuloEntrega": "Entrega ao Domicílio",
+  "btnRegistarEncomenda": "Registar Encomenda & Imprimir Talão"
 }

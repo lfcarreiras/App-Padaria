@@ -55,8 +55,12 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 4. Produtos de Montra
+    // 4. Produtos de Montra / Catálogo Frontoffice
     if (produtos && Array.isArray(produtos)) {
+      filesToCommit.push({
+        path: 'content/produtos/catalogo.json',
+        content: JSON.stringify(produtos, null, 2) + '\n',
+      });
       produtos.forEach((prod, idx) => {
         const slug = (prod.nome || `produto-${idx + 1}`).toLowerCase().replace(/[^a-z0-9]/g, '-');
         filesToCommit.push({
