@@ -19,7 +19,6 @@ import {
   Plus, 
   Trash2, 
   Edit3, 
-  Save, 
   Eye, 
   Check, 
   AlertCircle, 
@@ -27,20 +26,12 @@ import {
   Layers, 
   Store, 
   ChefHat, 
-  Phone, 
-  ShieldCheck, 
   Lock, 
   Unlock, 
   ExternalLink, 
   RefreshCw, 
-  Copy, 
-  CheckCircle2,
-  FileText,
-  Sliders,
-  Send,
-  MessageSquare,
-  Key,
-  HelpCircle,
+  Send, 
+  Key, 
   X
 } from 'lucide-react';
 
@@ -49,6 +40,9 @@ const CMS_STORAGE_KEY_AUTH = 'app_padaria_cms_auth_unlocked';
 const DEFAULT_PASSKEY = 'padaria2026';
 
 export default function CmsStudioPage() {
+  // Estado de montagem (evita mismatch de SSR e hidratação)
+  const [montado, setMontado] = useState(false);
+
   // Autenticação / Chave Mestra
   const [desbloqueado, setDesbloqueado] = useState(false);
   const [passkeyInput, setPasskeyInput] = useState('');
@@ -88,6 +82,7 @@ export default function CmsStudioPage() {
 
   // Inicializar autenticação e token guardado
   useEffect(() => {
+    setMontado(true);
     if (typeof window !== 'undefined') {
       const isAuth = sessionStorage.getItem(CMS_STORAGE_KEY_AUTH);
       if (isAuth === 'true') {
@@ -229,6 +224,20 @@ export default function CmsStudioPage() {
     }
   };
 
+  // Prevenir desfasamentos de renderização entre SSR e Cliente
+  if (!montado) {
+    return (
+      <div className="min-h-screen bg-stone-900 flex items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-12 w-12 rounded-2xl bg-amber-500 text-stone-950 flex items-center justify-center text-2xl font-black animate-bounce shadow-lg">
+            🥖
+          </div>
+          <p className="text-xs font-semibold text-stone-400">A carregar Studio CMS...</p>
+        </div>
+      </div>
+    );
+  }
+
   // ------------------ TELA DE BLOQUEIO / LOGIN ------------------
   if (!desbloqueado) {
     return (
@@ -251,8 +260,7 @@ export default function CmsStudioPage() {
                   value={passkeyInput}
                   onChange={(e) => setPasskeyInput(e.target.value)}
                   placeholder="Introduza a chave (ex: padaria2026)"
-                  className="w-full bg-stone-900 border border-stone-700 rounded-xl px-4 py-3 text-sm text-white placeholder-stone-500 focus:outline-hidden focus:border-amber-500"
-                  autoFocus
+                  className="w-full bg-stone-900 border border-stone-700 rounded-xl px-4 py-3 text-sm text-white placeholder-stone-500 focus:outline-none focus:border-amber-500"
                 />
                 <Key className="absolute right-3.5 top-3.5 h-4 w-4 text-stone-500" />
               </div>
@@ -525,7 +533,7 @@ export default function CmsStudioPage() {
                     setConfig({ ...config, nomeEmpresa: e.target.value });
                     marcarAlteracao();
                   }}
-                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-stone-900 focus:outline-hidden focus:border-amber-500"
+                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-stone-900 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
@@ -538,7 +546,7 @@ export default function CmsStudioPage() {
                     setConfig({ ...config, slogan: e.target.value });
                     marcarAlteracao();
                   }}
-                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-stone-900 focus:outline-hidden focus:border-amber-500"
+                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-stone-900 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
@@ -551,7 +559,7 @@ export default function CmsStudioPage() {
                     setConfig({ ...config, telefoneGeral: e.target.value });
                     marcarAlteracao();
                   }}
-                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-stone-900 focus:outline-hidden focus:border-amber-500"
+                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-stone-900 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
@@ -564,7 +572,7 @@ export default function CmsStudioPage() {
                     setConfig({ ...config, nif: e.target.value });
                     marcarAlteracao();
                   }}
-                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-stone-900 focus:outline-hidden focus:border-amber-500"
+                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-stone-900 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
@@ -577,7 +585,7 @@ export default function CmsStudioPage() {
                     setConfig({ ...config, email: e.target.value });
                     marcarAlteracao();
                   }}
-                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-stone-900 focus:outline-hidden focus:border-amber-500"
+                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-stone-900 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
@@ -590,7 +598,7 @@ export default function CmsStudioPage() {
                     setConfig({ ...config, rodapeTalao: e.target.value });
                     marcarAlteracao();
                   }}
-                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-stone-900 focus:outline-hidden focus:border-amber-500"
+                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-stone-900 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
@@ -603,7 +611,7 @@ export default function CmsStudioPage() {
                     setConfig({ ...config, modeloWhatsApp: e.target.value });
                     marcarAlteracao();
                   }}
-                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-sm font-mono text-stone-900 focus:outline-hidden focus:border-amber-500"
+                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-sm font-mono text-stone-900 focus:outline-none focus:border-amber-500"
                 />
                 <p className="text-[11px] text-stone-500 mt-1">Este modelo é carregado quando o operador ou cliente clica para encomendar via WhatsApp.</p>
               </div>
@@ -818,8 +826,8 @@ export default function CmsStudioPage() {
                 if (bloco.tipo === 'banner_aviso') {
                   return (
                     <div key={bloco.id} className="bg-amber-500 text-stone-950 px-4 py-2.5 text-center text-xs font-black flex items-center justify-center gap-3">
-                      <span>{bloco.dados.mensagem}</span>
-                      {bloco.dados.linkTexto && (
+                      <span>{bloco.dados?.mensagem || 'Aviso informativo'}</span>
+                      {bloco.dados?.linkTexto && (
                         <span className="underline cursor-pointer hover:opacity-80">{bloco.dados.linkTexto} →</span>
                       )}
                     </div>
@@ -830,10 +838,10 @@ export default function CmsStudioPage() {
                   return (
                     <div key={bloco.id} className="p-8 sm:p-12 text-center bg-stone-900 text-white space-y-4">
                       <span className="px-3 py-1 rounded-full text-xs font-black bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                        {bloco.dados.badge || 'Tradição & Qualidade'}
+                        {bloco.dados?.badge || 'Tradição & Qualidade'}
                       </span>
-                      <h1 className="text-2xl sm:text-4xl font-black tracking-tight">{bloco.dados.tituloPrincipal || config.nomeEmpresa}</h1>
-                      <p className="text-sm sm:text-base text-stone-300 max-w-2xl mx-auto">{bloco.dados.subtitulo || config.slogan}</p>
+                      <h1 className="text-2xl sm:text-4xl font-black tracking-tight">{bloco.dados?.tituloPrincipal || config.nomeEmpresa}</h1>
+                      <p className="text-sm sm:text-base text-stone-300 max-w-2xl mx-auto">{bloco.dados?.subtitulo || config.slogan}</p>
                     </div>
                   );
                 }
@@ -842,8 +850,8 @@ export default function CmsStudioPage() {
                   return (
                     <div key={bloco.id} className="p-8 space-y-6">
                       <div className="text-center">
-                        <h2 className="text-xl font-black text-stone-900">{bloco.dados.tituloSecao || 'Especialidades em Destaque'}</h2>
-                        <p className="text-xs text-stone-500 mt-1">{bloco.dados.descricao}</p>
+                        <h2 className="text-xl font-black text-stone-900">{bloco.dados?.tituloSecao || 'Especialidades em Destaque'}</h2>
+                        <p className="text-xs text-stone-500 mt-1">{bloco.dados?.descricao}</p>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -866,8 +874,8 @@ export default function CmsStudioPage() {
                   return (
                     <div key={bloco.id} className="p-8 bg-stone-50 space-y-6">
                       <div className="text-center">
-                        <h2 className="text-xl font-black text-stone-900">{bloco.dados.tituloSecao || 'Nossas Lojas'}</h2>
-                        <p className="text-xs text-stone-500 mt-1">{bloco.dados.descricao}</p>
+                        <h2 className="text-xl font-black text-stone-900">{bloco.dados?.tituloSecao || 'Nossas Lojas'}</h2>
+                        <p className="text-xs text-stone-500 mt-1">{bloco.dados?.descricao}</p>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -880,6 +888,20 @@ export default function CmsStudioPage() {
                           </div>
                         ))}
                       </div>
+                    </div>
+                  );
+                }
+
+                if (bloco.tipo === 'info_encomendas') {
+                  return (
+                    <div key={bloco.id} className="p-8 bg-amber-500/10 border-t border-amber-500/20 text-center space-y-3">
+                      <h2 className="text-xl font-black text-stone-900">{bloco.dados?.tituloSecao || 'Encomendas Rápidas via WhatsApp'}</h2>
+                      <p className="text-xs text-stone-600 max-w-lg mx-auto">{bloco.dados?.descricao}</p>
+                      {bloco.dados?.telefoneApoio && (
+                        <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-md">
+                          💬 WhatsApp: {bloco.dados?.telefoneApoio}
+                        </span>
+                      )}
                     </div>
                   );
                 }
@@ -921,7 +943,7 @@ export default function CmsStudioPage() {
                   value={mensagemCommit}
                   onChange={(e) => setMensagemCommit(e.target.value)}
                   placeholder="Ex: cms: atualizar novos bolos e horários de feriado"
-                  className="w-full bg-stone-900 border border-stone-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-stone-500 focus:outline-hidden focus:border-emerald-500"
+                  className="w-full bg-stone-900 border border-stone-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-stone-500 focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
@@ -942,7 +964,7 @@ export default function CmsStudioPage() {
                   value={githubToken}
                   onChange={(e) => setGithubToken(e.target.value)}
                   placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                  className="w-full bg-stone-900 border border-stone-700 rounded-xl px-3.5 py-2.5 text-sm font-mono text-white placeholder-stone-500 focus:outline-hidden focus:border-emerald-500"
+                  className="w-full bg-stone-900 border border-stone-700 rounded-xl px-3.5 py-2.5 text-sm font-mono text-white placeholder-stone-500 focus:outline-none focus:border-emerald-500"
                 />
                 <p className="text-[11px] text-stone-400 mt-1">
                   Requer permissão de <code className="text-emerald-400">repo</code> (ou <code className="text-emerald-400">contents: write</code>).
@@ -1035,7 +1057,7 @@ export default function CmsStudioPage() {
                   type="text"
                   value={blocoEmEdicao.titulo}
                   onChange={(e) => setBlocoEmEdicao({ ...blocoEmEdicao, titulo: e.target.value })}
-                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-sm font-semibold text-stone-900 focus:outline-hidden focus:border-amber-500"
+                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-sm font-semibold text-stone-900 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
@@ -1052,7 +1074,7 @@ export default function CmsStudioPage() {
                           dados: { ...blocoEmEdicao.dados, mensagem: e.target.value },
                         })
                       }
-                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-hidden focus:border-amber-500"
+                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-none focus:border-amber-500"
                     />
                   </div>
                   <div>
@@ -1066,7 +1088,7 @@ export default function CmsStudioPage() {
                           dados: { ...blocoEmEdicao.dados, linkTexto: e.target.value },
                         })
                       }
-                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-hidden focus:border-amber-500"
+                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-none focus:border-amber-500"
                     />
                   </div>
                 </>
@@ -1085,7 +1107,7 @@ export default function CmsStudioPage() {
                           dados: { ...blocoEmEdicao.dados, badge: e.target.value },
                         })
                       }
-                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-hidden focus:border-amber-500"
+                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-none focus:border-amber-500"
                     />
                   </div>
                   <div>
@@ -1099,7 +1121,7 @@ export default function CmsStudioPage() {
                           dados: { ...blocoEmEdicao.dados, tituloPrincipal: e.target.value },
                         })
                       }
-                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-hidden focus:border-amber-500"
+                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-none focus:border-amber-500"
                     />
                   </div>
                   <div>
@@ -1113,7 +1135,7 @@ export default function CmsStudioPage() {
                           dados: { ...blocoEmEdicao.dados, subtitulo: e.target.value },
                         })
                       }
-                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-hidden focus:border-amber-500"
+                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-none focus:border-amber-500"
                     />
                   </div>
                 </>
@@ -1132,7 +1154,7 @@ export default function CmsStudioPage() {
                           dados: { ...blocoEmEdicao.dados, tituloSecao: e.target.value },
                         })
                       }
-                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-hidden focus:border-amber-500"
+                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-none focus:border-amber-500"
                     />
                   </div>
                   <div>
@@ -1146,7 +1168,7 @@ export default function CmsStudioPage() {
                           dados: { ...blocoEmEdicao.dados, descricao: e.target.value },
                         })
                       }
-                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-hidden focus:border-amber-500"
+                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-sm text-stone-900 focus:outline-none focus:border-amber-500"
                     />
                   </div>
                 </>

@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 
-const execAsync = promisify(exec);
+export const dynamic = 'force-dynamic';
 
 const REPO_OWNER = 'lfcarreiras';
 const REPO_NAME = 'App-Padaria';
@@ -195,29 +193,12 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Se estiver em ambiente local e sem token de API, tentar Git local
-    if (process.env.NODE_ENV === 'development' || !process.env.VERCEL) {
-      try {
-        await execAsync(`git add content/`);
-        await execAsync(`git commit -m "${msg.replace(/"/g, '\\"')}"`);
-        await execAsync(`git push origin ${TARGET_BRANCH}`);
-        return NextResponse.json({
-          success: true,
-          method: 'local_git',
-          message: 'Alterações gravadas localmente e enviadas com sucesso para o GitHub (git push). A Vercel iniciou o deploy!',
-          filesCount: filesToCommit.length,
-        });
-      } catch (gitErr: any) {
-        console.warn('Erro ao executar git push local:', gitErr);
-      }
-    }
-
-    // Se nenhum token for fornecido e não estiver em ambiente local com git
+    // Se nenhum token for fornecido
     return NextResponse.json({
       success: false,
       needsToken: true,
       filesCount: filesToCommit.length,
-      message: 'Ficheiros preparados com sucesso! Para publicar diretamente no GitHub e acionar a Vercel, introduza o seu GitHub Personal Access Token.',
+      message: 'Ficheiros preparados com sucesso! Para publicar no GitHub e acionar a Vercel, introduza o seu GitHub Personal Access Token.',
     });
   } catch (error: any) {
     console.error('Erro na rota de commit do CMS:', error);
