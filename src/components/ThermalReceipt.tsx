@@ -102,12 +102,18 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
             {/* Número da Encomenda em Grande Destaque */}
             <div className="text-center my-1">
               <p className="text-[10px] uppercase tracking-wider">{t.receiptOrderNumber}</p>
-              <p className="text-lg font-black tracking-widest">{encomenda.codigo}</p>
-              <span className={`inline-block mt-1 px-2 py-0.5 text-[10px] font-bold uppercase rounded border ${
-                encomenda.tipo === 'entrega_domicilio' ? 'border-black bg-black text-white' : 'border-black'
-              }`}>
-                {encomenda.tipo === 'entrega_domicilio' ? t.receiptHomeDelivery : t.receiptPickup}
-              </span>
+              <div className="flex justify-center gap-1 mt-1 flex-wrap">
+                <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded border ${
+                  encomenda.tipo === 'entrega_domicilio' ? 'border-black bg-black text-white' : 'border-black'
+                }`}>
+                  {encomenda.tipo === 'entrega_domicilio' ? t.receiptHomeDelivery : t.receiptPickup}
+                </span>
+                <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded border border-black bg-gray-100">
+                  {encomenda.canal_origem === 'site_online' ? '🌐 Site Online' :
+                   encomenda.canal_origem === 'whatsapp' ? '💬 WhatsApp' :
+                   encomenda.canal_origem === 'telefone' ? '📞 Telefone' : '🏪 Presencial'}
+                </span>
+              </div>
             </div>
 
             <div className="my-2 border-b border-dashed border-black" />

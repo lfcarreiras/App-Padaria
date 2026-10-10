@@ -59,6 +59,8 @@ export interface ItemEncomenda {
   estado_producao: EstadoProducaoItem;
 }
 
+export type CanalOrigemEncomenda = 'presencial' | 'telefone' | 'whatsapp' | 'site_online';
+
 export interface Encomenda {
   id: string;
   numero_sequencial: number;
@@ -67,6 +69,7 @@ export interface Encomenda {
   loja_nome?: string;
   cliente: Cliente;
   tipo: TipoEntrega;
+  canal_origem?: CanalOrigemEncomenda;
   carrinha_id?: string;
   carrinha_nome?: string;
   data_agendamento: string; // YYYY-MM-DD

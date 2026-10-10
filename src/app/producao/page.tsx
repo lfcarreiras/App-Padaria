@@ -33,7 +33,10 @@ import {
   ArrowRight,
   RotateCcw,
   FileSpreadsheet,
-  Download
+  Download,
+  Phone,
+  MessageSquare,
+  Globe
 } from 'lucide-react';
 
 export default function ProducaoPage() {
@@ -243,6 +246,7 @@ export default function ProducaoPage() {
     const colunasPadaria = [
       'Hora Agendada',
       'Código Encomenda',
+      'Canal Origem',
       'Cliente',
       'Contacto',
       'Destino / Modalidade',
@@ -260,6 +264,7 @@ export default function ProducaoPage() {
     const colunasPastelaria = [
       'Hora Agendada',
       'Código Encomenda',
+      'Canal Origem',
       'Cliente',
       'Contacto',
       'Destino / Modalidade',
@@ -281,6 +286,11 @@ export default function ProducaoPage() {
         enc.tipo === 'levantamento_loja'
           ? `Loja: ${enc.loja_nome || 'Balcão'}`
           : `Domicílio: ${enc.carrinha_nome || 'Carrinha'}${enc.cliente.morada ? ` (${enc.cliente.morada})` : ''}`;
+
+      const canalTexto =
+        enc.canal_origem === 'site_online' ? 'Site Online' :
+        enc.canal_origem === 'whatsapp' ? 'WhatsApp' :
+        enc.canal_origem === 'telefone' ? 'Telefone' : 'Presencial';
 
       enc.itens.forEach((item) => {
         const estadoTraduzido =
@@ -307,6 +317,7 @@ export default function ProducaoPage() {
           linhasPastelaria.push([
             enc.hora_agendamento,
             enc.codigo,
+            canalTexto,
             enc.cliente.nome,
             enc.cliente.telefone,
             modalidadeDestino,
@@ -322,6 +333,7 @@ export default function ProducaoPage() {
           linhasPadaria.push([
             enc.hora_agendamento,
             enc.codigo,
+            canalTexto,
             enc.cliente.nome,
             enc.cliente.telefone,
             modalidadeDestino,
@@ -666,8 +678,20 @@ export default function ProducaoPage() {
                 ) : (
                   kanbanPorPreparar.map((enc) => (
                     <div key={enc.id} className="bg-white p-3.5 rounded-2xl border border-stone-300 shadow-xs space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono font-black text-xs text-gray-900">{enc.codigo}</span>
+                      <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono font-black text-xs text-gray-900">{enc.codigo}</span>
+                          <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded-md border flex items-center gap-0.5 ${
+                            enc.canal_origem === 'site_online' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' :
+                            enc.canal_origem === 'whatsapp' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                            enc.canal_origem === 'telefone' ? 'bg-amber-50 text-amber-800 border-amber-200' :
+                            'bg-stone-100 text-stone-700 border-stone-200'
+                          }`}>
+                            {enc.canal_origem === 'site_online' ? '🌐 Site' :
+                             enc.canal_origem === 'whatsapp' ? '💬 WhatsApp' :
+                             enc.canal_origem === 'telefone' ? '📞 Telefone' : '🏪 Presencial'}
+                          </span>
+                        </div>
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-700">
                           {enc.hora_agendamento}
                         </span>
@@ -720,8 +744,20 @@ export default function ProducaoPage() {
                 ) : (
                   kanbanEmPreparacao.map((enc) => (
                     <div key={enc.id} className="bg-white p-3.5 rounded-2xl border border-amber-300 shadow-xs space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono font-black text-xs text-amber-900">{enc.codigo}</span>
+                      <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono font-black text-xs text-amber-900">{enc.codigo}</span>
+                          <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded-md border flex items-center gap-0.5 ${
+                            enc.canal_origem === 'site_online' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' :
+                            enc.canal_origem === 'whatsapp' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                            enc.canal_origem === 'telefone' ? 'bg-amber-50 text-amber-800 border-amber-200' :
+                            'bg-stone-100 text-stone-700 border-stone-200'
+                          }`}>
+                            {enc.canal_origem === 'site_online' ? '🌐 Site' :
+                             enc.canal_origem === 'whatsapp' ? '💬 WhatsApp' :
+                             enc.canal_origem === 'telefone' ? '📞 Telefone' : '🏪 Presencial'}
+                          </span>
+                        </div>
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
                           {enc.hora_agendamento}
                         </span>
@@ -809,8 +845,20 @@ export default function ProducaoPage() {
                 ) : (
                   kanbanPronto.map((enc) => (
                     <div key={enc.id} className="bg-white p-3.5 rounded-2xl border border-emerald-300 shadow-xs space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono font-black text-xs text-emerald-900">{enc.codigo}</span>
+                      <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono font-black text-xs text-emerald-900">{enc.codigo}</span>
+                          <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded-md border flex items-center gap-0.5 ${
+                            enc.canal_origem === 'site_online' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' :
+                            enc.canal_origem === 'whatsapp' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                            enc.canal_origem === 'telefone' ? 'bg-amber-50 text-amber-800 border-amber-200' :
+                            'bg-stone-100 text-stone-700 border-stone-200'
+                          }`}>
+                            {enc.canal_origem === 'site_online' ? '🌐 Site' :
+                             enc.canal_origem === 'whatsapp' ? '💬 WhatsApp' :
+                             enc.canal_origem === 'telefone' ? '📞 Telefone' : '🏪 Presencial'}
+                          </span>
+                        </div>
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 uppercase">
                           {enc.tipo === 'entrega_domicilio' ? 'Carrinha' : 'Balcão'}
                         </span>
@@ -927,6 +975,11 @@ export default function ProducaoPage() {
                                     <span className="font-mono font-black text-sm text-amber-400">{enc.codigo}</span>
                                     <span className="text-xs bg-stone-700 px-2 py-0.5 rounded-md font-medium text-stone-200">
                                       #{enc.numero_sequencial}
+                                    </span>
+                                    <span className="text-[10px] bg-stone-700/80 px-1.5 py-0.5 rounded-md font-bold text-stone-200 border border-stone-600">
+                                      {enc.canal_origem === 'site_online' ? '🌐 Site' :
+                                       enc.canal_origem === 'whatsapp' ? '💬 WhatsApp' :
+                                       enc.canal_origem === 'telefone' ? '📞 Telefone' : '🏪 Presencial'}
                                     </span>
                                   </div>
                                   <p className="text-xs font-bold text-white mt-0.5">{enc.cliente.nome}</p>

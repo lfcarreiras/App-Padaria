@@ -37,7 +37,9 @@ import {
   GripVertical,
   Inbox,
   RotateCcw,
-  Check
+  Check,
+  MessageSquare,
+  Globe
 } from 'lucide-react';
 
 export default function EntregasPage() {
@@ -443,10 +445,22 @@ export default function EntregasPage() {
                     className="p-3 rounded-xl bg-amber-50/40 border border-amber-200 hover:border-amber-400 shadow-2xs hover:shadow-sm transition cursor-grab active:cursor-grabbing flex flex-col justify-between"
                   >
                     <div>
-                      <div className="flex items-center justify-between gap-1 mb-1.5">
-                        <span className="font-mono font-black text-xs text-amber-950 bg-amber-200/80 px-1.5 py-0.5 rounded">
-                          {enc.codigo}
-                        </span>
+                      <div className="flex items-center justify-between gap-1 mb-1.5 flex-wrap">
+                        <div className="flex items-center gap-1">
+                          <span className="font-mono font-black text-xs text-amber-950 bg-amber-200/80 px-1.5 py-0.5 rounded">
+                            {enc.codigo}
+                          </span>
+                          <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded-md border flex items-center gap-0.5 ${
+                            enc.canal_origem === 'site_online' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' :
+                            enc.canal_origem === 'whatsapp' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                            enc.canal_origem === 'telefone' ? 'bg-amber-50 text-amber-800 border-amber-200' :
+                            'bg-stone-100 text-stone-700 border-stone-200'
+                          }`}>
+                            {enc.canal_origem === 'site_online' ? '🌐 Site' :
+                             enc.canal_origem === 'whatsapp' ? '💬 WhatsApp' :
+                             enc.canal_origem === 'telefone' ? '📞 Telefone' : '🏪 Presencial'}
+                          </span>
+                        </div>
                         <span className="text-[11px] font-bold text-stone-600 flex items-center gap-1">
                           <Clock className="h-3 w-3 text-amber-600" />
                           {enc.hora_agendamento}
@@ -724,11 +738,21 @@ export default function EntregasPage() {
                       </span>
 
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className={`text-xs font-mono font-bold ${
                             isActiveStop && infoRota.estado === 'em_curso' ? 'text-blue-100' : 'text-gray-500'
                           }`}>
                             {enc.codigo}
+                          </span>
+                          <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded-md border flex items-center gap-0.5 ${
+                            enc.canal_origem === 'site_online' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' :
+                            enc.canal_origem === 'whatsapp' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                            enc.canal_origem === 'telefone' ? 'bg-amber-50 text-amber-800 border-amber-200' :
+                            'bg-stone-100 text-stone-700 border-stone-200'
+                          }`}>
+                            {enc.canal_origem === 'site_online' ? '🌐 Site' :
+                             enc.canal_origem === 'whatsapp' ? '💬 WhatsApp' :
+                             enc.canal_origem === 'telefone' ? '📞 Telefone' : '🏪 Presencial'}
                           </span>
                           {enc.carrinha_nome && (
                             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${

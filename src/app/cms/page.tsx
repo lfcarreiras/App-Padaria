@@ -54,7 +54,8 @@ import {
   Filter,
   TrendingUp,
   DollarSign,
-  Columns
+  Columns,
+  Globe
 } from 'lucide-react';
 
 const CMS_STORAGE_KEY_TOKEN = 'app_padaria_cms_github_token';
@@ -81,6 +82,7 @@ interface EncomendaSimulada {
   cliente_telefone: string;
   cliente_morada: string;
   tipo: 'levantamento_loja' | 'entrega_domicilio';
+  canal_origem?: 'presencial' | 'telefone' | 'whatsapp' | 'site_online';
   loja_id: string;
   loja_nome: string;
   carrinha_id?: string;
@@ -241,6 +243,7 @@ export default function CmsFrontofficeReplicaPage() {
   const [moradaCliente, setMoradaCliente] = useState('Rua Central de Arouca, nº 12');
   const [dataAgendamento, setDataAgendamento] = useState(new Date().toISOString().split('T')[0]);
   const [horaAgendamento, setHoraAgendamento] = useState('10:30');
+  const [canalOrigem, setCanalOrigem] = useState<'presencial' | 'telefone' | 'whatsapp' | 'site_online'>('presencial');
   const [notasGerais, setNotasGerais] = useState('');
 
   // Drag & Drop de Produtos na Grelha
@@ -1092,6 +1095,64 @@ export default function CmsFrontofficeReplicaPage() {
                 {/* COLUNA DIREITA: FORMULÁRIO DE NOVO PEDIDO (COM ESCOLHA DA LOJA DE LEVANTAMENTO) */}
                 <div className="lg:col-span-5 space-y-4">
                   <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
+                    {/* Canal de Origem do Pedido */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                        <span>Canal de Origem do Pedido</span>
+                        <span className="text-[10px] text-gray-500 font-normal lowercase">como chegou o pedido</span>
+                      </label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-gray-100 p-1 rounded-xl">
+                        <button
+                          type="button"
+                          onClick={() => setCanalOrigem('presencial')}
+                          className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                            canalOrigem === 'presencial'
+                              ? 'bg-white text-stone-900 shadow-2xs border border-stone-200'
+                              : 'text-gray-600 hover:text-gray-900'
+                          }`}
+                        >
+                          <Store className="h-3.5 w-3.5 text-stone-600" />
+                          <span>Presencial</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCanalOrigem('telefone')}
+                          className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                            canalOrigem === 'telefone'
+                              ? 'bg-white text-amber-900 shadow-2xs border border-amber-300'
+                              : 'text-gray-600 hover:text-gray-900'
+                          }`}
+                        >
+                          <Phone className="h-3.5 w-3.5 text-amber-600" />
+                          <span>Telefone</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCanalOrigem('whatsapp')}
+                          className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                            canalOrigem === 'whatsapp'
+                              ? 'bg-white text-emerald-900 shadow-2xs border border-emerald-300'
+                              : 'text-gray-600 hover:text-gray-900'
+                          }`}
+                        >
+                          <MessageSquare className="h-3.5 w-3.5 text-emerald-600" />
+                          <span>WhatsApp</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCanalOrigem('site_online')}
+                          className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                            canalOrigem === 'site_online'
+                              ? 'bg-white text-indigo-900 shadow-2xs border border-indigo-300'
+                              : 'text-gray-600 hover:text-gray-900'
+                          }`}
+                        >
+                          <Globe className="h-3.5 w-3.5 text-indigo-600" />
+                          <span>Site Online</span>
+                        </button>
+                      </div>
+                    </div>
+
                     {/* Modalidade de Entrega */}
                     <div className="grid grid-cols-2 gap-2 bg-gray-100 p-1 rounded-xl">
                       <button
@@ -1345,6 +1406,16 @@ export default function CmsFrontofficeReplicaPage() {
                               : 'bg-blue-100 text-blue-900 border border-blue-300'
                           }`}>
                             {enc.tipo === 'levantamento_loja' ? '🏪 Levantamento em Loja' : '🚚 Entrega ao Domicílio'}
+                          </span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                            enc.canal_origem === 'site_online' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' :
+                            enc.canal_origem === 'whatsapp' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                            enc.canal_origem === 'telefone' ? 'bg-amber-50 text-amber-800 border-amber-200' :
+                            'bg-stone-100 text-stone-700 border-stone-200'
+                          }`}>
+                            {enc.canal_origem === 'site_online' ? '🌐 Site' :
+                             enc.canal_origem === 'whatsapp' ? '💬 WhatsApp' :
+                             enc.canal_origem === 'telefone' ? '📞 Telefone' : '🏪 Presencial'}
                           </span>
                           <span className="text-xs text-gray-600 font-semibold">
                             {enc.data_agendamento} às {enc.hora_agendamento}
@@ -2330,6 +2401,64 @@ export default function CmsFrontofficeReplicaPage() {
             </div>
 
             <form onSubmit={salvarEdicaoEncomenda} className="space-y-4">
+              {/* Canal de Origem da Encomenda */}
+              <div>
+                <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                  <span>Canal de Origem do Pedido</span>
+                  <span className="text-[10px] text-gray-500 font-normal lowercase">como chegou o pedido</span>
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-gray-100 p-1 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setEncomendaEmEdicao({ ...encomendaEmEdicao, canal_origem: 'presencial' })}
+                    className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      (!encomendaEmEdicao.canal_origem || encomendaEmEdicao.canal_origem === 'presencial')
+                        ? 'bg-white text-stone-900 shadow-2xs border border-stone-200'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <Store className="h-3.5 w-3.5 text-stone-600" />
+                    <span>Presencial</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEncomendaEmEdicao({ ...encomendaEmEdicao, canal_origem: 'telefone' })}
+                    className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      encomendaEmEdicao.canal_origem === 'telefone'
+                        ? 'bg-white text-amber-900 shadow-2xs border border-amber-300'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <Phone className="h-3.5 w-3.5 text-amber-600" />
+                    <span>Telefone</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEncomendaEmEdicao({ ...encomendaEmEdicao, canal_origem: 'whatsapp' })}
+                    className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      encomendaEmEdicao.canal_origem === 'whatsapp'
+                        ? 'bg-white text-emerald-900 shadow-2xs border border-emerald-300'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <MessageSquare className="h-3.5 w-3.5 text-emerald-600" />
+                    <span>WhatsApp</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEncomendaEmEdicao({ ...encomendaEmEdicao, canal_origem: 'site_online' })}
+                    className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      encomendaEmEdicao.canal_origem === 'site_online'
+                        ? 'bg-white text-indigo-900 shadow-2xs border border-indigo-300'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <Globe className="h-3.5 w-3.5 text-indigo-600" />
+                    <span>Site Online</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Modalidade de Entrega */}
               <div className="grid grid-cols-2 gap-2 bg-gray-100 p-1 rounded-xl">
                 <button

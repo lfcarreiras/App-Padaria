@@ -1,0 +1,12 @@
+# Robots.txt - Padaria da Vila
+# Cenário A: Aplicação operacional restrita à equipa interna da empresa
+
+User-agent: *
+Disallow: /producao
+Disallow: /loja
+Disallow: /entregas
+Disallow: /gestao
+Disallow: /cms
+Disallow: /login
+Allow: /encomendar
+Allow: /

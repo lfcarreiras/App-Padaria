@@ -54,6 +54,12 @@ export function parseEncomendasFromDb(data: any[]): Encomenda[] {
         notas_entrega: cliente.notas_entrega || undefined,
       },
       tipo: row.tipo,
+      canal_origem: row.canal_origem || (
+        row.notas_cliente?.toLowerCase().includes('whatsapp') || row.notas_cliente?.toLowerCase().includes('[whatsapp]') ? 'whatsapp' :
+        row.notas_cliente?.toLowerCase().includes('site') || row.notas_cliente?.toLowerCase().includes('[online]') ? 'site_online' :
+        row.notas_cliente?.toLowerCase().includes('telefone') || row.notas_cliente?.toLowerCase().includes('chamada') ? 'telefone' :
+        'presencial'
+      ),
       carrinha_id: row.carrinha_id || undefined,
       carrinha_nome: carrinha.identificador || undefined,
       data_agendamento: row.data_agendamento,
@@ -249,6 +255,7 @@ export async function atualizarEncomendaDb(encomenda: Partial<Encomenda> & { id:
     };
     if (encomenda.loja_id) updates.loja_id = encomenda.loja_id;
     if (encomenda.tipo) updates.tipo = encomenda.tipo;
+    if (encomenda.canal_origem) updates.canal_origem = encomenda.canal_origem;
     if (encomenda.carrinha_id !== undefined) updates.carrinha_id = encomenda.carrinha_id;
     if (encomenda.data_agendamento) updates.data_agendamento = encomenda.data_agendamento;
     if (encomenda.hora_agendamento) updates.hora_agendamento = encomenda.hora_agendamento;

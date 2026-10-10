@@ -70,7 +70,10 @@ import {
   ChefHat,
   X,
   RotateCcw,
-  Sparkles
+  Sparkles,
+  Phone,
+  MessageSquare,
+  Globe
 } from 'lucide-react';
 
 export default function AdminPage() {
@@ -306,6 +309,25 @@ export default function AdminPage() {
       });
     });
     return Object.values(contagem).sort((a, b) => b.quantidade - a.quantidade).slice(0, 5);
+  }, [encomendasFiltradas]);
+
+  // Estatísticas por Canal de Origem da Encomenda
+  const canaisOrigemStats = useMemo(() => {
+    const counts = {
+      presencial: 0,
+      telefone: 0,
+      whatsapp: 0,
+      site_online: 0,
+    };
+    encomendasFiltradas.forEach((e) => {
+      const c = e.canal_origem || 'presencial';
+      if (counts[c] !== undefined) {
+        counts[c]++;
+      } else {
+        counts.presencial++;
+      }
+    });
+    return counts;
   }, [encomendasFiltradas]);
 
   // Ações de Ordenação da Tabela Consolidada
@@ -1201,6 +1223,61 @@ export default function AdminPage() {
               </div>
             </div>
 
+            {/* Canais de Origem das Encomendas */}
+            <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-bakery-600" />
+                  Origem das Encomendas por Canal
+                </h3>
+                <span className="text-xs text-gray-500 font-semibold">
+                  Total: {totalVolumeEncomendas} pedidos
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3.5 rounded-xl border border-stone-200 bg-stone-50/70">
+                  <div className="flex items-center gap-1.5 text-stone-700 text-xs font-bold mb-1">
+                    <Store className="h-3.5 w-3.5 text-stone-600" />
+                    <span>Presencial</span>
+                  </div>
+                  <p className="text-xl font-black text-stone-900">{canaisOrigemStats.presencial}</p>
+                  <p className="text-[10px] text-stone-500 font-semibold mt-0.5">
+                    {totalVolumeEncomendas > 0 ? ((canaisOrigemStats.presencial / totalVolumeEncomendas) * 100).toFixed(0) : 0}% do total
+                  </p>
+                </div>
+                <div className="p-3.5 rounded-xl border border-amber-200 bg-amber-50/70">
+                  <div className="flex items-center gap-1.5 text-amber-900 text-xs font-bold mb-1">
+                    <Phone className="h-3.5 w-3.5 text-amber-600" />
+                    <span>Telefone</span>
+                  </div>
+                  <p className="text-xl font-black text-amber-950">{canaisOrigemStats.telefone}</p>
+                  <p className="text-[10px] text-amber-700 font-semibold mt-0.5">
+                    {totalVolumeEncomendas > 0 ? ((canaisOrigemStats.telefone / totalVolumeEncomendas) * 100).toFixed(0) : 0}% do total
+                  </p>
+                </div>
+                <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/70">
+                  <div className="flex items-center gap-1.5 text-emerald-900 text-xs font-bold mb-1">
+                    <MessageSquare className="h-3.5 w-3.5 text-emerald-600" />
+                    <span>WhatsApp</span>
+                  </div>
+                  <p className="text-xl font-black text-emerald-950">{canaisOrigemStats.whatsapp}</p>
+                  <p className="text-[10px] text-emerald-700 font-semibold mt-0.5">
+                    {totalVolumeEncomendas > 0 ? ((canaisOrigemStats.whatsapp / totalVolumeEncomendas) * 100).toFixed(0) : 0}% do total
+                  </p>
+                </div>
+                <div className="p-3.5 rounded-xl border border-indigo-200 bg-indigo-50/70">
+                  <div className="flex items-center gap-1.5 text-indigo-900 text-xs font-bold mb-1">
+                    <Globe className="h-3.5 w-3.5 text-indigo-600" />
+                    <span>Site Online</span>
+                  </div>
+                  <p className="text-xl font-black text-indigo-950">{canaisOrigemStats.site_online}</p>
+                  <p className="text-[10px] text-indigo-700 font-semibold mt-0.5">
+                    {totalVolumeEncomendas > 0 ? ((canaisOrigemStats.site_online / totalVolumeEncomendas) * 100).toFixed(0) : 0}% do total
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Comparativo de Lojas & Necessidades de Produção */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Desempenho por Loja */}
@@ -1537,7 +1614,19 @@ export default function AdminPage() {
 
                         return (
                           <tr key={enc.id} className="hover:bg-gray-50 transition">
-                            <td className="py-2.5 px-3 font-mono font-bold text-gray-900">{enc.codigo}</td>
+                            <td className="py-2.5 px-3">
+                              <span className="font-mono font-bold text-gray-900 block">{enc.codigo}</span>
+                              <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold border mt-0.5 ${
+                                enc.canal_origem === 'site_online' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' :
+                                enc.canal_origem === 'whatsapp' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                                enc.canal_origem === 'telefone' ? 'bg-amber-50 text-amber-800 border-amber-200' :
+                                'bg-stone-100 text-stone-700 border-stone-200'
+                              }`}>
+                                {enc.canal_origem === 'site_online' ? '🌐 Site' :
+                                 enc.canal_origem === 'whatsapp' ? '💬 WhatsApp' :
+                                 enc.canal_origem === 'telefone' ? '📞 Telefone' : '🏪 Presencial'}
+                              </span>
+                            </td>
                             <td className="py-2.5 px-3">
                               <p className="font-bold text-gray-900">{enc.cliente.nome}</p>
                               <p className="text-[10px] text-gray-500">{enc.cliente.telefone}</p>

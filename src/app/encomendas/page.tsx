@@ -17,7 +17,7 @@ import {
   alternarTipoEntregaDb,
   registarLogAuditoria 
 } from '../../lib/encomendasService';
-import { Encomenda, Produto, ItemEncomenda, TipoEntrega, MetodoPagamento, Cliente, Loja } from '../../types';
+import { Encomenda, Produto, ItemEncomenda, TipoEntrega, MetodoPagamento, Cliente, Loja, CanalOrigemEncomenda } from '../../types';
 import { useTranslation } from '../../lib/i18n';
 import { useAuth } from '../../lib/authContext';
 import { obterConfiguracaoMarca, obterProdutosMontra } from '../../lib/tinaContent';
@@ -42,7 +42,8 @@ import {
   Eye,
   MessageSquare,
   Copy,
-  FileText
+  FileText,
+  Globe
 } from 'lucide-react';
 
 export default function EncomendasPage() {
@@ -72,6 +73,7 @@ export default function EncomendasPage() {
   const [moradaCliente, setMoradaCliente] = useState('');
   const [notasEntrega, setNotasEntrega] = useState('');
   const [tipoEntrega, setTipoEntrega] = useState<TipoEntrega>('levantamento_loja');
+  const [canalOrigem, setCanalOrigem] = useState<CanalOrigemEncomenda>('presencial');
   const [dataAgendamento, setDataAgendamento] = useState(new Date().toISOString().split('T')[0]);
   const [horaAgendamento, setHoraAgendamento] = useState('10:00');
   const [notasGerais, setNotasGerais] = useState('');
@@ -275,6 +277,7 @@ export default function EncomendasPage() {
             loja_id: lojaIdFinal,
             cliente_id: clienteId,
             tipo: tipoEntrega,
+            canal_origem: canalOrigem,
             carrinha_id: carrinhaIdFinal,
             data_agendamento: dataAgendamento,
             hora_agendamento: horaAgendamento,
@@ -319,6 +322,7 @@ export default function EncomendasPage() {
           notas_entrega: tipoEntrega === 'entrega_domicilio' ? notasEntrega.trim() : undefined,
         },
         tipo: tipoEntrega,
+        canal_origem: canalOrigem,
         data_agendamento: dataAgendamento,
         hora_agendamento: horaAgendamento,
         estado: 'pendente',
@@ -738,6 +742,64 @@ export default function EncomendasPage() {
             {/* Coluna Direita: Dados do Pedido & Carrinho */}
             <div className="lg:col-span-5 space-y-4">
               <form onSubmit={handleGravarEncomenda} className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
+                {/* Canal de Origem da Encomenda */}
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                    <span>Canal de Origem do Pedido</span>
+                    <span className="text-[10px] text-gray-500 font-normal lowercase">como chegou o pedido</span>
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-gray-100 p-1 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setCanalOrigem('presencial')}
+                      className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        canalOrigem === 'presencial'
+                          ? 'bg-white text-stone-900 shadow-2xs border border-stone-200'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      <Store className="h-3.5 w-3.5 text-stone-600" />
+                      <span>Presencial</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCanalOrigem('telefone')}
+                      className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        canalOrigem === 'telefone'
+                          ? 'bg-white text-amber-900 shadow-2xs border border-amber-300'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      <Phone className="h-3.5 w-3.5 text-amber-600" />
+                      <span>Telefone</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCanalOrigem('whatsapp')}
+                      className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        canalOrigem === 'whatsapp'
+                          ? 'bg-white text-emerald-900 shadow-2xs border border-emerald-300'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      <MessageSquare className="h-3.5 w-3.5 text-emerald-600" />
+                      <span>WhatsApp</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCanalOrigem('site_online')}
+                      className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        canalOrigem === 'site_online'
+                          ? 'bg-white text-indigo-900 shadow-2xs border border-indigo-300'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      <Globe className="h-3.5 w-3.5 text-indigo-600" />
+                      <span>Site Online</span>
+                    </button>
+                  </div>
+                </div>
+
                 {/* Tipo de Entrega */}
                 <div className="grid grid-cols-2 gap-2 bg-gray-100 p-1 rounded-xl">
                   <button
@@ -1197,9 +1259,30 @@ export default function EncomendasPage() {
                                   className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs flex flex-col justify-between space-y-3 hover:border-bakery-300 transition"
                                 >
                                   <div>
-                                    <div className="flex items-center justify-between mb-1.5">
-                                      <span className="font-mono font-black text-xs text-gray-800">{enc.codigo}</span>
-                                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
+                                    <div className="flex items-center justify-between mb-1.5 gap-2">
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span className="font-mono font-black text-xs text-gray-800">{enc.codigo}</span>
+                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 ${
+                                          enc.canal_origem === 'site_online'
+                                            ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                                            : enc.canal_origem === 'whatsapp'
+                                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                            : enc.canal_origem === 'telefone'
+                                            ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                            : 'bg-stone-100 text-stone-800 border-stone-200'
+                                        }`}>
+                                          {enc.canal_origem === 'site_online' && <Globe className="h-3 w-3 text-indigo-600" />}
+                                          {enc.canal_origem === 'whatsapp' && <MessageSquare className="h-3 w-3 text-emerald-600" />}
+                                          {enc.canal_origem === 'telefone' && <Phone className="h-3 w-3 text-amber-600" />}
+                                          {(!enc.canal_origem || enc.canal_origem === 'presencial') && <Store className="h-3 w-3 text-stone-600" />}
+                                          <span>
+                                            {enc.canal_origem === 'site_online' ? 'Site' :
+                                             enc.canal_origem === 'whatsapp' ? 'WhatsApp' :
+                                             enc.canal_origem === 'telefone' ? 'Telefone' : 'Presencial'}
+                                          </span>
+                                        </span>
+                                      </div>
+                                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border shrink-0 ${
                                         enc.estado === 'entregue'
                                           ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                                           : enc.estado === 'em_producao' || enc.estado === 'pronto_loja'
@@ -1438,6 +1521,64 @@ export default function EncomendasPage() {
             </div>
 
             <form onSubmit={handleSalvarEdicaoEncomenda} className="space-y-4 text-xs">
+              {/* Canal de Origem da Encomenda */}
+              <div>
+                <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                  <span>Canal de Origem do Pedido</span>
+                  <span className="text-[10px] text-gray-500 font-normal lowercase">como foi recebido o pedido</span>
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-gray-100 p-1 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setEncomendaEmEdicao({ ...encomendaEmEdicao, canal_origem: 'presencial' })}
+                    className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      (!encomendaEmEdicao.canal_origem || encomendaEmEdicao.canal_origem === 'presencial')
+                        ? 'bg-white text-stone-900 shadow-2xs border border-stone-200'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <Store className="h-3.5 w-3.5 text-stone-600" />
+                    <span>Presencial</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEncomendaEmEdicao({ ...encomendaEmEdicao, canal_origem: 'telefone' })}
+                    className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      encomendaEmEdicao.canal_origem === 'telefone'
+                        ? 'bg-white text-amber-900 shadow-2xs border border-amber-300'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <Phone className="h-3.5 w-3.5 text-amber-600" />
+                    <span>Telefone</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEncomendaEmEdicao({ ...encomendaEmEdicao, canal_origem: 'whatsapp' })}
+                    className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      encomendaEmEdicao.canal_origem === 'whatsapp'
+                        ? 'bg-white text-emerald-900 shadow-2xs border border-emerald-300'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <MessageSquare className="h-3.5 w-3.5 text-emerald-600" />
+                    <span>WhatsApp</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEncomendaEmEdicao({ ...encomendaEmEdicao, canal_origem: 'site_online' })}
+                    className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      encomendaEmEdicao.canal_origem === 'site_online'
+                        ? 'bg-white text-indigo-900 shadow-2xs border border-indigo-300'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <Globe className="h-3.5 w-3.5 text-indigo-600" />
+                    <span>Site Online</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Formato de Entrega */}
               <div className="grid grid-cols-2 gap-2 bg-gray-100 p-1 rounded-xl font-bold">
                 <button

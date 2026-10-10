@@ -26,7 +26,9 @@ import {
   PackageCheck,
   Calendar,
   Eye,
-  ArrowRightLeft
+  ArrowRightLeft,
+  MessageSquare,
+  Globe
 } from 'lucide-react';
 
 export default function EntregaLojaPage() {
@@ -395,7 +397,19 @@ export default function EntregaLojaPage() {
                                       <Store className="h-3.5 w-3.5" />
                                     </span>
                                     <div>
-                                      <span className="text-xs font-mono font-bold text-gray-600">{enc.codigo}</span>
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span className="text-xs font-mono font-bold text-gray-600">{enc.codigo}</span>
+                                        <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded-md border flex items-center gap-0.5 ${
+                                          enc.canal_origem === 'site_online' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' :
+                                          enc.canal_origem === 'whatsapp' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                                          enc.canal_origem === 'telefone' ? 'bg-amber-50 text-amber-800 border-amber-200' :
+                                          'bg-stone-100 text-stone-700 border-stone-200'
+                                        }`}>
+                                          {enc.canal_origem === 'site_online' ? '🌐 Site' :
+                                           enc.canal_origem === 'whatsapp' ? '💬 WhatsApp' :
+                                           enc.canal_origem === 'telefone' ? '📞 Telefone' : '🏪 Presencial'}
+                                        </span>
+                                      </div>
                                       <h4 className="text-sm font-bold text-gray-900">{enc.cliente.nome}</h4>
                                     </div>
                                   </div>

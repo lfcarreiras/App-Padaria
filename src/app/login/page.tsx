@@ -139,6 +139,17 @@ export default function LoginPage() {
               <span>{submitting ? t.loading : t.loginButton}</span>
               <ArrowRight className="h-4 w-4" />
             </button>
+
+            {/* Atalho para Clientes Online */}
+            <div className="pt-1 text-center">
+              <Link
+                href="/encomendar"
+                className="inline-flex items-center gap-1.5 text-xs text-amber-700 hover:text-amber-800 font-bold hover:underline"
+              >
+                <span>É cliente? Faça a sua encomenda online aqui</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
           </form>
         </div>
 
