@@ -77,14 +77,14 @@ export default function LoginPage() {
 
   return (
     <div
-      className="min-h-screen relative flex flex-col justify-between items-center p-4 sm:p-6 bg-cover bg-center bg-no-repeat"
+      className="h-dvh max-h-dvh overflow-y-auto relative flex flex-col justify-between items-center px-4 py-2.5 sm:py-3 bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: "url('/login-bg.jpg')" }}
     >
       {/* Overlay escuro com blur suave para contraste profissional */}
-      <div className="absolute inset-0 bg-stone-950/75 backdrop-blur-xs" />
+      <div className="fixed inset-0 bg-stone-950/75 backdrop-blur-xs pointer-events-none" />
 
-      {/* Topo / Seletor de Idioma */}
-      <div className="relative z-20 w-full max-w-6xl flex justify-end">
+      {/* Topo / Seletor de Idioma (Posicionado no canto superior direito sem ocupar altura extra no fluxo) */}
+      <div className="fixed top-3 right-4 z-30">
         <button
           type="button"
           onClick={() => setLanguage(language === 'pt' ? 'en' : 'pt')}
@@ -98,41 +98,41 @@ export default function LoginPage() {
       {/* Cartão Central de Login */}
       <div className="relative z-10 w-full max-w-md my-auto bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-white/40 overflow-hidden">
         {/* Cabeçalho do Card com Logo Oficial */}
-        <div className="bg-stone-900 text-white p-5 text-center relative overflow-hidden border-b border-stone-800">
-          <div className="inline-flex items-center justify-center rounded-2xl bg-white p-1 shadow-lg mb-2.5">
+        <div className="bg-stone-900 text-white py-3.5 px-5 text-center relative overflow-hidden border-b border-stone-800">
+          <div className="inline-flex items-center justify-center rounded-2xl bg-white p-0.5 shadow-lg mb-1.5">
             <img
               src="/logo-padaria.jpg"
               alt="Padaria da Vila"
-              className="h-14 w-14 rounded-xl object-cover"
+              className="h-11 w-11 rounded-xl object-cover"
             />
           </div>
-          <h1 className="text-xl font-black tracking-tight">{t.appTitle}</h1>
-          <p className="text-xs text-amber-400 font-semibold mt-0.5">{t.appSubtitle}</p>
-          <p className="text-[11px] text-stone-300 mt-1">Acesso Operacional Exclusivo da Equipa</p>
+          <h1 className="text-lg font-black tracking-tight leading-tight">{t.appTitle}</h1>
+          <p className="text-[11px] text-amber-400 font-semibold mt-0.5">{t.appSubtitle}</p>
+          <p className="text-[10px] text-stone-300 mt-0.5">Acesso Operacional Exclusivo da Equipa</p>
         </div>
 
         {/* Formulário de Autenticação */}
-        <div className="p-6 sm:p-7 space-y-5">
+        <div className="p-4 sm:p-5 space-y-3">
           {erro && (
-            <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-xs font-semibold flex items-center gap-2.5 animate-shake">
+            <div className="p-2.5 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-xs font-semibold flex items-center gap-2 animate-shake">
               <AlertCircle className="h-4 w-4 text-red-600 shrink-0" />
               <span>{erro}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
             {/* 1. Seleção Obrigatória de Cockpit / Localização de Trabalho */}
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
                 Cockpit / Localização de Trabalho *
               </label>
               <div className="relative">
-                <MapPin className="absolute left-3.5 top-3 h-4 w-4 text-amber-600" />
+                <MapPin className="absolute left-3.5 top-2.5 h-4 w-4 text-amber-600" />
                 <select
                   required
                   value={localizacaoSelecionada}
                   onChange={(e) => setLocalizacaoSelecionada(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-amber-300 bg-amber-50/50 text-xs font-bold text-stone-900 focus:bg-white focus:border-amber-600 focus:outline-hidden transition cursor-pointer"
+                  className="w-full pl-10 pr-4 py-2 rounded-xl border border-amber-300 bg-amber-50/50 text-xs font-bold text-stone-900 focus:bg-white focus:border-amber-600 focus:outline-hidden transition cursor-pointer"
                 >
                   <optgroup label="🏪 Lojas Físicas (Encomendas & Balcão)">
                     {lojas.map((l) => (
@@ -152,7 +152,7 @@ export default function LoginPage() {
                   </optgroup>
                 </select>
               </div>
-              <p className="text-[10px] text-stone-500 mt-1">
+              <p className="text-[10px] text-stone-500 mt-0.5 leading-tight">
                 {localizacaoSelecionada.startsWith('loja:')
                   ? 'Acesso exclusivo aos menus de Encomendas e Balcão para a loja selecionada.'
                   : localizacaoSelecionada === 'producao'
@@ -165,41 +165,41 @@ export default function LoginPage() {
 
             {/* 2. Identificador do Colaborador */}
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
                 {t.loginIdentifierLabel}
               </label>
               <div className="relative">
-                <User className="absolute left-3.5 top-3 h-4 w-4 text-gray-400" />
+                <User className="absolute left-3.5 top-2.5 h-4 w-4 text-gray-400" />
                 <input
                   type="text"
                   required
                   value={identificador}
                   onChange={(e) => setIdentificador(e.target.value)}
                   placeholder={t.loginIdentifierPlaceholder}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 bg-stone-50/50 text-xs font-medium focus:bg-white focus:border-amber-500 focus:outline-hidden transition"
+                  className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 bg-stone-50/50 text-xs font-medium focus:bg-white focus:border-amber-500 focus:outline-hidden transition"
                 />
               </div>
             </div>
 
             {/* 3. Palavra-Passe */}
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
                 {t.loginPasswordLabel}
               </label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-3 h-4 w-4 text-gray-400" />
+                <Lock className="absolute left-3.5 top-2.5 h-4 w-4 text-gray-400" />
                 <input
                   type={mostrarPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={t.loginPasswordPlaceholder}
-                  className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-gray-300 bg-stone-50/50 text-xs font-medium focus:bg-white focus:border-amber-500 focus:outline-hidden transition"
+                  className="w-full pl-10 pr-10 py-2 rounded-xl border border-gray-300 bg-stone-50/50 text-xs font-medium focus:bg-white focus:border-amber-500 focus:outline-hidden transition"
                 />
                 <button
                   type="button"
                   onClick={() => setMostrarPassword(!mostrarPassword)}
-                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
                 >
                   {mostrarPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -209,7 +209,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white text-xs font-black uppercase tracking-wider shadow-md hover:shadow-lg transition disabled:opacity-50 cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white text-xs font-black uppercase tracking-wider shadow-md hover:shadow-lg transition disabled:opacity-50 cursor-pointer"
             >
               <span>{submitting ? t.loading : t.loginButton}</span>
               <ArrowRight className="h-4 w-4" />
@@ -218,7 +218,7 @@ export default function LoginPage() {
         </div>
 
         {/* Rodapé Informativo do Card */}
-        <div className="bg-stone-50 p-3.5 border-t border-stone-200 text-[11px] text-gray-500 font-medium flex items-center justify-center px-4">
+        <div className="bg-stone-50 py-2.5 px-4 border-t border-stone-200 text-[11px] text-gray-500 font-medium flex items-center justify-center">
           <div className="flex items-center">
             <ShieldCheck className="h-3.5 w-3.5 inline mr-1.5 text-emerald-600" />
             <span>Acesso seguro e restrito a colaboradores autorizados</span>
@@ -227,11 +227,11 @@ export default function LoginPage() {
       </div>
 
       {/* Rodapé Oficial Inprooval (badge_powered_by_white) */}
-      <footer className="relative z-20 pt-4 pb-1 flex flex-col items-center justify-center">
+      <footer className="relative z-20 pt-2 pb-1 shrink-0 flex flex-col items-center justify-center">
         <img
           src="/badge_powered_by_white.svg"
           alt="Powered by Inprooval"
-          className="h-7 sm:h-8 w-auto opacity-90 hover:opacity-100 transition drop-shadow-md"
+          className="h-6 sm:h-7 w-auto opacity-95 hover:opacity-100 transition drop-shadow-md"
         />
       </footer>
     </div>

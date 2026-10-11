@@ -501,22 +501,22 @@ export default function EncomendarClientePage() {
   // ECRÃ DE LOGIN DEDICADO AO CLIENTE (Separado do login da equipa)
   if (!clienteLogado) {
     return (
-      <div className="min-h-screen flex flex-col justify-between bg-gradient-to-br from-stone-900 via-stone-950 to-amber-950 text-white p-4">
-        <div className="flex-1 flex items-center justify-center py-8">
-          <div className="max-w-md w-full bg-white text-stone-900 rounded-3xl shadow-2xl border border-amber-200/40 p-6 sm:p-8 space-y-6">
-            <div className="text-center space-y-2">
+      <div className="h-dvh max-h-dvh overflow-y-auto flex flex-col justify-between bg-gradient-to-br from-stone-900 via-stone-950 to-amber-950 text-white px-4 py-2.5 sm:py-3">
+        <div className="flex-1 flex items-center justify-center py-2">
+          <div className="max-w-md w-full bg-white text-stone-900 rounded-3xl shadow-2xl border border-amber-200/40 p-5 sm:p-6 space-y-4">
+            <div className="text-center space-y-1.5">
               <img
                 src="/logo-padaria.jpg"
                 alt="Padaria da Vila"
-                className="h-16 w-16 rounded-2xl object-cover mx-auto border-2 border-amber-400 shadow-md"
+                className="h-12 w-12 rounded-2xl object-cover mx-auto border-2 border-amber-400 shadow-md"
               />
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-black uppercase tracking-wider">
                 Área Exclusiva de Clientes
               </span>
-              <h1 className="text-xl font-black text-stone-900">
+              <h1 className="text-lg font-black text-stone-900 leading-tight">
                 {configMarca.nomeEmpresa || 'Padaria da Vila'}
               </h1>
-              <p className="text-xs text-stone-500">
+              <p className="text-[11px] text-stone-500 leading-snug">
                 Faça as suas encomendas diretas e acompanhe o estado do seu pedido em tempo real (Encomendado, Em Produção, Em Distribuição ou Entregue).
               </p>
             </div>
@@ -529,7 +529,7 @@ export default function EncomendarClientePage() {
                   setAuthModo('login');
                   setAuthErro('');
                 }}
-                className={`py-2 rounded-xl transition cursor-pointer ${
+                className={`py-1.5 rounded-xl transition cursor-pointer ${
                   authModo === 'login' ? 'bg-amber-600 text-white shadow-xs' : 'text-stone-600 hover:text-stone-900'
                 }`}
               >
@@ -541,7 +541,7 @@ export default function EncomendarClientePage() {
                   setAuthModo('registo');
                   setAuthErro('');
                 }}
-                className={`py-2 rounded-xl transition cursor-pointer ${
+                className={`py-1.5 rounded-xl transition cursor-pointer ${
                   authModo === 'registo' ? 'bg-amber-600 text-white shadow-xs' : 'text-stone-600 hover:text-stone-900'
                 }`}
               >
@@ -550,26 +550,26 @@ export default function EncomendarClientePage() {
             </div>
 
             {authErro && (
-              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-semibold flex items-center gap-2">
+              <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-semibold flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 text-red-600 shrink-0" />
                 <span>{authErro}</span>
               </div>
             )}
 
-            <form onSubmit={handleLoginOuRegisto} className="space-y-4 text-xs">
+            <form onSubmit={handleLoginOuRegisto} className="space-y-3 text-xs">
               <div>
                 <label className="block font-bold text-stone-700 mb-1">
                   Número de Telemóvel *
                 </label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-2.5 h-4 w-4 text-stone-400" />
+                  <Phone className="absolute left-3 top-2 h-4 w-4 text-stone-400" />
                   <input
                     type="tel"
                     required
                     value={authTelefone}
                     onChange={(e) => setAuthTelefone(e.target.value)}
                     placeholder="912 345 678"
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-stone-300 font-mono text-xs focus:outline-hidden focus:border-amber-600"
+                    className="w-full pl-9 pr-3 py-2 rounded-xl border border-stone-300 font-mono text-xs focus:outline-hidden focus:border-amber-600"
                   />
                 </div>
               </div>
@@ -586,7 +586,7 @@ export default function EncomendarClientePage() {
                       value={authNome}
                       onChange={(e) => setAuthNome(e.target.value)}
                       placeholder="Ex: Maria Ferreira"
-                      className="w-full px-3 py-2.5 rounded-xl border border-stone-300 text-xs focus:outline-hidden focus:border-amber-600"
+                      className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs focus:outline-hidden focus:border-amber-600"
                     />
                   </div>
 
@@ -599,7 +599,7 @@ export default function EncomendarClientePage() {
                       value={authMorada}
                       onChange={(e) => setAuthMorada(e.target.value)}
                       placeholder="Rua, número, freguesia..."
-                      className="w-full px-3 py-2.5 rounded-xl border border-stone-300 text-xs focus:outline-hidden focus:border-amber-600"
+                      className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs focus:outline-hidden focus:border-amber-600"
                     />
                   </div>
                 </>
@@ -607,7 +607,7 @@ export default function EncomendarClientePage() {
 
               <button
                 type="submit"
-                className="w-full py-3 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs uppercase tracking-wider shadow-md transition cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs uppercase tracking-wider shadow-md transition cursor-pointer flex items-center justify-center gap-2"
               >
                 <LogIn className="h-4 w-4" />
                 <span>{authModo === 'login' ? 'Aceder à Minha Área de Encomendas' : 'Criar Conta & Começar a Encomendar'}</span>
@@ -617,15 +617,15 @@ export default function EncomendarClientePage() {
         </div>
 
         {/* Rodapé com Badge Oficial Inprooval */}
-        <footer className="py-4 text-center space-y-2">
+        <footer className="pt-2 pb-1 shrink-0 text-center space-y-1">
           <div className="flex justify-center">
             <img
               src="/badge_powered_by_white.svg"
               alt="Powered by Inprooval"
-              className="h-7 w-auto opacity-90 hover:opacity-100 transition"
+              className="h-6 sm:h-7 w-auto opacity-95 hover:opacity-100 transition"
             />
           </div>
-          <p className="text-[11px] text-stone-400">
+          <p className="text-[10px] text-stone-400">
             © {new Date().getFullYear()} {configMarca.nomeEmpresa || 'Padaria da Vila'} — Portal Direto de Clientes
           </p>
         </footer>
