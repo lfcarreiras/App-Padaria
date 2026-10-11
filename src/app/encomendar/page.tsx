@@ -834,25 +834,13 @@ export default function EncomendarClientePage() {
             </div>
 
             <div className="pt-3 border-t border-emerald-200 flex flex-wrap gap-2 justify-end">
-              <a
-                href={`https://wa.me/351912345678?text=${encodeURIComponent(
-                  `Olá Padaria da Vila! Acabei de fazer a encomenda ${encomendaSucesso.codigo} no site para levantamento/entrega a ${encomendaSucesso.data} às ${encomendaSucesso.hora}.`
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition"
-              >
-                <MessageSquare className="h-3.5 w-3.5" />
-                <span>Confirmar via WhatsApp</span>
-              </a>
-
               <button
                 type="button"
                 onClick={() => {
                   setEncomendaSucesso(null);
                   setVistaAtiva('minhas_encomendas');
                 }}
-                className="px-4 py-2 rounded-xl bg-white text-emerald-900 border border-emerald-300 text-xs font-bold hover:bg-emerald-100 transition"
+                className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition cursor-pointer"
               >
                 Ver Estado da Encomenda
               </button>
@@ -1414,21 +1402,6 @@ export default function EncomendarClientePage() {
                             </div>
                           ))}
                         </div>
-                      </div>
-
-                      {/* Botão de Contacto de Suporte via WhatsApp */}
-                      <div className="pt-2 border-t border-stone-100 flex justify-end">
-                        <a
-                          href={`https://wa.me/351912345678?text=${encodeURIComponent(
-                            `Olá Padaria da Vila! Gostaria de esclarecer uma dúvida sobre a minha encomenda ${enc.codigo}.`
-                          )}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold hover:bg-emerald-100 transition"
-                        >
-                          <MessageSquare className="h-3.5 w-3.5 text-emerald-600" />
-                          <span>Falar com o Balcão</span>
-                        </a>
                       </div>
                     </div>
                   );
