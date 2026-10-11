@@ -8,6 +8,7 @@ import {
 } from '../../lib/mockData';
 import { supabase } from '../../lib/supabase';
 import { 
+  carregarEncomendasSupabase,
   carregarProdutosSupabase, 
   carregarLojasSupabase, 
   carregarClientesSupabase,
@@ -173,55 +174,66 @@ export default function EncomendarClientePage() {
     async function buscarEncomendasCliente() {
       setCarregandoMinhasEnc(true);
       try {
-        if (!supabase) return;
-        const { data, error } = await supabase
-          .from('encomendas')
-          .select(`
-            *,
-            cliente:clientes(*),
-            loja:lojas(*),
-            carrinha:carrinhas(*),
-            itens:itens_encomenda(*)
-          `)
-          .or(`cliente_id.eq.${clienteLogado.id},notas_cliente.ilike.%${clienteLogado.telefone}%`)
-          .order('created_at', { ascending: false });
+        const telClienteLimpo = (clienteLogado?.telefone || '').replace(/\D/g, '');
+        const nomeClienteLimpo = (clienteLogado?.nome || '').toLowerCase().trim();
 
-        if (!error && data) {
-          const encsMapeadas: Encomenda[] = data.map((row: any) => ({
-            id: row.id,
-            numero_sequencial: row.numero_sequencial,
-            codigo: row.codigo,
-            loja_id: row.loja_id,
-            loja_nome: row.loja?.nome || 'Padaria da Vila',
-            cliente: {
-              id: row.cliente?.id || clienteLogado.id,
-              nome: row.cliente?.nome || clienteLogado.nome,
-              telefone: row.cliente?.telefone || clienteLogado.telefone,
-              morada: row.cliente?.morada || clienteLogado.morada,
-            },
-            tipo: row.tipo,
-            canal_origem: row.canal_origem || 'site_online',
-            carrinha_id: row.carrinha_id,
-            carrinha_nome: row.carrinha?.identificador,
-            data_agendamento: row.data_agendamento,
-            hora_agendamento: row.hora_agendamento,
-            data_entrega_real: row.data_entrega_real,
-            hora_entrega_real: row.hora_entrega_real,
-            estado: row.estado,
-            notas_cliente: row.notas_cliente,
-            itens: (row.itens || []).map((it: any) => ({
-              id: it.id,
-              encomenda_id: it.encomenda_id,
-              produto_id: it.produto_id,
-              produto_nome: it.produto_nome,
-              quantidade: it.quantidade,
-              setor: it.setor || 'padaria',
-              estado_producao: it.estado_producao || 'pendente',
-              notas_personalizacao: it.notas_personalizacao,
-            })),
-          }));
-          setMinhasEncomendas(encsMapeadas);
+        // 1. Ler cache local de encomendas submetidas neste navegador para garantir visibilidade imediata
+        let locaisCliente: Encomenda[] = [];
+        if (typeof window !== 'undefined') {
+          try {
+            const rawLocal = localStorage.getItem('encomendas_portal_cliente_v1');
+            if (rawLocal) {
+              const parsed: Encomenda[] = JSON.parse(rawLocal);
+              locaisCliente = parsed.filter((e) => {
+                const telEnc = (e.cliente?.telefone || '').replace(/\D/g, '');
+                return (
+                  e.cliente?.id === clienteLogado?.id ||
+                  (telClienteLimpo && telEnc === telClienteLimpo)
+                );
+              });
+            }
+          } catch {}
         }
+
+        // 2. Carregar encomendas reais do Supabase (usa a coluna correta criado_em e junta produtos)
+        const todasDb = await carregarEncomendasSupabase();
+        const doClienteDb = todasDb.filter((enc) => {
+          const telEnc = (enc.cliente?.telefone || '').replace(/\D/g, '');
+          const matchId = clienteLogado?.id && !clienteLogado.id.startsWith('cli-') && enc.cliente?.id === clienteLogado.id;
+          const matchTel = telClienteLimpo.length >= 9 && (telEnc === telClienteLimpo || (enc.notas_cliente || '').replace(/\D/g, '').includes(telClienteLimpo));
+          const matchNome = nomeClienteLimpo.length > 2 && enc.cliente?.nome?.toLowerCase().trim() === nomeClienteLimpo;
+          return matchId || matchTel || matchNome;
+        });
+
+        // 3. Combinar resultados do Supabase com a cache local (atualizando o estado em tempo real do Supabase)
+        const mapaCombinado = new Map<string, Encomenda>();
+        for (const encDb of doClienteDb) {
+          const localMatch = locaisCliente.find((l) => l.id === encDb.id || l.codigo === encDb.codigo);
+          // Se o Supabase tiver itens vazios ou sem nome, preservar os itens detalhados guardados localmente
+          const itensFinais =
+            encDb.itens && encDb.itens.length > 0
+              ? encDb.itens.map((it, idx) => ({
+                  ...it,
+                  produto_nome:
+                    it.produto_nome && it.produto_nome !== 'Artigo de Padaria/Pastelaria'
+                      ? it.produto_nome
+                      : localMatch?.itens?.[idx]?.produto_nome || it.produto_nome,
+                }))
+              : localMatch?.itens || [];
+
+          mapaCombinado.set(encDb.codigo, {
+            ...encDb,
+            itens: itensFinais,
+          });
+        }
+
+        for (const encLocal of locaisCliente) {
+          if (!mapaCombinado.has(encLocal.codigo)) {
+            mapaCombinado.set(encLocal.codigo, encLocal);
+          }
+        }
+
+        setMinhasEncomendas(Array.from(mapaCombinado.values()));
       } catch (err) {
         console.error('Erro ao buscar encomendas do cliente:', err);
       } finally {
@@ -452,15 +464,61 @@ export default function EncomendarClientePage() {
 
           const itensDb = carrinho.map((it) => ({
             encomenda_id: encCriada.id,
-            produto_id: it.produtoId.startsWith('prod-') ? null : it.produtoId,
-            produto_nome: it.nome,
-            quantidade: it.quantidade,
+            produto_id: it.produtoId && !it.produtoId.startsWith('prod-') && !it.produtoId.startsWith('temp-') ? it.produtoId : null,
+            quantidade: Number(it.quantidade) || 1,
+            preco_unitario: Number(it.preco) || 0,
             setor: it.categoria === 'pastelaria' ? 'pastelaria' : 'padaria',
             estado_producao: 'pendente',
             notas_personalizacao: it.notas || null,
           }));
 
           await supabase.from('itens_encomenda').insert(itensDb);
+
+          const novaEncObj: Encomenda = {
+            id: encCriada.id,
+            numero_sequencial: numSeq,
+            codigo: codigoOficial,
+            loja_id: tipoEntrega === 'levantamento_loja' ? lojaAlvo.id : (lojas[0]?.id || lojaAlvo.id),
+            loja_nome: lojaAlvo.nome,
+            cliente: {
+              id: clienteIdReal || clienteLogado.id,
+              nome: clienteLogado.nome,
+              telefone: clienteLogado.telefone,
+              morada: moradaEntrega || clienteLogado.morada,
+            },
+            tipo: tipoEntrega,
+            canal_origem: 'site_online',
+            data_agendamento: dataAgendamento,
+            hora_agendamento: horaAgendamento,
+            estado: 'pendente',
+            estado_pagamento: 'pendente',
+            total: 0,
+            notas_cliente: notasGeraisPedido.trim() || undefined,
+            itens: carrinho.map((it, i) => ({
+              id: `item-${Date.now()}-${i}`,
+              encomenda_id: encCriada.id,
+              produto_id: it.produtoId,
+              produto_nome: it.nome,
+              quantidade: it.quantidade,
+              preco_unitario: it.preco || 0,
+              setor: it.categoria === 'pastelaria' ? 'pastelaria' : 'padaria',
+              estado_producao: 'pendente',
+              notas_personalizacao: it.notas || undefined,
+            })),
+            criado_em: new Date().toISOString(),
+          };
+
+          setMinhasEncomendas((prev) => [novaEncObj, ...prev.filter((e) => e.codigo !== codigoOficial)]);
+          if (typeof window !== 'undefined') {
+            try {
+              const rawLocal = localStorage.getItem('encomendas_portal_cliente_v1');
+              const listaLocal: Encomenda[] = rawLocal ? JSON.parse(rawLocal) : [];
+              localStorage.setItem(
+                'encomendas_portal_cliente_v1',
+                JSON.stringify([novaEncObj, ...listaLocal.filter((e) => e.codigo !== codigoOficial)])
+              );
+            } catch {}
+          }
 
           await registarLogAuditoria({
             encomenda_id: encCriada.id,
