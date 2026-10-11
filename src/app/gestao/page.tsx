@@ -211,7 +211,8 @@ export default function AdminPage() {
   const artigosGrelhaBaseFixa = useMemo(() => {
     const setNomes = new Set<string>(COLUNAS_MAPA_DIARIO_OFICIAL);
     baseFixaCarrinhas.forEach((bf) => {
-      Object.keys(bf.quantidades || {}).forEach((prod) => setNomes.add(prod));
+      const mapa = bf?.quantidades_por_produto || bf?.quantidades || {};
+      Object.keys(mapa).forEach((prod) => setNomes.add(prod));
     });
     return Array.from(setNomes);
   }, [baseFixaCarrinhas]);
@@ -221,18 +222,27 @@ export default function AdminPage() {
     const novaLista = [...baseFixaCarrinhas];
     const idx = novaLista.findIndex((b) => b.carrinha_id === carrinhaId || b.carrinha_nome === carrinhaNome);
     if (idx >= 0) {
-      const novoMapa = { ...novaLista[idx].quantidades };
+      const atual = novaLista[idx].quantidades_por_produto || novaLista[idx].quantidades || {};
+      const novoMapa = { ...atual };
       if (qtdLimpa <= 0) {
         delete novoMapa[produtoNome];
       } else {
         novoMapa[produtoNome] = qtdLimpa;
       }
-      novaLista[idx] = { ...novaLista[idx], quantidades: novoMapa };
+      novaLista[idx] = {
+        ...novaLista[idx],
+        carrinha_id: carrinhaId,
+        carrinha_nome: carrinhaNome,
+        quantidades_por_produto: novoMapa,
+        quantidades: novoMapa,
+      };
     } else {
+      const mapaInicial = qtdLimpa > 0 ? { [produtoNome]: qtdLimpa } : {};
       novaLista.push({
         carrinha_id: carrinhaId,
         carrinha_nome: carrinhaNome,
-        quantidades: qtdLimpa > 0 ? { [produtoNome]: qtdLimpa } : {},
+        quantidades_por_produto: mapaInicial,
+        quantidades: mapaInicial,
       });
     }
     setBaseFixaCarrinhas(novaLista);
@@ -249,18 +259,21 @@ export default function AdminPage() {
     const qtdLimpa = Math.max(0, Math.floor(Number(valor) || 0));
     const novaLista = clientesB2B.map((cli) => {
       if (cli.id !== clienteId) return cli;
-      const mapaDia = { ...(cli.quantidades_semana[dia] || {}) };
+      const semanaAtual = cli.quantidades_semanais || cli.quantidades_semana || ({} as Record<DiaSemana, Record<string, number>>);
+      const mapaDia = { ...(semanaAtual[dia] || {}) };
       if (qtdLimpa <= 0) {
         delete mapaDia[produtoNome];
       } else {
         mapaDia[produtoNome] = qtdLimpa;
       }
+      const novaSemana = {
+        ...semanaAtual,
+        [dia]: mapaDia,
+      };
       return {
         ...cli,
-        quantidades_semana: {
-          ...cli.quantidades_semana,
-          [dia]: mapaDia,
-        },
+        quantidades_semanais: novaSemana,
+        quantidades_semana: novaSemana,
       };
     });
     setClientesB2B(novaLista);
@@ -270,7 +283,8 @@ export default function AdminPage() {
   const handleCopiarDiaParaTodaSemanaB2B = (diaOrigem: DiaSemana) => {
     const todosDias: DiaSemana[] = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
     const novaLista = clientesB2B.map((cli) => {
-      const baseDia = { ...(cli.quantidades_semana[diaOrigem] || {}) };
+      const semanaAtual = cli.quantidades_semanais || cli.quantidades_semana || ({} as Record<DiaSemana, Record<string, number>>);
+      const baseDia = { ...(semanaAtual[diaOrigem] || {}) };
       const novaSemana: Record<DiaSemana, Record<string, number>> = {
         seg: { ...baseDia },
         ter: { ...baseDia },
@@ -285,6 +299,7 @@ export default function AdminPage() {
       });
       return {
         ...cli,
+        quantidades_semanais: novaSemana,
         quantidades_semana: novaSemana,
       };
     });
@@ -297,10 +312,18 @@ export default function AdminPage() {
   const handleSalvarClienteB2BModal = (e: React.FormEvent) => {
     e.preventDefault();
     if (!clienteB2BEmEdicao || !clienteB2BEmEdicao.nome.trim()) return;
-    const existe = clientesB2B.some((c) => c.id === clienteB2BEmEdicao.id);
+    const semanaSync = clienteB2BEmEdicao.quantidades_semanais || clienteB2BEmEdicao.quantidades_semana || {
+      seg: {}, ter: {}, qua: {}, qui: {}, sex: {}, sab: {}, dom: {}
+    };
+    const itemNormalizado: ClienteEmpresarialB2B = {
+      ...clienteB2BEmEdicao,
+      quantidades_semanais: semanaSync,
+      quantidades_semana: semanaSync,
+    };
+    const existe = clientesB2B.some((c) => c.id === itemNormalizado.id);
     const novaLista = existe
-      ? clientesB2B.map((c) => (c.id === clienteB2BEmEdicao.id ? clienteB2BEmEdicao : c))
-      : [...clientesB2B, clienteB2BEmEdicao];
+      ? clientesB2B.map((c) => (c.id === itemNormalizado.id ? itemNormalizado : c))
+      : [...clientesB2B, itemNormalizado];
     setClientesB2B(novaLista);
     salvarClientesEmpresariaisB2B(novaLista);
     setClienteB2BEmEdicao(null);
@@ -319,7 +342,8 @@ export default function AdminPage() {
     const wb = XLSX.utils.book_new();
     const cabecalho = ['Cliente_Empresarial', 'Telefone', 'Morada', 'Carrinha', ...COLUNAS_MAPA_DIARIO_OFICIAL];
     const linhas = clientesB2B.map((cli) => {
-      const mapaDia = cli.quantidades_semana[diaSemanaB2B] || {};
+      const semanaAtual = cli.quantidades_semanais || cli.quantidades_semana || ({} as Record<DiaSemana, Record<string, number>>);
+      const mapaDia = semanaAtual[diaSemanaB2B] || {};
       return [
         cli.nome,
         cli.telefone || '',
@@ -361,7 +385,7 @@ export default function AdminPage() {
 
           const idx = novaLista.findIndex((c) => c.nome.toLowerCase() === nomeCli.toLowerCase());
           if (idx >= 0) {
-            const semanaAtualizada = { ...novaLista[idx].quantidades_semana };
+            const semanaAtualizada = { ...(novaLista[idx].quantidades_semanais || novaLista[idx].quantidades_semana || {}) } as Record<DiaSemana, Record<string, number>>;
             todosDias.forEach((d) => {
               semanaAtualizada[d] = { ...mapaArtigos };
             });
@@ -369,6 +393,7 @@ export default function AdminPage() {
               ...novaLista[idx],
               telefone: String(r['Telefone'] || novaLista[idx].telefone || ''),
               morada: String(r['Morada'] || novaLista[idx].morada || ''),
+              quantidades_semanais: semanaAtualizada,
               quantidades_semana: semanaAtualizada,
             };
           } else {
@@ -383,6 +408,7 @@ export default function AdminPage() {
               morada: String(r['Morada'] || 'Arouca'),
               carrinha_id: 'b555db95-c427-4ed5-83fc-01403bd24cf5',
               ativo: true,
+              quantidades_semanais: novaSemana,
               quantidades_semana: novaSemana,
             });
           }
@@ -2079,17 +2105,19 @@ export default function AdminPage() {
                   <tbody className="divide-y divide-gray-100">
                     {artigosGrelhaBaseFixa.map((prodNome) => {
                       const carrosParticulares = [
-                        { id: carrinhas[0]?.id || 'e908db95-c427-4ed5-83fc-01403bd24cf1', nome: '1º Carro' },
-                        { id: carrinhas[1]?.id || 'a712db95-c427-4ed5-83fc-01403bd24cf2', nome: '2º Carro' },
-                        { id: carrinhas[2]?.id || 'b823db95-c427-4ed5-83fc-01403bd24cf3', nome: '3º Carro' },
-                        { id: carrinhas[3]?.id || 'c934db95-c427-4ed5-83fc-01403bd24cf4', nome: '4º Carro' },
+                        { id: carrinhas[0]?.id || '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75', nome: '1º Carro' },
+                        { id: carrinhas[1]?.id || '5ebae97d-593f-4f54-81c5-b200dd04258b', nome: '2º Carro' },
+                        { id: carrinhas[2]?.id || 'e062fea7-97da-4b2a-8607-da6a9ea8e668', nome: '3º Carro' },
+                        { id: carrinhas[3]?.id || 'a282db95-c427-4ed5-83fc-01403bd24cfc', nome: '4º Carro' },
                       ];
 
-                      const qtdsPorCarro = carrosParticulares.map((c) => {
-                        const reg = baseFixaCarrinhas.find(
-                          (b) => b.carrinha_id === c.id || b.carrinha_nome === c.nome
-                        );
-                        return reg?.quantidades?.[prodNome] || 0;
+                      const qtdsPorCarro = carrosParticulares.map((c, idxCarro) => {
+                        const reg =
+                          baseFixaCarrinhas.find(
+                            (b) => b.carrinha_id === c.id || b.carrinha_nome === c.nome
+                          ) || baseFixaCarrinhas[idxCarro];
+                        const mapa = reg?.quantidades_por_produto || reg?.quantidades || {};
+                        return mapa[prodNome] || 0;
                       });
 
                       const somaLinha = qtdsPorCarro.reduce((a, b) => a + b, 0);
@@ -2155,6 +2183,7 @@ export default function AdminPage() {
                           morada: 'Arouca',
                           carrinha_id: 'b555db95-c427-4ed5-83fc-01403bd24cf5',
                           ativo: true,
+                          quantidades_semanais: vazios,
                           quantidades_semana: vazios,
                         });
                       }}
@@ -2252,7 +2281,8 @@ export default function AdminPage() {
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {clientesB2B.map((cli) => {
-                      const mapaDia = cli.quantidades_semana[diaSemanaB2B] || {};
+                      const semanaCli = cli.quantidades_semanais || cli.quantidades_semana || ({} as Record<DiaSemana, Record<string, number>>);
+                      const mapaDia = semanaCli[diaSemanaB2B] || {};
                       const entries = Object.entries(mapaDia).filter(([, q]) => q > 0);
                       const totalCliDia = entries.reduce((acc, [, q]) => acc + q, 0);
 
@@ -4391,18 +4421,21 @@ export default function AdminPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      const atual = { ...(clienteB2BEmEdicao.quantidades_semana[diaSemanaB2B] || {}) };
+                      const semanaModal = clienteB2BEmEdicao.quantidades_semanais || clienteB2BEmEdicao.quantidades_semana || ({} as Record<DiaSemana, Record<string, number>>);
+                      const atual = { ...(semanaModal[diaSemanaB2B] || {}) };
+                      const novaSemanaModal: Record<DiaSemana, Record<string, number>> = {
+                        seg: { ...atual },
+                        ter: { ...atual },
+                        qua: { ...atual },
+                        qui: { ...atual },
+                        sex: { ...atual },
+                        sab: { ...atual },
+                        dom: { ...atual },
+                      };
                       setClienteB2BEmEdicao({
                         ...clienteB2BEmEdicao,
-                        quantidades_semana: {
-                          seg: { ...atual },
-                          ter: { ...atual },
-                          qua: { ...atual },
-                          qui: { ...atual },
-                          sex: { ...atual },
-                          sab: { ...atual },
-                          dom: { ...atual },
-                        },
+                        quantidades_semanais: novaSemanaModal,
+                        quantidades_semana: novaSemanaModal,
                       });
                     }}
                     className="px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-bold text-[10px] hover:bg-indigo-700 transition cursor-pointer"
@@ -4440,7 +4473,8 @@ export default function AdminPage() {
               {/* Grelha dos 29 Artigos do Mapa Diário */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-72 overflow-y-auto p-1">
                 {COLUNAS_MAPA_DIARIO_OFICIAL.map((prodNome) => {
-                  const qtdAtual = clienteB2BEmEdicao.quantidades_semana[diaSemanaB2B]?.[prodNome] || 0;
+                  const semanaModal = clienteB2BEmEdicao.quantidades_semanais || clienteB2BEmEdicao.quantidades_semana || ({} as Record<DiaSemana, Record<string, number>>);
+                  const qtdAtual = semanaModal[diaSemanaB2B]?.[prodNome] || 0;
                   return (
                     <div
                       key={prodNome}
@@ -4458,18 +4492,20 @@ export default function AdminPage() {
                         placeholder="0"
                         onChange={(e) => {
                           const val = Math.max(0, Math.floor(Number(e.target.value) || 0));
-                          const mapaDia = { ...(clienteB2BEmEdicao.quantidades_semana[diaSemanaB2B] || {}) };
+                          const mapaDia = { ...(semanaModal[diaSemanaB2B] || {}) };
                           if (val <= 0) {
                             delete mapaDia[prodNome];
                           } else {
                             mapaDia[prodNome] = val;
                           }
+                          const novaSemana = {
+                            ...semanaModal,
+                            [diaSemanaB2B]: mapaDia,
+                          };
                           setClienteB2BEmEdicao({
                             ...clienteB2BEmEdicao,
-                            quantidades_semana: {
-                              ...clienteB2BEmEdicao.quantidades_semana,
-                              [diaSemanaB2B]: mapaDia,
-                            },
+                            quantidades_semanais: novaSemana,
+                            quantidades_semana: novaSemana,
                           });
                         }}
                         className="w-16 text-center py-1 px-1.5 rounded-lg border border-gray-300 bg-white font-mono font-black text-indigo-950"

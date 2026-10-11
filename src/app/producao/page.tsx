@@ -128,12 +128,27 @@ export default function ProducaoPage() {
           const rawFornos = localStorage.getItem(FORNOS_STORAGE_KEY);
           if (rawFornos) {
             const parsed = JSON.parse(rawFornos);
-            if (Array.isArray(parsed) && parsed.length === 3) setFornos(parsed);
+            if (Array.isArray(parsed) && parsed.length === 3) {
+              setFornos(
+                parsed.map((f: any, idx: number) => ({
+                  ...FORNOS_INICIAIS[idx],
+                  ...f,
+                  itens: Array.isArray(f?.itens) ? f.itens : [],
+                  historico_fornadas: Array.isArray(f?.historico_fornadas) ? f.historico_fornadas : [],
+                }))
+              );
+            }
           }
           const rawProd = localStorage.getItem(PRODUZIDO_DIA_STORAGE_KEY);
-          if (rawProd) setProduzidoPorProduto(JSON.parse(rawProd));
+          if (rawProd) {
+            const parsedProd = JSON.parse(rawProd);
+            if (parsedProd && typeof parsedProd === 'object') setProduzidoPorProduto(parsedProd);
+          }
           const rawAceites = localStorage.getItem(URGENTES_ACEITES_STORAGE_KEY);
-          if (rawAceites) setEncomendasUrgentesAceites(JSON.parse(rawAceites));
+          if (rawAceites) {
+            const parsedAceites = JSON.parse(rawAceites);
+            if (Array.isArray(parsedAceites)) setEncomendasUrgentesAceites(parsedAceites);
+          }
         } catch {
           // ignore
         }
@@ -650,42 +665,71 @@ export default function ProducaoPage() {
 
   // 2. Somar Carga Base das Carrinhas 1 a 4 (Particulares) e 5º Carro (Clientes Empresariais B2B) se ativo
   if (incluirCargaCarrinhasNoPool && selectedLojaId === 'todas') {
+    const artigosPastelariaMapa = new Set([
+      'PASTEIS',
+      'Lanches',
+      'Merendas',
+      'Meia Lua',
+      'R.doce GR',
+      'R.doce P',
+      'R. Coco',
+      'R CANELA',
+    ]);
+
     baseFixaCarrinhas.forEach((bf) => {
-      Object.entries(bf.quantidadesPorProduto).forEach(([prodId, qtd]) => {
-        if (!qtd || qtd <= 0) return;
-        const prodCatalogo = produtos.find((p) => p.id === prodId);
-        const setorProd: SetorProducao = prodCatalogo?.categoria === 'pastelaria' ? 'pastelaria' : 'padaria';
+      const mapaProd = bf?.quantidades_por_produto || bf?.quantidades || {};
+      Object.entries(mapaProd).forEach(([prodKey, qtd]) => {
+        const qtdNum = Number(qtd || 0);
+        if (qtdNum <= 0) return;
+        const prodCatalogo = produtos.find(
+          (p) => p.id === prodKey || p.nome.toLowerCase() === prodKey.toLowerCase()
+        );
+        const chavePool = prodCatalogo?.id || prodKey;
+        const nomeExibicao = prodCatalogo?.nome || prodKey;
+        const setorProd: SetorProducao =
+          prodCatalogo?.categoria === 'pastelaria' || artigosPastelariaMapa.has(prodKey)
+            ? 'pastelaria'
+            : 'padaria';
         if (setorAtivo !== 'todos' && setorProd !== setorAtivo) return;
-        const existente = mapaPool.get(prodId) || {
-          produto_id: prodId,
-          produto_nome: prodCatalogo?.nome || prodId,
+        const existente = mapaPool.get(chavePool) || {
+          produto_id: chavePool,
+          produto_nome: nomeExibicao,
           setor: setorProd,
           qtdEncomendas: 0,
           qtdBaseCarrinhas: 0,
           qtdItensProntos: 0,
         };
-        existente.qtdBaseCarrinhas += Number(qtd);
-        mapaPool.set(prodId, existente);
+        existente.qtdBaseCarrinhas += qtdNum;
+        mapaPool.set(chavePool, existente);
       });
     });
 
-    clientesB2B.filter((c) => c.ativo).forEach((cli) => {
-      Object.entries(cli.quantidadesPorProduto).forEach(([prodId, mapaDias]) => {
-        const qtdDia = Number(mapaDias?.[diaSemanaPool] || 0);
+    clientesB2B.filter((c) => c?.ativo).forEach((cli) => {
+      const semanaCli = cli?.quantidades_semanais || cli?.quantidades_semana || ({} as Record<string, Record<string, number>>);
+      const mapaDia = semanaCli[diaSemanaPool] || {};
+      Object.entries(mapaDia).forEach(([prodKey, qtdVal]) => {
+        const qtdDia = Number(qtdVal || 0);
         if (qtdDia <= 0) return;
-        const prodCatalogo = produtos.find((p) => p.id === prodId);
-        const setorProd: SetorProducao = prodCatalogo?.categoria === 'pastelaria' ? 'pastelaria' : 'padaria';
+        const prodCatalogo = produtos.find(
+          (p) => p.id === prodKey || p.nome.toLowerCase() === prodKey.toLowerCase()
+        );
+        const chavePool = prodCatalogo?.id || prodKey;
+        const nomeExibicao = prodCatalogo?.nome || prodKey;
+        const setorProd: SetorProducao =
+          prodCatalogo?.categoria === 'pastelaria' || artigosPastelariaMapa.has(prodKey)
+            ? 'pastelaria'
+            : 'padaria';
         if (setorAtivo !== 'todos' && setorProd !== setorAtivo) return;
-        const existente = mapaPool.get(prodId) || {
-          produto_id: prodId,
-          produto_nome: prodCatalogo?.nome || prodId,
+        const existente = mapaPool.get(chavePool) || {
+          produto_id: chavePool,
+          produto_nome: nomeExibicao,
           setor: setorProd,
           qtdEncomendas: 0,
           qtdBaseCarrinhas: 0,
           qtdItensProntos: 0,
         };
         existente.qtdBaseCarrinhas += qtdDia;
-        mapaPool.set(prodId, existente);
+        mapaPool.set(chavePool, existente);
       });
     });
   }
@@ -694,8 +738,8 @@ export default function ProducaoPage() {
   const listaPoolArtigos: ItemPoolArtigo[] = Array.from(mapaPool.values())
     .map((entry) => {
       const emForno = fornos.reduce((acc, forno) => {
-        const somaForno = forno.itens
-          .filter((i) => i.produto_id === entry.produto_id)
+        const somaForno = (forno.itens || [])
+          .filter((i) => i.produto_id === entry.produto_id || i.produto_nome === entry.produto_nome)
           .reduce((s, i) => s + i.quantidade, 0);
         return acc + somaForno;
       }, 0);
@@ -724,7 +768,7 @@ export default function ProducaoPage() {
     if (!temPermissaoEdicao) return;
     const itemPool = listaPoolArtigos.find((p) => p.produto_id === produtoId);
     const prodCatalogo = produtos.find((p) => p.id === produtoId);
-    const nomeProduto = itemPool?.produto_nome || prodCatalogo?.nome;
+    const nomeProduto = itemPool?.produto_nome || prodCatalogo?.nome || produtoId;
     if (!nomeProduto) return;
 
     const maxDisponivel = itemPool ? itemPool.restantePool : 999;
@@ -734,8 +778,9 @@ export default function ProducaoPage() {
 
     const novosFornos = fornos.map((forno) => {
       if (forno.id !== fornoId) return forno;
-      const existenteIdx = forno.itens.findIndex((i) => i.produto_id === produtoId);
-      let novosItens = [...forno.itens];
+      const itensAtuais = forno.itens || [];
+      const existenteIdx = itensAtuais.findIndex((i) => i.produto_id === produtoId);
+      let novosItens = [...itensAtuais];
       if (existenteIdx >= 0) {
         novosItens[existenteIdx] = {
           ...novosItens[existenteIdx],
@@ -1349,14 +1394,18 @@ export default function ProducaoPage() {
                               }}
                               className="flex-1 min-w-0 px-2.5 py-1.5 rounded-xl bg-white border border-stone-300 text-xs font-bold text-stone-900 focus:outline-hidden"
                             >
-                              {produtos.map((p) => {
-                                const infoPool = listaPoolArtigos.find((lp) => lp.produto_id === p.id);
-                                return (
+                              {listaPoolArtigos.map((lp) => (
+                                <option key={lp.produto_id} value={lp.produto_id}>
+                                  {lp.produto_nome} (Pool: {lp.restantePool} un.)
+                                </option>
+                              ))}
+                              {produtos
+                                .filter((p) => !listaPoolArtigos.some((lp) => lp.produto_id === p.id || lp.produto_nome === p.nome))
+                                .map((p) => (
                                   <option key={p.id} value={p.id}>
-                                    {p.nome} {infoPool ? `(Pool: ${infoPool.restantePool} un.)` : ''}
+                                    {p.nome}
                                   </option>
-                                );
-                              })}
+                                ))}
                             </select>
 
                             <input

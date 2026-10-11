@@ -250,7 +250,7 @@ export default function EntregasPage() {
   // EXPORTAÇÃO EXCEL DO MAPA DIÁRIO OFICIAL (POR ARTIGO E POR CARRINHA + B2B)
   // ---------------------------------------------------------------------------
   const exportarMapaDiarioExcel = async () => {
-    const cabecalhosArtigos = COLUNAS_MAPA_DIARIO_OFICIAL.map((c) => c.cabecalho);
+    const cabecalhosArtigos = COLUNAS_MAPA_DIARIO_OFICIAL;
     const linhaTitulo1 = ['UNIÃO PANIFICADORA CENTRAL AROUQUENSE, LDA'];
     const linhaTitulo2 = [
       'MAPA DIÁRIO DE DISTRIBUIÇÃO E CARRINHAS',
@@ -264,8 +264,8 @@ export default function EntregasPage() {
     const linhaVazia: string[] = [];
     const linhaCabecalho = ['VENDEDOR', ...cabecalhosArtigos, 'TOTAL UNIDADES'];
 
-    // Função auxiliar para obter a quantidade de um produto numa encomenda pelo produto_id ou nome
-    const obterQtdEncomendasCarrinha = (carrinhaId: string, col: { produto_id: string; cabecalho: string }) => {
+    // Função auxiliar para obter a quantidade de um produto numa encomenda pelo nome
+    const obterQtdEncomendasCarrinha = (carrinhaId: string, colNome: string) => {
       const encsCarrinha = encomendas.filter(
         (e) =>
           e.data_agendamento === hoje &&
@@ -277,8 +277,8 @@ export default function EntregasPage() {
       encsCarrinha.forEach((enc) => {
         enc.itens.forEach((it) => {
           if (
-            it.produto_id === col.produto_id ||
-            it.produto_nome.toLowerCase() === col.cabecalho.toLowerCase()
+            it.produto_id === colNome ||
+            (it.produto_nome || '').toLowerCase() === (colNome || '').toLowerCase()
           ) {
             soma += it.quantidade;
           }
@@ -293,12 +293,15 @@ export default function EntregasPage() {
     // 1. Linhas 1º CARRO a 4º CARRO (Base Fixa Particulares + Pedidos Adicionais)
     const carrinhas1a4 = carrinhas.slice(0, 4);
     carrinhas1a4.forEach((car, idx) => {
-      const bf = baseFixaCarrinhas.find((b) => b.carrinha_id === car.id);
+      const bf =
+        baseFixaCarrinhas.find((b) => b.carrinha_id === car.id) ||
+        baseFixaCarrinhas[idx];
+      const mapaFixo = bf?.quantidades_por_produto || bf?.quantidades || {};
       const nomeLinha = `${idx + 1}º CARRO`;
       let totalLinha = 0;
-      const valoresCols = COLUNAS_MAPA_DIARIO_OFICIAL.map((col, colIdx) => {
-        const qtdFixa = Number(bf?.quantidadesPorProduto?.[col.produto_id] || 0);
-        const qtdAdicional = obterQtdEncomendasCarrinha(car.id, col);
+      const valoresCols = COLUNAS_MAPA_DIARIO_OFICIAL.map((colNome, colIdx) => {
+        const qtdFixa = Number(mapaFixo[colNome] || 0);
+        const qtdAdicional = obterQtdEncomendasCarrinha(car.id, colNome);
         const soma = qtdFixa + qtdAdicional;
         totaisPorColuna[colIdx] += soma;
         totalLinha += soma;
@@ -311,11 +314,15 @@ export default function EntregasPage() {
     const carrinha5 = carrinhas[4] || CARRINHAS_MOCK[4];
     if (carrinha5) {
       let totalCarro5 = 0;
-      const valoresCarro5 = COLUNAS_MAPA_DIARIO_OFICIAL.map((col) => {
+      const valoresCarro5 = COLUNAS_MAPA_DIARIO_OFICIAL.map((colNome) => {
         const qtdB2B = clientesB2B
-          .filter((c) => c.ativo && c.carrinha_id === carrinha5.id)
-          .reduce((acc, cli) => acc + Number(cli.quantidadesPorProduto?.[col.produto_id]?.[diaSemanaHoje] || 0), 0);
-        const qtdAdicional = obterQtdEncomendasCarrinha(carrinha5.id, col);
+          .filter((c) => c?.ativo)
+          .reduce((acc, cli) => {
+            const semanaCli = cli?.quantidades_semanais || cli?.quantidades_semana || ({} as Record<string, Record<string, number>>);
+            const mapaDia = semanaCli[diaSemanaHoje] || {};
+            return acc + Number(mapaDia[colNome] || 0);
+          }, 0);
+        const qtdAdicional = obterQtdEncomendasCarrinha(carrinha5.id, colNome);
         const soma = qtdB2B + qtdAdicional;
         totalCarro5 += soma;
         return soma > 0 ? soma : '';
@@ -324,10 +331,12 @@ export default function EntregasPage() {
     }
 
     // 3. Linhas Individuais dos Clientes Empresariais (Gamarão, Patronato, P.-Telhe, Lar 3ª Idade, Hospital, etc.)
-    clientesB2B.filter((c) => c.ativo).forEach((cli) => {
+    clientesB2B.filter((c) => c?.ativo).forEach((cli) => {
+      const semanaCli = cli?.quantidades_semanais || cli?.quantidades_semana || ({} as Record<string, Record<string, number>>);
+      const mapaDia = semanaCli[diaSemanaHoje] || {};
       let totalCli = 0;
-      const valoresCli = COLUNAS_MAPA_DIARIO_OFICIAL.map((col, colIdx) => {
-        const qtd = Number(cli.quantidadesPorProduto?.[col.produto_id]?.[diaSemanaHoje] || 0);
+      const valoresCli = COLUNAS_MAPA_DIARIO_OFICIAL.map((colNome, colIdx) => {
+        const qtd = Number(mapaDia[colNome] || 0);
         totaisPorColuna[colIdx] += qtd;
         totalCli += qtd;
         return qtd > 0 ? qtd : '';
@@ -337,8 +346,8 @@ export default function EntregasPage() {
 
     // Somar também eventuais encomendas avulsas atribuídas ao 5º Carro no Total Geral
     if (carrinha5) {
-      COLUNAS_MAPA_DIARIO_OFICIAL.forEach((col, colIdx) => {
-        totaisPorColuna[colIdx] += obterQtdEncomendasCarrinha(carrinha5.id, col);
+      COLUNAS_MAPA_DIARIO_OFICIAL.forEach((colNome, colIdx) => {
+        totaisPorColuna[colIdx] += obterQtdEncomendasCarrinha(carrinha5.id, colNome);
       });
     }
 
@@ -796,34 +805,36 @@ export default function EntregasPage() {
                   {carrinhas.map((car, idx) => {
                     const isCarro5 = idx === 4 || car.identificador.includes('5º Carro') || car.identificador.includes('Carrinha 5');
                     const isSelected = carrinhaSelecionadaId === car.id;
-                    const bf = baseFixaCarrinhas.find((b) => b.carrinha_id === car.id);
+                    const bf =
+                      baseFixaCarrinhas.find((b) => b.carrinha_id === car.id) ||
+                      baseFixaCarrinhas[idx];
                     const totaisArtigo = new Map<string, { nome: string; qtdBase: number; qtdExtra: number }>();
 
                     if (!isCarro5 && bf) {
-                      Object.entries(bf.quantidadesPorProduto).forEach(([prodId, qtd]) => {
-                        if (!qtd || qtd <= 0) return;
+                      const mapaFixo = bf?.quantidades_por_produto || bf?.quantidades || {};
+                      Object.entries(mapaFixo).forEach(([prodKey, qtd]) => {
+                        const qtdNum = Number(qtd || 0);
+                        if (qtdNum <= 0) return;
                         const prodNome =
-                          produtos.find((p) => p.id === prodId)?.nome ||
-                          COLUNAS_MAPA_DIARIO_OFICIAL.find((c) => c.produto_id === prodId)?.cabecalho ||
-                          prodId;
-                        totaisArtigo.set(prodId, { nome: prodNome, qtdBase: Number(qtd), qtdExtra: 0 });
+                          produtos.find((p) => p.id === prodKey)?.nome || prodKey;
+                        totaisArtigo.set(prodKey, { nome: prodNome, qtdBase: qtdNum, qtdExtra: 0 });
                       });
                     }
 
                     if (isCarro5) {
                       clientesB2B
-                        .filter((c) => c.ativo && c.carrinha_id === car.id)
+                        .filter((c) => c?.ativo)
                         .forEach((cli) => {
-                          Object.entries(cli.quantidadesPorProduto).forEach(([prodId, mapaDias]) => {
-                            const qtdDia = Number(mapaDias?.[diaSemanaHoje] || 0);
+                          const semanaCli = cli?.quantidades_semanais || cli?.quantidades_semana || ({} as Record<string, Record<string, number>>);
+                          const mapaDia = semanaCli[diaSemanaHoje] || {};
+                          Object.entries(mapaDia).forEach(([prodKey, qtdVal]) => {
+                            const qtdDia = Number(qtdVal || 0);
                             if (qtdDia <= 0) return;
                             const prodNome =
-                              produtos.find((p) => p.id === prodId)?.nome ||
-                              COLUNAS_MAPA_DIARIO_OFICIAL.find((c) => c.produto_id === prodId)?.cabecalho ||
-                              prodId;
-                            const atual = totaisArtigo.get(prodId) || { nome: prodNome, qtdBase: 0, qtdExtra: 0 };
+                              produtos.find((p) => p.id === prodKey)?.nome || prodKey;
+                            const atual = totaisArtigo.get(prodKey) || { nome: prodNome, qtdBase: 0, qtdExtra: 0 };
                             atual.qtdBase += qtdDia;
-                            totaisArtigo.set(prodId, atual);
+                            totaisArtigo.set(prodKey, atual);
                           });
                         });
                     }
@@ -839,13 +850,14 @@ export default function EntregasPage() {
                       )
                       .forEach((enc) => {
                         enc.itens.forEach((it) => {
-                          const atual = totaisArtigo.get(it.produto_id) || {
+                          const chave = totaisArtigo.has(it.produto_nome) ? it.produto_nome : it.produto_id;
+                          const atual = totaisArtigo.get(chave) || {
                             nome: it.produto_nome,
                             qtdBase: 0,
                             qtdExtra: 0,
                           };
                           atual.qtdExtra += it.quantidade;
-                          totaisArtigo.set(it.produto_id, atual);
+                          totaisArtigo.set(chave, atual);
                         });
                       });
 
@@ -912,21 +924,21 @@ export default function EntregasPage() {
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-black text-indigo-950 flex items-center gap-1.5">
                         <Building2 className="h-4 w-4 text-indigo-700" />
-                        <span>Entregas B2B do 5º Carro Hoje ({clientesB2B.filter((c) => c.ativo).length} Clientes Empresariais)</span>
+                        <span>Entregas B2B do 5º Carro Hoje ({clientesB2B.filter((c) => c?.ativo).length} Clientes Empresariais)</span>
                       </span>
                       <span className="text-[10px] font-bold text-indigo-700">
                         Configurável no painel de Gestão
                       </span>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-                      {clientesB2B.filter((c) => c.ativo).map((cli) => {
-                        const itensHoje = Object.entries(cli.quantidadesPorProduto)
-                          .map(([prodId, mapa]) => ({
+                      {clientesB2B.filter((c) => c?.ativo).map((cli) => {
+                        const semanaCli = cli?.quantidades_semanais || cli?.quantidades_semana || ({} as Record<string, Record<string, number>>);
+                        const mapaDia = semanaCli[diaSemanaHoje] || {};
+                        const itensHoje = Object.entries(mapaDia)
+                          .map(([prodKey, qtdVal]) => ({
                             nome:
-                              COLUNAS_MAPA_DIARIO_OFICIAL.find((c) => c.produto_id === prodId)?.cabecalho ||
-                              produtos.find((p) => p.id === prodId)?.nome ||
-                              prodId,
-                            qtd: Number(mapa?.[diaSemanaHoje] || 0),
+                              produtos.find((p) => p.id === prodKey)?.nome || prodKey,
+                            qtd: Number(qtdVal || 0),
                           }))
                           .filter((x) => x.qtd > 0);
                         const totalCli = itensHoje.reduce((a, b) => a + b.qtd, 0);

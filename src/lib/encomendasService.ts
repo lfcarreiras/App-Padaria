@@ -1138,54 +1138,119 @@ export async function reiniciarLogsAuditoriaParaMock(): Promise<LogAuditoria[]> 
 
 // ---------------- BASE FIXA CARRINHAS 1-4 E CLIENTES EMPRESARIAIS B2B (CARRINHA 5) ---------------- //
 
-const BASE_FIXA_CARRINHAS_STORAGE_KEY = 'padaria_base_fixa_carrinhas_v1';
-const CLIENTES_B2B_STORAGE_KEY = 'padaria_clientes_empresariais_b2b_v1';
+const BASE_FIXA_CARRINHAS_STORAGE_KEY = 'padaria_base_fixa_carrinhas_v2';
+const CLIENTES_B2B_STORAGE_KEY = 'padaria_clientes_empresariais_b2b_v2';
+
+const MAPA_CARRINHA_IDS_LEGADOS: Record<string, { id: string; nome: string }> = {
+  'e908db95-c427-4ed5-83fc-01403bd24cf1': { id: '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75', nome: '1º Carro' },
+  'a712db95-c427-4ed5-83fc-01403bd24cf2': { id: '5ebae97d-593f-4f54-81c5-b200dd04258b', nome: '2º Carro' },
+  'b823db95-c427-4ed5-83fc-01403bd24cf3': { id: 'e062fea7-97da-4b2a-8607-da6a9ea8e668', nome: '3º Carro' },
+  'c934db95-c427-4ed5-83fc-01403bd24cf4': { id: 'a282db95-c427-4ed5-83fc-01403bd24cfc', nome: '4º Carro' },
+  '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75': { id: '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75', nome: '1º Carro' },
+  '5ebae97d-593f-4f54-81c5-b200dd04258b': { id: '5ebae97d-593f-4f54-81c5-b200dd04258b', nome: '2º Carro' },
+  'e062fea7-97da-4b2a-8607-da6a9ea8e668': { id: 'e062fea7-97da-4b2a-8607-da6a9ea8e668', nome: '3º Carro' },
+  'a282db95-c427-4ed5-83fc-01403bd24cfc': { id: 'a282db95-c427-4ed5-83fc-01403bd24cfc', nome: '4º Carro' },
+};
+
+export function normalizarBaseFixaItem(b: any): BaseFixaCarrinha {
+  const infoId = MAPA_CARRINHA_IDS_LEGADOS[b?.carrinha_id] || {
+    id: b?.carrinha_id || '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75',
+    nome: b?.carrinha_nome || '1º Carro',
+  };
+  const mapaQtds: Record<string, number> = {
+    ...(b?.quantidades_por_produto || b?.quantidades || b?.quantidadesPorProduto || {}),
+  };
+  return {
+    carrinha_id: infoId.id,
+    carrinha_nome: b?.carrinha_nome || infoId.nome,
+    quantidades_por_produto: mapaQtds,
+    quantidades: mapaQtds,
+  };
+}
+
+export function normalizarClienteB2BItem(c: any): ClienteEmpresarialB2B {
+  const todosDias: DiaSemana[] = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
+  const origemSemana = c?.quantidades_semanais || c?.quantidades_semana || {};
+  const semanaNormalizada: Record<DiaSemana, Record<string, number>> = {
+    seg: { ...(origemSemana.seg || {}) },
+    ter: { ...(origemSemana.ter || {}) },
+    qua: { ...(origemSemana.qua || {}) },
+    qui: { ...(origemSemana.qui || {}) },
+    sex: { ...(origemSemana.sex || {}) },
+    sab: { ...(origemSemana.sab || {}) },
+    dom: { ...(origemSemana.dom || {}) },
+  };
+  todosDias.forEach((d) => {
+    if (!semanaNormalizada[d] || typeof semanaNormalizada[d] !== 'object') {
+      semanaNormalizada[d] = {};
+    }
+  });
+
+  return {
+    id: c?.id || `b2b-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    nome: c?.nome || 'Cliente Empresarial',
+    telefone: c?.telefone || '',
+    morada: c?.morada || 'Arouca',
+    carrinha_id: c?.carrinha_id || 'b555db95-c427-4ed5-83fc-01403bd24cf5',
+    ativo: c?.ativo !== undefined ? Boolean(c?.ativo) : true,
+    quantidades_semanais: semanaNormalizada,
+    quantidades_semana: semanaNormalizada,
+  };
+}
 
 export function carregarBaseFixaCarrinhas(): BaseFixaCarrinha[] {
+  const inicialNormalizado = BASE_FIXA_CARRINHAS_INICIAL.map(normalizarBaseFixaItem);
   if (typeof window !== 'undefined') {
     const raw = localStorage.getItem(BASE_FIXA_CARRINHAS_STORAGE_KEY);
     if (raw) {
       try {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map(normalizarBaseFixaItem);
+        }
       } catch (e) {}
     }
-    localStorage.setItem(BASE_FIXA_CARRINHAS_STORAGE_KEY, JSON.stringify(BASE_FIXA_CARRINHAS_INICIAL));
+    localStorage.setItem(BASE_FIXA_CARRINHAS_STORAGE_KEY, JSON.stringify(inicialNormalizado));
   }
-  return BASE_FIXA_CARRINHAS_INICIAL;
+  return inicialNormalizado;
 }
 
 export function salvarBaseFixaCarrinhas(dados: BaseFixaCarrinha[]): void {
+  const normalizados = (dados || []).map(normalizarBaseFixaItem);
   if (typeof window !== 'undefined') {
-    localStorage.setItem(BASE_FIXA_CARRINHAS_STORAGE_KEY, JSON.stringify(dados));
+    localStorage.setItem(BASE_FIXA_CARRINHAS_STORAGE_KEY, JSON.stringify(normalizados));
     window.dispatchEvent(new Event('app_base_fixa_atualizada'));
   }
 }
 
 export function carregarClientesEmpresariaisB2B(): ClienteEmpresarialB2B[] {
+  const inicialNormalizado = CLIENTES_EMPRESARIAIS_B2B_INICIAIS.map(normalizarClienteB2BItem);
   if (typeof window !== 'undefined') {
     const raw = localStorage.getItem(CLIENTES_B2B_STORAGE_KEY);
     if (raw) {
       try {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map(normalizarClienteB2BItem);
+        }
       } catch (e) {}
     }
-    localStorage.setItem(CLIENTES_B2B_STORAGE_KEY, JSON.stringify(CLIENTES_EMPRESARIAIS_B2B_INICIAIS));
+    localStorage.setItem(CLIENTES_B2B_STORAGE_KEY, JSON.stringify(inicialNormalizado));
   }
-  return CLIENTES_EMPRESARIAIS_B2B_INICIAIS;
+  return inicialNormalizado;
 }
 
 export function salvarClientesEmpresariaisB2B(dados: ClienteEmpresarialB2B[]): void {
+  const normalizados = (dados || []).map(normalizarClienteB2BItem);
   if (typeof window !== 'undefined') {
-    localStorage.setItem(CLIENTES_B2B_STORAGE_KEY, JSON.stringify(dados));
+    localStorage.setItem(CLIENTES_B2B_STORAGE_KEY, JSON.stringify(normalizados));
     window.dispatchEvent(new Event('app_b2b_atualizado'));
   }
 }
 
 export function obterDiaSemanaDeData(dataStr: string): DiaSemana {
   // dataStr no formato YYYY-MM-DD
-  const partes = dataStr.split('-').map(Number);
+  const partes = (dataStr || '').split('-').map(Number);
   const d = partes.length === 3 ? new Date(partes[0], partes[1] - 1, partes[2]) : new Date();
   const day = d.getDay(); // 0 = Dom, 1 = Seg, ..., 6 = Sáb
   const mapa: Record<number, DiaSemana> = {
@@ -1199,4 +1264,5 @@ export function obterDiaSemanaDeData(dataStr: string): DiaSemana {
   };
   return mapa[day] || 'seg';
 }
+
 

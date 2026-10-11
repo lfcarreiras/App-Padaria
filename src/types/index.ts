@@ -159,8 +159,10 @@ export type CockpitSelecionado = 'loja' | 'producao' | 'carrinhas' | 'gestao';
 export type DiaSemana = 'seg' | 'ter' | 'qua' | 'qui' | 'sex' | 'sab' | 'dom';
 
 export interface BaseFixaCarrinha {
-  carrinha_id: string; // ex: 'carrinha-1' a 'carrinha-4'
+  carrinha_id: string; // ex: '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75' (1º ao 4º Carro)
+  carrinha_nome?: string;
   quantidades_por_produto: Record<string, number>; // nome do produto -> quantidade base diária
+  quantidades?: Record<string, number>; // alias compatível
 }
 
 export interface ClienteEmpresarialB2B {
@@ -168,13 +170,15 @@ export interface ClienteEmpresarialB2B {
   nome: string; // ex: 'Gamarão', 'Patronato', 'Hospital', etc.
   telefone?: string;
   morada?: string;
-  carrinha_id: string; // predefinido 'carrinha-5'
+  carrinha_id: string; // predefinido 5º Carro ('b555db95-c427-4ed5-83fc-01403bd24cf5')
   ativo: boolean;
   quantidades_semanais: Record<DiaSemana, Record<string, number>>; // dia da semana -> { [produto_nome]: quantidade }
+  quantidades_semana?: Record<DiaSemana, Record<string, number>>; // alias compatível
 }
 
 export interface ItemAlocadoForno {
   id: string;
+  produto_id: string;
   produto_nome: string;
   setor: 'padaria' | 'pastelaria';
   quantidade: number;
@@ -184,9 +188,12 @@ export interface RegistoFornada {
   id: string;
   forno_id: string;
   forno_nome: string;
-  data: string;
-  hora_inicio: string;
-  hora_fim: string;
+  data?: string;
+  hora_inicio?: string;
+  hora_fim?: string;
+  inicio_iso?: string;
+  fim_iso?: string;
+  operador_nome?: string;
   duracao_segundos: number;
   itens: ItemAlocadoForno[];
 }
@@ -198,6 +205,8 @@ export interface CartaoFornoProducao {
   itens: ItemAlocadoForno[];
   inicio_timestamp?: number;
   hora_inicio_str?: string;
+  historico_fornadas?: RegistoFornada[];
 }
+
 
 
