@@ -24,6 +24,7 @@ export function parseEncomendasFromDb(data: any[]): Encomenda[] {
   let localCanais: Record<string, string> = {};
   let localEstadosItens: Record<string, EstadoProducaoItem> = {};
   let localObsProducao: Record<string, string> = {};
+  let localEncomendasPortal: Encomenda[] = [];
   if (typeof window !== 'undefined') {
     try {
       const rawTs = localStorage.getItem(REAL_DELIVERY_TIMESTAMPS_KEY);
@@ -34,6 +35,8 @@ export function parseEncomendasFromDb(data: any[]): Encomenda[] {
       if (rawEstIt) localEstadosItens = JSON.parse(rawEstIt);
       const rawObsProd = localStorage.getItem(OBS_PRODUCAO_FALLBACK_KEY);
       if (rawObsProd) localObsProducao = JSON.parse(rawObsProd);
+      const rawPortal = localStorage.getItem('encomendas_portal_cliente_v1');
+      if (rawPortal) localEncomendasPortal = JSON.parse(rawPortal);
     } catch (e) {}
   }
 
@@ -42,21 +45,35 @@ export function parseEncomendasFromDb(data: any[]): Encomenda[] {
     const loja = row.lojas || {};
     const carrinha = row.carrinhas || {};
     const rawItens = row.itens_encomenda || [];
+    const portalMatch = localEncomendasPortal.find(
+      (e) => e.id === row.id || (row.codigo && e.codigo === row.codigo)
+    );
+    const todosAutoRecovery =
+      rawItens.length > 0 &&
+      rawItens.every((it: any) => String(it.notas_personalizacao || '').includes('[AUTO_RECOVERY]'));
 
-    const itens: ItemEncomenda[] = rawItens.map((item: any) => {
+    let itens: ItemEncomenda[] = rawItens.map((item: any, idx: number) => {
       const notasRaw = String(item.notas_personalizacao || '');
       const temTagRecusado = /\[RECUSADO\]/i.test(notasRaw);
-      const notasLimpaItem = notasRaw.replace(/\[RECUSADO\]\s*/gi, '').trim();
+      const notasLimpaItem = notasRaw
+        .replace(/\[RECUSADO\]\s*/gi, '')
+        .replace(/\[AUTO_RECOVERY\]\s*/gi, '')
+        .trim();
       const estadoItemFinal: EstadoProducaoItem =
         item.estado_producao === 'recusado' || temTagRecusado || localEstadosItens[item.id] === 'recusado'
           ? 'recusado'
           : (localEstadosItens[item.id] || item.estado_producao || 'pendente');
 
+      const nomeFallbackPortal =
+        !todosAutoRecovery && portalMatch?.itens?.[idx]?.produto_nome
+          ? portalMatch.itens[idx].produto_nome
+          : undefined;
+
       return {
         id: item.id,
         encomenda_id: row.id,
         produto_id: item.produto_id,
-        produto_nome: item.produtos?.nome || item.produto_nome || 'Artigo de Padaria/Pastelaria',
+        produto_nome: item.produtos?.nome || item.produto_nome || nomeFallbackPortal || 'Artigo de Padaria/Pastelaria',
         setor: item.setor || 'padaria',
         quantidade: Number(item.quantidade) || 1,
         preco_unitario: Number(item.preco_unitario) || 0,
@@ -64,6 +81,38 @@ export function parseEncomendasFromDb(data: any[]): Encomenda[] {
         estado_producao: estadoItemFinal,
       };
     });
+
+    // Se a encomenda veio sem itens (ou se existia na cache local do portal com os itens originais exatos antes do fix)
+    if (itens.length === 0 && portalMatch && portalMatch.itens && portalMatch.itens.length > 0) {
+      itens = portalMatch.itens.map((it) => ({
+        ...it,
+        encomenda_id: row.id,
+        estado_producao: localEstadosItens[it.id] || it.estado_producao || 'pendente',
+      }));
+    } else if (itens.length === 0 && row.notas_cliente && row.notas_cliente.includes('[ITENS_BACKUP:')) {
+      try {
+        const matchBkp = row.notas_cliente.match(/\[ITENS_BACKUP:([\s\S]*?)\]/);
+        if (matchBkp && matchBkp[1]) {
+          const parsedBkp = JSON.parse(matchBkp[1]);
+          if (Array.isArray(parsedBkp)) {
+            itens = parsedBkp.map((b: any, idx: number) => {
+              const itemId = b.id || `bkp-${row.id}-${idx}`;
+              return {
+                id: itemId,
+                encomenda_id: row.id,
+                produto_id: b.produto_id || '',
+                produto_nome: b.nome || 'Artigo de Padaria/Pastelaria',
+                setor: b.setor || 'padaria',
+                quantidade: Number(b.qtd) || 1,
+                preco_unitario: 0,
+                notas_personalizacao: b.notas || undefined,
+                estado_producao: localEstadosItens[itemId] || 'pendente',
+              };
+            });
+          }
+        }
+      } catch (e) {}
+    }
 
     // Determinar data e hora de entrega real para cálculo de On-Time e registo de levantamento
     let dataEntregaReal: string | undefined = row.data_entrega_real || localTimestamps[row.id]?.data;
@@ -124,6 +173,7 @@ export function parseEncomendasFromDb(data: any[]): Encomenda[] {
       ? row.notas_cliente
           .replace(/\[CANAL:(presencial|telefone|whatsapp|site_online)\]\s*/gi, '')
           .replace(/\[OBS_PROD:[\s\S]*?\]\s*/gi, '')
+          .replace(/\[ITENS_BACKUP:[\s\S]*?\]\s*/gi, '')
           .trim()
       : undefined;
 

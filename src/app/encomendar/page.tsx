@@ -445,7 +445,17 @@ export default function EncomendarClientePage() {
           codigoOficial = `ENC-${new Date().getFullYear()}-${numSeq}`;
         }
 
-        const notasComCanal = `[CANAL:site_online] [Online Site] ${notasGeraisPedido.trim() || 'Pedido realizado pelo cliente no portal direto.'} • Contacto: ${clienteLogado.telefone}${tipoEntrega === 'entrega_domicilio' ? ` • Morada: ${moradaEntrega}` : ''}`;
+        const backupItensJson = JSON.stringify(
+          carrinho.map((it, idx) => ({
+            id: `bkp-${numSeq}-${idx}`,
+            produto_id: it.produtoId,
+            nome: it.nome,
+            qtd: Number(it.quantidade) || 1,
+            setor: it.categoria === 'pastelaria' ? 'pastelaria' : 'padaria',
+            notas: it.notas || undefined,
+          }))
+        );
+        const notasComCanal = `[CANAL:site_online] [ITENS_BACKUP:${backupItensJson}] [Online Site] ${notasGeraisPedido.trim() || 'Pedido realizado pelo cliente no portal direto.'} • Contacto: ${clienteLogado.telefone}${tipoEntrega === 'entrega_domicilio' ? ` • Morada: ${moradaEntrega}` : ''}`;
 
         const payloadBase: Record<string, any> = {
           numero_sequencial: numSeq,
@@ -495,7 +505,14 @@ export default function EncomendarClientePage() {
             notas_personalizacao: it.notas || null,
           }));
 
-          await supabase.from('itens_encomenda').insert(itensDb);
+          const { data: itensInseridos, error: errItens } = await supabase
+            .from('itens_encomenda')
+            .insert(itensDb)
+            .select('id');
+
+          if (errItens) {
+            console.error('Erro ao inserir itens_encomenda:', errItens);
+          }
 
           const novaEncObj: Encomenda = {
             id: encCriada.id,
@@ -518,7 +535,7 @@ export default function EncomendarClientePage() {
             total: 0,
             notas_cliente: notasGeraisPedido.trim() || undefined,
             itens: carrinho.map((it, i) => ({
-              id: `item-${Date.now()}-${i}`,
+              id: itensInseridos?.[i]?.id || `item-${Date.now()}-${i}`,
               encomenda_id: encCriada.id,
               produto_id: it.produtoId,
               produto_nome: it.nome,
