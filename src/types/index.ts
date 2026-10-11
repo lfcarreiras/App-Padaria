@@ -79,6 +79,7 @@ export interface Encomenda {
   metodo_pagamento?: MetodoPagamento;
   total?: number;
   notas_cliente?: string;
+  data_entrega_real?: string; // YYYY-MM-DD real da entrega/levantamento
   hora_entrega_real?: string; // HH:MM real da entrega
   ordem_rota?: number; // Sequência manual ou otimizada da carrinha
   itens: ItemEncomenda[];
@@ -152,4 +153,51 @@ export interface LogAuditoria {
   hora: string; // HH:MM:SS ou HH:MM
   criado_em: string; // ISO 8601
 }
+
+export type CockpitSelecionado = 'loja' | 'producao' | 'carrinhas' | 'gestao';
+
+export type DiaSemana = 'seg' | 'ter' | 'qua' | 'qui' | 'sex' | 'sab' | 'dom';
+
+export interface BaseFixaCarrinha {
+  carrinha_id: string; // ex: 'carrinha-1' a 'carrinha-4'
+  quantidades_por_produto: Record<string, number>; // nome do produto -> quantidade base diária
+}
+
+export interface ClienteEmpresarialB2B {
+  id: string;
+  nome: string; // ex: 'Gamarão', 'Patronato', 'Hospital', etc.
+  telefone?: string;
+  morada?: string;
+  carrinha_id: string; // predefinido 'carrinha-5'
+  ativo: boolean;
+  quantidades_semanais: Record<DiaSemana, Record<string, number>>; // dia da semana -> { [produto_nome]: quantidade }
+}
+
+export interface ItemAlocadoForno {
+  id: string;
+  produto_nome: string;
+  setor: 'padaria' | 'pastelaria';
+  quantidade: number;
+}
+
+export interface RegistoFornada {
+  id: string;
+  forno_id: string;
+  forno_nome: string;
+  data: string;
+  hora_inicio: string;
+  hora_fim: string;
+  duracao_segundos: number;
+  itens: ItemAlocadoForno[];
+}
+
+export interface CartaoFornoProducao {
+  id: 'forno-1' | 'forno-2' | 'forno-3';
+  nome: string;
+  estado: 'livre' | 'em_preparacao';
+  itens: ItemAlocadoForno[];
+  inicio_timestamp?: number;
+  hora_inicio_str?: string;
+}
+
 

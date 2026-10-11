@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { Navbar } from '../../components/Navbar';
 import { ThermalReceipt } from '../../components/ThermalReceipt';
-import { LOJAS_MOCK, PRODUTOS_MOCK, CARRINHAS_MOCK } from '../../lib/mockData';
+import { LOJAS_MOCK, PRODUTOS_MOCK, CARRINHAS_MOCK, COLUNAS_MAPA_DIARIO_OFICIAL } from '../../lib/mockData';
 import { 
   carregarEncomendasSupabase, 
   carregarClientesSupabase, 
@@ -25,7 +25,11 @@ import {
   upsertClientesEmLote,
   upsertProdutosEmLote,
   carregarLogsAuditoriaSupabase,
-  reiniciarLogsAuditoriaParaMock
+  reiniciarLogsAuditoriaParaMock,
+  carregarBaseFixaCarrinhas,
+  salvarBaseFixaCarrinhas,
+  carregarClientesEmpresariaisB2B,
+  salvarClientesEmpresariaisB2B
 } from '../../lib/encomendasService';
 import { 
   ReceiptConfig, 
@@ -33,7 +37,7 @@ import {
   saveReceiptConfig, 
   DEFAULT_RECEIPT_CONFIG 
 } from '../../lib/receiptConfig';
-import { Encomenda, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, Role, NivelAcesso, LogAuditoria } from '../../types';
+import { Encomenda, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, Role, NivelAcesso, LogAuditoria, BaseFixaCarrinha, ClienteEmpresarialB2B, DiaSemana } from '../../types';
 import { useTranslation } from '../../lib/i18n';
 import { useAuth } from '../../lib/authContext';
 import { obterConfiguracaoMarca } from '../../lib/tinaContent';
@@ -168,6 +172,15 @@ export default function AdminPage() {
   const [statusImportacao, setStatusImportacao] = useState<string | null>(null);
   const [processandoImportacao, setProcessandoImportacao] = useState(false);
 
+  // Base Fixa de Particulares (1º ao 4º Carro) & Clientes Empresariais B2B (5º Carro)
+  const [baseFixaCarrinhas, setBaseFixaCarrinhas] = useState<BaseFixaCarrinha[]>([]);
+  const [clientesB2B, setClientesB2B] = useState<ClienteEmpresarialB2B[]>([]);
+  const [diaSemanaB2B, setDiaSemanaB2B] = useState<DiaSemana>('seg');
+  const [clienteB2BEmEdicao, setClienteB2BEmEdicao] = useState<ClienteEmpresarialB2B | null>(null);
+  const [novoArtigoBaseFixa, setNovoArtigoBaseFixa] = useState<string>('');
+  const [feedbackBaseFixa, setFeedbackBaseFixa] = useState<string | null>(null);
+  const [feedbackB2B, setFeedbackB2B] = useState<string | null>(null);
+
   // Carregamento Inicial
   useEffect(() => {
     async function carregar() {
@@ -188,9 +201,204 @@ export default function AdminPage() {
       if (pfs.length) setPerfis(pfs);
       if (logs.length) setLogsAuditoria(logs);
       setReceiptConfig(getReceiptConfig());
+      setBaseFixaCarrinhas(carregarBaseFixaCarrinhas());
+      setClientesB2B(carregarClientesEmpresariaisB2B());
     }
     carregar();
   }, []);
+
+  // Artigos visíveis na grelha de Base Fixa (Colunas Oficiais + artigos personalizados com quantidade)
+  const artigosGrelhaBaseFixa = useMemo(() => {
+    const setNomes = new Set<string>(COLUNAS_MAPA_DIARIO_OFICIAL);
+    baseFixaCarrinhas.forEach((bf) => {
+      Object.keys(bf.quantidades || {}).forEach((prod) => setNomes.add(prod));
+    });
+    return Array.from(setNomes);
+  }, [baseFixaCarrinhas]);
+
+  const handleAlterarQtdBaseFixa = (carrinhaId: string, carrinhaNome: string, produtoNome: string, valor: number) => {
+    const qtdLimpa = Math.max(0, Math.floor(Number(valor) || 0));
+    const novaLista = [...baseFixaCarrinhas];
+    const idx = novaLista.findIndex((b) => b.carrinha_id === carrinhaId || b.carrinha_nome === carrinhaNome);
+    if (idx >= 0) {
+      const novoMapa = { ...novaLista[idx].quantidades };
+      if (qtdLimpa <= 0) {
+        delete novoMapa[produtoNome];
+      } else {
+        novoMapa[produtoNome] = qtdLimpa;
+      }
+      novaLista[idx] = { ...novaLista[idx], quantidades: novoMapa };
+    } else {
+      novaLista.push({
+        carrinha_id: carrinhaId,
+        carrinha_nome: carrinhaNome,
+        quantidades: qtdLimpa > 0 ? { [produtoNome]: qtdLimpa } : {},
+      });
+    }
+    setBaseFixaCarrinhas(novaLista);
+    salvarBaseFixaCarrinhas(novaLista);
+  };
+
+  const handleGuardarBaseFixaManual = () => {
+    salvarBaseFixaCarrinhas(baseFixaCarrinhas);
+    setFeedbackBaseFixa('Quantidades da Base Fixa (1º ao 4º Carro) guardadas com sucesso!');
+    setTimeout(() => setFeedbackBaseFixa(null), 3500);
+  };
+
+  const handleAlterarQtdClienteB2B = (clienteId: string, dia: DiaSemana, produtoNome: string, valor: number) => {
+    const qtdLimpa = Math.max(0, Math.floor(Number(valor) || 0));
+    const novaLista = clientesB2B.map((cli) => {
+      if (cli.id !== clienteId) return cli;
+      const mapaDia = { ...(cli.quantidades_semana[dia] || {}) };
+      if (qtdLimpa <= 0) {
+        delete mapaDia[produtoNome];
+      } else {
+        mapaDia[produtoNome] = qtdLimpa;
+      }
+      return {
+        ...cli,
+        quantidades_semana: {
+          ...cli.quantidades_semana,
+          [dia]: mapaDia,
+        },
+      };
+    });
+    setClientesB2B(novaLista);
+    salvarClientesEmpresariaisB2B(novaLista);
+  };
+
+  const handleCopiarDiaParaTodaSemanaB2B = (diaOrigem: DiaSemana) => {
+    const todosDias: DiaSemana[] = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
+    const novaLista = clientesB2B.map((cli) => {
+      const baseDia = { ...(cli.quantidades_semana[diaOrigem] || {}) };
+      const novaSemana: Record<DiaSemana, Record<string, number>> = {
+        seg: { ...baseDia },
+        ter: { ...baseDia },
+        qua: { ...baseDia },
+        qui: { ...baseDia },
+        sex: { ...baseDia },
+        sab: { ...baseDia },
+        dom: { ...baseDia },
+      };
+      todosDias.forEach((d) => {
+        novaSemana[d] = { ...baseDia };
+      });
+      return {
+        ...cli,
+        quantidades_semana: novaSemana,
+      };
+    });
+    setClientesB2B(novaLista);
+    salvarClientesEmpresariaisB2B(novaLista);
+    setFeedbackB2B('Quantidades do dia selecionadas copiadas para todos os dias da semana (Seg a Dom)!');
+    setTimeout(() => setFeedbackB2B(null), 3500);
+  };
+
+  const handleSalvarClienteB2BModal = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clienteB2BEmEdicao || !clienteB2BEmEdicao.nome.trim()) return;
+    const existe = clientesB2B.some((c) => c.id === clienteB2BEmEdicao.id);
+    const novaLista = existe
+      ? clientesB2B.map((c) => (c.id === clienteB2BEmEdicao.id ? clienteB2BEmEdicao : c))
+      : [...clientesB2B, clienteB2BEmEdicao];
+    setClientesB2B(novaLista);
+    salvarClientesEmpresariaisB2B(novaLista);
+    setClienteB2BEmEdicao(null);
+    setFeedbackB2B('Cliente Empresarial (B2B) guardado com sucesso!');
+    setTimeout(() => setFeedbackB2B(null), 3500);
+  };
+
+  const handleEliminarClienteB2B = (id: string, nome: string) => {
+    if (!window.confirm(`Deseja remover o cliente empresarial "${nome}" da rota do 5º Carro?`)) return;
+    const novaLista = clientesB2B.filter((c) => c.id !== id);
+    setClientesB2B(novaLista);
+    salvarClientesEmpresariaisB2B(novaLista);
+  };
+
+  const handleExportarTemplateB2B = () => {
+    const wb = XLSX.utils.book_new();
+    const cabecalho = ['Cliente_Empresarial', 'Telefone', 'Morada', 'Carrinha', ...COLUNAS_MAPA_DIARIO_OFICIAL];
+    const linhas = clientesB2B.map((cli) => {
+      const mapaDia = cli.quantidades_semana[diaSemanaB2B] || {};
+      return [
+        cli.nome,
+        cli.telefone || '',
+        cli.morada || '',
+        '5º Carro',
+        ...COLUNAS_MAPA_DIARIO_OFICIAL.map((col) => mapaDia[col] || ''),
+      ];
+    });
+    const ws = XLSX.utils.aoa_to_sheet([cabecalho, ...linhas]);
+    XLSX.utils.book_append_sheet(wb, ws, 'Clientes_B2B_5Carro');
+    XLSX.writeFile(wb, `Template_Clientes_Empresariais_5Carro_${diaSemanaB2B.toUpperCase()}.xlsx`);
+  };
+
+  const handleImportarExcelB2B = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const buffer = evt.target?.result as ArrayBuffer;
+        if (!buffer) return;
+        const wb = XLSX.read(buffer, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows: any[] = XLSX.utils.sheet_to_json(ws);
+        if (!rows.length) return;
+
+        const novaLista = [...clientesB2B];
+        const todosDias: DiaSemana[] = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
+
+        for (const r of rows) {
+          const nomeCli = String(r['Cliente_Empresarial'] || r['Cliente'] || r['Nome'] || '').trim();
+          if (!nomeCli) continue;
+
+          const mapaArtigos: Record<string, number> = {};
+          for (const col of COLUNAS_MAPA_DIARIO_OFICIAL) {
+            const val = Number(r[col] || 0);
+            if (val > 0) mapaArtigos[col] = val;
+          }
+
+          const idx = novaLista.findIndex((c) => c.nome.toLowerCase() === nomeCli.toLowerCase());
+          if (idx >= 0) {
+            const semanaAtualizada = { ...novaLista[idx].quantidades_semana };
+            todosDias.forEach((d) => {
+              semanaAtualizada[d] = { ...mapaArtigos };
+            });
+            novaLista[idx] = {
+              ...novaLista[idx],
+              telefone: String(r['Telefone'] || novaLista[idx].telefone || ''),
+              morada: String(r['Morada'] || novaLista[idx].morada || ''),
+              quantidades_semana: semanaAtualizada,
+            };
+          } else {
+            const novaSemana: any = {};
+            todosDias.forEach((d) => {
+              novaSemana[d] = { ...mapaArtigos };
+            });
+            novaLista.push({
+              id: `b2b-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+              nome: nomeCli,
+              telefone: String(r['Telefone'] || ''),
+              morada: String(r['Morada'] || 'Arouca'),
+              carrinha_id: 'b555db95-c427-4ed5-83fc-01403bd24cf5',
+              ativo: true,
+              quantidades_semana: novaSemana,
+            });
+          }
+        }
+
+        setClientesB2B(novaLista);
+        salvarClientesEmpresariaisB2B(novaLista);
+        setFeedbackB2B(`Importação concluída! ${rows.length} clientes empresariais atualizados no 5º Carro.`);
+        setTimeout(() => setFeedbackB2B(null), 4000);
+      } catch (err: any) {
+        alert(`Erro ao importar ficheiro B2B: ${err.message}`);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    e.target.value = '';
+  };
 
   // Filtragem Reativa de Encomendas (Tempo + Loja + Formato de Entrega)
   const encomendasFiltradas = useMemo(() => {
@@ -1642,7 +1850,9 @@ export default function AdminPage() {
                             <td className="py-2.5 px-3 font-bold text-stone-900 font-mono">{enc.hora_agendamento}</td>
                             <td className="py-2.5 px-3 font-bold font-mono">
                               {horaReal ? (
-                                <span className="text-gray-900">{horaReal}</span>
+                                <span className="text-gray-900 block">
+                                  {enc.data_entrega_real ? `${enc.data_entrega_real} ` : ''}{horaReal}
+                                </span>
                               ) : (
                                 <span className="text-gray-400 font-normal italic">--:--</span>
                               )}
@@ -1672,7 +1882,13 @@ export default function AdminPage() {
                                   ? 'bg-blue-100 text-blue-800'
                                   : 'bg-stone-100 text-stone-700'
                               }`}>
-                                {enc.estado}
+                                {jaEntregue
+                                  ? 'Entregue'
+                                  : enc.estado === 'em_preparacao'
+                                  ? 'Em Produção'
+                                  : enc.estado === 'pronto'
+                                  ? 'Em Distribuição'
+                                  : 'Encomendado'}
                               </span>
                             </td>
                           </tr>
@@ -1699,7 +1915,7 @@ export default function AdminPage() {
                 <p className="text-xs text-gray-500">{t.storesSectionDesc}</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {lojas.map((l) => (
                   <div key={l.id} className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-2 text-xs">
                     <div className="flex items-center justify-between">
@@ -1725,23 +1941,33 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Secção de Carrinhas */}
+            {/* Secção das 5 Carrinhas Oficiais */}
             <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
               <div className="flex items-center justify-between border-b pb-3">
                 <div>
                   <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                     <Truck className="h-4 w-4 text-blue-600" />
-                    {t.vansSectionTitle}
+                    Frota de Distribuição — 5 Carrinhas Oficiais (1º ao 5º Carro)
                   </h3>
-                  <p className="text-xs text-gray-500">{t.vansSectionDesc}</p>
+                  <p className="text-xs text-gray-500">
+                    Carrinhas 1 a 4 dedicadas a entregas a Clientes Particulares (Base Fixa + Pedidos Adicionais) • 5º Carro dedicado a Clientes Empresariais (B2B)
+                  </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {carrinhas.map((c) => {
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                {carrinhas.map((c, idx) => {
                   const lj = lojas.find((l) => l.id === c.loja_id);
+                  const isB2B = c.identificador.includes('5') || idx === 4;
                   return (
-                    <div key={c.id} className="bg-blue-50/50 p-4 rounded-xl border border-blue-200 space-y-2 text-xs">
+                    <div
+                      key={c.id}
+                      className={`p-4 rounded-xl border space-y-2 text-xs ${
+                        isB2B
+                          ? 'bg-indigo-50/70 border-indigo-300 shadow-2xs'
+                          : 'bg-blue-50/50 border-blue-200'
+                      }`}
+                    >
                       <div className="flex items-center justify-between">
                         <span className="font-mono font-black text-gray-900 bg-white px-2 py-0.5 rounded border border-gray-300">
                           {c.matricula}
@@ -1756,11 +1982,352 @@ export default function AdminPage() {
                         )}
                       </div>
 
-                      <h4 className="font-bold text-gray-900">{c.identificador}</h4>
+                      <div className="flex items-center justify-between gap-1">
+                        <h4 className="font-black text-sm text-gray-900">{c.identificador}</h4>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                          isB2B ? 'bg-indigo-600 text-white' : 'bg-blue-100 text-blue-900'
+                        }`}>
+                          {isB2B ? 'Empresariais B2B' : 'Particulares'}
+                        </span>
+                      </div>
                       <p className="text-gray-600">{t.assignedStore}: <b>{lj?.nome || 'Loja Central'}</b></p>
                     </div>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* SECÇÃO 1: BASE FIXA DE CLIENTES PARTICULARES (CARRINHAS 1 A 4) */}
+            <div className="bg-white p-5 rounded-2xl border border-blue-200 shadow-xs space-y-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-gray-100 pb-3">
+                <div>
+                  <h3 className="text-sm font-black text-gray-900 flex items-center gap-2">
+                    <Layers className="h-4 w-4 text-blue-600" />
+                    Base Fixa Diária de Clientes Particulares (1º ao 4º Carro)
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Quantidades globais fixas de cada produto entregues diariamente por cada uma das carrinhas 1 a 4 (somadas automaticamente ao Mapa Diário e ao Centro de Produção).
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <select
+                      value={novoArtigoBaseFixa}
+                      onChange={(e) => setNovoArtigoBaseFixa(e.target.value)}
+                      className="text-xs font-bold bg-gray-50 border border-gray-300 rounded-xl px-2.5 py-1.5 text-gray-800"
+                    >
+                      <option value="">+ Adicionar outro artigo do catálogo...</option>
+                      {produtos
+                        .filter((p) => !artigosGrelhaBaseFixa.includes(p.nome))
+                        .map((p) => (
+                          <option key={p.id} value={p.nome}>
+                            {p.nome}
+                          </option>
+                        ))}
+                    </select>
+                    {novoArtigoBaseFixa && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const car1 = carrinhas[0] || CARRINHAS_MOCK[0];
+                          handleAlterarQtdBaseFixa(car1.id, '1º Carro', novoArtigoBaseFixa, 1);
+                          setNovoArtigoBaseFixa('');
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition cursor-pointer"
+                      >
+                        Incluir na Grelha
+                      </button>
+                    )}
+                  </div>
+
+                  {temPermissaoEdicaoGestao && (
+                    <button
+                      type="button"
+                      onClick={handleGuardarBaseFixaManual}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-xs transition cursor-pointer"
+                    >
+                      <Check className="h-4 w-4" />
+                      Guardar Quantidades Base Fixa
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {feedbackBaseFixa && (
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-bold flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span>{feedbackBaseFixa}</span>
+                </div>
+              )}
+
+              <div className="overflow-x-auto border border-gray-200 rounded-xl max-h-[420px]">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead className="bg-blue-50/80 text-gray-800 border-b border-blue-200 sticky top-0 z-10">
+                    <tr>
+                      <th className="py-2.5 px-3 font-black uppercase text-[11px]">Produto / Artigo (Mapa Diário)</th>
+                      {['1º Carro', '2º Carro', '3º Carro', '4º Carro'].map((nomeCar, i) => (
+                        <th key={nomeCar} className="py-2.5 px-3 font-black text-center uppercase text-[11px] w-32">
+                          🚚 {carrinhas[i]?.identificador || nomeCar}
+                        </th>
+                      ))}
+                      <th className="py-2.5 px-3 font-black text-right uppercase text-[11px] w-36 bg-blue-100/70">
+                        Total Particulares
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {artigosGrelhaBaseFixa.map((prodNome) => {
+                      const carrosParticulares = [
+                        { id: carrinhas[0]?.id || 'e908db95-c427-4ed5-83fc-01403bd24cf1', nome: '1º Carro' },
+                        { id: carrinhas[1]?.id || 'a712db95-c427-4ed5-83fc-01403bd24cf2', nome: '2º Carro' },
+                        { id: carrinhas[2]?.id || 'b823db95-c427-4ed5-83fc-01403bd24cf3', nome: '3º Carro' },
+                        { id: carrinhas[3]?.id || 'c934db95-c427-4ed5-83fc-01403bd24cf4', nome: '4º Carro' },
+                      ];
+
+                      const qtdsPorCarro = carrosParticulares.map((c) => {
+                        const reg = baseFixaCarrinhas.find(
+                          (b) => b.carrinha_id === c.id || b.carrinha_nome === c.nome
+                        );
+                        return reg?.quantidades?.[prodNome] || 0;
+                      });
+
+                      const somaLinha = qtdsPorCarro.reduce((a, b) => a + b, 0);
+
+                      return (
+                        <tr key={prodNome} className={`hover:bg-blue-50/30 transition ${somaLinha > 0 ? 'bg-amber-50/20' : ''}`}>
+                          <td className="py-2 px-3 font-bold text-gray-900">{prodNome}</td>
+                          {carrosParticulares.map((c, idx) => (
+                            <td key={c.id} className="py-1.5 px-3 text-center">
+                              <input
+                                type="number"
+                                min={0}
+                                disabled={!temPermissaoEdicaoGestao}
+                                value={qtdsPorCarro[idx] === 0 ? '' : qtdsPorCarro[idx]}
+                                placeholder="0"
+                                onChange={(e) =>
+                                  handleAlterarQtdBaseFixa(c.id, c.nome, prodNome, Number(e.target.value))
+                                }
+                                className={`w-20 text-center py-1 px-2 rounded-lg border font-mono text-xs font-bold focus:outline-hidden ${
+                                  qtdsPorCarro[idx] > 0
+                                    ? 'bg-blue-50 border-blue-400 text-blue-950'
+                                    : 'bg-white border-gray-200 text-gray-500'
+                                }`}
+                              />
+                            </td>
+                          ))}
+                          <td className="py-2 px-3 text-right font-mono font-black text-sm text-blue-900 bg-blue-50/40">
+                            {somaLinha > 0 ? `${somaLinha} un.` : '—'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* SECÇÃO 2: CLIENTES EMPRESARIAIS B2B & CARGA FREQUENTE DO 5º CARRO */}
+            <div className="bg-white p-5 rounded-2xl border border-indigo-200 shadow-xs space-y-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-gray-100 pb-3">
+                <div>
+                  <h3 className="text-sm font-black text-gray-900 flex items-center gap-2">
+                    <Truck className="h-4 w-4 text-indigo-600" />
+                    Clientes Empresariais (B2B) — Rota Exclusiva do 5º Carro ({clientesB2B.length} entidades)
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Quantidades fixas frequentes por dia da semana para cada cliente empresarial (somadas às entregas adicionais solicitadas para o 5º Carro).
+                  </p>
+                </div>
+
+                {temPermissaoEdicaoGestao && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const vazios: Record<DiaSemana, Record<string, number>> = {
+                          seg: {}, ter: {}, qua: {}, qui: {}, sex: {}, sab: {}, dom: {}
+                        };
+                        setClienteB2BEmEdicao({
+                          id: `b2b-${Date.now()}`,
+                          nome: '',
+                          telefone: '',
+                          morada: 'Arouca',
+                          carrinha_id: 'b555db95-c427-4ed5-83fc-01403bd24cf5',
+                          ativo: true,
+                          quantidades_semana: vazios,
+                        });
+                      }}
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-xs transition cursor-pointer"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Novo Cliente Empresarial
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleExportarTemplateB2B}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-900 text-xs font-bold hover:bg-indigo-100 transition cursor-pointer"
+                    >
+                      <Download className="h-3.5 w-3.5 text-indigo-700" />
+                      Template Excel B2B (.xlsx)
+                    </button>
+
+                    <label className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-900 text-xs font-bold hover:bg-emerald-100 transition cursor-pointer">
+                      <Upload className="h-3.5 w-3.5 text-emerald-700" />
+                      <span>Importar Excel B2B</span>
+                      <input
+                        type="file"
+                        accept=".xlsx,.xls,.csv"
+                        onChange={handleImportarExcelB2B}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              {feedbackB2B && (
+                <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-950 text-xs font-bold flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-indigo-600 shrink-0" />
+                  <span>{feedbackB2B}</span>
+                </div>
+              )}
+
+              {/* Seletor de Dia da Semana para Edição Rápida B2B */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs font-bold text-indigo-950 mr-1 flex items-center gap-1">
+                    <Calendar className="h-3.5 w-3.5 text-indigo-600" />
+                    Dia da Semana:
+                  </span>
+                  {([
+                    { id: 'seg', label: 'Segunda' },
+                    { id: 'ter', label: 'Terça' },
+                    { id: 'qua', label: 'Quarta' },
+                    { id: 'qui', label: 'Quinta' },
+                    { id: 'sex', label: 'Sexta' },
+                    { id: 'sab', label: 'Sábado' },
+                    { id: 'dom', label: 'Domingo' },
+                  ] as { id: DiaSemana; label: string }[]).map((d) => (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => setDiaSemanaB2B(d.id)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                        diaSemanaB2B === d.id
+                          ? 'bg-indigo-600 text-white shadow-2xs'
+                          : 'bg-white text-indigo-900 border border-indigo-200 hover:bg-indigo-100'
+                      }`}
+                    >
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
+
+                {temPermissaoEdicaoGestao && (
+                  <button
+                    type="button"
+                    onClick={() => handleCopiarDiaParaTodaSemanaB2B(diaSemanaB2B)}
+                    className="text-xs font-bold text-indigo-700 hover:text-indigo-950 bg-white px-3 py-1.5 rounded-xl border border-indigo-200 shadow-2xs transition cursor-pointer shrink-0"
+                  >
+                    Replicar este dia para Seg–Dom
+                  </button>
+                )}
+              </div>
+
+              {/* Tabela Interativa de Clientes Empresariais B2B */}
+              <div className="overflow-x-auto border border-gray-200 rounded-xl">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead className="bg-gray-50 text-gray-700 border-b border-gray-200">
+                    <tr>
+                      <th className="py-2.5 px-3 font-black uppercase text-[11px] w-48">Cliente Empresarial (B2B)</th>
+                      <th className="py-2.5 px-3 font-black uppercase text-[11px] w-32">Rota / Carrinha</th>
+                      <th className="py-2.5 px-3 font-black uppercase text-[11px]">
+                        Quantidades Fixas no Dia ({diaSemanaB2B.toUpperCase()})
+                      </th>
+                      <th className="py-2.5 px-3 font-black uppercase text-[11px] text-right w-28">Total Dia</th>
+                      <th className="py-2.5 px-3 font-black uppercase text-[11px] text-right w-28">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {clientesB2B.map((cli) => {
+                      const mapaDia = cli.quantidades_semana[diaSemanaB2B] || {};
+                      const entries = Object.entries(mapaDia).filter(([, q]) => q > 0);
+                      const totalCliDia = entries.reduce((acc, [, q]) => acc + q, 0);
+
+                      return (
+                        <tr key={cli.id} className="hover:bg-indigo-50/30 transition">
+                          <td className="py-2.5 px-3">
+                            <p className="font-black text-gray-900 text-xs">{cli.nome}</p>
+                            <p className="text-[10px] text-gray-500">
+                              {cli.morada || 'Arouca'} {cli.telefone ? `• ${cli.telefone}` : ''}
+                            </p>
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-100 text-indigo-900 font-black text-[10px]">
+                              🚚 5º Carro
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3">
+                            {entries.length === 0 ? (
+                              <span className="text-gray-400 italic text-[11px]">
+                                Sem artigos fixos definidos neste dia
+                              </span>
+                            ) : (
+                              <div className="flex flex-wrap gap-1.5">
+                                {entries.map(([prodNome, qtd]) => (
+                                  <div
+                                    key={prodNome}
+                                    className="inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-0.5 text-[11px]"
+                                  >
+                                    <span className="font-bold text-indigo-950">{prodNome}:</span>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      disabled={!temPermissaoEdicaoGestao}
+                                      value={qtd}
+                                      onChange={(e) =>
+                                        handleAlterarQtdClienteB2B(cli.id, diaSemanaB2B, prodNome, Number(e.target.value))
+                                      }
+                                      className="w-12 text-center bg-white border border-indigo-300 rounded font-mono font-black text-indigo-900 px-1 py-0.5 text-[11px]"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-mono font-black text-indigo-900">
+                            {totalCliDia} un.
+                          </td>
+                          <td className="py-2.5 px-3 text-right">
+                            {temPermissaoEdicaoGestao && (
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => setClienteB2BEmEdicao(cli)}
+                                  className="px-2 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[11px] flex items-center gap-1 cursor-pointer"
+                                  title="Configurar artigos e quantidades do cliente empresarial"
+                                >
+                                  <Edit3 className="h-3 w-3" />
+                                  Artigos
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleEliminarClienteB2B(cli.id, cli.nome)}
+                                  className="p-1 rounded-lg text-red-600 hover:bg-red-50 transition cursor-pointer"
+                                  title="Remover cliente empresarial"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -3750,6 +4317,181 @@ export default function AdminPage() {
                   className="px-4 py-1.5 rounded-lg bg-bakery-600 hover:bg-bakery-700 font-bold text-white shadow-xs transition cursor-pointer"
                 >
                   Guardar Alterações
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE EDIÇÃO / CRIAÇÃO DE CLIENTE EMPRESARIAL B2B (5º CARRO) */}
+      {clienteB2BEmEdicao && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-5 shadow-2xl border border-indigo-200 space-y-4 text-xs max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <h3 className="text-sm font-black text-gray-900 flex items-center gap-2">
+                  <Truck className="h-4 w-4 text-indigo-600" />
+                  Configurar Cliente Empresarial B2B (5º Carro)
+                </h3>
+                <p className="text-[11px] text-gray-500 mt-0.5">
+                  Defina os dados da entidade e as quantidades fixas diárias de cada artigo para o Mapa Diário.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setClienteB2BEmEdicao(null)}
+                className="text-gray-400 hover:text-gray-600 text-sm font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSalvarClienteB2BModal} className="space-y-4 overflow-y-auto pr-1 flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Nome da Entidade / Cliente *</label>
+                  <input
+                    type="text"
+                    required
+                    value={clienteB2BEmEdicao.nome}
+                    onChange={(e) => setClienteB2BEmEdicao({ ...clienteB2BEmEdicao, nome: e.target.value })}
+                    placeholder="Ex: Hospital de Arouca"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 font-bold focus:outline-hidden"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Telefone</label>
+                  <input
+                    type="text"
+                    value={clienteB2BEmEdicao.telefone || ''}
+                    onChange={(e) => setClienteB2BEmEdicao({ ...clienteB2BEmEdicao, telefone: e.target.value })}
+                    placeholder="256 xxx xxx"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:outline-hidden"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Localidade / Morada</label>
+                  <input
+                    type="text"
+                    value={clienteB2BEmEdicao.morada || ''}
+                    onChange={(e) => setClienteB2BEmEdicao({ ...clienteB2BEmEdicao, morada: e.target.value })}
+                    placeholder="Arouca"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:outline-hidden"
+                  />
+                </div>
+              </div>
+
+              {/* Abas de Dia da Semana dentro do Modal */}
+              <div className="bg-indigo-50/70 p-3 rounded-xl border border-indigo-200 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-black text-indigo-950 uppercase text-[11px]">
+                    Quantidades para: {diaSemanaB2B.toUpperCase()}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const atual = { ...(clienteB2BEmEdicao.quantidades_semana[diaSemanaB2B] || {}) };
+                      setClienteB2BEmEdicao({
+                        ...clienteB2BEmEdicao,
+                        quantidades_semana: {
+                          seg: { ...atual },
+                          ter: { ...atual },
+                          qua: { ...atual },
+                          qui: { ...atual },
+                          sex: { ...atual },
+                          sab: { ...atual },
+                          dom: { ...atual },
+                        },
+                      });
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-bold text-[10px] hover:bg-indigo-700 transition cursor-pointer"
+                  >
+                    Aplicar estas quantidades a Todos os Dias (Seg–Dom)
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap gap-1">
+                  {([
+                    { id: 'seg', label: 'Seg' },
+                    { id: 'ter', label: 'Ter' },
+                    { id: 'qua', label: 'Qua' },
+                    { id: 'qui', label: 'Qui' },
+                    { id: 'sex', label: 'Sex' },
+                    { id: 'sab', label: 'Sáb' },
+                    { id: 'dom', label: 'Dom' },
+                  ] as { id: DiaSemana; label: string }[]).map((d) => (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => setDiaSemanaB2B(d.id)}
+                      className={`px-2.5 py-1 rounded-lg font-bold text-[11px] cursor-pointer ${
+                        diaSemanaB2B === d.id
+                          ? 'bg-indigo-700 text-white'
+                          : 'bg-white text-indigo-900 border border-indigo-200'
+                      }`}
+                    >
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Grelha dos 29 Artigos do Mapa Diário */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-72 overflow-y-auto p-1">
+                {COLUNAS_MAPA_DIARIO_OFICIAL.map((prodNome) => {
+                  const qtdAtual = clienteB2BEmEdicao.quantidades_semana[diaSemanaB2B]?.[prodNome] || 0;
+                  return (
+                    <div
+                      key={prodNome}
+                      className={`flex items-center justify-between p-2 rounded-xl border ${
+                        qtdAtual > 0 ? 'bg-indigo-50 border-indigo-300' : 'bg-gray-50 border-gray-200'
+                      }`}
+                    >
+                      <span className="font-bold text-gray-800 truncate pr-2" title={prodNome}>
+                        {prodNome}
+                      </span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={qtdAtual === 0 ? '' : qtdAtual}
+                        placeholder="0"
+                        onChange={(e) => {
+                          const val = Math.max(0, Math.floor(Number(e.target.value) || 0));
+                          const mapaDia = { ...(clienteB2BEmEdicao.quantidades_semana[diaSemanaB2B] || {}) };
+                          if (val <= 0) {
+                            delete mapaDia[prodNome];
+                          } else {
+                            mapaDia[prodNome] = val;
+                          }
+                          setClienteB2BEmEdicao({
+                            ...clienteB2BEmEdicao,
+                            quantidades_semana: {
+                              ...clienteB2BEmEdicao.quantidades_semana,
+                              [diaSemanaB2B]: mapaDia,
+                            },
+                          });
+                        }}
+                        className="w-16 text-center py-1 px-1.5 rounded-lg border border-gray-300 bg-white font-mono font-black text-indigo-950"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => setClienteB2BEmEdicao(null)}
+                  className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 font-black text-white shadow-xs transition cursor-pointer"
+                >
+                  Guardar Cliente Empresarial
                 </button>
               </div>
             </form>

@@ -53,14 +53,17 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
         <div className="no-print flex items-center justify-between border-b border-gray-200 p-4 shrink-0 bg-white z-10">
           <div className="flex items-center gap-2">
             <Printer className="h-5 w-5 text-bakery-600" />
-            <h3 className="text-base font-semibold text-gray-900">
-              {t.receiptTitle} ({cfg.paperWidth})
-            </h3>
+            <div>
+              <h3 className="text-sm font-bold text-gray-900 leading-tight">
+                {t.receiptTitle} ({cfg.paperWidth} — Epson TM-T20 M249A)
+              </h3>
+              <p className="text-[10px] text-gray-500">Formato térmico calibrado: rolo 80mm (72mm área útil)</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 rounded-lg bg-bakery-600 px-3.5 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-bakery-700 transition"
+              className="flex items-center gap-1.5 rounded-lg bg-bakery-600 px-3.5 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-bakery-700 transition cursor-pointer"
             >
               <Printer className="h-4 w-4" />
               {t.print}
@@ -68,7 +71,7 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
             {onClose && (
               <button
                 onClick={onClose}
-                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 cursor-pointer"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -76,11 +79,11 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
           </div>
         </div>
 
-        {/* ÁREA DE IMPRESSÃO TÉRMICA (80mm / 58mm) */}
+        {/* ÁREA DE IMPRESSÃO TÉRMICA (Epson M249A TM-T20 - 80mm / 72mm útil) */}
         <div className="overflow-y-auto flex-1 p-4 sm:p-6 pb-20 bg-gray-100">
           <div
             id="thermal-print-area"
-            className={`${widthClass} ${fontSizeClass} mx-auto block h-auto border border-dashed border-gray-400 bg-white p-5 pb-12 font-mono text-black shadow-md my-2`}
+            className={`${widthClass} ${fontSizeClass} mx-auto block h-auto border border-dashed border-gray-400 bg-white p-4 pb-10 font-mono text-black shadow-md my-2`}
           >
             {/* Cabeçalho da Loja */}
             <div className="text-center">
@@ -88,10 +91,10 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
                 {cfg.storeNameOverride || loja?.nome || encomenda.loja_nome || tinaMarca.nomeEmpresa || 'Padaria & Pastelaria'}
               </p>
               {(cfg.slogan || tinaMarca.slogan) && (
-                <p className="text-[10px] text-gray-700 italic">{cfg.slogan || tinaMarca.slogan}</p>
+                <p className="text-[10px] text-black italic">{cfg.slogan || tinaMarca.slogan}</p>
               )}
-              {cfg.showAddress && <p className="text-[11px]">{loja?.morada || 'Lisboa, Portugal'}</p>}
-              {cfg.showPhone && <p className="text-[11px]">{t.phone}: {loja?.telefone || tinaMarca.telefoneGeral || '210 000 000'}</p>}
+              {cfg.showAddress && <p className="text-[11px]">{loja?.morada || 'Arouca, Portugal'}</p>}
+              {cfg.showPhone && <p className="text-[11px]">{t.phone}: {loja?.telefone || tinaMarca.telefoneGeral || '256 940 000'}</p>}
               {cfg.showNif && (loja?.nif || tinaMarca.nif || '500100201') && (
                 <p className="text-[10px]">{t.nif}: {loja?.nif || tinaMarca.nif || '500100201'}</p>
               )}
@@ -102,16 +105,15 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
             {/* Número da Encomenda em Grande Destaque */}
             <div className="text-center my-1">
               <p className="text-[10px] uppercase tracking-wider">{t.receiptOrderNumber}</p>
+              <p className="text-base font-black tracking-tight my-0.5">{encomenda.codigo}</p>
               <div className="flex justify-center gap-1 mt-1 flex-wrap">
-                <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded border ${
-                  encomenda.tipo === 'entrega_domicilio' ? 'border-black bg-black text-white' : 'border-black'
-                }`}>
+                <span className="px-2 py-0.5 text-[10px] font-black uppercase rounded border border-black">
                   {encomenda.tipo === 'entrega_domicilio' ? t.receiptHomeDelivery : t.receiptPickup}
                 </span>
-                <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded border border-black bg-gray-100">
-                  {encomenda.canal_origem === 'site_online' ? '🌐 Site Online' :
-                   encomenda.canal_origem === 'whatsapp' ? '💬 WhatsApp' :
-                   encomenda.canal_origem === 'telefone' ? '📞 Telefone' : '🏪 Presencial'}
+                <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded border border-black">
+                  {encomenda.canal_origem === 'site_online' ? 'Site Online' :
+                   encomenda.canal_origem === 'whatsapp' ? 'WhatsApp' :
+                   encomenda.canal_origem === 'telefone' ? 'Telefone' : 'Presencial'}
                 </span>
               </div>
             </div>

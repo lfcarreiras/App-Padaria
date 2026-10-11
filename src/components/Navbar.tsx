@@ -19,7 +19,7 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId = 'todas', onSele
   const pathname = usePathname();
   const router = useRouter();
   const { language, setLanguage, t } = useTranslation();
-  const { usuario, logout, getNivelAcesso } = useAuth();
+  const { usuario, cockpitAtivo, lojaTrabalhoNome, logout, getNivelAcesso } = useAuth();
 
   const handleLogout = () => {
     logout();
@@ -34,8 +34,20 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId = 'todas', onSele
     { href: '/gestao', label: t.navGestao, icon: BarChart3, panel: 'gestao' },
   ];
 
-  // Filtrar apenas os painéis onde o colaborador tem acesso
+  // Filtrar estritamente pelo Cockpit escolhido no Login (ou pelas permissões do utilizador caso não haja cockpit explícito)
   const links = allLinks.filter((item) => {
+    if (cockpitAtivo === 'loja') {
+      return item.panel === 'encomendas' || item.panel === 'loja';
+    }
+    if (cockpitAtivo === 'producao') {
+      return item.panel === 'producao';
+    }
+    if (cockpitAtivo === 'carrinhas') {
+      return item.panel === 'entregas';
+    }
+    if (cockpitAtivo === 'gestao') {
+      return item.panel === 'gestao';
+    }
     const nivel = getNivelAcesso(item.panel);
     return nivel !== 'sem_acesso';
   });
@@ -43,7 +55,7 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId = 'todas', onSele
   return (
     <header className="no-print sticky top-0 z-40 w-full border-b border-bakery-200 bg-white/95 backdrop-blur shadow-xs">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-3 py-2.5 sm:px-6">
-        {/* Identidade e Seletor de Loja */}
+        {/* Identidade e Cockpit Ativo */}
         <div className="flex items-center gap-2.5 shrink-0">
           <Link href={links[0]?.href || '/login'} className="flex items-center gap-2">
             <img
@@ -51,9 +63,22 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId = 'todas', onSele
               alt={configMarca.nomeEmpresa || 'Padaria da Vila'}
               className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl object-cover shadow-xs border border-amber-200 shrink-0"
             />
-            <span className="text-xs sm:text-sm font-black text-gray-900 tracking-tight whitespace-nowrap">
-              {configMarca.nomeEmpresa || 'Padaria da Vila'}
-            </span>
+            <div>
+              <span className="text-xs sm:text-sm font-black text-gray-900 tracking-tight whitespace-nowrap block leading-tight">
+                {configMarca.nomeEmpresa || 'Padaria da Vila'}
+              </span>
+              {cockpitAtivo && (
+                <span className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded inline-block mt-0.5">
+                  {cockpitAtivo === 'loja'
+                    ? `🏪 ${lojaTrabalhoNome || 'Loja Física'}`
+                    : cockpitAtivo === 'producao'
+                    ? '👨‍🍳 Centro de Produção'
+                    : cockpitAtivo === 'carrinhas'
+                    ? '🚚 Carrinhas & Distribuição'
+                    : '⚙️ Cockpit de Gestão'}
+                </span>
+              )}
+            </div>
           </Link>
         </div>
 

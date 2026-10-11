@@ -8,6 +8,7 @@ import {
   carregarEncomendasSupabase, 
   carregarLojasSupabase,
   atualizarEstadoEncomendaDb, 
+  concluirEntregaComTimestampDb,
   alternarTipoEntregaDb,
   registarLogAuditoria 
 } from '../../lib/encomendasService';
@@ -33,11 +34,11 @@ import {
 
 export default function EntregaLojaPage() {
   const { t } = useTranslation();
-  const { podeEditar, usuario } = useAuth();
+  const { podeEditar, usuario, lojaTrabalhoId } = useAuth();
   const currentUser = usuario || { id: 'user-balcao', nome: 'Marta Santos (Atendente Balcão)', role: 'atendente' };
   const temPermissaoEdicao = podeEditar('loja');
   const configMarca = obterConfiguracaoMarca();
-  const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
+  const [selectedLojaId, setSelectedLojaId] = useState<string>(lojaTrabalhoId || 'todas');
   const [lojas, setLojas] = useState<Loja[]>(LOJAS_MOCK);
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
   const [filtroEstado, setFiltroEstado] = useState<'pendentes' | 'concluidos' | 'todos'>('pendentes');
@@ -47,6 +48,12 @@ export default function EntregaLojaPage() {
   // Filtro de Calendário
   const [filtroPeriodo, setFiltroPeriodo] = useState<'hoje' | 'amanha' | 'todos' | 'personalizado'>('hoje');
   const [dataPersonalizada, setDataPersonalizada] = useState('');
+
+  useEffect(() => {
+    if (lojaTrabalhoId) {
+      setSelectedLojaId(lojaTrabalhoId);
+    }
+  }, [lojaTrabalhoId]);
 
   useEffect(() => {
     async function carregar() {
@@ -98,12 +105,16 @@ export default function EntregaLojaPage() {
     return matchLoja && matchStatus && matchData && matchBusca;
   });
 
-  // Concluir Levantamento no Balcão
+  // Concluir Levantamento no Balcão (regista Data e Hora reais do levantamento)
   const handleConcluirLevantamento = async (encId: string) => {
+    const agoraData = new Date().toISOString().split('T')[0];
+    const agoraHora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    await concluirEntregaComTimestampDb(encId, agoraHora, agoraData);
     await atualizarEstadoEncomendaDb(encId, 'entregue', 'pago');
+
     const enc = encomendas.find((e) => e.id === encId);
     if (enc) {
-      const agora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       await registarLogAuditoria({
         encomenda_id: enc.id,
         codigo_encomenda: enc.codigo,
@@ -115,14 +126,14 @@ export default function EntregaLojaPage() {
         loja_nome: enc.loja_nome,
         painel: 'loja',
         acao: 'Entrega Efetuada ao Balcão',
-        detalhes: `Cliente levantou a encomenda no balcão da loja às ${agora}. Pagamento e entrega conferidos por ${currentUser.nome}.`,
+        detalhes: `Cliente levantou a encomenda no balcão da loja em ${agoraData} às ${agoraHora}. Registado por ${currentUser.nome}.`,
       });
     }
 
     setEncomendas((prev) =>
       prev.map((e) =>
         e.id === encId
-          ? { ...e, estado: 'entregue', estado_pagamento: 'pago' }
+          ? { ...e, estado: 'entregue', estado_pagamento: 'pago', data_entrega_real: agoraData, hora_entrega_real: agoraHora }
           : e
       )
     );
@@ -409,16 +420,39 @@ export default function EntregaLojaPage() {
                                            enc.canal_origem === 'whatsapp' ? '💬 WhatsApp' :
                                            enc.canal_origem === 'telefone' ? '📞 Telefone' : '🏪 Presencial'}
                                         </span>
+                                        <span className={`px-2 py-0.5 text-[9px] font-black uppercase rounded-md border ${
+                                          enc.estado === 'entregue'
+                                            ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                                            : enc.estado === 'pronto_loja' || enc.estado === 'em_rota'
+                                            ? 'bg-blue-100 text-blue-900 border-blue-300'
+                                            : enc.estado === 'em_producao'
+                                            ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                            : 'bg-stone-100 text-stone-800 border-stone-300'
+                                        }`}>
+                                          {enc.estado === 'entregue'
+                                            ? '✅ Entregue'
+                                            : enc.estado === 'pronto_loja' || enc.estado === 'em_rota'
+                                            ? '🚚 Em Distribuição / Pronto'
+                                            : enc.estado === 'em_producao'
+                                            ? '👨‍🍳 Em Produção'
+                                            : '📝 Encomendado'}
+                                        </span>
                                       </div>
                                       <h4 className="text-sm font-bold text-gray-900">{enc.cliente.nome}</h4>
                                     </div>
                                   </div>
 
-                                  <div className="flex items-center gap-2">
-                                    <span className="inline-flex items-center gap-1 text-xs font-bold bg-white px-2.5 py-1 rounded-lg border border-gray-200">
+                                  <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1.5">
+                                    <span className="inline-flex items-center gap-1 text-xs font-bold bg-white px-2.5 py-1 rounded-lg border border-gray-200" title="Data e hora agendadas">
                                       <Clock className="h-3.5 w-3.5 text-amber-700" />
-                                      {enc.data_agendamento} às {enc.hora_agendamento}
+                                      Agendado: {enc.data_agendamento} às {enc.hora_agendamento}
                                     </span>
+                                    {concluido && (enc.data_entrega_real || enc.hora_entrega_real) && (
+                                      <span className="inline-flex items-center gap-1 text-xs font-black bg-emerald-100 text-emerald-900 px-2.5 py-1 rounded-lg border border-emerald-300" title="Data e hora reais do levantamento">
+                                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700" />
+                                        Levantado: {enc.data_entrega_real || enc.data_agendamento} às {enc.hora_entrega_real || enc.hora_agendamento}
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
 

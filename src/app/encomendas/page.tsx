@@ -3,21 +3,23 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar } from '../../components/Navbar';
 import { ThermalReceipt } from '../../components/ThermalReceipt';
-import { LOJAS_MOCK, PRODUTOS_MOCK } from '../../lib/mockData';
+import { LOJAS_MOCK, PRODUTOS_MOCK, CARRINHAS_MOCK } from '../../lib/mockData';
 import { supabase } from '../../lib/supabase';
 import { 
   carregarEncomendasSupabase, 
   carregarClientesSupabase, 
   carregarProdutosSupabase,
   carregarLojasSupabase,
+  carregarCarrinhasSupabase,
   salvarClienteDb,
   eliminarClienteDb,
   eliminarEncomendaDb,
   atualizarEncomendaDb,
   alternarTipoEntregaDb,
+  guardarCanalOrigemLocal,
   registarLogAuditoria 
 } from '../../lib/encomendasService';
-import { Encomenda, Produto, ItemEncomenda, TipoEntrega, MetodoPagamento, Cliente, Loja, CanalOrigemEncomenda } from '../../types';
+import { Encomenda, Produto, ItemEncomenda, TipoEntrega, MetodoPagamento, Cliente, Loja, Carrinha, CanalOrigemEncomenda } from '../../types';
 import { useTranslation } from '../../lib/i18n';
 import { useAuth } from '../../lib/authContext';
 import { obterConfiguracaoMarca, obterProdutosMontra } from '../../lib/tinaContent';
@@ -48,15 +50,16 @@ import {
 
 export default function EncomendasPage() {
   const { t, language } = useTranslation();
-  const { podeEditar, usuario } = useAuth();
+  const { podeEditar, usuario, lojaTrabalhoId } = useAuth();
   const currentUser = usuario || { id: 'user-balcao', nome: 'Marta Santos (Atendente Balcão)', role: 'atendente' };
   const temPermissaoEdicao = podeEditar('encomendas');
   const configMarca = obterConfiguracaoMarca();
-  const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
+  const [selectedLojaId, setSelectedLojaId] = useState<string>(lojaTrabalhoId || 'todas');
   const [activeTab, setActiveTab] = useState<'novo' | 'clientes' | 'historico'>('novo');
 
   // Dados Globais
   const [lojas, setLojas] = useState<Loja[]>(LOJAS_MOCK);
+  const [carrinhas, setCarrinhas] = useState<Carrinha[]>(CARRINHAS_MOCK);
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [produtos, setProdutos] = useState<Produto[]>(() => {
@@ -66,7 +69,8 @@ export default function EncomendasPage() {
   const [carregando, setCarregando] = useState(true);
 
   // Estados do Formulário de Novo Pedido
-  const [lojaPedidoId, setLojaPedidoId] = useState<string>(LOJAS_MOCK[0].id);
+  const [lojaPedidoId, setLojaPedidoId] = useState<string>(lojaTrabalhoId || LOJAS_MOCK[0].id);
+  const [carrinhaSelecionadaId, setCarrinhaSelecionadaId] = useState<string>(CARRINHAS_MOCK[0].id);
   const [carrinho, setCarrinho] = useState<ItemEncomenda[]>([]);
   const [nomeCliente, setNomeCliente] = useState('');
   const [telefoneCliente, setTelefoneCliente] = useState('');
@@ -94,23 +98,40 @@ export default function EncomendasPage() {
   const [dataInicioHistorico, setDataInicioHistorico] = useState('');
   const [dataFimHistorico, setDataFimHistorico] = useState('');
   const [encomendaEmEdicao, setEncomendaEmEdicao] = useState<Encomenda | null>(null);
+  const [produtoAdicionalId, setProdutoAdicionalId] = useState<string>('');
+
+  // Sincronizar Loja predefinida com a Loja de Trabalho escolhida no Login
+  useEffect(() => {
+    if (lojaTrabalhoId) {
+      setLojaPedidoId(lojaTrabalhoId);
+      setSelectedLojaId(lojaTrabalhoId);
+    }
+  }, [lojaTrabalhoId]);
 
   // Carregamento Inicial
   useEffect(() => {
     async function carregar() {
       setCarregando(true);
-      const [encs, clis, prods, ljs] = await Promise.all([
+      const [encs, clis, prods, ljs, cars] = await Promise.all([
         carregarEncomendasSupabase(),
         carregarClientesSupabase(),
         carregarProdutosSupabase(),
         carregarLojasSupabase(),
+        carregarCarrinhasSupabase(),
       ]);
       setEncomendas(encs);
       setClientes(clis);
-      if (prods && prods.length > 0) setProdutos(prods);
+      if (prods && prods.length > 0) {
+        setProdutos(prods);
+        setProdutoAdicionalId(prods[0].id);
+      }
       if (ljs && ljs.length > 0) {
         setLojas(ljs);
-        setLojaPedidoId(ljs[0].id);
+        setLojaPedidoId((prev) => lojaTrabalhoId || prev || ljs[0].id);
+      }
+      if (cars && cars.length > 0) {
+        setCarrinhas(cars);
+        setCarrinhaSelecionadaId(cars[0].id);
       }
       setCarregando(false);
     }
@@ -125,7 +146,7 @@ export default function EncomendasPage() {
     return () => {
       window.removeEventListener('app_produtos_atualizados', handleProdutosAtualizados);
     };
-  }, []);
+  }, [lojaTrabalhoId]);
 
   const lojaAtual = (tipoEntrega === 'levantamento_loja'
     ? lojas.find((l) => l.id === lojaPedidoId)
@@ -134,12 +155,24 @@ export default function EncomendasPage() {
   // Pesquisa automática de cliente no formulário de pedido
   const handleTelefoneChange = async (tel: string) => {
     setTelefoneCliente(tel);
-    if (!supabase || tel.trim().length < 9) return;
+    const telLimpo = tel.trim();
+    if (telLimpo.length < 9) return;
+
+    // 1. Verificar primeiro na lista local de clientes
+    const cliLocal = clientes.find((c) => c.telefone.replace(/\s+/g, '') === telLimpo.replace(/\s+/g, ''));
+    if (cliLocal) {
+      setNomeCliente(cliLocal.nome);
+      if (cliLocal.morada) setMoradaCliente(cliLocal.morada);
+      if (cliLocal.notas_entrega) setNotasEntrega(cliLocal.notas_entrega);
+      return;
+    }
+
+    if (!supabase) return;
     try {
       const { data: cli } = await supabase
         .from('clientes')
         .select('*')
-        .eq('telefone', tel.trim())
+        .eq('telefone', telLimpo)
         .maybeSingle();
 
       if (cli) {
@@ -215,12 +248,18 @@ export default function EncomendasPage() {
     setAGravar(true);
 
     try {
-      let clienteId = null;
+      let clienteId: string | null = null;
       const codigoGerado = `ENC-${lojaAtual.codigo}-${Math.floor(1000 + Math.random() * 9000)}`;
-      const encomendaId = `enc-${Date.now()}`;
+      let encomendaId = `enc-${Date.now()}`;
+      const carrinhaObj = tipoEntrega === 'entrega_domicilio'
+        ? (carrinhas.find((c) => c.id === carrinhaSelecionadaId) || carrinhas[0])
+        : null;
+
+      // Persistir canal de origem localmente para resiliência
+      guardarCanalOrigemLocal(codigoGerado, canalOrigem);
 
       if (supabase) {
-        // 1. Guardar ou Atualizar Cliente
+        // 1. Guardar ou Atualizar Cliente automaticamente na Base de Dados
         const { data: cliExistente } = await supabase
           .from('clientes')
           .select('id')
@@ -259,40 +298,70 @@ export default function EncomendasPage() {
         const lojaIdFinal = lojaDb?.id || lojaAtual.id;
 
         let carrinhaIdFinal: string | null = null;
-        if (tipoEntrega === 'entrega_domicilio') {
-          const { data: carDb } = await supabase
-            .from('carrinhas')
-            .select('id')
-            .eq('loja_id', lojaIdFinal)
-            .limit(1)
-            .maybeSingle();
-          if (carDb) carrinhaIdFinal = carDb.id;
+        if (tipoEntrega === 'entrega_domicilio' && carrinhaObj) {
+          carrinhaIdFinal = carrinhaObj.id;
         }
 
-        // 3. Inserir Encomenda
-        const { data: encDb, error: errEnc } = await supabase
+        // 3. Inserir Encomenda (com fallback automático caso a coluna canal_origem não exista no schema cache do Supabase)
+        const basePayload: Record<string, any> = {
+          codigo: codigoGerado,
+          loja_id: lojaIdFinal,
+          cliente_id: clienteId,
+          tipo: tipoEntrega,
+          carrinha_id: carrinhaIdFinal,
+          data_agendamento: dataAgendamento,
+          hora_agendamento: horaAgendamento,
+          estado: 'pendente',
+          estado_pagamento: 'pago',
+          total: 0,
+          notas_cliente: notasGerais.trim() || null,
+        };
+
+        let { data: encDb, error: errEnc } = await supabase
           .from('encomendas')
           .insert({
-            codigo: codigoGerado,
-            loja_id: lojaIdFinal,
-            cliente_id: clienteId,
-            tipo: tipoEntrega,
+            ...basePayload,
             canal_origem: canalOrigem,
-            carrinha_id: carrinhaIdFinal,
-            data_agendamento: dataAgendamento,
-            hora_agendamento: horaAgendamento,
-            estado: 'pendente',
-            estado_pagamento: 'pago',
-            total: 0,
-            notas_cliente: notasGerais.trim() || null,
           })
           .select('id, codigo')
           .single();
 
-        if (errEnc) throw errEnc;
+        if (errEnc) {
+          // Retry sem a coluna canal_origem se o Supabase devolver erro de schema cache ou FK de carrinha
+          const notasComCanal = `[CANAL:${canalOrigem}]${notasGerais.trim() ? ' ' + notasGerais.trim() : ''}`;
+          const retryPayload: Record<string, any> = {
+            ...basePayload,
+            notas_cliente: notasComCanal,
+          };
+          let retryRes = await supabase
+            .from('encomendas')
+            .insert(retryPayload)
+            .select('id, codigo')
+            .single();
+
+          if (retryRes.error && carrinhaIdFinal) {
+            // Caso a carrinha 4 ou 5 ainda não exista na tabela carrinhas remota, tenta com carrinha da loja
+            const { data: carDb } = await supabase
+              .from('carrinhas')
+              .select('id')
+              .eq('loja_id', lojaIdFinal)
+              .limit(1)
+              .maybeSingle();
+            retryPayload.carrinha_id = carDb?.id || null;
+            retryRes = await supabase
+              .from('encomendas')
+              .insert(retryPayload)
+              .select('id, codigo')
+              .single();
+          }
+
+          if (retryRes.error) throw retryRes.error;
+          encDb = retryRes.data;
+        }
 
         // 4. Inserir Itens
         if (encDb) {
+          encomendaId = encDb.id;
           const itensPayload = carrinho.map((item) => ({
             encomenda_id: encDb.id,
             produto_id: item.produto_id,
@@ -307,6 +376,14 @@ export default function EncomendasPage() {
         }
       }
 
+      const novoClienteObj: Cliente = {
+        id: clienteId || `cli-${Date.now()}`,
+        nome: nomeCliente.trim(),
+        telefone: telefoneCliente.trim(),
+        morada: tipoEntrega === 'entrega_domicilio' ? moradaCliente.trim() : undefined,
+        notas_entrega: tipoEntrega === 'entrega_domicilio' ? notasEntrega.trim() : undefined,
+      };
+
       // Criar Objeto Local para Impressão Imediata
       const novaEncomenda: Encomenda = {
         id: encomendaId,
@@ -314,15 +391,11 @@ export default function EncomendasPage() {
         codigo: codigoGerado,
         loja_id: lojaAtual.id,
         loja_nome: lojaAtual.nome,
-        cliente: {
-          id: clienteId || `cli-${Date.now()}`,
-          nome: nomeCliente.trim(),
-          telefone: telefoneCliente.trim(),
-          morada: tipoEntrega === 'entrega_domicilio' ? moradaCliente.trim() : undefined,
-          notas_entrega: tipoEntrega === 'entrega_domicilio' ? notasEntrega.trim() : undefined,
-        },
+        cliente: novoClienteObj,
         tipo: tipoEntrega,
         canal_origem: canalOrigem,
+        carrinha_id: carrinhaObj?.id,
+        carrinha_nome: carrinhaObj?.identificador,
         data_agendamento: dataAgendamento,
         hora_agendamento: horaAgendamento,
         estado: 'pendente',
@@ -346,11 +419,18 @@ export default function EncomendasPage() {
         loja_nome: lojaAtual.nome,
         painel: 'encomendas',
         acao: 'Registo de Encomenda',
-        detalhes: `Registado pedido com ${qtdTotalArtigos} artigo(s) (${resumoArtigos}). Modalidade: ${tipoEntrega === 'entrega_domicilio' ? 'Entrega ao Domicílio' : 'Levantamento no Balcão'}. Agendado para ${dataAgendamento} às ${horaAgendamento}.`,
+        detalhes: `Registado pedido com ${qtdTotalArtigos} artigo(s) (${resumoArtigos}). Modalidade: ${tipoEntrega === 'entrega_domicilio' ? `Entrega ao Domicílio (${carrinhaObj?.identificador || 'Carrinha'})` : 'Levantamento no Balcão'}. Agendado para ${dataAgendamento} às ${horaAgendamento}.`,
       });
 
       setEncomendas((prev) => [novaEncomenda, ...prev]);
       setEncomendaParaImprimir(novaEncomenda);
+
+      // Garantir que o cliente fica imediatamente criado/atualizado na lista de Clientes
+      const clisAtualizados = await carregarClientesSupabase();
+      const existeNaLista = clisAtualizados.some(
+        (c) => c.telefone.replace(/\s+/g, '') === novoClienteObj.telefone.replace(/\s+/g, '')
+      );
+      setClientes(existeNaLista ? clisAtualizados : [novoClienteObj, ...clisAtualizados]);
 
       // Limpar Formulário
       setCarrinho([]);
@@ -359,10 +439,6 @@ export default function EncomendasPage() {
       setMoradaCliente('');
       setNotasEntrega('');
       setNotasGerais('');
-
-      // Recarregar Clientes
-      const clisAtualizados = await carregarClientesSupabase();
-      setClientes(clisAtualizados);
     } catch (err: any) {
       console.error('Erro ao registar encomenda:', err);
       alert('Erro ao guardar encomenda: ' + err.message);
@@ -625,24 +701,8 @@ export default function EncomendasPage() {
             </p>
           </div>
 
-          {/* Ações e Filtros de Loja do Painel */}
+          {/* Abas Principais */}
           <div className="flex flex-wrap items-center gap-3">
-            {/* Seletor de Loja do Painel de Encomendas */}
-            <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-2xl border border-gray-200 shadow-2xs">
-              <Store className="h-4 w-4 text-bakery-600 shrink-0" />
-              <select
-                value={selectedLojaId}
-                onChange={(e) => setSelectedLojaId(e.target.value)}
-                className="text-xs font-bold text-gray-900 bg-transparent focus:outline-hidden cursor-pointer"
-              >
-                <option value="todas">{t.allStores}</option>
-                {lojas.map((l) => (
-                  <option key={l.id} value={l.id}>{l.nome}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Abas Principais */}
             <div className="flex bg-white p-1 rounded-2xl border border-gray-200 shadow-2xs">
             <button
               onClick={() => setActiveTab('novo')}
@@ -742,13 +802,13 @@ export default function EncomendasPage() {
             {/* Coluna Direita: Dados do Pedido & Carrinho */}
             <div className="lg:col-span-5 space-y-4">
               <form onSubmit={handleGravarEncomenda} className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
-                {/* Canal de Origem da Encomenda */}
+                {/* Canal de Origem da Encomenda (Presencial, Telefone, WhatsApp) */}
                 <div>
                   <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
                     <span>Canal de Origem do Pedido</span>
                     <span className="text-[10px] text-gray-500 font-normal lowercase">como chegou o pedido</span>
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-gray-100 p-1 rounded-xl">
+                  <div className="grid grid-cols-3 gap-1.5 bg-gray-100 p-1 rounded-xl">
                     <button
                       type="button"
                       onClick={() => setCanalOrigem('presencial')}
@@ -784,18 +844,6 @@ export default function EncomendasPage() {
                     >
                       <MessageSquare className="h-3.5 w-3.5 text-emerald-600" />
                       <span>WhatsApp</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCanalOrigem('site_online')}
-                      className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
-                        canalOrigem === 'site_online'
-                          ? 'bg-white text-indigo-900 shadow-2xs border border-indigo-300'
-                          : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                    >
-                      <Globe className="h-3.5 w-3.5 text-indigo-600" />
-                      <span>Site Online</span>
                     </button>
                   </div>
                 </div>
@@ -882,6 +930,23 @@ export default function EncomendasPage() {
                 {/* Campos Específicos para Entrega ao Domicílio */}
                 {tipoEntrega === 'entrega_domicilio' && (
                   <div className="space-y-3 bg-blue-50/60 p-3 rounded-xl border border-blue-200">
+                    <div>
+                      <label className="block text-[11px] font-bold text-blue-950 mb-1 flex items-center gap-1">
+                        <Truck className="h-3.5 w-3.5 text-blue-600" />
+                        Carrinha de Entrega *
+                      </label>
+                      <select
+                        value={carrinhaSelecionadaId}
+                        onChange={(e) => setCarrinhaSelecionadaId(e.target.value)}
+                        className="w-full px-3 py-2 text-xs bg-white rounded-lg border border-blue-300 font-bold text-gray-900 focus:outline-hidden focus:border-blue-500 cursor-pointer"
+                      >
+                        {carrinhas.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.identificador} — {c.motorista_nome}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                     <div>
                       <label className="block text-[11px] font-bold text-blue-950 mb-1 flex items-center gap-1">
                         <MapPin className="h-3.5 w-3.5 text-red-500" />
@@ -1099,9 +1164,24 @@ export default function EncomendasPage() {
         {/* ----------------- ABA 3: HISTÓRICO DE ENCOMENDAS ----------------- */}
         {activeTab === 'historico' && (
           <div className="space-y-4">
-            {/* Barra de Filtros do Histórico: Pesquisa e Seletor de Período / Calendário */}
+            {/* Barra de Filtros do Histórico: Seletor de Loja, Pesquisa e Seletor de Período / Calendário */}
             <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-2xs space-y-3">
               <div className="flex flex-col md:flex-row items-center gap-3">
+                {/* Seletor de Loja (exclusivamente no Histórico de Encomendas) */}
+                <div className="flex items-center gap-1.5 bg-stone-50 px-3 py-2 rounded-xl border border-gray-200 shadow-2xs w-full md:w-auto shrink-0">
+                  <Store className="h-4 w-4 text-bakery-600 shrink-0" />
+                  <select
+                    value={selectedLojaId}
+                    onChange={(e) => setSelectedLojaId(e.target.value)}
+                    className="text-xs font-bold text-gray-900 bg-transparent focus:outline-hidden cursor-pointer w-full"
+                  >
+                    <option value="todas">{t.allStores}</option>
+                    {lojas.map((l) => (
+                      <option key={l.id} value={l.id}>{l.nome}</option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="relative flex-1 w-full">
                   <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400 shrink-0" />
                   <input
@@ -1253,7 +1333,19 @@ export default function EncomendasPage() {
 
                             {/* Grelha de Pedidos Ordenados */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                              {pedidosOrdenados.map((enc) => (
+                              {pedidosOrdenados.map((enc) => {
+                                const estadoRótulo =
+                                  enc.estado === 'pendente'
+                                    ? 'Encomendado'
+                                    : enc.estado === 'em_producao'
+                                    ? 'Em Produção'
+                                    : enc.estado === 'pronto_loja' || enc.estado === 'em_rota'
+                                    ? 'Em Distribuição'
+                                    : enc.estado === 'entregue'
+                                    ? 'Entregue'
+                                    : 'Cancelado';
+
+                                return (
                                 <div
                                   key={enc.id}
                                   className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs flex flex-col justify-between space-y-3 hover:border-bakery-300 transition"
@@ -1276,7 +1368,7 @@ export default function EncomendasPage() {
                                           {enc.canal_origem === 'telefone' && <Phone className="h-3 w-3 text-amber-600" />}
                                           {(!enc.canal_origem || enc.canal_origem === 'presencial') && <Store className="h-3 w-3 text-stone-600" />}
                                           <span>
-                                            {enc.canal_origem === 'site_online' ? 'Site' :
+                                            {enc.canal_origem === 'site_online' ? 'Cliente App' :
                                              enc.canal_origem === 'whatsapp' ? 'WhatsApp' :
                                              enc.canal_origem === 'telefone' ? 'Telefone' : 'Presencial'}
                                           </span>
@@ -1285,11 +1377,13 @@ export default function EncomendasPage() {
                                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border shrink-0 ${
                                         enc.estado === 'entregue'
                                           ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                          : enc.estado === 'em_producao' || enc.estado === 'pronto_loja'
+                                          : enc.estado === 'pronto_loja' || enc.estado === 'em_rota'
+                                          ? 'bg-blue-50 text-blue-800 border-blue-200'
+                                          : enc.estado === 'em_producao'
                                           ? 'bg-amber-50 text-amber-800 border-amber-200'
                                           : 'bg-gray-100 text-gray-700 border-gray-200'
                                       }`}>
-                                        {enc.estado.replace('_', ' ')}
+                                        {estadoRótulo}
                                       </span>
                                     </div>
 
@@ -1298,11 +1392,21 @@ export default function EncomendasPage() {
                                       <Phone className="h-3 w-3" /> {enc.cliente.telefone}
                                     </p>
 
-                                    {enc.tipo === 'entrega_domicilio' && enc.cliente.morada && (
-                                      <p className="text-xs text-gray-700 mt-1.5 bg-blue-50/50 p-2 rounded-lg border border-blue-100">
-                                        <MapPin className="h-3 w-3 inline mr-1 text-red-500" />
-                                        {enc.cliente.morada}
-                                      </p>
+                                    {enc.tipo === 'entrega_domicilio' && (
+                                      <div className="text-xs text-gray-700 mt-1.5 bg-blue-50/50 p-2 rounded-lg border border-blue-100 space-y-0.5">
+                                        {enc.carrinha_nome && (
+                                          <p className="font-bold text-blue-900 flex items-center gap-1">
+                                            <Truck className="h-3 w-3 text-blue-600" />
+                                            {enc.carrinha_nome}
+                                          </p>
+                                        )}
+                                        {enc.cliente.morada && (
+                                          <p>
+                                            <MapPin className="h-3 w-3 inline mr-1 text-red-500" />
+                                            {enc.cliente.morada}
+                                          </p>
+                                        )}
+                                      </div>
                                     )}
 
                                     <div className="text-xs text-gray-600 mt-2.5 flex items-center justify-between bg-gray-50 p-2 rounded-xl">
@@ -1314,6 +1418,16 @@ export default function EncomendasPage() {
                                         {enc.itens.reduce((acc, i) => acc + i.quantidade, 0)} {t.totalItems.toLowerCase()}
                                       </span>
                                     </div>
+
+                                    {enc.estado === 'entregue' && (enc.hora_entrega_real || enc.data_entrega_real) && (
+                                      <div className="mt-1.5 text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg flex items-center gap-1">
+                                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                                        <span>
+                                          Entregue: {enc.data_entrega_real || enc.data_agendamento}
+                                          {enc.hora_entrega_real ? ` às ${enc.hora_entrega_real}` : ''}
+                                        </span>
+                                      </div>
+                                    )}
 
                                     {/* Resumo de Artigos */}
                                     <div className="mt-2 space-y-0.5">
@@ -1381,7 +1495,8 @@ export default function EncomendasPage() {
                                     </a>
                                   </div>
                                 </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           </div>
                         );
@@ -1508,7 +1623,7 @@ export default function EncomendasPage() {
                   <h3 className="text-base font-black text-gray-900">
                     Editar Encomenda <span className="font-mono text-bakery-700">{encomendaEmEdicao.codigo}</span>
                   </h3>
-                  <p className="text-xs text-gray-500">Altere dados do cliente, agendamento, formato de entrega ou artigos</p>
+                  <p className="text-xs text-gray-500">Altere dados do cliente, agendamento, formato de entrega ou adicione novos artigos</p>
                 </div>
               </div>
               <button
@@ -1527,7 +1642,7 @@ export default function EncomendasPage() {
                   <span>Canal de Origem do Pedido</span>
                   <span className="text-[10px] text-gray-500 font-normal lowercase">como foi recebido o pedido</span>
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-gray-100 p-1 rounded-xl">
+                <div className="grid grid-cols-3 gap-1.5 bg-gray-100 p-1 rounded-xl">
                   <button
                     type="button"
                     onClick={() => setEncomendaEmEdicao({ ...encomendaEmEdicao, canal_origem: 'presencial' })}
@@ -1563,18 +1678,6 @@ export default function EncomendasPage() {
                   >
                     <MessageSquare className="h-3.5 w-3.5 text-emerald-600" />
                     <span>WhatsApp</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEncomendaEmEdicao({ ...encomendaEmEdicao, canal_origem: 'site_online' })}
-                    className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
-                      encomendaEmEdicao.canal_origem === 'site_online'
-                        ? 'bg-white text-indigo-900 shadow-2xs border border-indigo-300'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    <Globe className="h-3.5 w-3.5 text-indigo-600" />
-                    <span>Site Online</span>
                   </button>
                 </div>
               </div>
@@ -1669,9 +1772,30 @@ export default function EncomendasPage() {
                 </div>
               </div>
 
-              {/* Morada (se entrega ao domicílio) */}
+              {/* Carrinha & Morada (se entrega ao domicílio) */}
               {encomendaEmEdicao.tipo === 'entrega_domicilio' && (
                 <div className="space-y-2 bg-blue-50/60 p-3 rounded-xl border border-blue-200">
+                  <div>
+                    <label className="block font-bold text-blue-950 mb-1">Carrinha de Entrega *</label>
+                    <select
+                      value={encomendaEmEdicao.carrinha_id || carrinhas[0]?.id || ''}
+                      onChange={(e) => {
+                        const car = carrinhas.find((c) => c.id === e.target.value);
+                        setEncomendaEmEdicao({
+                          ...encomendaEmEdicao,
+                          carrinha_id: e.target.value,
+                          carrinha_nome: car ? car.identificador : encomendaEmEdicao.carrinha_nome,
+                        });
+                      }}
+                      className="w-full px-3 py-2 bg-white rounded-lg border border-blue-300 font-bold text-gray-900 focus:outline-hidden text-xs cursor-pointer"
+                    >
+                      {carrinhas.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.identificador} — {c.motorista_nome}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <div>
                     <label className="block font-bold text-blue-950 mb-1">Morada de Entrega *</label>
                     <input
@@ -1741,11 +1865,11 @@ export default function EncomendasPage() {
                     }
                     className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold"
                   >
-                    <option value="pendente">Pendente</option>
+                    <option value="pendente">Encomendado (Pendente)</option>
                     <option value="em_producao">Em Produção</option>
-                    <option value="pronto_loja">Pronto / Para Expedição</option>
-                    <option value="em_rota">Em Rota de Entrega</option>
-                    <option value="entregue">Entregue / Concluída</option>
+                    <option value="pronto_loja">Em Distribuição / Pronto na Loja</option>
+                    <option value="em_rota">Em Distribuição (Em Rota)</option>
+                    <option value="entregue">Entregue</option>
                     <option value="cancelado">Cancelado</option>
                   </select>
                 </div>
@@ -1765,9 +1889,65 @@ export default function EncomendasPage() {
                 />
               </div>
 
-              {/* Artigos da Encomenda */}
-              <div className="border-t pt-3">
-                <h4 className="font-bold text-gray-800 mb-2 uppercase text-[11px]">Artigos ({encomendaEmEdicao.itens.length})</h4>
+              {/* Artigos da Encomenda + Adicionar Novos Artigos */}
+              <div className="border-t pt-3 space-y-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <h4 className="font-bold text-gray-800 uppercase text-[11px]">
+                    Artigos da Encomenda ({encomendaEmEdicao.itens.length})
+                  </h4>
+
+                  {/* Seletor para Adicionar Novo Artigo */}
+                  <div className="flex items-center gap-1.5">
+                    <select
+                      value={produtoAdicionalId || produtos[0]?.id || ''}
+                      onChange={(e) => setProdutoAdicionalId(e.target.value)}
+                      className="px-2.5 py-1.5 rounded-xl border border-bakery-300 bg-white text-xs font-bold text-gray-900 focus:outline-hidden"
+                    >
+                      {produtos.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.nome} ({p.categoria === 'padaria' ? 'Padaria' : 'Pastelaria'})
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const prodEscolhido = produtos.find((p) => p.id === (produtoAdicionalId || produtos[0]?.id));
+                        if (!prodEscolhido) return;
+                        const idxExistente = encomendaEmEdicao.itens.findIndex(
+                          (it) => it.produto_id === prodEscolhido.id
+                        );
+                        if (idxExistente >= 0) {
+                          const novos = encomendaEmEdicao.itens.map((it, idx) =>
+                            idx === idxExistente ? { ...it, quantidade: it.quantidade + 1 } : it
+                          );
+                          setEncomendaEmEdicao({ ...encomendaEmEdicao, itens: novos });
+                        } else {
+                          const novoItem: ItemEncomenda = {
+                            id: `item-${Date.now()}-${Math.random()}`,
+                            encomenda_id: encomendaEmEdicao.id,
+                            produto_id: prodEscolhido.id,
+                            produto_nome: prodEscolhido.nome,
+                            setor: prodEscolhido.categoria === 'padaria' ? 'padaria' : 'pastelaria',
+                            quantidade: 1,
+                            preco_unitario: 0,
+                            estado_producao: 'pendente',
+                            notas_personalizacao: '',
+                          };
+                          setEncomendaEmEdicao({
+                            ...encomendaEmEdicao,
+                            itens: [...encomendaEmEdicao.itens, novoItem],
+                          });
+                        }
+                      }}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-bakery-600 text-white font-bold text-xs hover:bg-bakery-700 transition shrink-0 cursor-pointer"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Adicionar Artigo
+                    </button>
+                  </div>
+                </div>
+
                 <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                   {encomendaEmEdicao.itens.map((item, idx) => (
                     <div key={item.id || idx} className="p-2.5 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between gap-2">

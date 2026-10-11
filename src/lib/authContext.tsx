@@ -1,24 +1,37 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { PerfilUtilizador, NivelAcesso } from '../types';
+import { PerfilUtilizador, NivelAcesso, CockpitSelecionado } from '../types';
 import { carregarPerfisAcessoSupabase } from './encomendasService';
+import { LOJAS_MOCK } from './mockData';
 
 export type PainelApp = 'encomendas' | 'producao' | 'loja' | 'entregas' | 'gestao';
 
 interface AuthContextType {
   usuario: PerfilUtilizador | null;
+  cockpitAtivo: CockpitSelecionado | null;
+  lojaTrabalhoId: string | null;
+  lojaTrabalhoNome: string | null;
   loading: boolean;
-  login: (identificador: string, pass: string) => Promise<{ success: boolean; message?: string }>;
+  login: (
+    identificador: string,
+    pass: string,
+    cockpit?: CockpitSelecionado,
+    lojaId?: string,
+    lojaNome?: string
+  ) => Promise<{ success: boolean; message?: string; redirectUrl?: string }>;
   logout: () => void;
   getNivelAcesso: (painel: PainelApp) => NivelAcesso;
   podeEditar: (painel: PainelApp) => boolean;
   podeLer: (painel: PainelApp) => boolean;
-  obterRotaInicial: (user?: PerfilUtilizador | null) => string;
+  obterRotaInicial: (user?: PerfilUtilizador | null, cockpit?: CockpitSelecionado | null) => string;
 }
 
 const AuthContext = createContext<AuthContextType>({
   usuario: null,
+  cockpitAtivo: null,
+  lojaTrabalhoId: null,
+  lojaTrabalhoNome: null,
   loading: true,
   login: async () => ({ success: false }),
   logout: () => {},
@@ -29,9 +42,13 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 const SESSION_KEY = 'app_sessao_utilizador';
+const COCKPIT_SESSION_KEY = 'app_sessao_cockpit';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [usuario, setUsuario] = useState<PerfilUtilizador | null>(null);
+  const [cockpitAtivo, setCockpitAtivo] = useState<CockpitSelecionado | null>(null);
+  const [lojaTrabalhoId, setLojaTrabalhoId] = useState<string | null>(null);
+  const [lojaTrabalhoNome, setLojaTrabalhoNome] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Carregar sessão gravada no arranque e sincronizar permissões mais recentes
@@ -39,6 +56,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     async function restaurarSessao() {
       try {
         const stored = localStorage.getItem(SESSION_KEY);
+        const storedCockpit = localStorage.getItem(COCKPIT_SESSION_KEY);
+        if (storedCockpit) {
+          try {
+            const parsedCockpit = JSON.parse(storedCockpit);
+            if (parsedCockpit.cockpit) setCockpitAtivo(parsedCockpit.cockpit);
+            if (parsedCockpit.lojaId) setLojaTrabalhoId(parsedCockpit.lojaId);
+            if (parsedCockpit.lojaNome) setLojaTrabalhoNome(parsedCockpit.lojaNome);
+          } catch {}
+        }
         if (stored) {
           const sessao = JSON.parse(stored);
           if (sessao && sessao.id) {
@@ -50,9 +76,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setUsuario(perfilAtualizado);
               localStorage.setItem(SESSION_KEY, JSON.stringify(perfilAtualizado));
             } else if (perfilAtualizado && !perfilAtualizado.ativo) {
-              // Utilizador foi desativado
               setUsuario(null);
               localStorage.removeItem(SESSION_KEY);
+              localStorage.removeItem(COCKPIT_SESSION_KEY);
             }
           }
         }
@@ -66,7 +92,76 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     restaurarSessao();
   }, []);
 
-  const login = async (identificador: string, pass: string): Promise<{ success: boolean; message?: string }> => {
+  const validarCompatibilidadeCockpit = (
+    perfil: PerfilUtilizador,
+    cockpit: CockpitSelecionado
+  ): { valido: boolean; erro?: string } => {
+    // Administradores e Gerentes têm permissão transversal se tiverem acesso ativo ao módulo
+    if (perfil.role === 'admin' || perfil.role === 'gerente_loja') {
+      return { valido: true };
+    }
+
+    if (cockpit === 'loja') {
+      const temAcessoLoja =
+        perfil.role === 'atendente' ||
+        perfil.acesso_encomendas !== 'sem_acesso' ||
+        perfil.acesso_loja !== 'sem_acesso';
+      if (!temAcessoLoja) {
+        return {
+          valido: false,
+          erro: `O perfil "${perfil.nome}" (${perfil.role}) não tem permissão para aceder ao Cockpit de Loja Físico.`,
+        };
+      }
+      return { valido: true };
+    }
+
+    if (cockpit === 'producao') {
+      const temAcessoProd =
+        perfil.role === 'operador_padaria' ||
+        perfil.role === 'operador_pastelaria' ||
+        perfil.acesso_producao === 'edicao';
+      if (!temAcessoProd) {
+        return {
+          valido: false,
+          erro: `O perfil "${perfil.nome}" não tem permissão para operar o Cockpit do Centro de Produção.`,
+        };
+      }
+      return { valido: true };
+    }
+
+    if (cockpit === 'carrinhas') {
+      const temAcessoCarrinhas =
+        perfil.role === 'motorista' || perfil.acesso_entregas === 'edicao';
+      if (!temAcessoCarrinhas) {
+        return {
+          valido: false,
+          erro: `O perfil "${perfil.nome}" não tem permissão para aceder ao Cockpit de Carrinhas / Distribuição.`,
+        };
+      }
+      return { valido: true };
+    }
+
+    if (cockpit === 'gestao') {
+      const temAcessoGestao = perfil.acesso_gestao !== 'sem_acesso';
+      if (!temAcessoGestao) {
+        return {
+          valido: false,
+          erro: `O perfil "${perfil.nome}" não tem permissão para aceder ao Cockpit de Gestão.`,
+        };
+      }
+      return { valido: true };
+    }
+
+    return { valido: true };
+  };
+
+  const login = async (
+    identificador: string,
+    pass: string,
+    cockpit?: CockpitSelecionado,
+    lojaId?: string,
+    lojaNome?: string
+  ): Promise<{ success: boolean; message?: string; redirectUrl?: string }> => {
     const limpoId = identificador.trim().toLowerCase();
     const limpoPass = pass.trim();
 
@@ -99,19 +194,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, message: 'Palavra-passe incorreta.' };
     }
 
-    // Login bem-sucedido
-    setUsuario(utilizadorEncontrado);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(SESSION_KEY, JSON.stringify(utilizadorEncontrado));
+    const cockpitFinal: CockpitSelecionado =
+      cockpit ||
+      (utilizadorEncontrado.role === 'admin'
+        ? 'gestao'
+        : utilizadorEncontrado.role === 'operador_padaria' || utilizadorEncontrado.role === 'operador_pastelaria'
+        ? 'producao'
+        : utilizadorEncontrado.role === 'motorista'
+        ? 'carrinhas'
+        : 'loja');
+
+    // Validar compatibilidade entre perfil e Cockpit selecionado
+    const validacao = validarCompatibilidadeCockpit(utilizadorEncontrado, cockpitFinal);
+    if (!validacao.valido) {
+      return { success: false, message: validacao.erro };
     }
 
-    return { success: true };
+    const lojaIdFinal =
+      cockpitFinal === 'loja'
+        ? lojaId || utilizadorEncontrado.loja_id || LOJAS_MOCK[0].id
+        : null;
+    const lojaObj = LOJAS_MOCK.find((l) => l.id === lojaIdFinal);
+    const lojaNomeFinal =
+      cockpitFinal === 'loja'
+        ? lojaNome || lojaObj?.nome || LOJAS_MOCK[0].nome
+        : null;
+
+    // Login bem-sucedido
+    setUsuario(utilizadorEncontrado);
+    setCockpitAtivo(cockpitFinal);
+    setLojaTrabalhoId(lojaIdFinal);
+    setLojaTrabalhoNome(lojaNomeFinal);
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(utilizadorEncontrado));
+      localStorage.setItem(
+        COCKPIT_SESSION_KEY,
+        JSON.stringify({
+          cockpit: cockpitFinal,
+          lojaId: lojaIdFinal,
+          lojaNome: lojaNomeFinal,
+        })
+      );
+    }
+
+    const redirectUrl = obterRotaInicial(utilizadorEncontrado, cockpitFinal);
+    return { success: true, redirectUrl };
   };
 
   const logout = () => {
     setUsuario(null);
+    setCockpitAtivo(null);
+    setLojaTrabalhoId(null);
+    setLojaTrabalhoNome(null);
     if (typeof window !== 'undefined') {
       localStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(COCKPIT_SESSION_KEY);
     }
   };
 
@@ -143,9 +281,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return nivel === 'leitura' || nivel === 'edicao';
   };
 
-  const obterRotaInicial = (user?: PerfilUtilizador | null): string => {
+  const obterRotaInicial = (
+    user?: PerfilUtilizador | null,
+    cockpit?: CockpitSelecionado | null
+  ): string => {
     const u = user || usuario;
+    const c = cockpit || cockpitAtivo;
     if (!u) return '/login';
+
+    if (c === 'loja') return '/encomendas';
+    if (c === 'producao') return '/producao';
+    if (c === 'carrinhas') return '/entregas';
+    if (c === 'gestao') return '/gestao';
 
     if (u.role === 'admin' && (u.acesso_gestao === 'edicao' || u.acesso_gestao === 'leitura')) {
       return '/gestao';
@@ -163,6 +310,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider
       value={{
         usuario,
+        cockpitAtivo,
+        lojaTrabalhoId,
+        lojaTrabalhoNome,
         loading,
         login,
         logout,
@@ -178,3 +328,4 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 };
 
 export const useAuth = () => useContext(AuthContext);
+

@@ -1,9 +1,33 @@
 import { supabase } from './supabase';
-import { Encomenda, ItemEncomenda, EstadoEncomenda, EstadoProducaoItem, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, LogAuditoria } from '../types';
-import { LOGS_AUDITORIA_MOCK } from './mockData';
+import { Encomenda, ItemEncomenda, EstadoEncomenda, EstadoProducaoItem, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, LogAuditoria, BaseFixaCarrinha, ClienteEmpresarialB2B, DiaSemana } from '../types';
+import { LOGS_AUDITORIA_MOCK, CARRINHAS_MOCK, BASE_FIXA_CARRINHAS_INICIAL, CLIENTES_EMPRESARIAIS_B2B_INICIAIS } from './mockData';
+
+const REAL_DELIVERY_TIMESTAMPS_KEY = 'padaria_timestamps_entrega_real_v1';
+const CANAL_ORIGEM_FALLBACK_KEY = 'padaria_canais_origem_v1';
+
+export function guardarCanalOrigemLocal(encomendaId: string, canal: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const raw = localStorage.getItem(CANAL_ORIGEM_FALLBACK_KEY);
+    const map = raw ? JSON.parse(raw) : {};
+    map[encomendaId] = canal;
+    localStorage.setItem(CANAL_ORIGEM_FALLBACK_KEY, JSON.stringify(map));
+  } catch (e) {}
+}
 
 export function parseEncomendasFromDb(data: any[]): Encomenda[] {
   if (!data || !Array.isArray(data)) return [];
+
+  let localTimestamps: Record<string, { data: string; hora: string }> = {};
+  let localCanais: Record<string, string> = {};
+  if (typeof window !== 'undefined') {
+    try {
+      const rawTs = localStorage.getItem(REAL_DELIVERY_TIMESTAMPS_KEY);
+      if (rawTs) localTimestamps = JSON.parse(rawTs);
+      const rawCan = localStorage.getItem(CANAL_ORIGEM_FALLBACK_KEY);
+      if (rawCan) localCanais = JSON.parse(rawCan);
+    } catch (e) {}
+  }
 
   return data.map((row, index) => {
     const cliente = row.clientes || {};
@@ -15,7 +39,7 @@ export function parseEncomendasFromDb(data: any[]): Encomenda[] {
       id: item.id,
       encomenda_id: row.id,
       produto_id: item.produto_id,
-      produto_nome: item.produtos?.nome || 'Artigo de Padaria/Pastelaria',
+      produto_nome: item.produtos?.nome || item.produto_nome || 'Artigo de Padaria/Pastelaria',
       setor: item.setor || 'padaria',
       quantidade: Number(item.quantidade) || 1,
       preco_unitario: Number(item.preco_unitario) || 0,
@@ -23,21 +47,57 @@ export function parseEncomendasFromDb(data: any[]): Encomenda[] {
       estado_producao: item.estado_producao || 'pendente',
     }));
 
-    // Determinar hora de entrega real para cálculo de On-Time
+    // Determinar data e hora de entrega real para cálculo de On-Time e registo de levantamento
+    let dataEntregaReal: string | undefined = row.data_entrega_real || localTimestamps[row.id]?.data;
     let horaEntregaReal: string | undefined = undefined;
     if (row.hora_entrega_real) {
       horaEntregaReal = String(row.hora_entrega_real).slice(0, 5);
+    } else if (localTimestamps[row.id]?.hora) {
+      horaEntregaReal = localTimestamps[row.id].hora;
     } else if (row.notas_cliente && row.notas_cliente.includes('[ENTREGUE:')) {
-      const match = row.notas_cliente.match(/\[ENTREGUE:\s*([0-9]{2}:[0-9]{2})\]/);
-      if (match) horaEntregaReal = match[1];
+      const matchFull = row.notas_cliente.match(/\[ENTREGUE:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})\s+([0-9]{2}:[0-9]{2})\]/);
+      if (matchFull) {
+        dataEntregaReal = matchFull[1];
+        horaEntregaReal = matchFull[2];
+      } else {
+        const matchTime = row.notas_cliente.match(/\[ENTREGUE:\s*([0-9]{2}:[0-9]{2})\]/);
+        if (matchTime) horaEntregaReal = matchTime[1];
+      }
     } else if (row.estado === 'entregue' && row.atualizado_em) {
       try {
         const d = new Date(row.atualizado_em);
+        dataEntregaReal = dataEntregaReal || d.toISOString().split('T')[0];
         horaEntregaReal = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       } catch (e) {
+        dataEntregaReal = dataEntregaReal || row.data_agendamento;
         horaEntregaReal = typeof row.hora_agendamento === 'string' ? row.hora_agendamento.slice(0, 5) : '10:00';
       }
     }
+
+    if (row.estado === 'entregue' && !dataEntregaReal) {
+      dataEntregaReal = row.data_agendamento;
+    }
+
+    // Determinar canal de origem
+    let canalExtraido = row.canal_origem || localCanais[row.id];
+    if (!canalExtraido && row.notas_cliente) {
+      const matchCanal = row.notas_cliente.match(/\[CANAL:(presencial|telefone|whatsapp|site_online)\]/i);
+      if (matchCanal) {
+        canalExtraido = matchCanal[1].toLowerCase();
+      } else if (row.notas_cliente.toLowerCase().includes('whatsapp') || row.notas_cliente.toLowerCase().includes('[whatsapp]')) {
+        canalExtraido = 'whatsapp';
+      } else if (row.notas_cliente.toLowerCase().includes('[online site]') || row.notas_cliente.toLowerCase().includes('site') || row.notas_cliente.toLowerCase().includes('[online]')) {
+        canalExtraido = 'site_online';
+      } else if (row.notas_cliente.toLowerCase().includes('telefone') || row.notas_cliente.toLowerCase().includes('chamada')) {
+        canalExtraido = 'telefone';
+      }
+    }
+
+    const notasLimpa = row.notas_cliente
+      ? row.notas_cliente.replace(/\[CANAL:(presencial|telefone|whatsapp|site_online)\]\s*/gi, '').trim()
+      : undefined;
+
+    const carrinhaMockMatch = CARRINHAS_MOCK.find((cm) => cm.id === row.carrinha_id);
 
     return {
       id: row.id,
@@ -54,25 +114,21 @@ export function parseEncomendasFromDb(data: any[]): Encomenda[] {
         notas_entrega: cliente.notas_entrega || undefined,
       },
       tipo: row.tipo,
-      canal_origem: row.canal_origem || (
-        row.notas_cliente?.toLowerCase().includes('whatsapp') || row.notas_cliente?.toLowerCase().includes('[whatsapp]') ? 'whatsapp' :
-        row.notas_cliente?.toLowerCase().includes('site') || row.notas_cliente?.toLowerCase().includes('[online]') ? 'site_online' :
-        row.notas_cliente?.toLowerCase().includes('telefone') || row.notas_cliente?.toLowerCase().includes('chamada') ? 'telefone' :
-        'presencial'
-      ),
+      canal_origem: (canalExtraido as any) || 'presencial',
       carrinha_id: row.carrinha_id || undefined,
-      carrinha_nome: carrinha.identificador || undefined,
+      carrinha_nome: carrinhaMockMatch?.identificador || carrinha.identificador || undefined,
       data_agendamento: row.data_agendamento,
       hora_agendamento: typeof row.hora_agendamento === 'string' 
         ? row.hora_agendamento.slice(0, 5) 
         : '10:00',
+      data_entrega_real: dataEntregaReal,
       hora_entrega_real: horaEntregaReal,
       ordem_rota: row.ordem_rota || (index + 1),
       estado: row.estado as EstadoEncomenda,
       estado_pagamento: row.estado_pagamento,
       metodo_pagamento: row.metodo_pagamento,
       total: Number(row.total) || 0,
-      notas_cliente: row.notas_cliente || undefined,
+      notas_cliente: notasLimpa || undefined,
       itens,
       criado_em: row.criado_em,
     };
@@ -136,6 +192,16 @@ export async function atualizarEstadoEncomendaDb(
   if (estadoPagamento) {
     updates.estado_pagamento = estadoPagamento;
   }
+  if (novoEstado === 'entregue' && typeof window !== 'undefined') {
+    const agoraData = new Date().toISOString().split('T')[0];
+    const agoraHora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    try {
+      const raw = localStorage.getItem(REAL_DELIVERY_TIMESTAMPS_KEY);
+      const map = raw ? JSON.parse(raw) : {};
+      map[encomendaId] = { data: agoraData, hora: agoraHora };
+      localStorage.setItem(REAL_DELIVERY_TIMESTAMPS_KEY, JSON.stringify(map));
+    } catch (e) {}
+  }
   const { error } = await supabase
     .from('encomendas')
     .update(updates)
@@ -194,9 +260,20 @@ export async function atualizarEstadoItemDb(itemId: string, novoEstado: EstadoPr
   if (error) console.error('Erro ao atualizar estado do item:', error);
 }
 
-export async function concluirEntregaComTimestampDb(encomendaId: string, horaReal?: string) {
-  if (!supabase) return false;
+export async function concluirEntregaComTimestampDb(encomendaId: string, horaReal?: string, dataReal?: string) {
+  const data = dataReal || new Date().toISOString().split('T')[0];
   const hora = horaReal || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(REAL_DELIVERY_TIMESTAMPS_KEY);
+      const map = raw ? JSON.parse(raw) : {};
+      map[encomendaId] = { data, hora };
+      localStorage.setItem(REAL_DELIVERY_TIMESTAMPS_KEY, JSON.stringify(map));
+    } catch (e) {}
+  }
+
+  if (!supabase) return false;
   const { error } = await supabase
     .from('encomendas')
     .update({
@@ -255,19 +332,36 @@ export async function atualizarEncomendaDb(encomenda: Partial<Encomenda> & { id:
     };
     if (encomenda.loja_id) updates.loja_id = encomenda.loja_id;
     if (encomenda.tipo) updates.tipo = encomenda.tipo;
-    if (encomenda.canal_origem) updates.canal_origem = encomenda.canal_origem;
-    if (encomenda.carrinha_id !== undefined) updates.carrinha_id = encomenda.carrinha_id;
+    if (encomenda.canal_origem) {
+      updates.canal_origem = encomenda.canal_origem;
+      guardarCanalOrigemLocal(encomenda.id, encomenda.canal_origem);
+    }
+    if (encomenda.carrinha_id !== undefined) updates.carrinha_id = encomenda.carrinha_id || null;
     if (encomenda.data_agendamento) updates.data_agendamento = encomenda.data_agendamento;
     if (encomenda.hora_agendamento) updates.hora_agendamento = encomenda.hora_agendamento;
     if (encomenda.estado) updates.estado = encomenda.estado;
     if (encomenda.estado_pagamento) updates.estado_pagamento = encomenda.estado_pagamento;
-    if (encomenda.notas_cliente !== undefined) updates.notas_cliente = encomenda.notas_cliente;
+    if (encomenda.notas_cliente !== undefined) {
+      const canalTag = encomenda.canal_origem ? `[CANAL:${encomenda.canal_origem}] ` : '';
+      const notaSemTag = (encomenda.notas_cliente || '').replace(/\[CANAL:(presencial|telefone|whatsapp|site_online)\]\s*/gi, '').trim();
+      updates.notas_cliente = `${canalTag}${notaSemTag}`.trim() || null;
+    }
     if (encomenda.total !== undefined) updates.total = encomenda.total;
 
-    const { error } = await supabase
+    let { error } = await supabase
       .from('encomendas')
       .update(updates)
       .eq('id', encomenda.id);
+
+    // Fallback automático caso a coluna canal_origem ainda não exista na cache do Supabase
+    if (error && error.message && error.message.includes('canal_origem')) {
+      delete updates.canal_origem;
+      const retry = await supabase
+        .from('encomendas')
+        .update(updates)
+        .eq('id', encomenda.id);
+      error = retry.error;
+    }
 
     if (error) {
       console.error('Erro ao atualizar encomenda:', error);
@@ -285,6 +379,26 @@ export async function atualizarEncomendaDb(encomenda: Partial<Encomenda> & { id:
           notas_entrega: encomenda.cliente.notas_entrega?.trim() || null,
         })
         .eq('id', encomenda.cliente.id);
+    }
+
+    // Sincronizar itens_encomenda (incluindo novos artigos adicionados no modal de edição)
+    if (encomenda.itens && Array.isArray(encomenda.itens)) {
+      await supabase.from('itens_encomenda').delete().eq('encomenda_id', encomenda.id);
+      if (encomenda.itens.length > 0) {
+        const itensPayload = encomenda.itens.map((it) => ({
+          encomenda_id: encomenda.id,
+          produto_id: it.produto_id && !it.produto_id.startsWith('prod-') && !it.produto_id.startsWith('temp-') ? it.produto_id : null,
+          setor: it.setor || 'padaria',
+          quantidade: Number(it.quantidade) || 1,
+          preco_unitario: Number(it.preco_unitario) || 0,
+          notas_personalizacao: it.notas_personalizacao || null,
+          estado_producao: it.estado_producao || 'pendente',
+        }));
+        const { error: itensError } = await supabase.from('itens_encomenda').insert(itensPayload);
+        if (itensError) {
+          console.warn('Aviso ao sincronizar itens da encomenda:', itensError);
+        }
+      }
     }
 
     return true;
@@ -517,17 +631,44 @@ export async function eliminarLojaDb(lojaId: string) {
 // ---------------- CARRINHAS ---------------- //
 
 export async function carregarCarrinhasSupabase(): Promise<Carrinha[]> {
-  if (!supabase) return [];
+  if (!supabase) return CARRINHAS_MOCK;
   const { data, error } = await supabase
     .from('carrinhas')
     .select('*')
     .order('identificador', { ascending: true });
 
-  if (error) {
+  if (error || !data) {
     console.error('Erro ao carregar carrinhas:', error);
-    return [];
+    return CARRINHAS_MOCK;
   }
-  return data || [];
+
+  // Garantir que as 5 carrinhas oficiais existem e têm a nomenclatura atualizada (1º Carro a 5º Carro)
+  const merged: Carrinha[] = [...CARRINHAS_MOCK];
+  for (const row of data) {
+    const idx = merged.findIndex((m) => m.id === row.id);
+    if (idx !== -1) {
+      // Manter identificador oficial se ainda estiver com o nome antigo
+      const iden = row.identificador?.includes('º Carro') ? row.identificador : merged[idx].identificador;
+      merged[idx] = { ...row, identificador: iden };
+    } else {
+      merged.push(row);
+    }
+  }
+
+  // Tentar sincronizar silenciosamente a 5ª carrinha caso ainda não exista no Supabase
+  const quintaExiste = data.some((d: any) => d.id === 'b555db95-c427-4ed5-83fc-01403bd24cf5' || d.identificador?.includes('5º Carro') || d.identificador?.includes('Carrinha 5'));
+  if (!quintaExiste) {
+    const car5 = CARRINHAS_MOCK[4];
+    supabase.from('carrinhas').upsert({
+      id: car5.id,
+      loja_id: car5.loja_id,
+      identificador: car5.identificador,
+      matricula: car5.matricula,
+      ativo: true,
+    }).then(() => {});
+  }
+
+  return merged;
 }
 
 export async function salvarCarrinhaDb(carrinha: Partial<Carrinha> & { loja_id: string; identificador: string; matricula: string }) {
@@ -994,3 +1135,68 @@ export async function reiniciarLogsAuditoriaParaMock(): Promise<LogAuditoria[]> 
   }
   return LOGS_AUDITORIA_MOCK;
 }
+
+// ---------------- BASE FIXA CARRINHAS 1-4 E CLIENTES EMPRESARIAIS B2B (CARRINHA 5) ---------------- //
+
+const BASE_FIXA_CARRINHAS_STORAGE_KEY = 'padaria_base_fixa_carrinhas_v1';
+const CLIENTES_B2B_STORAGE_KEY = 'padaria_clientes_empresariais_b2b_v1';
+
+export function carregarBaseFixaCarrinhas(): BaseFixaCarrinha[] {
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem(BASE_FIXA_CARRINHAS_STORAGE_KEY);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    localStorage.setItem(BASE_FIXA_CARRINHAS_STORAGE_KEY, JSON.stringify(BASE_FIXA_CARRINHAS_INICIAL));
+  }
+  return BASE_FIXA_CARRINHAS_INICIAL;
+}
+
+export function salvarBaseFixaCarrinhas(dados: BaseFixaCarrinha[]): void {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(BASE_FIXA_CARRINHAS_STORAGE_KEY, JSON.stringify(dados));
+    window.dispatchEvent(new Event('app_base_fixa_atualizada'));
+  }
+}
+
+export function carregarClientesEmpresariaisB2B(): ClienteEmpresarialB2B[] {
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem(CLIENTES_B2B_STORAGE_KEY);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    localStorage.setItem(CLIENTES_B2B_STORAGE_KEY, JSON.stringify(CLIENTES_EMPRESARIAIS_B2B_INICIAIS));
+  }
+  return CLIENTES_EMPRESARIAIS_B2B_INICIAIS;
+}
+
+export function salvarClientesEmpresariaisB2B(dados: ClienteEmpresarialB2B[]): void {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(CLIENTES_B2B_STORAGE_KEY, JSON.stringify(dados));
+    window.dispatchEvent(new Event('app_b2b_atualizado'));
+  }
+}
+
+export function obterDiaSemanaDeData(dataStr: string): DiaSemana {
+  // dataStr no formato YYYY-MM-DD
+  const partes = dataStr.split('-').map(Number);
+  const d = partes.length === 3 ? new Date(partes[0], partes[1] - 1, partes[2]) : new Date();
+  const day = d.getDay(); // 0 = Dom, 1 = Seg, ..., 6 = Sáb
+  const mapa: Record<number, DiaSemana> = {
+    0: 'dom',
+    1: 'seg',
+    2: 'ter',
+    3: 'qua',
+    4: 'qui',
+    5: 'sex',
+    6: 'sab',
+  };
+  return mapa[day] || 'seg';
+}
+

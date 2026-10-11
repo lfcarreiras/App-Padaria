@@ -1,17 +1,32 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Navbar } from '../../components/Navbar';
 import { ThermalReceipt } from '../../components/ThermalReceipt';
-import { LOJAS_MOCK } from '../../lib/mockData';
+import { LOJAS_MOCK, PRODUTOS_MOCK } from '../../lib/mockData';
 import { 
   carregarEncomendasSupabase, 
   carregarLojasSupabase,
+  carregarProdutosSupabase,
+  carregarBaseFixaCarrinhas,
+  carregarClientesEmpresariaisB2B,
+  obterDiaSemanaDeData,
   atualizarEstadoItemDb, 
   atualizarEstadoEncomendaDb,
   registarLogAuditoria 
 } from '../../lib/encomendasService';
-import { Encomenda, SetorProducao, EstadoProducaoItem, TipoEntrega, Loja } from '../../types';
+import { 
+  Encomenda, 
+  SetorProducao, 
+  EstadoProducaoItem, 
+  TipoEntrega, 
+  Loja, 
+  Produto,
+  BaseFixaCarrinha,
+  ClienteEmpresarialB2B,
+  CartaoFornoProducao,
+  RegistoFornada
+} from '../../types';
 import { useTranslation } from '../../lib/i18n';
 import { useAuth } from '../../lib/authContext';
 import { obterConfiguracaoMarca } from '../../lib/tinaContent';
@@ -36,8 +51,24 @@ import {
   Download,
   Phone,
   MessageSquare,
-  Globe
+  Globe,
+  Volume2,
+  VolumeX,
+  Plus,
+  Trash2,
+  Play,
+  Check
 } from 'lucide-react';
+
+const FORNOS_STORAGE_KEY = 'padaria_fornos_producao_v1';
+const PRODUZIDO_DIA_STORAGE_KEY = 'padaria_produzido_dia_v1';
+const URGENTES_ACEITES_STORAGE_KEY = 'padaria_encomendas_urgentes_aceites_v1';
+
+const FORNOS_INICIAIS: CartaoFornoProducao[] = [
+  { id: 'forno-1', nome: 'Forno 1', estado: 'livre', itens: [], historico_fornadas: [] },
+  { id: 'forno-2', nome: 'Forno 2', estado: 'livre', itens: [], historico_fornadas: [] },
+  { id: 'forno-3', nome: 'Forno 3', estado: 'livre', itens: [], historico_fornadas: [] },
+];
 
 export default function ProducaoPage() {
   const { t } = useTranslation();
@@ -47,28 +78,92 @@ export default function ProducaoPage() {
   const configMarca = obterConfiguracaoMarca();
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
   const [lojas, setLojas] = useState<Loja[]>(LOJAS_MOCK);
+  const [produtos, setProdutos] = useState<Produto[]>(PRODUTOS_MOCK);
   const [setorAtivo, setSetorAtivo] = useState<SetorProducao | 'todos'>('todos');
   const [modoVisualizacao, setModoVisualizacao] = useState<'kanban' | 'hierarquica'>('kanban');
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
   const [encomendaParaImprimir, setEncomendaParaImprimir] = useState<Encomenda | null>(null);
+
+  // Carga Base das Carrinhas (1 a 4 Particulares + 5º Carro B2B)
+  const [baseFixaCarrinhas, setBaseFixaCarrinhas] = useState<BaseFixaCarrinha[]>([]);
+  const [clientesB2B, setClientesB2B] = useState<ClienteEmpresarialB2B[]>([]);
+  const [incluirCargaCarrinhasNoPool, setIncluirCargaCarrinhasNoPool] = useState<boolean>(true);
+
+  // Estado dos 3 Fornos e Quantidades Produzidas
+  const [fornos, setFornos] = useState<CartaoFornoProducao[]>(FORNOS_INICIAIS);
+  const [produzidoPorProduto, setProduzidoPorProduto] = useState<Record<string, number>>({});
+  const [selecaoManualForno, setSelecaoManualForno] = useState<Record<string, { produto_id: string; quantidade: number }>>({
+    'forno-1': { produto_id: '', quantidade: 20 },
+    'forno-2': { produto_id: '', quantidade: 20 },
+    'forno-3': { produto_id: '', quantidade: 20 },
+  });
+  const [nowTick, setNowTick] = useState<number>(Date.now());
+
+  // Alerta Sonoro e Visual de Encomendas Urgentes (< 3 horas)
+  const [encomendasUrgentesAceites, setEncomendasUrgentesAceites] = useState<string[]>([]);
+  const [somAlertaAtivo, setSomAlertaAtivo] = useState<boolean>(true);
+  const audioIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Filtro de Calendário
   const [filtroPeriodo, setFiltroPeriodo] = useState<'hoje' | 'amanha' | 'todos' | 'personalizado'>('hoje');
   const [dataInicioPersonalizada, setDataInicioPersonalizada] = useState('');
   const [dataFimPersonalizada, setDataFimPersonalizada] = useState('');
 
-  // Carregar encomendas reais da base de dados Supabase
+  // Carregar encomendas reais da base de dados Supabase + Configuração de Fornos e Rotas
   useEffect(() => {
     async function carregar() {
-      const [dados, ljs] = await Promise.all([
+      const [dados, ljs, prods] = await Promise.all([
         carregarEncomendasSupabase(),
         carregarLojasSupabase(),
+        carregarProdutosSupabase(),
       ]);
       setEncomendas(dados);
       if (ljs && ljs.length > 0) setLojas(ljs);
+      if (prods && prods.length > 0) setProdutos(prods);
+      setBaseFixaCarrinhas(carregarBaseFixaCarrinhas());
+      setClientesB2B(carregarClientesEmpresariaisB2B());
+
+      if (typeof window !== 'undefined') {
+        try {
+          const rawFornos = localStorage.getItem(FORNOS_STORAGE_KEY);
+          if (rawFornos) {
+            const parsed = JSON.parse(rawFornos);
+            if (Array.isArray(parsed) && parsed.length === 3) setFornos(parsed);
+          }
+          const rawProd = localStorage.getItem(PRODUZIDO_DIA_STORAGE_KEY);
+          if (rawProd) setProduzidoPorProduto(JSON.parse(rawProd));
+          const rawAceites = localStorage.getItem(URGENTES_ACEITES_STORAGE_KEY);
+          if (rawAceites) setEncomendasUrgentesAceites(JSON.parse(rawAceites));
+        } catch {
+          // ignore
+        }
+      }
     }
     carregar();
   }, []);
+
+  // Relógio em tempo real para cronómetros dos 3 Fornos e verificação de 3h
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNowTick(Date.now());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Persistir estado dos Fornos e Produzidos
+  const atualizarFornos = (novos: CartaoFornoProducao[]) => {
+    setFornos(novos);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(FORNOS_STORAGE_KEY, JSON.stringify(novos));
+    }
+  };
+
+  const atualizarProduzido = (novoMapa: Record<string, number>) => {
+    setProduzidoPorProduto(novoMapa);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(PRODUZIDO_DIA_STORAGE_KEY, JSON.stringify(novoMapa));
+    }
+  };
 
   const lojaAtual = lojas.find((l) => l.id === selectedLojaId) || lojas[0] || LOJAS_MOCK[0];
 
@@ -441,16 +536,342 @@ export default function ProducaoPage() {
     });
   };
 
-  // Separação para as 3 colunas táteis do Kanban
-  const kanbanPorPreparar = encomendasFiltradas.filter(
-    (e) => e.estado === 'pendente'
-  );
-  const kanbanEmPreparacao = encomendasFiltradas.filter(
-    (e) => e.estado === 'em_producao'
-  );
-  const kanbanPronto = encomendasFiltradas.filter(
-    (e) => e.estado === 'pronto_loja' || e.estado === 'em_rota' || e.estado === 'entregue'
-  );
+  // ---------------------------------------------------------------------------
+  // ALERTA SONORO E VISUAL DE ENCOMENDAS URGENTES (< 3 HORAS)
+  // ---------------------------------------------------------------------------
+  const encomendasUrgentesParaAceitar = encomendas.filter((e) => {
+    if (e.estado !== 'pendente') return false;
+    if (encomendasUrgentesAceites.includes(e.id)) return false;
+    const dataHoraStr = `${e.data_agendamento}T${e.hora_agendamento || '10:00'}:00`;
+    const tsAgendado = new Date(dataHoraStr).getTime();
+    if (isNaN(tsAgendado)) return false;
+    const diffHoras = (tsAgendado - nowTick) / (1000 * 60 * 60);
+    // Urgente se faltar <= 3 horas para a recolha/entrega (e for do dia de hoje ou próximas 3h)
+    return diffHoras <= 3 && (e.data_agendamento === hoje || diffHoras >= -4);
+  });
+
+  const tocarSinalSonoroUrgente = () => {
+    if (typeof window === 'undefined' || !somAlertaAtivo) return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const playTone = (freq: number, startOffset: number, duration: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + startOffset);
+        gain.gain.setValueAtTime(0.18, ctx.currentTime + startOffset);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startOffset + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + startOffset);
+        osc.stop(ctx.currentTime + startOffset + duration);
+      };
+      playTone(880, 0, 0.22);
+      playTone(1046.5, 0.28, 0.28);
+    } catch {
+      // Browser pode bloquear autoplay até 1º clique
+    }
+  };
+
+  useEffect(() => {
+    if (audioIntervalRef.current) {
+      clearInterval(audioIntervalRef.current);
+      audioIntervalRef.current = null;
+    }
+    if (encomendasUrgentesParaAceitar.length > 0 && somAlertaAtivo) {
+      tocarSinalSonoroUrgente();
+      audioIntervalRef.current = setInterval(() => {
+        tocarSinalSonoroUrgente();
+      }, 10000);
+    }
+    return () => {
+      if (audioIntervalRef.current) clearInterval(audioIntervalRef.current);
+    };
+  }, [encomendasUrgentesParaAceitar.length, somAlertaAtivo]);
+
+  const aceitarEncomendaUrgente = async (enc: Encomenda) => {
+    const novaLista = Array.from(new Set([...encomendasUrgentesAceites, enc.id]));
+    setEncomendasUrgentesAceites(novaLista);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(URGENTES_ACEITES_STORAGE_KEY, JSON.stringify(novaLista));
+    }
+    await moverEncomendaKanban(enc.id, 'em_producao');
+  };
+
+  // ---------------------------------------------------------------------------
+  // POOL DE ARTIGOS A PRODUZIR NO DIA + GESTÃO DOS 3 FORNOS
+  // ---------------------------------------------------------------------------
+  const dataReferenciaPool = filtroPeriodo === 'amanha' ? amanha : hoje;
+  const diaSemanaPool = obterDiaSemanaDeData(dataReferenciaPool);
+
+  interface ItemPoolArtigo {
+    produto_id: string;
+    produto_nome: string;
+    setor: SetorProducao;
+    qtdEncomendas: number;
+    qtdBaseCarrinhas: number;
+    totalNecessario: number;
+    emForno: number;
+    produzido: number;
+    restantePool: number;
+  }
+
+  const mapaPool = new Map<string, {
+    produto_id: string;
+    produto_nome: string;
+    setor: SetorProducao;
+    qtdEncomendas: number;
+    qtdBaseCarrinhas: number;
+    qtdItensProntos: number;
+  }>();
+
+  // 1. Somar quantidades das encomendas filtradas
+  encomendasFiltradas.forEach((enc) => {
+    if (enc.estado === 'cancelado') return;
+    enc.itens.forEach((it) => {
+      if (setorAtivo !== 'todos' && it.setor !== setorAtivo) return;
+      const existente = mapaPool.get(it.produto_id) || {
+        produto_id: it.produto_id,
+        produto_nome: it.produto_nome,
+        setor: it.setor || 'padaria',
+        qtdEncomendas: 0,
+        qtdBaseCarrinhas: 0,
+        qtdItensProntos: 0,
+      };
+      existente.qtdEncomendas += it.quantidade;
+      if (it.estado_producao === 'pronto' || enc.estado === 'pronto_loja' || enc.estado === 'entregue') {
+        existente.qtdItensProntos += it.quantidade;
+      }
+      mapaPool.set(it.produto_id, existente);
+    });
+  });
+
+  // 2. Somar Carga Base das Carrinhas 1 a 4 (Particulares) e 5º Carro (Clientes Empresariais B2B) se ativo
+  if (incluirCargaCarrinhasNoPool && selectedLojaId === 'todas') {
+    baseFixaCarrinhas.forEach((bf) => {
+      Object.entries(bf.quantidadesPorProduto).forEach(([prodId, qtd]) => {
+        if (!qtd || qtd <= 0) return;
+        const prodCatalogo = produtos.find((p) => p.id === prodId);
+        const setorProd: SetorProducao = prodCatalogo?.categoria === 'pastelaria' ? 'pastelaria' : 'padaria';
+        if (setorAtivo !== 'todos' && setorProd !== setorAtivo) return;
+        const existente = mapaPool.get(prodId) || {
+          produto_id: prodId,
+          produto_nome: prodCatalogo?.nome || prodId,
+          setor: setorProd,
+          qtdEncomendas: 0,
+          qtdBaseCarrinhas: 0,
+          qtdItensProntos: 0,
+        };
+        existente.qtdBaseCarrinhas += Number(qtd);
+        mapaPool.set(prodId, existente);
+      });
+    });
+
+    clientesB2B.filter((c) => c.ativo).forEach((cli) => {
+      Object.entries(cli.quantidadesPorProduto).forEach(([prodId, mapaDias]) => {
+        const qtdDia = Number(mapaDias?.[diaSemanaPool] || 0);
+        if (qtdDia <= 0) return;
+        const prodCatalogo = produtos.find((p) => p.id === prodId);
+        const setorProd: SetorProducao = prodCatalogo?.categoria === 'pastelaria' ? 'pastelaria' : 'padaria';
+        if (setorAtivo !== 'todos' && setorProd !== setorAtivo) return;
+        const existente = mapaPool.get(prodId) || {
+          produto_id: prodId,
+          produto_nome: prodCatalogo?.nome || prodId,
+          setor: setorProd,
+          qtdEncomendas: 0,
+          qtdBaseCarrinhas: 0,
+          qtdItensProntos: 0,
+        };
+        existente.qtdBaseCarrinhas += qtdDia;
+        mapaPool.set(prodId, existente);
+      });
+    });
+  }
+
+  // 3. Calcular quantidades atualmente nos 3 Fornos e quantidades já produzidas
+  const listaPoolArtigos: ItemPoolArtigo[] = Array.from(mapaPool.values())
+    .map((entry) => {
+      const emForno = fornos.reduce((acc, forno) => {
+        const somaForno = forno.itens
+          .filter((i) => i.produto_id === entry.produto_id)
+          .reduce((s, i) => s + i.quantidade, 0);
+        return acc + somaForno;
+      }, 0);
+
+      const produzidoFornos = Number(produzidoPorProduto[entry.produto_id] || 0);
+      const produzidoTotal = Math.max(produzidoFornos, entry.qtdItensProntos);
+      const totalNecessario = entry.qtdEncomendas + entry.qtdBaseCarrinhas;
+      const restantePool = Math.max(0, totalNecessario - emForno - produzidoTotal);
+
+      return {
+        produto_id: entry.produto_id,
+        produto_nome: entry.produto_nome,
+        setor: entry.setor,
+        qtdEncomendas: entry.qtdEncomendas,
+        qtdBaseCarrinhas: entry.qtdBaseCarrinhas,
+        totalNecessario,
+        emForno,
+        produzido: produzidoTotal,
+        restantePool,
+      };
+    })
+    .sort((a, b) => b.restantePool - a.restantePool || a.produto_nome.localeCompare(b.produto_nome));
+
+  // Alocar um produto (e quantidade) do Pool para um Forno (Forno 1, Forno 2 ou Forno 3)
+  const alocarArtigoAoForno = (fornoId: 'forno-1' | 'forno-2' | 'forno-3', produtoId: string, qtdPedida?: number) => {
+    if (!temPermissaoEdicao) return;
+    const itemPool = listaPoolArtigos.find((p) => p.produto_id === produtoId);
+    const prodCatalogo = produtos.find((p) => p.id === produtoId);
+    const nomeProduto = itemPool?.produto_nome || prodCatalogo?.nome;
+    if (!nomeProduto) return;
+
+    const maxDisponivel = itemPool ? itemPool.restantePool : 999;
+    const qtdFinal = qtdPedida !== undefined
+      ? Math.max(1, qtdPedida)
+      : Math.max(1, maxDisponivel > 0 ? maxDisponivel : 10);
+
+    const novosFornos = fornos.map((forno) => {
+      if (forno.id !== fornoId) return forno;
+      const existenteIdx = forno.itens.findIndex((i) => i.produto_id === produtoId);
+      let novosItens = [...forno.itens];
+      if (existenteIdx >= 0) {
+        novosItens[existenteIdx] = {
+          ...novosItens[existenteIdx],
+          quantidade: novosItens[existenteIdx].quantidade + qtdFinal,
+        };
+      } else {
+        novosItens.push({
+          id: `aloc-${Date.now()}-${Math.random()}`,
+          produto_id: produtoId,
+          produto_nome: nomeProduto,
+          setor: itemPool?.setor || (prodCatalogo?.categoria === 'pastelaria' ? 'pastelaria' : 'padaria'),
+          quantidade: qtdFinal,
+        });
+      }
+      return { ...forno, itens: novosItens };
+    });
+
+    atualizarFornos(novosFornos);
+  };
+
+  const alterarQtdNoForno = (fornoId: string, itemAlocId: string, novaQtd: number) => {
+    if (!temPermissaoEdicao) return;
+    const novosFornos = fornos.map((f) => {
+      if (f.id !== fornoId) return f;
+      if (novaQtd <= 0) {
+        return { ...f, itens: f.itens.filter((i) => i.id !== itemAlocId) };
+      }
+      return {
+        ...f,
+        itens: f.itens.map((i) => (i.id === itemAlocId ? { ...i, quantidade: novaQtd } : i)),
+      };
+    });
+    atualizarFornos(novosFornos);
+  };
+
+  // Iniciar Preparação num Forno (Inicia cronómetro de tempo de produção)
+  const handleIniciarForno = async (fornoId: 'forno-1' | 'forno-2' | 'forno-3') => {
+    if (!temPermissaoEdicao) return;
+    const fornoAlvo = fornos.find((f) => f.id === fornoId);
+    if (!fornoAlvo || fornoAlvo.itens.length === 0) {
+      alert('Aloque pelo menos um artigo ao forno antes de iniciar a preparação.');
+      return;
+    }
+
+    const agoraTs = Date.now();
+    const novosFornos = fornos.map((f) =>
+      f.id === fornoId
+        ? { ...f, estado: 'em_preparacao' as const, inicio_timestamp: agoraTs }
+        : f
+    );
+    atualizarFornos(novosFornos);
+
+    const resumoItens = fornoAlvo.itens.map((i) => `${i.quantidade}x ${i.produto_nome}`).join(', ');
+    await registarLogAuditoria({
+      encomenda_id: fornoId,
+      codigo_encomenda: fornoAlvo.nome.toUpperCase().replace(/\s+/g, '-'),
+      cliente_nome: fornoAlvo.nome,
+      utilizador_id: currentUser.id,
+      utilizador_nome: currentUser.nome,
+      utilizador_role: currentUser.role,
+      loja_id: selectedLojaId === 'todas' ? 'todas' : lojaAtual.id,
+      loja_nome: selectedLojaId === 'todas' ? 'Centro de Produção' : lojaAtual.nome,
+      painel: 'producao',
+      acao: `Início de Fornada (${fornoAlvo.nome})`,
+      detalhes: `Iniciada preparação no ${fornoAlvo.nome} às ${new Date(agoraTs).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}: ${resumoItens}.`,
+    });
+  };
+
+  // Concluir Fornada / Marcar Pronto num Forno (Regista duração real de cozedura e atualiza produzidos)
+  const handleConcluirForno = async (fornoId: 'forno-1' | 'forno-2' | 'forno-3') => {
+    if (!temPermissaoEdicao) return;
+    const fornoAlvo = fornos.find((f) => f.id === fornoId);
+    if (!fornoAlvo || fornoAlvo.itens.length === 0) return;
+
+    const fimTs = Date.now();
+    const inicioTs = fornoAlvo.inicio_timestamp || fimTs - 60000;
+    const duracaoSegundos = Math.max(1, Math.round((fimTs - inicioTs) / 1000));
+    const min = Math.floor(duracaoSegundos / 60);
+    const seg = duracaoSegundos % 60;
+    const duracaoFormatada = `${min}m ${String(seg).padStart(2, '0')}s`;
+
+    // 1. Atualizar quantidades produzidas no dia
+    const novoMapaProd = { ...produzidoPorProduto };
+    fornoAlvo.itens.forEach((it) => {
+      novoMapaProd[it.produto_id] = (novoMapaProd[it.produto_id] || 0) + it.quantidade;
+    });
+    atualizarProduzido(novoMapaProd);
+
+    // 2. Criar registo de fornada concluída
+    const novoRegisto: RegistoFornada = {
+      id: `fornada-${fimTs}`,
+      forno_id: fornoId,
+      forno_nome: fornoAlvo.nome,
+      itens: [...fornoAlvo.itens],
+      inicio_iso: new Date(inicioTs).toISOString(),
+      fim_iso: new Date(fimTs).toISOString(),
+      duracao_segundos: duracaoSegundos,
+      operador_nome: currentUser.nome,
+    };
+
+    const novosFornos = fornos.map((f) =>
+      f.id === fornoId
+        ? {
+            ...f,
+            estado: 'livre' as const,
+            inicio_timestamp: undefined,
+            itens: [],
+            historico_fornadas: [novoRegisto, ...(f.historico_fornadas || [])].slice(0, 20),
+          }
+        : f
+    );
+    atualizarFornos(novosFornos);
+
+    const resumoItens = fornoAlvo.itens.map((i) => `${i.quantidade}x ${i.produto_nome}`).join(', ');
+    await registarLogAuditoria({
+      encomenda_id: fornoId,
+      codigo_encomenda: fornoAlvo.nome.toUpperCase().replace(/\s+/g, '-'),
+      cliente_nome: fornoAlvo.nome,
+      utilizador_id: currentUser.id,
+      utilizador_nome: currentUser.nome,
+      utilizador_role: currentUser.role,
+      loja_id: selectedLojaId === 'todas' ? 'todas' : lojaAtual.id,
+      loja_nome: selectedLojaId === 'todas' ? 'Centro de Produção' : lojaAtual.nome,
+      painel: 'producao',
+      acao: `Fornada Pronta (${fornoAlvo.nome} — ${duracaoFormatada})`,
+      detalhes: `Fornada concluída no ${fornoAlvo.nome} em ${duracaoFormatada} (${resumoItens}) por ${currentUser.nome}.`,
+    });
+  };
+
+  const formatarDuracaoAoVivo = (inicioTs?: number) => {
+    if (!inicioTs) return '00:00';
+    const diffSeg = Math.max(0, Math.floor((nowTick - inicioTs) / 1000));
+    const m = Math.floor(diffSeg / 60);
+    const s = diffSeg % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-stone-100/70">
@@ -462,6 +883,70 @@ export default function ProducaoPage() {
           <div className="mb-6 p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold flex items-center gap-2.5 shadow-2xs">
             <Eye className="h-4 w-4 text-amber-600 shrink-0" />
             <span>{t.readOnlyNotice}</span>
+          </div>
+        )}
+
+        {/* ALERTA SONORO E VISUAL DE ENCOMENDAS URGENTES (< 3 HORAS) */}
+        {encomendasUrgentesParaAceitar.length > 0 && (
+          <div className="mb-6 rounded-3xl bg-red-600 text-white p-4 shadow-xl border-2 border-red-300 animate-pulse">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-red-400/60 pb-3 mb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-2xl bg-white text-red-600 shadow-xs">
+                  <AlertTriangle className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-black uppercase tracking-wide">
+                    🚨 Alerta de Encomenda Urgente (&le; 3 Horas para Recolha/Entrega)
+                  </h3>
+                  <p className="text-xs text-red-100 font-medium">
+                    Existem {encomendasUrgentesParaAceitar.length} encomenda(s) com entrega nas próximas 3 horas. Aceite para produção para desligar o sinal sonoro.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSomAlertaAtivo(!somAlertaAtivo)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-800 hover:bg-red-900 text-white text-xs font-bold border border-red-400 shrink-0 cursor-pointer"
+              >
+                {somAlertaAtivo ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                <span>{somAlertaAtivo ? 'Som Ativo (10s)' : 'Som Silenciado'}</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {encomendasUrgentesParaAceitar.map((enc) => (
+                <div
+                  key={enc.id}
+                  className="bg-white text-gray-900 p-3.5 rounded-2xl shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                >
+                  <div className="space-y-1 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-black text-red-700 bg-red-50 px-2 py-0.5 rounded border border-red-200">
+                        {enc.codigo}
+                      </span>
+                      <span className="font-black text-gray-900">
+                        ⏰ {enc.hora_agendamento} ({enc.data_agendamento})
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-700">
+                        {enc.loja_nome}
+                      </span>
+                    </div>
+                    <p className="font-bold text-gray-800">
+                      Cliente: {enc.cliente.nome} ({enc.itens.map((i) => `${i.quantidade}x ${i.produto_nome}`).join(', ')})
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => aceitarEncomendaUrgente(enc)}
+                    className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-sm transition shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>Aceitar p/ Produção</span>
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -486,7 +971,7 @@ export default function ProducaoPage() {
                 {configMarca.tituloProducao || 'Painel de Produção'} ({selectedLojaId === 'todas' ? t.allStores : lojaAtual.nome})
               </h2>
               <p className="text-xs text-gray-500">
-                {configMarca.subtituloProducao || 'Fila de fabrico com visualização Kanban e hierárquica por tipo e loja'}
+                {configMarca.subtituloProducao || 'Pool de fabrico diário com alocação aos 3 Fornos e vista hierárquica por loja'}
               </p>
             </div>
           </div>
@@ -512,19 +997,19 @@ export default function ProducaoPage() {
               <button
                 type="button"
                 onClick={() => setModoVisualizacao('kanban')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition cursor-pointer ${
                   modoVisualizacao === 'kanban'
                     ? 'bg-white text-gray-900 shadow-2xs'
                     : 'text-gray-500 hover:text-gray-800'
                 }`}
               >
                 <Columns className="h-3.5 w-3.5 text-amber-600" />
-                Quadro Kanban
+                Quadro Kanban (3 Fornos)
               </button>
               <button
                 type="button"
                 onClick={() => setModoVisualizacao('hierarquica')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition cursor-pointer ${
                   modoVisualizacao === 'hierarquica'
                     ? 'bg-white text-gray-900 shadow-2xs'
                     : 'text-gray-500 hover:text-gray-800'
@@ -655,248 +1140,374 @@ export default function ProducaoPage() {
           </div>
         </div>
 
-        {/* ---------------- VISTA 1: QUADRO KANBAN (3 COLUNAS) ---------------- */}
+        {/* ---------------- VISTA 1: QUADRO KANBAN (POOL DE ARTIGOS + 3 CARTÕES DE FORNO) ---------------- */}
         {modoVisualizacao === 'kanban' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* COLUNA 1: POR PREPARAR (Pendente) */}
-            <div className="flex flex-col rounded-3xl bg-stone-200/60 p-4 border border-stone-300 shadow-2xs">
-              <div className="flex items-center justify-between pb-3 border-b border-stone-300 mb-3">
-                <div className="flex items-center gap-2 font-black text-xs text-stone-800 uppercase tracking-wider">
-                  <span className="h-3 w-3 rounded-full bg-stone-400"></span>
-                  <span>1. Por Preparar</span>
+          <div className="space-y-6">
+            {/* SECÇÃO SUPERIOR: POOL DE ARTIGOS A PRODUZIR NO DIA */}
+            <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-3">
+                <div>
+                  <h3 className="text-sm font-black text-stone-900 uppercase tracking-wide flex items-center gap-2">
+                    <Flame className="h-4 w-4 text-amber-600" />
+                    <span>Pool de Artigos a Produzir no Dia ({listaPoolArtigos.length} artigos)</span>
+                  </h3>
+                  <p className="text-xs text-stone-500">
+                    Arraste um artigo do Pool para um dos 3 Fornos abaixo ou clique nos botões rápidos (+ Forno 1, 2 ou 3) para descontar a quantidade a produzir.
+                  </p>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-stone-300 font-mono text-xs font-black text-stone-700">
-                  {kanbanPorPreparar.length}
-                </span>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="flex items-center gap-2 text-xs font-bold text-stone-700 bg-stone-100 px-3 py-1.5 rounded-xl border border-stone-200 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={incluirCargaCarrinhasNoPool}
+                      onChange={(e) => setIncluirCargaCarrinhasNoPool(e.target.checked)}
+                      className="rounded text-amber-600"
+                    />
+                    <span>Incluir Base Fixa das 5 Carrinhas (Particulares + B2B)</span>
+                  </label>
+
+                  {Object.keys(produzidoPorProduto).length > 0 && temPermissaoEdicao && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm('Deseja reiniciar a contagem de unidades produzidas hoje nos fornos?')) {
+                          atualizarProduzido({});
+                        }
+                      }}
+                      className="px-2.5 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-600 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      Reiniciar Contagem do Dia
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <div className="space-y-3 flex-1 overflow-y-auto max-h-[75vh] pr-1">
-                {kanbanPorPreparar.length === 0 ? (
-                  <div className="text-center py-8 text-stone-400 text-xs italic">
-                    Sem encomendas pendentes de início.
-                  </div>
-                ) : (
-                  kanbanPorPreparar.map((enc) => (
-                    <div key={enc.id} className="bg-white p-3.5 rounded-2xl border border-stone-300 shadow-xs space-y-2.5">
-                      <div className="flex items-center justify-between gap-1.5 flex-wrap">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono font-black text-xs text-gray-900">{enc.codigo}</span>
-                          <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded-md border flex items-center gap-0.5 ${
-                            enc.canal_origem === 'site_online' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' :
-                            enc.canal_origem === 'whatsapp' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
-                            enc.canal_origem === 'telefone' ? 'bg-amber-50 text-amber-800 border-amber-200' :
-                            'bg-stone-100 text-stone-700 border-stone-200'
+              {listaPoolArtigos.length === 0 ? (
+                <div className="text-center py-8 text-stone-400 text-xs italic">
+                  Nenhum artigo pendente no Pool para os filtros selecionados.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 max-h-80 overflow-y-auto pr-1">
+                  {listaPoolArtigos.map((art) => (
+                    <div
+                      key={art.produto_id}
+                      draggable={temPermissaoEdicao && art.restantePool > 0}
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData(
+                          'application/json',
+                          JSON.stringify({
+                            produto_id: art.produto_id,
+                            quantidade: art.restantePool,
+                          })
+                        );
+                      }}
+                      className={`p-3 rounded-2xl border transition flex flex-col justify-between gap-2 ${
+                        art.restantePool === 0
+                          ? 'bg-emerald-50/60 border-emerald-200 opacity-75'
+                          : 'bg-stone-50/90 border-stone-200 hover:border-amber-400 cursor-grab active:cursor-grabbing shadow-2xs'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-start justify-between gap-1.5">
+                          <span className="text-xs font-black text-stone-900 leading-snug">
+                            {art.setor === 'pastelaria' ? '🎂 ' : '🥖 '}
+                            {art.produto_nome}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded-lg font-mono text-xs font-black shrink-0 ${
+                            art.restantePool > 0
+                              ? 'bg-amber-500 text-stone-950'
+                              : 'bg-emerald-600 text-white'
                           }`}>
-                            {enc.canal_origem === 'site_online' ? '🌐 Site' :
-                             enc.canal_origem === 'whatsapp' ? '💬 WhatsApp' :
-                             enc.canal_origem === 'telefone' ? '📞 Telefone' : '🏪 Presencial'}
+                            {art.restantePool} un.
                           </span>
                         </div>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-700">
-                          {enc.hora_agendamento}
-                        </span>
+
+                        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-stone-500 font-semibold">
+                          <span>Total: <b className="text-stone-800">{art.totalNecessario}</b></span>
+                          {art.emForno > 0 && (
+                            <span className="text-amber-700">• Em Forno: <b>{art.emForno}</b></span>
+                          )}
+                          {art.produzido > 0 && (
+                            <span className="text-emerald-700">• Pronto: <b>{art.produzido}</b></span>
+                          )}
+                        </div>
                       </div>
 
-                      <p className="font-bold text-xs text-gray-800">{enc.cliente.nome}</p>
-
-                      <div className="bg-stone-50 p-2 rounded-xl border border-stone-100 space-y-1">
-                        {enc.itens.map((it) => (
-                          <div key={it.id} className="text-[11px] flex justify-between">
-                            <span className="font-semibold text-gray-700">{it.produto_nome}</span>
-                            <span className="font-mono font-bold text-amber-700">{it.quantidade}x</span>
-                          </div>
-                        ))}
-                      </div>
-
-                      {temPermissaoEdicao && (
-                        <button
-                          type="button"
-                          onClick={() => moverEncomendaKanban(enc.id, 'em_producao')}
-                          className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs shadow-xs transition"
-                        >
-                          <span>Iniciar Preparação 👨‍🍳</span>
-                          <ArrowRight className="h-3.5 w-3.5" />
-                        </button>
+                      {temPermissaoEdicao && art.restantePool > 0 && (
+                        <div className="pt-1.5 border-t border-stone-200/70 grid grid-cols-3 gap-1">
+                          {(['forno-1', 'forno-2', 'forno-3'] as const).map((fId, idx) => (
+                            <button
+                              key={fId}
+                              type="button"
+                              onClick={() => alocarArtigoAoForno(fId, art.produto_id, art.restantePool)}
+                              className="py-1 px-1.5 rounded-lg bg-white hover:bg-amber-100 text-stone-700 hover:text-amber-950 border border-stone-200 font-bold text-[10px] transition cursor-pointer"
+                              title={`Alocar ${art.restantePool} un. para o Forno ${idx + 1}`}
+                            >
+                              + Forno {idx + 1}
+                            </button>
+                          ))}
+                        </div>
                       )}
                     </div>
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* COLUNA 2: EM PREPARAÇÃO (Forno / Bancada) */}
-            <div className="flex flex-col rounded-3xl bg-amber-50/80 p-4 border border-amber-200 shadow-2xs">
-              <div className="flex items-center justify-between pb-3 border-b border-amber-200 mb-3">
-                <div className="flex items-center gap-2 font-black text-xs text-amber-900 uppercase tracking-wider">
-                  <span className="h-3 w-3 rounded-full bg-amber-500 animate-pulse"></span>
-                  <span>2. Em Preparação</span>
-                </div>
-                <span className="px-2 py-0.5 rounded-full bg-amber-200 font-mono text-xs font-black text-amber-800">
-                  {kanbanEmPreparacao.length}
-                </span>
-              </div>
+            {/* SECÇÃO CENTRAL: 3 CARTÕES DE FORNO (FORNO 1, FORNO 2, FORNO 3) */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {fornos.map((forno) => {
+                const emPreparacao = forno.estado === 'em_preparacao';
+                const selManual = selecaoManualForno[forno.id] || {
+                  produto_id: listaPoolArtigos[0]?.produto_id || produtos[0]?.id || '',
+                  quantidade: 20,
+                };
+                const totalUnidadesForno = forno.itens.reduce((acc, i) => acc + i.quantidade, 0);
 
-              <div className="space-y-3 flex-1 overflow-y-auto max-h-[75vh] pr-1">
-                {kanbanEmPreparacao.length === 0 ? (
-                  <div className="text-center py-8 text-amber-700/60 text-xs italic">
-                    Nenhuma encomenda atualmente em forno/preparo.
-                  </div>
-                ) : (
-                  kanbanEmPreparacao.map((enc) => (
-                    <div key={enc.id} className="bg-white p-3.5 rounded-2xl border border-amber-300 shadow-xs space-y-2.5">
-                      <div className="flex items-center justify-between gap-1.5 flex-wrap">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono font-black text-xs text-amber-900">{enc.codigo}</span>
-                          <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded-md border flex items-center gap-0.5 ${
-                            enc.canal_origem === 'site_online' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' :
-                            enc.canal_origem === 'whatsapp' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
-                            enc.canal_origem === 'telefone' ? 'bg-amber-50 text-amber-800 border-amber-200' :
-                            'bg-stone-100 text-stone-700 border-stone-200'
+                return (
+                  <div
+                    key={forno.id}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      try {
+                        const raw = e.dataTransfer.getData('application/json');
+                        if (!raw) return;
+                        const parsed = JSON.parse(raw);
+                        if (parsed.produto_id) {
+                          alocarArtigoAoForno(forno.id, parsed.produto_id, parsed.quantidade);
+                        }
+                      } catch {
+                        // ignore
+                      }
+                    }}
+                    className={`rounded-3xl p-5 border-2 transition flex flex-col justify-between space-y-4 shadow-sm ${
+                      emPreparacao
+                        ? 'bg-amber-50/90 border-amber-400 ring-2 ring-amber-300/50'
+                        : 'bg-white border-stone-200 hover:border-stone-300'
+                    }`}
+                  >
+                    <div className="space-y-3">
+                      {/* Cabeçalho do Forno */}
+                      <div className="flex items-center justify-between border-b border-stone-200 pb-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className={`p-2.5 rounded-2xl font-black text-white shadow-xs ${
+                            emPreparacao ? 'bg-amber-600 animate-pulse' : 'bg-stone-800'
                           }`}>
-                            {enc.canal_origem === 'site_online' ? '🌐 Site' :
-                             enc.canal_origem === 'whatsapp' ? '💬 WhatsApp' :
-                             enc.canal_origem === 'telefone' ? '📞 Telefone' : '🏪 Presencial'}
-                          </span>
+                            <Flame className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <h3 className="text-base font-black text-stone-900 uppercase tracking-wide">
+                              {forno.nome}
+                            </h3>
+                            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full inline-block ${
+                              emPreparacao
+                                ? 'bg-amber-200 text-amber-950'
+                                : forno.itens.length > 0
+                                ? 'bg-blue-100 text-blue-900'
+                                : 'bg-stone-100 text-stone-600'
+                            }`}>
+                              {emPreparacao
+                                ? '🔥 Em Cozedura / Preparação'
+                                : forno.itens.length > 0
+                                ? `Carregado (${totalUnidadesForno} un.)`
+                                : 'Livre — Aguarda Lote'}
+                            </span>
+                          </div>
                         </div>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
-                          {enc.hora_agendamento}
-                        </span>
+
+                        {/* Cronómetro ao Vivo quando em preparação */}
+                        {emPreparacao && (
+                          <div className="bg-stone-900 text-amber-400 px-3 py-1.5 rounded-2xl font-mono font-black text-sm flex items-center gap-1.5 shadow-inner">
+                            <Clock className="h-4 w-4 animate-spin" />
+                            <span>{formatarDuracaoAoVivo(forno.inicio_timestamp)}</span>
+                          </div>
+                        )}
                       </div>
 
-                      <p className="font-bold text-xs text-gray-800">{enc.cliente.nome}</p>
+                      {/* Seletor Direto no Cartão do Forno para Adicionar Produto + Quantidade */}
+                      {temPermissaoEdicao && (
+                        <div className="bg-stone-50 p-2.5 rounded-2xl border border-stone-200 space-y-2">
+                          <label className="block text-[10px] font-black text-stone-500 uppercase tracking-wider">
+                            Selecionar Artigo e Quantidade para {forno.nome}
+                          </label>
+                          <div className="flex items-center gap-1.5">
+                            <select
+                              value={selManual.produto_id || listaPoolArtigos[0]?.produto_id || produtos[0]?.id || ''}
+                              onChange={(e) => {
+                                const pId = e.target.value;
+                                const pPool = listaPoolArtigos.find((x) => x.produto_id === pId);
+                                setSelecaoManualForno((prev) => ({
+                                  ...prev,
+                                  [forno.id]: {
+                                    produto_id: pId,
+                                    quantidade: pPool && pPool.restantePool > 0 ? pPool.restantePool : selManual.quantidade,
+                                  },
+                                }));
+                              }}
+                              className="flex-1 min-w-0 px-2.5 py-1.5 rounded-xl bg-white border border-stone-300 text-xs font-bold text-stone-900 focus:outline-hidden"
+                            >
+                              {produtos.map((p) => {
+                                const infoPool = listaPoolArtigos.find((lp) => lp.produto_id === p.id);
+                                return (
+                                  <option key={p.id} value={p.id}>
+                                    {p.nome} {infoPool ? `(Pool: ${infoPool.restantePool} un.)` : ''}
+                                  </option>
+                                );
+                              })}
+                            </select>
 
-                      <div className="space-y-1.5">
-                        {enc.itens.map((it) => (
-                          <div
-                            key={it.id}
-                            className={`p-2 rounded-xl text-[11px] flex items-center justify-between border ${
-                              it.estado_producao === 'pronto'
-                                ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold'
-                                : 'bg-stone-50 border-stone-200 text-stone-800'
-                            }`}
-                          >
-                            <span>{it.quantidade}x {it.produto_nome}</span>
-                            {temPermissaoEdicao && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  atualizarEstadoItem(
-                                    enc.id,
-                                    it.id,
-                                    it.estado_producao === 'pronto' ? 'em_preparo' : 'pronto'
-                                  )
+                            <input
+                              type="number"
+                              min={1}
+                              value={selManual.quantidade}
+                              onChange={(e) =>
+                                setSelecaoManualForno((prev) => ({
+                                  ...prev,
+                                  [forno.id]: {
+                                    ...selManual,
+                                    quantidade: Math.max(1, Number(e.target.value) || 1),
+                                  },
+                                }))
+                              }
+                              className="w-16 px-2 py-1.5 rounded-xl bg-white border border-stone-300 text-xs font-mono font-black text-center text-stone-900"
+                              title="Quantidade a colocar no forno"
+                            />
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const prodId = selManual.produto_id || listaPoolArtigos[0]?.produto_id || produtos[0]?.id;
+                                if (prodId) {
+                                  alocarArtigoAoForno(forno.id, prodId, selManual.quantidade);
                                 }
-                                className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition ${
-                                  it.estado_producao === 'pronto'
-                                    ? 'bg-emerald-600 text-white'
-                                    : 'bg-stone-200 hover:bg-stone-300 text-stone-700'
-                                }`}
-                              >
-                                {it.estado_producao === 'pronto' ? '✓ Pronto' : 'Marcar'}
-                              </button>
-                            )}
+                              }}
+                              className="px-3 py-1.5 rounded-xl bg-stone-900 hover:bg-amber-600 text-white font-black text-xs transition shrink-0 cursor-pointer"
+                            >
+                              + Alocar
+                            </button>
                           </div>
-                        ))}
-                      </div>
-
-                      {temPermissaoEdicao && (
-                        <div className="flex gap-1.5 pt-1">
-                          <button
-                            type="button"
-                            onClick={() => moverEncomendaKanban(enc.id, 'pendente')}
-                            className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600"
-                            title="Recuar para Por Preparar"
-                          >
-                            <RotateCcw className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => moverEncomendaKanban(enc.id, 'pronto_loja')}
-                            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs transition"
-                          >
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            <span>Marcar Tudo Pronto</span>
-                          </button>
                         </div>
                       )}
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
 
-            {/* COLUNA 3: PRONTO A SER LEVANTADO / EXPEDIDO */}
-            <div className="flex flex-col rounded-3xl bg-emerald-50/80 p-4 border border-emerald-200 shadow-2xs">
-              <div className="flex items-center justify-between pb-3 border-b border-emerald-200 mb-3">
-                <div className="flex items-center gap-2 font-black text-xs text-emerald-900 uppercase tracking-wider">
-                  <span className="h-3 w-3 rounded-full bg-emerald-600"></span>
-                  <span>3. Pronto / Expedição</span>
-                </div>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-200 font-mono text-xs font-black text-emerald-800">
-                  {kanbanPronto.length}
-                </span>
-              </div>
+                      {/* Lista de Artigos Alocados ao Forno */}
+                      <div className="space-y-2 min-h-36 max-h-64 overflow-y-auto pr-1">
+                        {forno.itens.length === 0 ? (
+                          <div className="h-36 rounded-2xl border-2 border-dashed border-stone-200 flex flex-col items-center justify-center text-center p-4 text-stone-400 text-xs">
+                            <Flame className="h-6 w-6 mb-1 opacity-40" />
+                            <span className="font-bold">Arraste artigos do Pool para aqui</span>
+                            <span className="text-[11px]">ou selecione o artigo e quantidade acima</span>
+                          </div>
+                        ) : (
+                          forno.itens.map((item) => (
+                            <div
+                              key={item.id}
+                              className="p-3 rounded-2xl bg-white border border-stone-200 shadow-2xs flex items-center justify-between gap-2"
+                            >
+                              <div>
+                                <span className="text-xs font-black text-stone-900 block">
+                                  {item.produto_nome}
+                                </span>
+                                <span className="text-[10px] text-stone-500 uppercase font-bold">
+                                  {item.setor === 'pastelaria' ? 'Pastelaria' : 'Padaria'}
+                                </span>
+                              </div>
 
-              <div className="space-y-3 flex-1 overflow-y-auto max-h-[75vh] pr-1">
-                {kanbanPronto.length === 0 ? (
-                  <div className="text-center py-8 text-emerald-700/60 text-xs italic">
-                    Nenhuma encomenda na zona de expedição ou pronta.
-                  </div>
-                ) : (
-                  kanbanPronto.map((enc) => (
-                    <div key={enc.id} className="bg-white p-3.5 rounded-2xl border border-emerald-300 shadow-xs space-y-2.5">
-                      <div className="flex items-center justify-between gap-1.5 flex-wrap">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono font-black text-xs text-emerald-900">{enc.codigo}</span>
-                          <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded-md border flex items-center gap-0.5 ${
-                            enc.canal_origem === 'site_online' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' :
-                            enc.canal_origem === 'whatsapp' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
-                            enc.canal_origem === 'telefone' ? 'bg-amber-50 text-amber-800 border-amber-200' :
-                            'bg-stone-100 text-stone-700 border-stone-200'
-                          }`}>
-                            {enc.canal_origem === 'site_online' ? '🌐 Site' :
-                             enc.canal_origem === 'whatsapp' ? '💬 WhatsApp' :
-                             enc.canal_origem === 'telefone' ? '📞 Telefone' : '🏪 Presencial'}
-                          </span>
-                        </div>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 uppercase">
-                          {enc.tipo === 'entrega_domicilio' ? 'Carrinha' : 'Balcão'}
-                        </span>
-                      </div>
-
-                      <p className="font-bold text-xs text-gray-800">{enc.cliente.nome}</p>
-
-                      <div className="bg-emerald-50/60 p-2 rounded-xl border border-emerald-100 text-[11px] space-y-0.5">
-                        <span className="font-bold text-emerald-900 block">
-                          {enc.itens.reduce((acc, i) => acc + i.quantidade, 0)} unidades concluídas
-                        </span>
-                        <span className="text-gray-500">Agendado: {enc.hora_agendamento}</span>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => setEncomendaParaImprimir(enc)}
-                          className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-xs"
-                        >
-                          <Printer className="h-3.5 w-3.5" />
-                          <span>Talão</span>
-                        </button>
-                        {temPermissaoEdicao && (
-                          <button
-                            type="button"
-                            onClick={() => moverEncomendaKanban(enc.id, 'em_producao')}
-                            className="p-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-600"
-                            title="Recuar para Em Preparação"
-                          >
-                            <RotateCcw className="h-3.5 w-3.5" />
-                          </button>
+                              <div className="flex items-center gap-1.5">
+                                {temPermissaoEdicao && (
+                                  <button
+                                    type="button"
+                                    onClick={() => alterarQtdNoForno(forno.id, item.id, item.quantidade - 5)}
+                                    className="px-1.5 py-0.5 rounded bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs"
+                                  >
+                                    -5
+                                  </button>
+                                )}
+                                <input
+                                  type="number"
+                                  min={1}
+                                  disabled={!temPermissaoEdicao}
+                                  value={item.quantidade}
+                                  onChange={(e) => alterarQtdNoForno(forno.id, item.id, Number(e.target.value) || 0)}
+                                  className="w-16 text-center font-mono font-black text-xs px-1.5 py-1 rounded-lg border border-amber-300 bg-amber-50 text-amber-950"
+                                />
+                                {temPermissaoEdicao && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => alterarQtdNoForno(forno.id, item.id, item.quantidade + 5)}
+                                      className="px-1.5 py-0.5 rounded bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs"
+                                    >
+                                      +5
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => alterarQtdNoForno(forno.id, item.id, 0)}
+                                      className="p-1 text-red-500 hover:bg-red-50 rounded-lg"
+                                      title="Devolver ao Pool"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          ))
                         )}
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
+
+                    {/* Botões Operacionais do Forno: Iniciar Preparação e Pronto */}
+                    <div className="pt-3 border-t border-stone-200/80 space-y-2">
+                      {temPermissaoEdicao && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            disabled={forno.itens.length === 0 || emPreparacao}
+                            onClick={() => handleIniciarForno(forno.id)}
+                            className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-2xl font-black text-xs transition shadow-xs ${
+                              forno.itens.length > 0 && !emPreparacao
+                                ? 'bg-amber-600 hover:bg-amber-700 text-white cursor-pointer'
+                                : 'bg-stone-100 text-stone-400 cursor-not-allowed'
+                            }`}
+                          >
+                            <Play className="h-3.5 w-3.5" />
+                            <span>Iniciar Preparação</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={forno.itens.length === 0}
+                            onClick={() => handleConcluirForno(forno.id)}
+                            className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-2xl font-black text-xs transition shadow-xs ${
+                              forno.itens.length > 0
+                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer'
+                                : 'bg-stone-100 text-stone-400 cursor-not-allowed'
+                            }`}
+                          >
+                            <Check className="h-4 w-4" />
+                            <span>Pronto</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Última fornada concluída neste forno */}
+                      {forno.historico_fornadas && forno.historico_fornadas.length > 0 && (
+                        <div className="bg-stone-50 p-2 rounded-xl border border-stone-200 text-[10px] text-stone-600 flex items-center justify-between">
+                          <span className="truncate mr-2">
+                            Última: <b>{forno.historico_fornadas[0].itens.map((i) => `${i.quantidade}x ${i.produto_nome}`).join(', ')}</b>
+                          </span>
+                          <span className="font-mono font-black text-emerald-700 shrink-0">
+                            ⏱ {Math.floor(forno.historico_fornadas[0].duracao_segundos / 60)}m {forno.historico_fornadas[0].duracao_segundos % 60}s
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

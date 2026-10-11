@@ -3,21 +3,27 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Navbar } from '../../components/Navbar';
 import { ThermalReceipt } from '../../components/ThermalReceipt';
-import { LOJAS_MOCK, CARRINHAS_MOCK } from '../../lib/mockData';
+import { LOJAS_MOCK, CARRINHAS_MOCK, PRODUTOS_MOCK, COLUNAS_MAPA_DIARIO_OFICIAL } from '../../lib/mockData';
 import { supabase } from '../../lib/supabase';
 import { 
   carregarEncomendasSupabase, 
   carregarLojasSupabase,
+  carregarCarrinhasSupabase,
+  carregarProdutosSupabase,
+  carregarBaseFixaCarrinhas,
+  carregarClientesEmpresariaisB2B,
+  obterDiaSemanaDeData,
   atualizarEstadoEncomendaDb,
   alternarTipoEntregaDb,
   atribuirCarrinhaDb,
   concluirEntregaComTimestampDb,
   registarLogAuditoria 
 } from '../../lib/encomendasService';
-import { Encomenda, EstadoRota, Loja } from '../../types';
+import { Encomenda, EstadoRota, Loja, Carrinha, Produto, BaseFixaCarrinha, ClienteEmpresarialB2B } from '../../types';
 import { useTranslation } from '../../lib/i18n';
 import { useAuth } from '../../lib/authContext';
 import { obterConfiguracaoMarca } from '../../lib/tinaContent';
+import * as XLSX from 'xlsx';
 import { 
   Truck, 
   MapPin, 
@@ -39,7 +45,10 @@ import {
   RotateCcw,
   Check,
   MessageSquare,
-  Globe
+  Globe,
+  FileSpreadsheet,
+  Building2,
+  Package
 } from 'lucide-react';
 
 export default function EntregasPage() {
@@ -50,11 +59,16 @@ export default function EntregasPage() {
   const configMarca = obterConfiguracaoMarca();
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
   const [lojas, setLojas] = useState<Loja[]>(LOJAS_MOCK);
+  const [carrinhas, setCarrinhas] = useState<Carrinha[]>(CARRINHAS_MOCK);
+  const [produtos, setProdutos] = useState<Produto[]>(PRODUTOS_MOCK);
+  const [baseFixaCarrinhas, setBaseFixaCarrinhas] = useState<BaseFixaCarrinha[]>([]);
+  const [clientesB2B, setClientesB2B] = useState<ClienteEmpresarialB2B[]>([]);
   const [carrinhaSelecionadaId, setCarrinhaSelecionadaId] = useState<string>('todas');
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
   const [encomendaParaImprimir, setEncomendaParaImprimir] = useState<Encomenda | null>(null);
   const [mapaAbertoId, setMapaAbertoId] = useState<string | null>(null);
   const [mostrarPool, setMostrarPool] = useState<boolean>(true);
+  const [mostrarResumoCarga, setMostrarResumoCarga] = useState<boolean>(true);
   const [draggedEncId, setDraggedEncId] = useState<string | null>(null);
   const [draggedStopIndex, setDraggedStopIndex] = useState<number | null>(null);
   const [isDragOverPool, setIsDragOverPool] = useState<boolean>(false);
@@ -72,23 +86,38 @@ export default function EntregasPage() {
 
   useEffect(() => {
     async function carregar() {
-      const [dados, ljs] = await Promise.all([
+      const [dados, ljs, cars, prods] = await Promise.all([
         carregarEncomendasSupabase(),
         carregarLojasSupabase(),
+        carregarCarrinhasSupabase(),
+        carregarProdutosSupabase(),
       ]);
       setEncomendas(dados);
       if (ljs && ljs.length > 0) setLojas(ljs);
+      if (cars && cars.length > 0) setCarrinhas(cars);
+      if (prods && prods.length > 0) setProdutos(prods);
+      setBaseFixaCarrinhas(carregarBaseFixaCarrinhas());
+      setClientesB2B(carregarClientesEmpresariaisB2B());
     }
     carregar();
   }, []);
 
   const lojaAtual = lojas.find((l) => l.id === selectedLojaId) || lojas[0] || LOJAS_MOCK[0];
-  const carrinhasDaLoja = CARRINHAS_MOCK.filter(
-    (c) => selectedLojaId === 'todas' || c.loja_id === selectedLojaId
-  );
+  // As 5 carrinhas servem toda a operação central de Arouca
+  const carrinhasDaLoja = carrinhas;
 
-  // Data operacional de hoje (AAAA-MM-DD)
+  // Data operacional de hoje (AAAA-MM-DD) e Dia da Semana
   const hoje = new Date().toISOString().split('T')[0];
+  const diaSemanaHoje = obterDiaSemanaDeData(hoje);
+  const nomesDiaSemana: Record<string, string> = {
+    seg: 'SEGUNDA-FEIRA',
+    ter: 'TERÇA-FEIRA',
+    qua: 'QUARTA-FEIRA',
+    qui: 'QUINTA-FEIRA',
+    sex: 'SEXTA-FEIRA',
+    sab: 'SÁBADO',
+    dom: 'DOMINGO',
+  };
 
   // 1. POOL DE ENCOMENDAS POR ATRIBUIR (Apenas HOJE, Entrega ao Domicílio, Sem carrinha definida)
   const encomendasPool = useMemo(() => {
@@ -149,7 +178,7 @@ export default function EntregasPage() {
         horaInicio: agora,
       },
     }));
-    const carrinhaObj = CARRINHAS_MOCK.find((c) => c.id === carrinhaSelecionadaId);
+    const carrinhaObj = carrinhas.find((c) => c.id === carrinhaSelecionadaId);
     registarLogAuditoria({
       utilizador_id: currentUser.id,
       utilizador_nome: currentUser.nome,
@@ -173,7 +202,7 @@ export default function EntregasPage() {
         horaFim: agora,
       },
     }));
-    const carrinhaObj = CARRINHAS_MOCK.find((c) => c.id === carrinhaSelecionadaId);
+    const carrinhaObj = carrinhas.find((c) => c.id === carrinhaSelecionadaId);
     registarLogAuditoria({
       utilizador_id: currentUser.id,
       utilizador_nome: currentUser.nome,
@@ -186,10 +215,11 @@ export default function EntregasPage() {
     });
   };
 
-  // Concluir entrega com registo de timestamp real
+  // Concluir entrega com registo de data e hora real
   const confirmarEntrega = async (encomendaId: string) => {
     const agora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    await concluirEntregaComTimestampDb(encomendaId, agora);
+    const dataReal = new Date().toISOString().split('T')[0];
+    await concluirEntregaComTimestampDb(encomendaId, agora, dataReal);
     const enc = encomendas.find((e) => e.id === encomendaId);
     if (enc) {
       await registarLogAuditoria({
@@ -203,17 +233,155 @@ export default function EntregasPage() {
         loja_nome: enc.loja_nome,
         painel: 'entregas',
         acao: 'Entrega Efetuada ao Domicílio',
-        detalhes: `Entrega física concluída com sucesso na morada ${enc.cliente.morada || 'Arouca'} às ${agora}. Registado por ${currentUser.nome}.`,
+        detalhes: `Entrega física concluída com sucesso na morada ${enc.cliente.morada || 'Arouca'} em ${dataReal} às ${agora}. Registado por ${currentUser.nome}.`,
       });
     }
 
     setEncomendas((prev) =>
       prev.map((e) =>
         e.id === encomendaId
-          ? { ...e, estado: 'entregue', hora_entrega_real: agora }
+          ? { ...e, estado: 'entregue', hora_entrega_real: agora, data_entrega_real: dataReal }
           : e
       )
     );
+  };
+
+  // ---------------------------------------------------------------------------
+  // EXPORTAÇÃO EXCEL DO MAPA DIÁRIO OFICIAL (POR ARTIGO E POR CARRINHA + B2B)
+  // ---------------------------------------------------------------------------
+  const exportarMapaDiarioExcel = async () => {
+    const cabecalhosArtigos = COLUNAS_MAPA_DIARIO_OFICIAL.map((c) => c.cabecalho);
+    const linhaTitulo1 = ['UNIÃO PANIFICADORA CENTRAL AROUQUENSE, LDA'];
+    const linhaTitulo2 = [
+      'MAPA DIÁRIO DE DISTRIBUIÇÃO E CARRINHAS',
+      '',
+      'DIA DA SEMANA:',
+      nomesDiaSemana[diaSemanaHoje] || diaSemanaHoje.toUpperCase(),
+      '',
+      'DATA:',
+      hoje,
+    ];
+    const linhaVazia: string[] = [];
+    const linhaCabecalho = ['VENDEDOR', ...cabecalhosArtigos, 'TOTAL UNIDADES'];
+
+    // Função auxiliar para obter a quantidade de um produto numa encomenda pelo produto_id ou nome
+    const obterQtdEncomendasCarrinha = (carrinhaId: string, col: { produto_id: string; cabecalho: string }) => {
+      const encsCarrinha = encomendas.filter(
+        (e) =>
+          e.data_agendamento === hoje &&
+          e.tipo === 'entrega_domicilio' &&
+          e.carrinha_id === carrinhaId &&
+          e.estado !== 'cancelado'
+      );
+      let soma = 0;
+      encsCarrinha.forEach((enc) => {
+        enc.itens.forEach((it) => {
+          if (
+            it.produto_id === col.produto_id ||
+            it.produto_nome.toLowerCase() === col.cabecalho.toLowerCase()
+          ) {
+            soma += it.quantidade;
+          }
+        });
+      });
+      return soma;
+    };
+
+    const linhasTabela: (string | number)[][] = [];
+    const totaisPorColuna = new Array(COLUNAS_MAPA_DIARIO_OFICIAL.length).fill(0);
+
+    // 1. Linhas 1º CARRO a 4º CARRO (Base Fixa Particulares + Pedidos Adicionais)
+    const carrinhas1a4 = carrinhas.slice(0, 4);
+    carrinhas1a4.forEach((car, idx) => {
+      const bf = baseFixaCarrinhas.find((b) => b.carrinha_id === car.id);
+      const nomeLinha = `${idx + 1}º CARRO`;
+      let totalLinha = 0;
+      const valoresCols = COLUNAS_MAPA_DIARIO_OFICIAL.map((col, colIdx) => {
+        const qtdFixa = Number(bf?.quantidadesPorProduto?.[col.produto_id] || 0);
+        const qtdAdicional = obterQtdEncomendasCarrinha(car.id, col);
+        const soma = qtdFixa + qtdAdicional;
+        totaisPorColuna[colIdx] += soma;
+        totalLinha += soma;
+        return soma > 0 ? soma : '';
+      });
+      linhasTabela.push([nomeLinha, ...valoresCols, totalLinha]);
+    });
+
+    // 2. Linha 5º CARRO (Consolidado Clientes Empresariais B2B + Pedidos Adicionais 5º Carro)
+    const carrinha5 = carrinhas[4] || CARRINHAS_MOCK[4];
+    if (carrinha5) {
+      let totalCarro5 = 0;
+      const valoresCarro5 = COLUNAS_MAPA_DIARIO_OFICIAL.map((col) => {
+        const qtdB2B = clientesB2B
+          .filter((c) => c.ativo && c.carrinha_id === carrinha5.id)
+          .reduce((acc, cli) => acc + Number(cli.quantidadesPorProduto?.[col.produto_id]?.[diaSemanaHoje] || 0), 0);
+        const qtdAdicional = obterQtdEncomendasCarrinha(carrinha5.id, col);
+        const soma = qtdB2B + qtdAdicional;
+        totalCarro5 += soma;
+        return soma > 0 ? soma : '';
+      });
+      linhasTabela.push(['5º CARRO (TOTAL B2B)', ...valoresCarro5, totalCarro5]);
+    }
+
+    // 3. Linhas Individuais dos Clientes Empresariais (Gamarão, Patronato, P.-Telhe, Lar 3ª Idade, Hospital, etc.)
+    clientesB2B.filter((c) => c.ativo).forEach((cli) => {
+      let totalCli = 0;
+      const valoresCli = COLUNAS_MAPA_DIARIO_OFICIAL.map((col, colIdx) => {
+        const qtd = Number(cli.quantidadesPorProduto?.[col.produto_id]?.[diaSemanaHoje] || 0);
+        totaisPorColuna[colIdx] += qtd;
+        totalCli += qtd;
+        return qtd > 0 ? qtd : '';
+      });
+      linhasTabela.push([cli.nome, ...valoresCli, totalCli]);
+    });
+
+    // Somar também eventuais encomendas avulsas atribuídas ao 5º Carro no Total Geral
+    if (carrinha5) {
+      COLUNAS_MAPA_DIARIO_OFICIAL.forEach((col, colIdx) => {
+        totaisPorColuna[colIdx] += obterQtdEncomendasCarrinha(carrinha5.id, col);
+      });
+    }
+
+    // 4. Linha Final TOTAL
+    const grandeTotal = totaisPorColuna.reduce((a, b) => a + b, 0);
+    const linhaTotal = [
+      'TOTAL',
+      ...totaisPorColuna.map((v) => (v > 0 ? v : 0)),
+      grandeTotal,
+    ];
+
+    const aoa = [
+      linhaTitulo1,
+      linhaTitulo2,
+      linhaVazia,
+      linhaCabecalho,
+      ...linhasTabela,
+      linhaTotal,
+    ];
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [
+      { wch: 24 }, // VENDEDOR
+      ...COLUNAS_MAPA_DIARIO_OFICIAL.map(() => ({ wch: 11 })),
+      { wch: 16 }, // TOTAL UNIDADES
+    ];
+    XLSX.utils.book_append_sheet(wb, ws, 'MAPA DIÁRIO');
+    XLSX.writeFile(wb, `Mapa_Diario_Carrinhas_${hoje}.xlsx`);
+
+    await registarLogAuditoria({
+      encomenda_id: 'mapa-diario-excel',
+      codigo_encomenda: 'MAPA-DIARIO',
+      cliente_nome: 'Frota 5 Carrinhas & Clientes B2B',
+      utilizador_id: currentUser.id,
+      utilizador_nome: currentUser.nome,
+      utilizador_role: currentUser.role,
+      loja_id: selectedLojaId === 'todas' ? 'todas' : lojaAtual.id,
+      loja_nome: selectedLojaId === 'todas' ? 'Todas as Lojas' : lojaAtual.nome,
+      painel: 'entregas',
+      acao: 'Exportação Mapa Diário de Entregas (Excel)',
+      detalhes: `Exportado Mapa Diário oficial de quantidades por artigo e por carrinha (1º ao 5º Carro + ${clientesB2B.length} Clientes Empresariais) para a data ${hoje} (${grandeTotal} unidades totais).`,
+    });
   };
 
   // Otimizar rota automaticamente por horário e código postal
@@ -575,6 +743,17 @@ export default function EntregasPage() {
                 </select>
               </div>
 
+              {/* Botão de Exportar Mapa Diário Oficial (Excel) */}
+              <button
+                type="button"
+                onClick={exportarMapaDiarioExcel}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-xs transition cursor-pointer"
+                title="Extrair Excel com a compilação total de quantidades por artigo e por carrinha (1º ao 5º Carro + Clientes Empresariais)"
+              >
+                <FileSpreadsheet className="h-4 w-4 shrink-0" />
+                <span>Exportar Mapa Diário (Excel)</span>
+              </button>
+
               {/* Botão de Otimizar Rota Automática */}
               {temPermissaoEdicao && entregasAtribuidas.length > 1 && (
                 <button
@@ -588,6 +767,189 @@ export default function EntregasPage() {
                 </button>
               )}
             </div>
+          </div>
+
+          {/* RESUMO DE CARGA DA CARRINHA (BASE FIXA PARTICULARES 1º-4º CARRO / B2B 5º CARRO + ENCOMENDAS ADICIONAIS) */}
+          <div className="mt-5 pt-4 border-t border-blue-100 space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <Package className="h-4 w-4 text-blue-700" />
+                <h3 className="text-xs font-black text-stone-900 uppercase tracking-wider">
+                  Carga Consolidada para Distribuição ({nomesDiaSemana[diaSemanaHoje] || diaSemanaHoje.toUpperCase()})
+                </h3>
+                <span className="text-[11px] text-stone-500 font-medium">
+                  — Carrinhas 1 a 4: Base Fixa Particulares + Adicionais • 5º Carro: Clientes Empresariais B2B + Adicionais
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMostrarResumoCarga(!mostrarResumoCarga)}
+                className="text-[11px] font-bold text-blue-700 hover:text-blue-900 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 cursor-pointer"
+              >
+                {mostrarResumoCarga ? 'Ocultar Carga ▲' : 'Ver Carga por Carrinha ▼'}
+              </button>
+            </div>
+
+            {mostrarResumoCarga && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                  {carrinhas.map((car, idx) => {
+                    const isCarro5 = idx === 4 || car.identificador.includes('5º Carro') || car.identificador.includes('Carrinha 5');
+                    const isSelected = carrinhaSelecionadaId === car.id;
+                    const bf = baseFixaCarrinhas.find((b) => b.carrinha_id === car.id);
+                    const totaisArtigo = new Map<string, { nome: string; qtdBase: number; qtdExtra: number }>();
+
+                    if (!isCarro5 && bf) {
+                      Object.entries(bf.quantidadesPorProduto).forEach(([prodId, qtd]) => {
+                        if (!qtd || qtd <= 0) return;
+                        const prodNome =
+                          produtos.find((p) => p.id === prodId)?.nome ||
+                          COLUNAS_MAPA_DIARIO_OFICIAL.find((c) => c.produto_id === prodId)?.cabecalho ||
+                          prodId;
+                        totaisArtigo.set(prodId, { nome: prodNome, qtdBase: Number(qtd), qtdExtra: 0 });
+                      });
+                    }
+
+                    if (isCarro5) {
+                      clientesB2B
+                        .filter((c) => c.ativo && c.carrinha_id === car.id)
+                        .forEach((cli) => {
+                          Object.entries(cli.quantidadesPorProduto).forEach(([prodId, mapaDias]) => {
+                            const qtdDia = Number(mapaDias?.[diaSemanaHoje] || 0);
+                            if (qtdDia <= 0) return;
+                            const prodNome =
+                              produtos.find((p) => p.id === prodId)?.nome ||
+                              COLUNAS_MAPA_DIARIO_OFICIAL.find((c) => c.produto_id === prodId)?.cabecalho ||
+                              prodId;
+                            const atual = totaisArtigo.get(prodId) || { nome: prodNome, qtdBase: 0, qtdExtra: 0 };
+                            atual.qtdBase += qtdDia;
+                            totaisArtigo.set(prodId, atual);
+                          });
+                        });
+                    }
+
+                    // Somar encomendas adicionais de hoje atribuídas a esta carrinha
+                    encomendas
+                      .filter(
+                        (e) =>
+                          e.data_agendamento === hoje &&
+                          e.tipo === 'entrega_domicilio' &&
+                          e.carrinha_id === car.id &&
+                          e.estado !== 'cancelado'
+                      )
+                      .forEach((enc) => {
+                        enc.itens.forEach((it) => {
+                          const atual = totaisArtigo.get(it.produto_id) || {
+                            nome: it.produto_nome,
+                            qtdBase: 0,
+                            qtdExtra: 0,
+                          };
+                          atual.qtdExtra += it.quantidade;
+                          totaisArtigo.set(it.produto_id, atual);
+                        });
+                      });
+
+                    const listaItens = Array.from(totaisArtigo.values());
+                    const totalUnidades = listaItens.reduce((acc, i) => acc + i.qtdBase + i.qtdExtra, 0);
+
+                    return (
+                      <div
+                        key={car.id}
+                        onClick={() => setCarrinhaSelecionadaId(isSelected ? 'todas' : car.id)}
+                        className={`p-3 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${
+                          isSelected
+                            ? 'bg-blue-50/90 border-blue-500 ring-2 ring-blue-300'
+                            : isCarro5
+                            ? 'bg-indigo-50/50 border-indigo-200 hover:border-indigo-400'
+                            : 'bg-stone-50/80 border-stone-200 hover:border-blue-300'
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between gap-1 mb-1">
+                            <span className="text-xs font-black text-stone-900">
+                              {idx + 1}º Carro
+                            </span>
+                            <span className={`px-1.5 py-0.5 rounded-md font-mono text-[10px] font-black ${
+                              isCarro5 ? 'bg-indigo-600 text-white' : 'bg-blue-600 text-white'
+                            }`}>
+                              {totalUnidades} un.
+                            </span>
+                          </div>
+                          <p className="text-[10px] font-bold text-stone-500 mb-2">
+                            {isCarro5 ? '🏢 Clientes Empresariais (B2B)' : '🏠 Particulares (Base Fixa + Extra)'}
+                          </p>
+
+                          <div className="space-y-1 max-h-32 overflow-y-auto pr-1 text-[11px]">
+                            {listaItens.length === 0 ? (
+                              <span className="text-stone-400 italic text-[10px]">Sem carga registada</span>
+                            ) : (
+                              listaItens.map((it, i) => (
+                                <div key={i} className="flex items-center justify-between text-stone-700">
+                                  <span className="truncate mr-1">{it.nome}</span>
+                                  <span className="font-mono font-bold text-stone-900 shrink-0">
+                                    {it.qtdBase + it.qtdExtra}
+                                    {it.qtdExtra > 0 && (
+                                      <span className="text-[9px] text-blue-700 ml-0.5">(+{it.qtdExtra})</span>
+                                    )}
+                                  </span>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="mt-2 pt-1.5 border-t border-stone-200/70 text-[10px] font-bold text-blue-700 text-right">
+                          {isSelected ? '✓ Filtro Ativo' : 'Filtrar paragens →'}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Detalhe dos Clientes Empresariais B2B quando o 5º Carro ou Todas está selecionado */}
+                {(carrinhaSelecionadaId === 'todas' || carrinhaSelecionadaId === (carrinhas[4]?.id || 'b555db95-c427-4ed5-83fc-01403bd24cf5')) && (
+                  <div className="bg-indigo-50/60 border border-indigo-200 rounded-2xl p-3.5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-indigo-950 flex items-center gap-1.5">
+                        <Building2 className="h-4 w-4 text-indigo-700" />
+                        <span>Entregas B2B do 5º Carro Hoje ({clientesB2B.filter((c) => c.ativo).length} Clientes Empresariais)</span>
+                      </span>
+                      <span className="text-[10px] font-bold text-indigo-700">
+                        Configurável no painel de Gestão
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                      {clientesB2B.filter((c) => c.ativo).map((cli) => {
+                        const itensHoje = Object.entries(cli.quantidadesPorProduto)
+                          .map(([prodId, mapa]) => ({
+                            nome:
+                              COLUNAS_MAPA_DIARIO_OFICIAL.find((c) => c.produto_id === prodId)?.cabecalho ||
+                              produtos.find((p) => p.id === prodId)?.nome ||
+                              prodId,
+                            qtd: Number(mapa?.[diaSemanaHoje] || 0),
+                          }))
+                          .filter((x) => x.qtd > 0);
+                        const totalCli = itensHoje.reduce((a, b) => a + b.qtd, 0);
+
+                        return (
+                          <div key={cli.id} className="bg-white p-2.5 rounded-xl border border-indigo-100 shadow-2xs text-[11px]">
+                            <div className="flex items-center justify-between font-black text-indigo-950 mb-1">
+                              <span className="truncate">{cli.nome}</span>
+                              <span className="font-mono text-[10px] bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded">
+                                {totalCli} un.
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-stone-600 line-clamp-2">
+                              {itensHoje.map((x) => `${x.qtd}x ${x.nome}`).join(', ') || 'Sem entrega hoje'}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Painel de Controlo do Ciclo da Rota */}
@@ -667,8 +1029,8 @@ export default function EntregasPage() {
             <PackageCheck className="h-12 w-12 text-gray-400 mx-auto mb-3" />
             <h3 className="text-sm font-bold text-gray-800">{t.noDeliveriesFound}</h3>
             <p className="text-xs text-gray-500 mt-1">
-              Não existem entregas ao domicílio atribuídas a esta carrinha para hoje.
-              {encomendasPool.length > 0 && ' Atribua encomendas a partir do Pool acima.'}
+              Não existem entregas adicionais ao domicílio atribuídas a esta carrinha para hoje (a carga base fixa/B2B está listada acima).
+              {encomendasPool.length > 0 && ' Atribua encomendas adicionais a partir do Pool acima.'}
             </p>
           </div>
         ) : (
@@ -750,7 +1112,7 @@ export default function EntregasPage() {
                             enc.canal_origem === 'telefone' ? 'bg-amber-50 text-amber-800 border-amber-200' :
                             'bg-stone-100 text-stone-700 border-stone-200'
                           }`}>
-                            {enc.canal_origem === 'site_online' ? '🌐 Site' :
+                            {enc.canal_origem === 'site_online' ? '🌐 Cliente App' :
                              enc.canal_origem === 'whatsapp' ? '💬 WhatsApp' :
                              enc.canal_origem === 'telefone' ? '📞 Telefone' : '🏪 Presencial'}
                           </span>
@@ -842,11 +1204,14 @@ export default function EntregasPage() {
                       </div>
                     </div>
 
-                    {/* Registo de Hora Real se Entregue */}
-                    {jaEntregue && enc.hora_entrega_real && (
+                    {/* Registo de Data e Hora Real se Entregue */}
+                    {jaEntregue && (enc.hora_entrega_real || enc.data_entrega_real) && (
                       <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-bold flex items-center gap-2">
                         <Check className="h-4 w-4 text-emerald-600" />
-                        <span>Entregue com sucesso às {enc.hora_entrega_real} (Agendado: {enc.hora_agendamento})</span>
+                        <span>
+                          Entregue com sucesso em {enc.data_entrega_real || enc.data_agendamento}
+                          {enc.hora_entrega_real ? ` às ${enc.hora_entrega_real}` : ''} (Agendado: {enc.hora_agendamento})
+                        </span>
                       </div>
                     )}
 

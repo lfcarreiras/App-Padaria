@@ -12,7 +12,8 @@ import {
   carregarLojasSupabase, 
   carregarClientesSupabase,
   salvarClienteDb,
-  registarLogAuditoria
+  registarLogAuditoria,
+  guardarCanalOrigemLocal
 } from '../../lib/encomendasService';
 import { 
   Produto, 
@@ -68,7 +69,7 @@ export default function EncomendarClientePage() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [carregandoDados, setCarregandoDados] = useState(true);
 
-  // Cliente Autenticado na Sessão do Portal
+  // Cliente Autenticado na Sessão do Portal (Ecrã de Login Dedicado ao Cliente)
   const [clienteLogado, setClienteLogado] = useState<Cliente | null>(null);
   const [modalAuthAberto, setModalAuthAberto] = useState(false);
   const [authModo, setAuthModo] = useState<'login' | 'registo'>('login');
@@ -186,7 +187,6 @@ export default function EncomendarClientePage() {
           .order('created_at', { ascending: false });
 
         if (!error && data) {
-          // Mapear para o formato do tipo Encomenda
           const encsMapeadas: Encomenda[] = data.map((row: any) => ({
             id: row.id,
             numero_sequencial: row.numero_sequencial,
@@ -205,6 +205,8 @@ export default function EncomendarClientePage() {
             carrinha_nome: row.carrinha?.identificador,
             data_agendamento: row.data_agendamento,
             hora_agendamento: row.hora_agendamento,
+            data_entrega_real: row.data_entrega_real,
+            hora_entrega_real: row.hora_entrega_real,
             estado: row.estado,
             notas_cliente: row.notas_cliente,
             itens: (row.itens || []).map((it: any) => ({
@@ -273,10 +275,6 @@ export default function EncomendarClientePage() {
     return carrinho.reduce((acc, curr) => acc + curr.quantidade, 0);
   }, [carrinho]);
 
-  const valorTotalEstimado = useMemo(() => {
-    return carrinho.reduce((acc, curr) => acc + curr.preco * curr.quantidade, 0);
-  }, [carrinho]);
-
   // Filtro de Produtos
   const produtosFiltrados = useMemo(() => {
     return produtos.filter((p) => {
@@ -303,18 +301,15 @@ export default function EncomendarClientePage() {
     }
 
     try {
-      // 1. Verificar se o telefone já existe na Base de Dados
       let clienteEncontrado = clientes.find((c) => c.telefone.replace(/\D/g, '') === telLimpo);
 
       if (authModo === 'login') {
         if (!clienteEncontrado) {
-          // Se não encontrou, sugere registo instantâneo
           setAuthModo('registo');
-          setAuthErro('Número não encontrado. Por favor, introduza o seu nome para criar a sua conta instantânea.');
+          setAuthErro('Número não encontrado. Por favor, introduza o seu nome para criar a sua conta de cliente.');
           return;
         }
       } else {
-        // Modo Registo
         if (!clienteEncontrado) {
           const novoCli: Omit<Cliente, 'id'> = {
             nome: authNome.trim(),
@@ -326,7 +321,6 @@ export default function EncomendarClientePage() {
             clienteEncontrado = criado;
             setClientes((prev) => [criado, ...prev]);
           } else {
-            // Fallback local se estiver offline
             clienteEncontrado = {
               id: `cli-${Date.now()}`,
               nome: authNome.trim(),
@@ -335,7 +329,6 @@ export default function EncomendarClientePage() {
             };
           }
         } else {
-          // Atualiza dados se facultados
           if (authNome.trim()) clienteEncontrado.nome = authNome.trim();
           if (authMorada.trim()) clienteEncontrado.morada = authMorada.trim();
         }
@@ -367,7 +360,7 @@ export default function EncomendarClientePage() {
   const handleSubmeterEncomenda = async (e: React.FormEvent) => {
     e.preventDefault();
     if (carrinho.length === 0) {
-      alert('O seu carrinho de compras está vazio.');
+      alert('O seu carrinho de encomenda está vazio.');
       return;
     }
 
@@ -386,6 +379,20 @@ export default function EncomendarClientePage() {
     try {
       const lojaAlvo = lojas.find((l) => l.id === lojaLevantamentoId) || lojas[0] || LOJAS_MOCK[0];
 
+      // Garantir que o cliente existe na tabela de clientes
+      let clienteIdReal = clienteLogado.id.startsWith('cli-') ? null : clienteLogado.id;
+      if (!clienteIdReal) {
+        const criadoDb = await salvarClienteDb({
+          nome: clienteLogado.nome,
+          telefone: clienteLogado.telefone,
+          morada: moradaEntrega || clienteLogado.morada,
+        });
+        if (criadoDb && !criadoDb.id.startsWith('cli-')) {
+          clienteIdReal = criadoDb.id;
+          setClienteLogado(criadoDb);
+        }
+      }
+
       // Gerar número sequencial e código de encomenda oficial
       let numSeq = Math.floor(1000 + Math.random() * 9000);
       let codigoOficial = `ENC-${new Date().getFullYear()}-${numSeq}`;
@@ -403,30 +410,46 @@ export default function EncomendarClientePage() {
           codigoOficial = `ENC-${new Date().getFullYear()}-${numSeq}`;
         }
 
-        // 1. Inserir encomenda na BD com canal_origem estritamente definido como 'site_online'
-        const { data: encCriada, error: encError } = await supabase
+        const notasComCanal = `[CANAL:site_online] [Online Site] ${notasGeraisPedido.trim() || 'Pedido realizado pelo cliente no portal direto.'} • Contacto: ${clienteLogado.telefone}${tipoEntrega === 'entrega_domicilio' ? ` • Morada: ${moradaEntrega}` : ''}`;
+
+        const payloadBase: Record<string, any> = {
+          numero_sequencial: numSeq,
+          codigo: codigoOficial,
+          loja_id: tipoEntrega === 'levantamento_loja' ? lojaAlvo.id : (lojas[0]?.id || lojaAlvo.id),
+          cliente_id: clienteIdReal,
+          tipo: tipoEntrega,
+          data_agendamento: dataAgendamento,
+          hora_agendamento: horaAgendamento,
+          estado: 'pendente',
+          notas_cliente: notasComCanal,
+        };
+
+        let { data: encCriada, error: encError } = await supabase
           .from('encomendas')
           .insert({
-            numero_sequencial: numSeq,
-            codigo: codigoOficial,
-            loja_id: tipoEntrega === 'levantamento_loja' ? lojaAlvo.id : (lojas[0]?.id || lojaAlvo.id),
-            cliente_id: clienteLogado.id.startsWith('cli-') ? null : clienteLogado.id,
-            tipo: tipoEntrega,
+            ...payloadBase,
             canal_origem: 'site_online',
-            data_agendamento: dataAgendamento,
-            hora_agendamento: horaAgendamento,
-            estado: 'pendente',
-            notas_cliente: `[Online Site] ${notasGeraisPedido.trim() || 'Pedido realizado pelo cliente no portal do site.'} • Contacto: ${clienteLogado.telefone}${tipoEntrega === 'entrega_domicilio' ? ` • Morada: ${moradaEntrega}` : ''}`,
           })
           .select()
           .single();
+
+        if (encError && encError.message.includes('canal_origem')) {
+          const retry = await supabase
+            .from('encomendas')
+            .insert(payloadBase)
+            .select()
+            .single();
+          encCriada = retry.data;
+          encError = retry.error;
+        }
 
         if (encError) {
           throw new Error(encError.message);
         }
 
-        // 2. Inserir itens da encomenda
         if (encCriada) {
+          guardarCanalOrigemLocal(encCriada.id, 'site_online');
+
           const itensDb = carrinho.map((it) => ({
             encomenda_id: encCriada.id,
             produto_id: it.produtoId.startsWith('prod-') ? null : it.produtoId,
@@ -439,7 +462,6 @@ export default function EncomendarClientePage() {
 
           await supabase.from('itens_encomenda').insert(itensDb);
 
-          // Registar Log de Auditoria
           await registarLogAuditoria({
             encomenda_id: encCriada.id,
             codigo_encomenda: codigoOficial,
@@ -451,7 +473,7 @@ export default function EncomendarClientePage() {
             loja_nome: lojaAlvo.nome,
             painel: 'encomendas',
             acao: 'Novo Pedido Online (Site)',
-            detalhes: `Encomenda submetida pelo cliente através da landing page / loja online. Modalidade: ${tipoEntrega === 'entrega_domicilio' ? 'Entrega ao Domicílio' : `Levantamento em ${lojaAlvo.nome}`}. Canal: site_online.`,
+            detalhes: `Encomenda submetida pelo cliente através da App de Pedidos Diretos. Modalidade: ${tipoEntrega === 'entrega_domicilio' ? 'Entrega ao Domicílio' : `Levantamento em ${lojaAlvo.nome}`}. Canal: site_online.`,
           });
         }
       }
@@ -467,7 +489,6 @@ export default function EncomendarClientePage() {
         totalItens: totalArtigosCarrinho,
       });
 
-      // Limpar carrinho e avançar para confirmação
       setCarrinho([]);
       setVistaAtiva('catalogo');
     } catch (err: any) {
@@ -476,6 +497,141 @@ export default function EncomendarClientePage() {
       setASubmeter(false);
     }
   };
+
+  // ECRÃ DE LOGIN DEDICADO AO CLIENTE (Separado do login da equipa)
+  if (!clienteLogado) {
+    return (
+      <div className="min-h-screen flex flex-col justify-between bg-gradient-to-br from-stone-900 via-stone-950 to-amber-950 text-white p-4">
+        <div className="flex-1 flex items-center justify-center py-8">
+          <div className="max-w-md w-full bg-white text-stone-900 rounded-3xl shadow-2xl border border-amber-200/40 p-6 sm:p-8 space-y-6">
+            <div className="text-center space-y-2">
+              <img
+                src="/logo-padaria.jpg"
+                alt="Padaria da Vila"
+                className="h-16 w-16 rounded-2xl object-cover mx-auto border-2 border-amber-400 shadow-md"
+              />
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-black uppercase tracking-wider">
+                Área Exclusiva de Clientes
+              </span>
+              <h1 className="text-xl font-black text-stone-900">
+                {configMarca.nomeEmpresa || 'Padaria da Vila'}
+              </h1>
+              <p className="text-xs text-stone-500">
+                Faça as suas encomendas diretas e acompanhe o estado do seu pedido em tempo real (Encomendado, Em Produção, Em Distribuição ou Entregue).
+              </p>
+            </div>
+
+            {/* Alternador Entrar / Registar */}
+            <div className="grid grid-cols-2 gap-1.5 bg-stone-100 p-1 rounded-2xl text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthModo('login');
+                  setAuthErro('');
+                }}
+                className={`py-2 rounded-xl transition cursor-pointer ${
+                  authModo === 'login' ? 'bg-amber-600 text-white shadow-xs' : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                Já sou Cliente
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthModo('registo');
+                  setAuthErro('');
+                }}
+                className={`py-2 rounded-xl transition cursor-pointer ${
+                  authModo === 'registo' ? 'bg-amber-600 text-white shadow-xs' : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                Novo Registo
+              </button>
+            </div>
+
+            {authErro && (
+              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-semibold flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-red-600 shrink-0" />
+                <span>{authErro}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleLoginOuRegisto} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-stone-700 mb-1">
+                  Número de Telemóvel *
+                </label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-2.5 h-4 w-4 text-stone-400" />
+                  <input
+                    type="tel"
+                    required
+                    value={authTelefone}
+                    onChange={(e) => setAuthTelefone(e.target.value)}
+                    placeholder="912 345 678"
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-stone-300 font-mono text-xs focus:outline-hidden focus:border-amber-600"
+                  />
+                </div>
+              </div>
+
+              {authModo === 'registo' && (
+                <>
+                  <div>
+                    <label className="block font-bold text-stone-700 mb-1">
+                      Nome Completo *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={authNome}
+                      onChange={(e) => setAuthNome(e.target.value)}
+                      placeholder="Ex: Maria Ferreira"
+                      className="w-full px-3 py-2.5 rounded-xl border border-stone-300 text-xs focus:outline-hidden focus:border-amber-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-stone-700 mb-1">
+                      Morada Habitual em Arouca (opcional)
+                    </label>
+                    <input
+                      type="text"
+                      value={authMorada}
+                      onChange={(e) => setAuthMorada(e.target.value)}
+                      placeholder="Rua, número, freguesia..."
+                      className="w-full px-3 py-2.5 rounded-xl border border-stone-300 text-xs focus:outline-hidden focus:border-amber-600"
+                    />
+                  </div>
+                </>
+              )}
+
+              <button
+                type="submit"
+                className="w-full py-3 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs uppercase tracking-wider shadow-md transition cursor-pointer flex items-center justify-center gap-2"
+              >
+                <LogIn className="h-4 w-4" />
+                <span>{authModo === 'login' ? 'Aceder à Minha Área de Encomendas' : 'Criar Conta & Começar a Encomendar'}</span>
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {/* Rodapé com Badge Oficial Inprooval */}
+        <footer className="py-4 text-center space-y-2">
+          <div className="flex justify-center">
+            <img
+              src="/badge_powered_by_white.svg"
+              alt="Powered by Inprooval"
+              className="h-7 w-auto opacity-90 hover:opacity-100 transition"
+            />
+          </div>
+          <p className="text-[11px] text-stone-400">
+            © {new Date().getFullYear()} {configMarca.nomeEmpresa || 'Padaria da Vila'} — Portal Direto de Clientes
+          </p>
+        </footer>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-stone-50 font-sans selection:bg-amber-100 selection:text-amber-900">
@@ -720,8 +876,8 @@ export default function EncomendarClientePage() {
                           <span className="text-3xl">
                             {prod.categoria === 'pastelaria' ? '🎂' : '🥖'}
                           </span>
-                          <span className="text-xs font-black text-amber-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg">
-                            {prod.preco ? `${prod.preco.toFixed(2)} €` : '1.20 €'}
+                          <span className="text-[10px] font-black text-amber-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg uppercase">
+                            {prod.unidade || 'un.'}
                           </span>
                         </div>
 
@@ -761,7 +917,7 @@ export default function EncomendarClientePage() {
                           className="w-full py-1.5 px-3 rounded-xl bg-stone-100 hover:bg-amber-600 hover:text-white text-stone-800 text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer"
                         >
                           <Plus className="h-3.5 w-3.5" />
-                          <span>Adicionar</span>
+                          <span>Encomendar</span>
                         </button>
                       )}
                     </div>
@@ -776,10 +932,10 @@ export default function EncomendarClientePage() {
                 <div className="bg-stone-900 text-white p-3.5 rounded-2xl shadow-2xl border border-stone-800 flex items-center justify-between gap-3 animate-slide-up">
                   <div>
                     <span className="text-xs font-bold text-stone-300 block">
-                      {totalArtigosCarrinho} {totalArtigosCarrinho === 1 ? 'artigo selecionado' : 'artigos selecionados'}
+                      Quantidade Total a Encomendar
                     </span>
                     <span className="text-sm font-black text-amber-400">
-                      Total Estimado: {valorTotalEstimado.toFixed(2)} €
+                      {totalArtigosCarrinho} {totalArtigosCarrinho === 1 ? 'unidade selecionada' : 'unidades selecionadas'}
                     </span>
                   </div>
 
@@ -811,7 +967,7 @@ export default function EncomendarClientePage() {
               </button>
 
               <h2 className="text-base font-black text-stone-900">
-                Finalizar Encomenda Online
+                Finalizar Encomenda Direta
               </h2>
             </div>
 
@@ -950,40 +1106,22 @@ export default function EncomendarClientePage() {
                       2. Identificação do Cliente
                     </label>
 
-                    {clienteLogado ? (
-                      <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200 flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-black text-stone-900">{clienteLogado.nome}</p>
-                          <p className="text-[11px] text-stone-500">{clienteLogado.telefone}</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAuthModo('registo');
-                            setModalAuthAberto(true);
-                          }}
-                          className="text-xs text-amber-700 font-bold hover:underline"
-                        >
-                          Alterar Dados
-                        </button>
+                    <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200 flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-black text-stone-900">{clienteLogado.nome}</p>
+                        <p className="text-[11px] text-stone-500">{clienteLogado.telefone}</p>
                       </div>
-                    ) : (
-                      <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 space-y-2 text-center">
-                        <p className="text-xs font-bold text-amber-950">
-                          Identifique-se para confirmar a sua encomenda
-                        </p>
-                        <p className="text-[11px] text-amber-800">
-                          Pode entrar com o seu telemóvel ou criar um registo instantâneo em 10 segundos.
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => setModalAuthAberto(true)}
-                          className="px-4 py-2 rounded-xl bg-amber-600 text-white font-bold text-xs shadow-xs hover:bg-amber-700 transition"
-                        >
-                          Entrar / Registar Conta
-                        </button>
-                      </div>
-                    )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAuthModo('registo');
+                          setModalAuthAberto(true);
+                        }}
+                        className="text-xs text-amber-700 font-bold hover:underline"
+                      >
+                        Alterar Dados
+                      </button>
+                    </div>
                   </div>
 
                   {/* Botão Final de Submissão */}
@@ -992,19 +1130,19 @@ export default function EncomendarClientePage() {
                     disabled={aSubmeter || carrinho.length === 0}
                     className="w-full py-3.5 px-4 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-black text-sm uppercase tracking-wider shadow-md hover:shadow-lg transition cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    <span>{aSubmeter ? 'A registar encomenda...' : 'Confirmar Encomenda Online'}</span>
+                    <span>{aSubmeter ? 'A registar encomenda...' : 'Confirmar Quantidades & Encomendar'}</span>
                     <Check className="h-4 w-4" />
                   </button>
                 </form>
               </div>
 
-              {/* Coluna Direita: Resumo do Carrinho & Artigos */}
+              {/* Coluna Direita: Resumo das Quantidades a Encomendar (Sem Preços) */}
               <div className="lg:col-span-5 space-y-4">
                 <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-xs space-y-4">
                   <div className="flex items-center justify-between border-b pb-3">
                     <h3 className="text-xs font-black uppercase tracking-wider text-stone-800 flex items-center gap-1.5">
                       <ShoppingBag className="h-4 w-4 text-amber-600" />
-                      <span>Resumo do Pedido ({totalArtigosCarrinho} un.)</span>
+                      <span>Quantidades a Encomendar ({totalArtigosCarrinho} un.)</span>
                     </h3>
                     <button
                       type="button"
@@ -1028,8 +1166,8 @@ export default function EncomendarClientePage() {
                               <span>{item.emoji}</span>
                               <span>{item.nome}</span>
                             </span>
-                            <span className="font-mono text-amber-800 font-black">
-                              {(item.preco * item.quantidade).toFixed(2)} €
+                            <span className="font-mono text-amber-900 bg-amber-100 px-2 py-0.5 rounded-lg font-black">
+                              {item.quantidade} un.
                             </span>
                           </div>
 
@@ -1056,7 +1194,7 @@ export default function EncomendarClientePage() {
                               type="text"
                               value={item.notas}
                               onChange={(e) => atualizarNotasItem(item.id, e.target.value)}
-                              placeholder="Personalização (ex: frase no bolo)"
+                              placeholder="Personalização (ex: fatiado, frase no bolo)"
                               className="text-[11px] px-2 py-1 bg-white border border-stone-200 rounded-lg flex-1 focus:outline-hidden"
                             />
                           </div>
@@ -1065,18 +1203,14 @@ export default function EncomendarClientePage() {
                     </div>
                   )}
 
-                  {/* Totais */}
+                  {/* Resumo de Quantidades */}
                   <div className="pt-3 border-t border-stone-100 space-y-1.5">
-                    <div className="flex justify-between text-xs text-stone-600 font-semibold">
-                      <span>Total de Artigos:</span>
-                      <span className="font-bold text-stone-900">{totalArtigosCarrinho} un.</span>
-                    </div>
-                    <div className="flex justify-between text-sm font-black text-stone-900 pt-1">
-                      <span>Valor Total Estimado:</span>
-                      <span className="text-lg text-amber-700">{valorTotalEstimado.toFixed(2)} €</span>
+                    <div className="flex justify-between text-sm font-black text-stone-900">
+                      <span>Total de Unidades a Encomendar:</span>
+                      <span className="text-base text-amber-700 font-mono">{totalArtigosCarrinho} un.</span>
                     </div>
                     <p className="text-[10px] text-stone-400">
-                      O pagamento é efetuado no momento do levantamento em loja ou na entrega ao domicílio.
+                      Pode acompanhar o estado da sua encomenda (Encomendado, Em Produção, Em Distribuição ou Entregue) no menu «As Minhas Encomendas».
                     </p>
                   </div>
                 </div>
@@ -1100,25 +1234,11 @@ export default function EncomendarClientePage() {
 
               <h2 className="text-base font-black text-stone-900 flex items-center gap-2">
                 <Package className="h-5 w-5 text-amber-600" />
-                <span>As Minhas Encomendas</span>
+                <span>As Minhas Encomendas — Estado em Tempo Real</span>
               </h2>
             </div>
 
-            {!clienteLogado ? (
-              <div className="bg-white rounded-3xl p-12 text-center border border-stone-200 space-y-3">
-                <User className="h-10 w-10 text-stone-300 mx-auto" />
-                <h3 className="text-sm font-bold text-stone-800">
-                  Inicie sessão para ver o histórico das suas encomendas
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setModalAuthAberto(true)}
-                  className="px-4 py-2 rounded-xl bg-amber-600 text-white font-bold text-xs shadow-xs hover:bg-amber-700 transition"
-                >
-                  Entrar com Número de Telemóvel
-                </button>
-              </div>
-            ) : carregandoMinhasEnc ? (
+            {carregandoMinhasEnc ? (
               <div className="py-12 text-center text-xs font-bold text-stone-400">
                 A carregar as suas encomendas...
               </div>
@@ -1129,7 +1249,7 @@ export default function EncomendarClientePage() {
                   Ainda não tem encomendas registadas
                 </h3>
                 <p className="text-xs text-stone-500">
-                  Explore a nossa montra de pães e bolos artesanais e faça o seu primeiro pedido online!
+                  Explore a nossa montra de pães e pastelaria artesanal e faça o seu primeiro pedido!
                 </p>
                 <button
                   type="button"
@@ -1142,11 +1262,16 @@ export default function EncomendarClientePage() {
             ) : (
               <div className="space-y-4">
                 {minhasEncomendas.map((enc) => {
-                  // Estado visual amigável para o cliente
-                  const etapa = 
-                    enc.estado === 'pendente' ? 1 :
-                    enc.estado === 'em_producao' ? 2 :
-                    enc.estado === 'pronto_loja' || enc.estado === 'em_rota' ? 3 : 4;
+                  // 4 Estados Oficiais: 1. Encomendado | 2. Em Produção | 3. Em Distribuição | 4. Entregue
+                  const estStr = String(enc.estado);
+                  const etapa =
+                    estStr === 'pendente'
+                      ? 1
+                      : estStr === 'em_preparacao' || estStr === 'em_producao'
+                      ? 2
+                      : estStr === 'pronto' || estStr === 'pronto_loja' || estStr === 'em_rota'
+                      ? 3
+                      : 4;
 
                   return (
                     <div
@@ -1169,39 +1294,47 @@ export default function EncomendarClientePage() {
                           </div>
                           <p className="text-xs text-stone-500 mt-1">
                             Agendado para <strong>{enc.data_agendamento} às {enc.hora_agendamento}</strong>
+                            {enc.hora_entrega_real && (
+                              <span className="ml-2 text-emerald-700 font-bold">
+                                • Entregue em {enc.data_entrega_real || enc.data_agendamento} às {enc.hora_entrega_real}
+                              </span>
+                            )}
                           </p>
                         </div>
 
                         <span className={`self-start sm:self-auto text-xs font-black px-3 py-1 rounded-xl uppercase tracking-wider ${
-                          enc.estado === 'entregue'
+                          etapa === 4
                             ? 'bg-emerald-100 text-emerald-900'
-                            : enc.estado === 'pronto_loja' || enc.estado === 'em_rota'
-                            ? 'bg-amber-100 text-amber-900 animate-pulse'
-                            : enc.estado === 'em_producao'
-                            ? 'bg-orange-100 text-orange-900'
+                            : etapa === 3
+                            ? 'bg-blue-100 text-blue-900 animate-pulse'
+                            : etapa === 2
+                            ? 'bg-amber-100 text-amber-900'
                             : 'bg-stone-100 text-stone-800'
                         }`}>
-                          {enc.estado === 'entregue' ? '✅ Concluído' :
-                           enc.estado === 'pronto_loja' ? '📦 Pronto para Levantamento' :
-                           enc.estado === 'em_rota' ? '🚚 Em Entrega com Motorista' :
-                           enc.estado === 'em_producao' ? '👨‍🍳 Em Confeção / Forno' : '📝 Pedido Recebido'}
+                          {etapa === 4
+                            ? '✅ Entregue'
+                            : etapa === 3
+                            ? '🚚 Em Distribuição'
+                            : etapa === 2
+                            ? '👨‍🍳 Em Produção'
+                            : '📝 Encomendado'}
                         </span>
                       </div>
 
-                      {/* Barra de Progresso Visual de 4 Etapas */}
+                      {/* Barra de Progresso Visual de 4 Etapas Oficiais */}
                       <div className="bg-stone-50 p-3.5 rounded-2xl border border-stone-200">
                         <div className="grid grid-cols-4 gap-2 text-center">
                           <div className={`space-y-1 ${etapa >= 1 ? 'text-amber-700 font-bold' : 'text-stone-400'}`}>
                             <div className={`h-2 rounded-full ${etapa >= 1 ? 'bg-amber-600' : 'bg-stone-200'}`} />
-                            <span className="text-[10px] block">1. Recebido</span>
+                            <span className="text-[10px] block">1. Encomendado</span>
                           </div>
                           <div className={`space-y-1 ${etapa >= 2 ? 'text-amber-700 font-bold' : 'text-stone-400'}`}>
                             <div className={`h-2 rounded-full ${etapa >= 2 ? 'bg-amber-600' : 'bg-stone-200'}`} />
-                            <span className="text-[10px] block">2. No Forno</span>
+                            <span className="text-[10px] block">2. Em Produção</span>
                           </div>
-                          <div className={`space-y-1 ${etapa >= 3 ? 'text-amber-700 font-bold' : 'text-stone-400'}`}>
-                            <div className={`h-2 rounded-full ${etapa >= 3 ? 'bg-amber-600' : 'bg-stone-200'}`} />
-                            <span className="text-[10px] block">3. Pronto / Rota</span>
+                          <div className={`space-y-1 ${etapa >= 3 ? 'text-blue-700 font-bold' : 'text-stone-400'}`}>
+                            <div className={`h-2 rounded-full ${etapa >= 3 ? 'bg-blue-600' : 'bg-stone-200'}`} />
+                            <span className="text-[10px] block">3. Em Distribuição</span>
                           </div>
                           <div className={`space-y-1 ${etapa >= 4 ? 'text-emerald-700 font-bold' : 'text-stone-400'}`}>
                             <div className={`h-2 rounded-full ${etapa >= 4 ? 'bg-emerald-600' : 'bg-stone-200'}`} />
@@ -1210,9 +1343,11 @@ export default function EncomendarClientePage() {
                         </div>
                       </div>
 
-                      {/* Artigos da Encomenda */}
+                      {/* Artigos e Quantidades da Encomenda (Sem Preços) */}
                       <div className="space-y-1 text-xs">
-                        <span className="font-bold text-stone-700 uppercase text-[10px] tracking-wider block">Artigos:</span>
+                        <span className="font-bold text-stone-700 uppercase text-[10px] tracking-wider block">
+                          Quantidades Encomendadas:
+                        </span>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                           {enc.itens.map((it) => (
                             <div key={it.id} className="p-2 rounded-xl bg-stone-50 flex items-center justify-between text-stone-800">
@@ -1246,17 +1381,17 @@ export default function EncomendarClientePage() {
         )}
       </main>
 
-      {/* ---------------- MODAL DE AUTENTICAÇÃO / REGISTO RÁPIDO ---------------- */}
+      {/* ---------------- MODAL DE EDIÇÃO DE DADOS DO CLIENTE ---------------- */}
       {modalAuthAberto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-stone-200 space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
               <div>
                 <h3 className="text-base font-black text-stone-900">
-                  {authModo === 'login' ? 'Entrar no Portal' : 'Criar Perfil de Cliente'}
+                  Atualizar Dados de Cliente
                 </h3>
                 <p className="text-xs text-stone-500">
-                  {authModo === 'login' ? 'Introduza o seu número de telemóvel' : 'Preencha os seus dados de contacto'}
+                  Preencha os seus dados de contacto e morada
                 </p>
               </div>
               <button
@@ -1293,62 +1428,45 @@ export default function EncomendarClientePage() {
                 </div>
               </div>
 
-              {authModo === 'registo' && (
-                <>
-                  <div>
-                    <label className="block font-bold text-stone-700 mb-1">
-                      Nome Completo *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={authNome}
-                      onChange={(e) => setAuthNome(e.target.value)}
-                      placeholder="Manuel Silva"
-                      className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs focus:outline-hidden"
-                    />
-                  </div>
+              <div>
+                <label className="block font-bold text-stone-700 mb-1">
+                  Nome Completo *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={authNome}
+                  onChange={(e) => setAuthNome(e.target.value)}
+                  placeholder="Manuel Silva"
+                  className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs focus:outline-hidden"
+                />
+              </div>
 
-                  <div>
-                    <label className="block font-bold text-stone-700 mb-1">
-                      Morada Principal (opcional)
-                    </label>
-                    <input
-                      type="text"
-                      value={authMorada}
-                      onChange={(e) => setAuthMorada(e.target.value)}
-                      placeholder="Rua, número, andar, freguesia em Arouca"
-                      className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs focus:outline-hidden"
-                    />
-                  </div>
-                </>
-              )}
+              <div>
+                <label className="block font-bold text-stone-700 mb-1">
+                  Morada Principal (opcional)
+                </label>
+                <input
+                  type="text"
+                  value={authMorada}
+                  onChange={(e) => setAuthMorada(e.target.value)}
+                  placeholder="Rua, número, andar, freguesia em Arouca"
+                  className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs focus:outline-hidden"
+                />
+              </div>
 
               <button
                 type="submit"
                 className="w-full py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs uppercase tracking-wider shadow-xs transition cursor-pointer"
               >
-                {authModo === 'login' ? 'Continuar' : 'Criar Perfil & Entrar'}
+                Guardar Dados
               </button>
-
-              <div className="text-center pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthModo(authModo === 'login' ? 'registo' : 'login');
-                    setAuthErro('');
-                  }}
-                  className="text-xs text-amber-700 font-bold hover:underline"
-                >
-                  {authModo === 'login' ? 'Não tem conta? Crie o seu perfil aqui' : 'Já tem conta? Clique para entrar com telemóvel'}
-                </button>
-              </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* ---------------- RODAPÉ DO CLIENTE ---------------- */}
+      {/* ---------------- RODAPÉ DO CLIENTE COM BADGE INPROOVAL ---------------- */}
       <footer className="bg-stone-900 text-white py-6 border-t border-stone-800 text-xs">
         <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -1362,12 +1480,12 @@ export default function EncomendarClientePage() {
             </span>
           </div>
 
-          <div className="flex items-center gap-4 text-stone-400 text-[11px]">
-            <span>Padaria & Pastelaria Artesanal</span>
-            <span>•</span>
-            <Link href="/login" className="hover:text-amber-400 transition">
-              Acesso Operacional Equipa
-            </Link>
+          <div className="flex items-center gap-4">
+            <img
+              src="/badge_powered_by_white.svg"
+              alt="Powered by Inprooval"
+              className="h-6 w-auto opacity-90 hover:opacity-100 transition"
+            />
           </div>
         </div>
       </footer>

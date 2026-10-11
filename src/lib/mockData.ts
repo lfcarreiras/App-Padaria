@@ -1,4 +1,4 @@
-import { Loja, Carrinha, Produto, Encomenda, LogAuditoria } from '../types';
+import { Loja, Carrinha, Produto, Encomenda, LogAuditoria, BaseFixaCarrinha, ClienteEmpresarialB2B, DiaSemana } from '../types';
 
 export const LOJAS_MOCK: Loja[] = [
   {
@@ -24,7 +24,7 @@ export const LOJAS_MOCK: Loja[] = [
   {
     "id": "4d475863-af72-4349-bd4a-66eb7a90304b",
     "codigo": "LOJA-3",
-    "nome": "Padaria da Vila III",
+    "nome": "Padaria da Vila III (Loja Carocha)",
     "morada": "Arouca (Ponto de Venda)",
     "telefone": "210000003",
     "nif": "500100203",
@@ -37,7 +37,7 @@ export const CARRINHAS_MOCK: Carrinha[] = [
   {
     "id": "1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75",
     "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
-    "identificador": "Carrinha 1 (Fabrico Central)",
+    "identificador": "1º Carro (Carrinha 1 - Particulares)",
     "matricula": "42-AB-89",
     "motorista_id": null,
     "ativo": true,
@@ -46,7 +46,7 @@ export const CARRINHAS_MOCK: Carrinha[] = [
   {
     "id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
     "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
-    "identificador": "Carrinha 2 (Fabrico Central)",
+    "identificador": "2º Carro (Carrinha 2 - Particulares)",
     "matricula": "77-ZX-12",
     "motorista_id": null,
     "ativo": true,
@@ -55,7 +55,7 @@ export const CARRINHAS_MOCK: Carrinha[] = [
   {
     "id": "e062fea7-97da-4b2a-8607-da6a9ea8e668",
     "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
-    "identificador": "Carrinha 3 (Fabrico Central)",
+    "identificador": "3º Carro (Carrinha 3 - Particulares)",
     "matricula": "15-TR-33",
     "motorista_id": null,
     "ativo": true,
@@ -64,11 +64,321 @@ export const CARRINHAS_MOCK: Carrinha[] = [
   {
     "id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
     "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
-    "identificador": "Carrinha 4 - Estação",
+    "identificador": "4º Carro (Carrinha 4 - Particulares)",
     "matricula": "90-KL-55",
     "motorista_id": null,
     "ativo": true,
     "criado_em": "2026-09-12T15:48:41.304463+00:00"
+  },
+  {
+    "id": "b555db95-c427-4ed5-83fc-01403bd24cf5",
+    "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
+    "identificador": "5º Carro (Carrinha 5 - Clientes Empresariais)",
+    "matricula": "55-EM-26",
+    "motorista_id": null,
+    "ativo": true,
+    "criado_em": "2026-10-10T10:30:00.000000+00:00"
+  }
+];
+
+export const COLUNAS_MAPA_DIARIO_OFICIAL: string[] = [
+  'Pães',
+  'Pães Leite',
+  'Miniaturas',
+  'Tosta',
+  'Triga Milha',
+  'Boroa',
+  'Pão de Forma G',
+  'Pão de Forma P',
+  'Canilhas',
+  'P. cachorros',
+  'padas',
+  'carcacas',
+  'CACETES',
+  'bela br G',
+  'bela br P',
+  'R.doce GR',
+  'R.doce P',
+  'R. Coco',
+  'Meia Lua',
+  'R CANELA',
+  'PASTEIS',
+  'Lanches',
+  'Merendas',
+  'Pão Saloio',
+  'Sete graos',
+  'Alfarroba',
+  'SEMENTES',
+  'Pão Centeio',
+  'ITALIANO'
+];
+
+export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
+  {
+    carrinha_id: '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75', // 1º Carro
+    quantidades_por_produto: {
+      'Pães': 700,
+      'Pães Leite': 20,
+      'Miniaturas': 140,
+      'Tosta': 1,
+      'Triga Milha': 6,
+      'Boroa': 9,
+      'Pão de Forma G': 0,
+      'Pão de Forma P': 6,
+      'Canilhas': 2,
+      'P. cachorros': 0,
+      'padas': 0,
+      'carcacas': 50,
+      'CACETES': 34,
+      'bela br G': 0,
+      'bela br P': 1,
+      'R.doce GR': 0,
+      'R.doce P': 5,
+      'R. Coco': 0,
+      'Meia Lua': 5,
+      'R CANELA': 5,
+      'PASTEIS': 0,
+      'Lanches': 0,
+      'Merendas': 0,
+      'Pão Saloio': 6,
+      'Sete graos': 20,
+      'Alfarroba': 0,
+      'SEMENTES': 0,
+      'Pão Centeio': 26,
+      'ITALIANO': 0
+    }
+  },
+  {
+    carrinha_id: '5ebae97d-593f-4f54-81c5-b200dd04258b', // 2º Carro
+    quantidades_por_produto: {
+      'Pães': 620,
+      'Pães Leite': 15,
+      'Miniaturas': 75,
+      'Tosta': 0,
+      'Triga Milha': 6,
+      'Boroa': 5,
+      'Pão de Forma G': 1,
+      'Pão de Forma P': 7,
+      'Canilhas': 0,
+      'P. cachorros': 0,
+      'padas': 0,
+      'carcacas': 30,
+      'CACETES': 29,
+      'bela br G': 0,
+      'bela br P': 5,
+      'R.doce GR': 0,
+      'R.doce P': 6,
+      'R. Coco': 0,
+      'Meia Lua': 7,
+      'R CANELA': 3,
+      'PASTEIS': 0,
+      'Lanches': 0,
+      'Merendas': 0,
+      'Pão Saloio': 6,
+      'Sete graos': 15,
+      'Alfarroba': 20,
+      'SEMENTES': 0,
+      'Pão Centeio': 18,
+      'ITALIANO': 0
+    }
+  },
+  {
+    carrinha_id: 'e062fea7-97da-4b2a-8607-da6a9ea8e668', // 3º Carro
+    quantidades_por_produto: {
+      'Pães': 560,
+      'Pães Leite': 20,
+      'Miniaturas': 65,
+      'Tosta': 0,
+      'Triga Milha': 4,
+      'Boroa': 5,
+      'Pão de Forma G': 0,
+      'Pão de Forma P': 3,
+      'Canilhas': 0,
+      'P. cachorros': 0,
+      'padas': 0,
+      'carcacas': 25,
+      'CACETES': 23,
+      'bela br G': 1,
+      'bela br P': 4,
+      'R.doce GR': 0,
+      'R.doce P': 4,
+      'R. Coco': 0,
+      'Meia Lua': 2,
+      'R CANELA': 2,
+      'PASTEIS': 0,
+      'Lanches': 0,
+      'Merendas': 0,
+      'Pão Saloio': 4,
+      'Sete graos': 20,
+      'Alfarroba': 0,
+      'SEMENTES': 0,
+      'Pão Centeio': 8,
+      'ITALIANO': 0
+    }
+  },
+  {
+    carrinha_id: 'a282db95-c427-4ed5-83fc-01403bd24cfc', // 4º Carro
+    quantidades_por_produto: {
+      'Pães': 550,
+      'Pães Leite': 15,
+      'Miniaturas': 60,
+      'Tosta': 0,
+      'Triga Milha': 3,
+      'Boroa': 5,
+      'Pão de Forma G': 1,
+      'Pão de Forma P': 4,
+      'Canilhas': 3,
+      'P. cachorros': 0,
+      'padas': 0,
+      'carcacas': 25,
+      'CACETES': 20,
+      'bela br G': 0,
+      'bela br P': 3,
+      'R.doce GR': 0,
+      'R.doce P': 2,
+      'R. Coco': 0,
+      'Meia Lua': 5,
+      'R CANELA': 4,
+      'PASTEIS': 0,
+      'Lanches': 0,
+      'Merendas': 0,
+      'Pão Saloio': 6,
+      'Sete graos': 15,
+      'Alfarroba': 15,
+      'SEMENTES': 0,
+      'Pão Centeio': 15,
+      'ITALIANO': 0
+    }
+  }
+];
+
+const criarSemanaPadrao = (base: Record<string, number>): Record<DiaSemana, Record<string, number>> => ({
+  seg: { ...base },
+  ter: { ...base },
+  qua: { ...base },
+  qui: { ...base },
+  sex: { ...base },
+  sab: { ...base },
+  dom: { ...base },
+});
+
+export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
+  {
+    id: 'b2b-gamarao',
+    nome: 'Gamarão',
+    telefone: '256940001',
+    morada: 'Gamarão, Arouca',
+    carrinha_id: 'b555db95-c427-4ed5-83fc-01403bd24cf5',
+    ativo: true,
+    quantidades_semanais: criarSemanaPadrao({ 'Pães': 25, 'Miniaturas': 5, 'carcacas': 10 })
+  },
+  {
+    id: 'b2b-patronato',
+    nome: 'Patronato',
+    telefone: '256940002',
+    morada: 'Arouca',
+    carrinha_id: 'b555db95-c427-4ed5-83fc-01403bd24cf5',
+    ativo: true,
+    quantidades_semanais: criarSemanaPadrao({ 'Pães': 80, 'Pães Leite': 30, 'carcacas': 40, 'Pão de Forma G': 4 })
+  },
+  {
+    id: 'b2b-ptelhe',
+    nome: 'P.-Telhe',
+    telefone: '256940003',
+    morada: 'Ponte de Telhe, Arouca',
+    carrinha_id: 'b555db95-c427-4ed5-83fc-01403bd24cf5',
+    ativo: true,
+    quantidades_semanais: criarSemanaPadrao({ 'Pães': 45, 'Miniaturas': 10, 'CACETES': 6 })
+  },
+  {
+    id: 'b2b-lar3idade',
+    nome: 'Lar 3ª Idade',
+    telefone: '256940004',
+    morada: 'Santa Casa / Lar 3ª Idade, Arouca',
+    carrinha_id: 'b555db95-c427-4ed5-83fc-01403bd24cf5',
+    ativo: true,
+    quantidades_semanais: criarSemanaPadrao({ 'Pães': 120, 'carcacas': 60, 'Pão de Forma G': 6, 'Pão Centeio': 10 })
+  },
+  {
+    id: 'b2b-hospital',
+    nome: 'Hospital',
+    telefone: '256940005',
+    morada: 'Hospital de Arouca',
+    carrinha_id: 'b555db95-c427-4ed5-83fc-01403bd24cf5',
+    ativo: true,
+    quantidades_semanais: criarSemanaPadrao({ 'Pães': 90, 'carcacas': 50, 'Pão de Forma G': 5, 'Sete graos': 15 })
+  },
+  {
+    id: 'b2b-urro',
+    nome: 'Centro D. Urrô',
+    telefone: '256940006',
+    morada: 'Urrô, Arouca',
+    carrinha_id: 'b555db95-c427-4ed5-83fc-01403bd24cf5',
+    ativo: true,
+    quantidades_semanais: criarSemanaPadrao({ 'Pães': 60, 'Pães Leite': 20, 'carcacas': 30 })
+  },
+  {
+    id: 'b2b-larinfancia',
+    nome: 'Lar Infan. E Juventude',
+    telefone: '256940007',
+    morada: 'Arouca',
+    carrinha_id: 'b555db95-c427-4ed5-83fc-01403bd24cf5',
+    ativo: true,
+    quantidades_semanais: criarSemanaPadrao({ 'Pães': 50, 'Pães Leite': 25, 'Lanches': 15 })
+  },
+  {
+    id: 'b2b-burgo',
+    nome: 'Centro Social Burgo',
+    telefone: '256940008',
+    morada: 'Burgo, Arouca',
+    carrinha_id: 'b555db95-c427-4ed5-83fc-01403bd24cf5',
+    ativo: true,
+    quantidades_semanais: criarSemanaPadrao({ 'Pães': 70, 'carcacas': 35, 'Boroa': 2 })
+  },
+  {
+    id: 'b2b-cavadinha',
+    nome: 'Cavadinha',
+    telefone: '256940009',
+    morada: 'Cavadinha, Arouca',
+    carrinha_id: 'b555db95-c427-4ed5-83fc-01403bd24cf5',
+    ativo: true,
+    quantidades_semanais: criarSemanaPadrao({ 'Pães': 35, 'Miniaturas': 15, 'CACETES': 5 })
+  },
+  {
+    id: 'b2b-mercribeiro',
+    nome: 'Merc. Ribeiro',
+    telefone: '256940010',
+    morada: 'Mercearia Ribeiro, Arouca',
+    carrinha_id: 'b555db95-c427-4ed5-83fc-01403bd24cf5',
+    ativo: true,
+    quantidades_semanais: criarSemanaPadrao({ 'Pães': 100, 'Boroa': 6, 'Triga Milha': 4, 'CACETES': 15, 'Pão Centeio': 10 })
+  },
+  {
+    id: 'b2b-cafepraca',
+    nome: 'Café Praça',
+    telefone: '256940011',
+    morada: 'Praça Brandão de Vasconcelos, Arouca',
+    carrinha_id: 'b555db95-c427-4ed5-83fc-01403bd24cf5',
+    ativo: true,
+    quantidades_semanais: criarSemanaPadrao({ 'Pães': 60, 'carcacas': 40, 'Tosta': 4, 'PASTEIS': 24, 'Lanches': 12 })
+  },
+  {
+    id: 'b2b-padariavila',
+    nome: 'Padaria da Vila',
+    telefone: '256940012',
+    morada: 'Abastecimento Lojas Padaria da Vila',
+    carrinha_id: 'b555db95-c427-4ed5-83fc-01403bd24cf5',
+    ativo: true,
+    quantidades_semanais: criarSemanaPadrao({ 'Pães': 300, 'Pães Leite': 40, 'Miniaturas': 80, 'Boroa': 10, 'PASTEIS': 60, 'Lanches': 30, 'Merendas': 30 })
+  },
+  {
+    id: 'b2b-empregados',
+    nome: 'Empregados',
+    telefone: '256940013',
+    morada: 'Consumo Interno Colaboradores',
+    carrinha_id: 'b555db95-c427-4ed5-83fc-01403bd24cf5',
+    ativo: true,
+    quantidades_semanais: criarSemanaPadrao({ 'Pães': 40, 'carcacas': 15 })
   }
 ];
 
