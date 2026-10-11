@@ -10,7 +10,8 @@ import {
   atualizarEstadoEncomendaDb, 
   concluirEntregaComTimestampDb,
   alternarTipoEntregaDb,
-  registarLogAuditoria 
+  registarLogAuditoria,
+  gerarLinkWhatsAppEncomendaPronta
 } from '../../lib/encomendasService';
 import { Encomenda, TipoEntrega, Loja } from '../../types';
 import { useTranslation } from '../../lib/i18n';
@@ -104,6 +105,37 @@ export default function EntregaLojaPage() {
 
     return matchLoja && matchStatus && matchData && matchBusca;
   });
+
+  // Dar Encomenda como Pronta para Entrega na Loja + Disparar WhatsApp automaticamente ao Cliente
+  const handleMarcarProntaParaEntrega = async (enc: Encomenda) => {
+    const encAtualizada: Encomenda = { ...enc, estado: 'pronto_loja' };
+
+    // Abrir WhatsApp automaticamente imediatamente no clique (para evitar bloqueio de pop-up pelo navegador)
+    if (typeof window !== 'undefined' && enc.cliente?.telefone) {
+      const urlWhatsapp = gerarLinkWhatsAppEncomendaPronta(encAtualizada);
+      window.open(urlWhatsapp, '_blank', 'noopener,noreferrer');
+    }
+
+    await atualizarEstadoEncomendaDb(enc.id, 'pronto_loja');
+
+    await registarLogAuditoria({
+      encomenda_id: enc.id,
+      codigo_encomenda: enc.codigo,
+      cliente_nome: enc.cliente.nome,
+      utilizador_id: currentUser.id,
+      utilizador_nome: currentUser.nome,
+      utilizador_role: currentUser.role,
+      loja_id: enc.loja_id,
+      loja_nome: enc.loja_nome,
+      painel: 'loja',
+      acao: 'Encomenda Pronta p/ Entrega (Notificação WhatsApp)',
+      detalhes: `Encomenda marcada como pronta para entrega na loja ${enc.loja_nome} e notificação WhatsApp aberta automaticamente para o cliente (${enc.cliente.telefone}).`,
+    });
+
+    setEncomendas((prev) =>
+      prev.map((e) => (e.id === enc.id ? encAtualizada : e))
+    );
+  };
 
   // Concluir Levantamento no Balcão (regista Data e Hora reais do levantamento)
   const handleConcluirLevantamento = async (encId: string) => {
@@ -461,32 +493,88 @@ export default function EntregaLojaPage() {
                                   {/* Artigos a Descarregar */}
                                   <div className="rounded-xl bg-gray-50 p-3 text-xs border border-gray-100">
                                     <p className="text-[11px] font-bold text-gray-500 uppercase mb-1.5">{t.itemsToDeliver}</p>
-                                    <ul className="space-y-1">
-                                      {enc.itens.map((item) => (
-                                        <li key={item.id} className="flex justify-between font-medium text-gray-800">
-                                          <span>
-                                            <b>{item.quantidade}x</b> {item.produto_nome}
-                                            {item.notas_personalizacao && (
-                                              <span className="block text-[11px] text-amber-800 italic pl-3">
-                                                » {item.notas_personalizacao}
+                                    <ul className="space-y-1.5">
+                                      {enc.itens.map((item) => {
+                                        const isRecusado = item.estado_producao === 'recusado';
+                                        return (
+                                          <li
+                                            key={item.id}
+                                            className={`flex items-center justify-between font-medium ${
+                                              isRecusado ? 'text-red-700 line-through opacity-75' : 'text-gray-800'
+                                            }`}
+                                          >
+                                            <span>
+                                              <b>{item.quantidade}x</b> {item.produto_nome}
+                                              {item.notas_personalizacao && (
+                                                <span className="block text-[11px] text-amber-800 italic pl-3">
+                                                  » {item.notas_personalizacao}
+                                                </span>
+                                              )}
+                                            </span>
+                                            {isRecusado && (
+                                              <span className="ml-2 px-1.5 py-0.5 rounded bg-red-100 text-red-800 text-[9px] font-black uppercase no-underline">
+                                                ✕ Não Produzido
                                               </span>
                                             )}
-                                          </span>
-                                        </li>
-                                      ))}
+                                          </li>
+                                        );
+                                      })}
                                     </ul>
                                   </div>
+
+                                  {enc.observacoes_producao && (
+                                    <div className="rounded-xl bg-amber-50 border border-amber-200 p-2.5 text-xs text-amber-950">
+                                      <span className="text-[10px] font-black uppercase text-amber-800 block mb-0.5">
+                                        💬 Observações da Produção:
+                                      </span>
+                                      <p className="font-medium">{enc.observacoes_producao}</p>
+                                    </div>
+                                  )}
 
                                   {/* Resumo de Artigos */}
                                   <div className="flex items-center justify-between text-xs pt-1 text-gray-600 font-semibold">
                                     <span>{t.totalItems}:</span>
                                     <span className="font-bold text-gray-900">
-                                      {enc.itens.reduce((acc, i) => acc + i.quantidade, 0)} un.
+                                      {enc.itens
+                                        .filter((i) => i.estado_producao !== 'recusado')
+                                        .reduce((acc, i) => acc + i.quantidade, 0)}{' '}
+                                      un.
                                     </span>
                                   </div>
 
+                                  {/* Botão Principal: Dar como Pronta para Entrega + Enviar WhatsApp Automaticamente */}
+                                  {!concluido && (
+                                    <div className="pt-1">
+                                      {enc.estado !== 'pronto_loja' ? (
+                                        <button
+                                          type="button"
+                                          onClick={() => temPermissaoEdicao && handleMarcarProntaParaEntrega(enc)}
+                                          disabled={!temPermissaoEdicao}
+                                          className={`w-full flex items-center justify-center gap-2 rounded-xl py-2.5 px-3 text-xs font-black text-white shadow-xs transition ${
+                                            temPermissaoEdicao
+                                              ? 'bg-emerald-600 hover:bg-emerald-700'
+                                              : 'bg-gray-400 cursor-not-allowed opacity-60'
+                                          }`}
+                                        >
+                                          <MessageSquare className="h-4 w-4" />
+                                          ✅ Dar Encomenda como Pronta p/ Entrega (Abre WhatsApp ao Cliente)
+                                        </button>
+                                      ) : (
+                                        <a
+                                          href={gerarLinkWhatsAppEncomendaPronta(enc)}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="w-full flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-black bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 transition"
+                                        >
+                                          <MessageSquare className="h-4 w-4 text-emerald-600" />
+                                          📲 Encomenda Pronta na Loja • Reenviar WhatsApp ao Cliente
+                                        </a>
+                                      )}
+                                    </div>
+                                  )}
+
                                   {/* Ações Rápidas */}
-                                  <div className="pt-3 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-bold">
+                                  <div className="pt-2 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-bold">
                                     <a
                                       href={`tel:${enc.cliente.telefone.replace(/\s+/g, '')}`}
                                       className="flex items-center justify-center gap-1.5 rounded-xl bg-gray-100 py-2 px-3 text-gray-800 hover:bg-gray-200 transition"
@@ -535,7 +623,7 @@ export default function EntregaLojaPage() {
                                               : 'bg-gray-400 cursor-not-allowed opacity-60'
                                           }`}
                                         >
-                                          <CheckCircle2 className="h-4 w-4" /> Concluir
+                                          <CheckCircle2 className="h-4 w-4" /> Entregar
                                         </button>
                                       )}
                                     </div>

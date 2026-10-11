@@ -4,6 +4,8 @@ import { LOGS_AUDITORIA_MOCK, CARRINHAS_MOCK, BASE_FIXA_CARRINHAS_INICIAL, CLIEN
 
 const REAL_DELIVERY_TIMESTAMPS_KEY = 'padaria_timestamps_entrega_real_v1';
 const CANAL_ORIGEM_FALLBACK_KEY = 'padaria_canais_origem_v1';
+const ESTADO_ITENS_FALLBACK_KEY = 'padaria_estado_itens_v1';
+const OBS_PRODUCAO_FALLBACK_KEY = 'padaria_obs_producao_v1';
 
 export function guardarCanalOrigemLocal(encomendaId: string, canal: string) {
   if (typeof window === 'undefined') return;
@@ -20,12 +22,18 @@ export function parseEncomendasFromDb(data: any[]): Encomenda[] {
 
   let localTimestamps: Record<string, { data: string; hora: string }> = {};
   let localCanais: Record<string, string> = {};
+  let localEstadosItens: Record<string, EstadoProducaoItem> = {};
+  let localObsProducao: Record<string, string> = {};
   if (typeof window !== 'undefined') {
     try {
       const rawTs = localStorage.getItem(REAL_DELIVERY_TIMESTAMPS_KEY);
       if (rawTs) localTimestamps = JSON.parse(rawTs);
       const rawCan = localStorage.getItem(CANAL_ORIGEM_FALLBACK_KEY);
       if (rawCan) localCanais = JSON.parse(rawCan);
+      const rawEstIt = localStorage.getItem(ESTADO_ITENS_FALLBACK_KEY);
+      if (rawEstIt) localEstadosItens = JSON.parse(rawEstIt);
+      const rawObsProd = localStorage.getItem(OBS_PRODUCAO_FALLBACK_KEY);
+      if (rawObsProd) localObsProducao = JSON.parse(rawObsProd);
     } catch (e) {}
   }
 
@@ -35,17 +43,27 @@ export function parseEncomendasFromDb(data: any[]): Encomenda[] {
     const carrinha = row.carrinhas || {};
     const rawItens = row.itens_encomenda || [];
 
-    const itens: ItemEncomenda[] = rawItens.map((item: any) => ({
-      id: item.id,
-      encomenda_id: row.id,
-      produto_id: item.produto_id,
-      produto_nome: item.produtos?.nome || item.produto_nome || 'Artigo de Padaria/Pastelaria',
-      setor: item.setor || 'padaria',
-      quantidade: Number(item.quantidade) || 1,
-      preco_unitario: Number(item.preco_unitario) || 0,
-      notas_personalizacao: item.notas_personalizacao || undefined,
-      estado_producao: item.estado_producao || 'pendente',
-    }));
+    const itens: ItemEncomenda[] = rawItens.map((item: any) => {
+      const notasRaw = String(item.notas_personalizacao || '');
+      const temTagRecusado = /\[RECUSADO\]/i.test(notasRaw);
+      const notasLimpaItem = notasRaw.replace(/\[RECUSADO\]\s*/gi, '').trim();
+      const estadoItemFinal: EstadoProducaoItem =
+        item.estado_producao === 'recusado' || temTagRecusado || localEstadosItens[item.id] === 'recusado'
+          ? 'recusado'
+          : (localEstadosItens[item.id] || item.estado_producao || 'pendente');
+
+      return {
+        id: item.id,
+        encomenda_id: row.id,
+        produto_id: item.produto_id,
+        produto_nome: item.produtos?.nome || item.produto_nome || 'Artigo de Padaria/Pastelaria',
+        setor: item.setor || 'padaria',
+        quantidade: Number(item.quantidade) || 1,
+        preco_unitario: Number(item.preco_unitario) || 0,
+        notas_personalizacao: notasLimpaItem || undefined,
+        estado_producao: estadoItemFinal,
+      };
+    });
 
     // Determinar data e hora de entrega real para cálculo de On-Time e registo de levantamento
     let dataEntregaReal: string | undefined = row.data_entrega_real || localTimestamps[row.id]?.data;
@@ -93,8 +111,20 @@ export function parseEncomendasFromDb(data: any[]): Encomenda[] {
       }
     }
 
+    // Extrair Observações de Produção se presentes em notas_cliente ([OBS_PROD:...])
+    let obsProducaoExtraida: string | undefined = localObsProducao[row.id];
+    if (row.notas_cliente) {
+      const matchObsProd = row.notas_cliente.match(/\[OBS_PROD:([\s\S]*?)\]/i);
+      if (matchObsProd && matchObsProd[1]) {
+        obsProducaoExtraida = matchObsProd[1].trim();
+      }
+    }
+
     const notasLimpa = row.notas_cliente
-      ? row.notas_cliente.replace(/\[CANAL:(presencial|telefone|whatsapp|site_online)\]\s*/gi, '').trim()
+      ? row.notas_cliente
+          .replace(/\[CANAL:(presencial|telefone|whatsapp|site_online)\]\s*/gi, '')
+          .replace(/\[OBS_PROD:[\s\S]*?\]\s*/gi, '')
+          .trim()
       : undefined;
 
     const carrinhaMockMatch = CARRINHAS_MOCK.find((cm) => cm.id === row.carrinha_id);
@@ -129,6 +159,7 @@ export function parseEncomendasFromDb(data: any[]): Encomenda[] {
       metodo_pagamento: row.metodo_pagamento,
       total: Number(row.total) || 0,
       notas_cliente: notasLimpa || undefined,
+      observacoes_producao: obsProducaoExtraida || undefined,
       itens,
       criado_em: row.criado_em,
     };
@@ -250,14 +281,132 @@ export async function alternarTipoEntregaDb(
   return true;
 }
 
-export async function atualizarEstadoItemDb(itemId: string, novoEstado: EstadoProducaoItem) {
+export async function atualizarEstadoItemDb(
+  itemId: string,
+  novoEstado: EstadoProducaoItem,
+  notasPersonalizacaoAtuais?: string
+) {
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(ESTADO_ITENS_FALLBACK_KEY);
+      const map = raw ? JSON.parse(raw) : {};
+      map[itemId] = novoEstado;
+      localStorage.setItem(ESTADO_ITENS_FALLBACK_KEY, JSON.stringify(map));
+    } catch {}
+  }
+
   if (!supabase) return;
+
+  const notaLimpa = (notasPersonalizacaoAtuais || '').replace(/\[RECUSADO\]\s*/gi, '').trim();
+  const novaNota =
+    novoEstado === 'recusado'
+      ? `[RECUSADO] ${notaLimpa}`.trim()
+      : notaLimpa || null;
+
   const { error } = await supabase
     .from('itens_encomenda')
-    .update({ estado_producao: novoEstado })
+    .update({
+      estado_producao: novoEstado === 'recusado' ? 'pendente' : novoEstado,
+      notas_personalizacao: novaNota,
+    })
     .eq('id', itemId);
 
   if (error) console.error('Erro ao atualizar estado do item:', error);
+}
+
+export async function salvarObservacoesProducaoDb(
+  encomendaId: string,
+  observacao: string,
+  notasClienteAtuais?: string,
+  canalOrigem?: string
+) {
+  const obsLimpa = observacao.trim();
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(OBS_PRODUCAO_FALLBACK_KEY);
+      const map = raw ? JSON.parse(raw) : {};
+      if (obsLimpa) {
+        map[encomendaId] = obsLimpa;
+      } else {
+        delete map[encomendaId];
+      }
+      localStorage.setItem(OBS_PRODUCAO_FALLBACK_KEY, JSON.stringify(map));
+    } catch {}
+  }
+
+  if (!supabase) return;
+
+  const canalTag = canalOrigem ? `[CANAL:${canalOrigem}] ` : '';
+  const notaBase = (notasClienteAtuais || '')
+    .replace(/\[CANAL:(presencial|telefone|whatsapp|site_online)\]\s*/gi, '')
+    .replace(/\[OBS_PROD:[\s\S]*?\]\s*/gi, '')
+    .trim();
+  const obsTag = obsLimpa ? `[OBS_PROD:${obsLimpa}] ` : '';
+  const notasFinais = `${canalTag}${obsTag}${notaBase}`.trim() || null;
+
+  await supabase
+    .from('encomendas')
+    .update({
+      notas_cliente: notasFinais,
+      atualizado_em: new Date().toISOString(),
+    })
+    .eq('id', encomendaId);
+}
+
+export function formatarTelefoneWhatsApp(telefone?: string): string {
+  const digitos = (telefone || '').replace(/\D/g, '');
+  if (!digitos) return '351910000000';
+  if (digitos.startsWith('351') && digitos.length >= 12) return digitos;
+  if (digitos.length === 9) return `351${digitos}`;
+  return digitos;
+}
+
+export function gerarLinkWhatsAppDecisaoEncomenda(enc: Encomenda, obsExtra?: string): string {
+  const tel = formatarTelefoneWhatsApp(enc.cliente?.telefone);
+  const obs = (obsExtra !== undefined ? obsExtra : enc.observacoes_producao || '').trim();
+  const obsTexto = obs ? `\n\n📝 Observações da Padaria: ${obs}` : '';
+  const destinoTexto =
+    enc.tipo === 'levantamento_loja'
+      ? `Levantamento em ${enc.loja_nome || 'Loja'}`
+      : `Entrega ao Domicílio (${enc.cliente?.morada || 'Arouca'})`;
+
+  const itensAceites = enc.itens.filter(
+    (i) => i.estado_producao === 'em_preparo' || i.estado_producao === 'pronto'
+  );
+  const itensRecusados = enc.itens.filter((i) => i.estado_producao === 'recusado');
+
+  let mensagem = '';
+  if (itensAceites.length > 0 && itensRecusados.length === 0) {
+    const lista = itensAceites.map((i) => `${i.quantidade}x ${i.produto_nome}`).join(', ');
+    mensagem = `Olá ${enc.cliente.nome}! Confirmamos que a sua encomenda ${enc.codigo} (${destinoTexto} para ${enc.data_agendamento} às ${enc.hora_agendamento}) entrou em produção na Padaria da Vila:\n✅ Artigos a preparar: ${lista}.${obsTexto}`;
+  } else if (itensAceites.length > 0 && itensRecusados.length > 0) {
+    const listaSim = itensAceites.map((i) => `${i.quantidade}x ${i.produto_nome}`).join(', ');
+    const listaNao = itensRecusados.map((i) => `${i.quantidade}x ${i.produto_nome}`).join(', ');
+    mensagem = `Olá ${enc.cliente.nome}! Relativamente à sua encomenda ${enc.codigo} (${destinoTexto} para ${enc.data_agendamento} às ${enc.hora_agendamento}), informamos a confirmação parcelar do pedido:\n✅ Artigos que serão preparados: ${listaSim}\n❌ Artigos indisponíveis (não produzidos): ${listaNao}${obsTexto}`;
+  } else if (itensAceites.length === 0 && itensRecusados.length > 0) {
+    const listaNao = itensRecusados.map((i) => `${i.quantidade}x ${i.produto_nome}`).join(', ');
+    mensagem = `Olá ${enc.cliente.nome}! Lamentamos informar que não nos será possível preparar a sua encomenda ${enc.codigo} (${listaNao}) agendada para ${enc.data_agendamento} às ${enc.hora_agendamento}.${obsTexto}`;
+  } else {
+    const listaTodos = enc.itens.map((i) => `${i.quantidade}x ${i.produto_nome}`).join(', ');
+    mensagem = `Olá ${enc.cliente.nome}! Contacto da Padaria da Vila sobre a sua encomenda ${enc.codigo} (${listaTodos}) para ${enc.data_agendamento} às ${enc.hora_agendamento}.${obsTexto}`;
+  }
+
+  return `https://wa.me/${tel}?text=${encodeURIComponent(mensagem)}`;
+}
+
+export function gerarLinkWhatsAppEncomendaPronta(enc: Encomenda): string {
+  const tel = formatarTelefoneWhatsApp(enc.cliente?.telefone);
+  const itensProduzidos = enc.itens.filter((i) => i.estado_producao !== 'recusado');
+  const lista = (itensProduzidos.length > 0 ? itensProduzidos : enc.itens)
+    .map((i) => `${i.quantidade}x ${i.produto_nome}`)
+    .join(', ');
+
+  const mensagem =
+    enc.tipo === 'levantamento_loja'
+      ? `Olá ${enc.cliente.nome}! A sua encomenda ${enc.codigo} (${lista}) já se encontra PRONTA para levantamento no balcão da loja ${enc.loja_nome || 'Padaria da Vila'}. Até já!`
+      : `Olá ${enc.cliente.nome}! A sua encomenda ${enc.codigo} (${lista}) já se encontra PRONTA para entrega ao domicílio (${enc.cliente.morada || 'Arouca'}). Até já!`;
+
+  return `https://wa.me/${tel}?text=${encodeURIComponent(mensagem)}`;
 }
 
 export async function concluirEntregaComTimestampDb(encomendaId: string, horaReal?: string, dataReal?: string) {

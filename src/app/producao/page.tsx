@@ -13,6 +13,8 @@ import {
   obterDiaSemanaDeData,
   atualizarEstadoItemDb, 
   atualizarEstadoEncomendaDb,
+  salvarObservacoesProducaoDb,
+  gerarLinkWhatsAppDecisaoEncomenda,
   registarLogAuditoria 
 } from '../../lib/encomendasService';
 import { 
@@ -102,6 +104,7 @@ export default function ProducaoPage() {
   // Alerta Sonoro e Visual de Encomendas Urgentes (< 3 horas)
   const [encomendasUrgentesAceites, setEncomendasUrgentesAceites] = useState<string[]>([]);
   const [somAlertaAtivo, setSomAlertaAtivo] = useState<boolean>(true);
+  const [obsProducaoPorEncomenda, setObsProducaoPorEncomenda] = useState<Record<string, string>>({});
   const audioIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Filtro de Calendário
@@ -219,13 +222,21 @@ export default function ProducaoPage() {
     return matchLoja && temItensDoSetor && matchData;
   });
 
-  // Atualizar estado de produção de um item específico
+  // Atualizar estado de produção de um item específico (Aceitar p/ Produção, Marcar Pronto ou Recusar/Não Produzir)
   const atualizarEstadoItem = async (encomendaId: string, itemId: string, novoEstado: EstadoProducaoItem) => {
-    await atualizarEstadoItemDb(itemId, novoEstado);
-
     const encAlvo = encomendas.find((e) => e.id === encomendaId);
     const itemAlvo = encAlvo?.itens.find((i) => i.id === itemId);
+
+    await atualizarEstadoItemDb(itemId, novoEstado, itemAlvo?.notas_personalizacao);
+
     if (encAlvo && itemAlvo) {
+      const acaoTexto =
+        novoEstado === 'pronto'
+          ? 'Conclusão de Artigo / Pronto'
+          : novoEstado === 'recusado'
+          ? 'Artigo Recusado / Não Produzido'
+          : 'Aceitação / Início de Fabrico de Artigo';
+
       await registarLogAuditoria({
         encomenda_id: encAlvo.id,
         codigo_encomenda: encAlvo.codigo,
@@ -236,7 +247,7 @@ export default function ProducaoPage() {
         loja_id: encAlvo.loja_id,
         loja_nome: encAlvo.loja_nome,
         painel: 'producao',
-        acao: novoEstado === 'pronto' ? 'Conclusão de Artigo / Pronto' : 'Início de Fabrico de Artigo',
+        acao: acaoTexto,
         detalhes: `Artigo "${itemAlvo.produto_nome}" (${itemAlvo.quantidade} un) alterado para "${novoEstado}" por ${currentUser.nome}.`,
       });
     }
@@ -247,16 +258,42 @@ export default function ProducaoPage() {
         const novosItens = enc.itens.map((item) =>
           item.id === itemId ? { ...item, estado_producao: novoEstado } : item
         );
-        const todosProntos = novosItens.every((i) => i.estado_producao === 'pronto');
-        if (todosProntos) {
-          atualizarEstadoEncomendaDb(encomendaId, 'pronto_loja');
+
+        const itensNaoRecusados = novosItens.filter((i) => i.estado_producao !== 'recusado');
+        const todosRecusados = novosItens.length > 0 && itensNaoRecusados.length === 0;
+        const todosValidosProntos =
+          itensNaoRecusados.length > 0 && itensNaoRecusados.every((i) => i.estado_producao === 'pronto');
+        const algumEmProducao = itensNaoRecusados.some(
+          (i) => i.estado_producao === 'em_preparo' || i.estado_producao === 'pronto'
+        );
+
+        const novoEstadoEnc = todosRecusados
+          ? 'cancelado'
+          : todosValidosProntos
+          ? 'pronto_loja'
+          : algumEmProducao
+          ? 'em_producao'
+          : 'pendente';
+
+        if (novoEstadoEnc !== enc.estado) {
+          atualizarEstadoEncomendaDb(encomendaId, novoEstadoEnc);
         }
+
         return {
           ...enc,
           itens: novosItens,
-          estado: todosProntos ? 'pronto_loja' : 'em_producao',
+          estado: novoEstadoEnc,
         };
       })
+    );
+  };
+
+  // Guardar observações da produção para o cliente (visível na App do Cliente e enviada no WhatsApp)
+  const handleGuardarObsProducao = async (enc: Encomenda, obsTexto?: string) => {
+    const textoFinal = (obsTexto !== undefined ? obsTexto : obsProducaoPorEncomenda[enc.id] ?? enc.observacoes_producao ?? '').trim();
+    await salvarObservacoesProducaoDb(enc.id, textoFinal, enc.notas_cliente, enc.canal_origem);
+    setEncomendas((prev) =>
+      prev.map((e) => (e.id === enc.id ? { ...e, observacoes_producao: textoFinal || undefined } : e))
     );
   };
 
@@ -555,7 +592,7 @@ export default function ProducaoPage() {
   // ALERTA SONORO E VISUAL DE ENCOMENDAS URGENTES (< 3 HORAS)
   // ---------------------------------------------------------------------------
   const encomendasUrgentesParaAceitar = encomendas.filter((e) => {
-    if (e.estado !== 'pendente') return false;
+    if (e.estado === 'entregue' || e.estado === 'pronto_loja' || e.estado === 'em_rota') return false;
     if (encomendasUrgentesAceites.includes(e.id)) return false;
     const dataHoraStr = `${e.data_agendamento}T${e.hora_agendamento || '10:00'}:00`;
     const tsAgendado = new Date(dataHoraStr).getTime();
@@ -564,6 +601,11 @@ export default function ProducaoPage() {
     // Urgente se faltar <= 3 horas para a recolha/entrega (e for do dia de hoje ou próximas 3h)
     return diffHoras <= 3 && (e.data_agendamento === hoje || diffHoras >= -4);
   });
+
+  // O sinal sonoro toca enquanto houver encomendas urgentes com algum artigo ainda por decidir ('pendente')
+  const temItensUrgentesPorDecidir = encomendasUrgentesParaAceitar.some((e) =>
+    e.itens.some((it) => it.estado_producao === 'pendente')
+  );
 
   const tocarSinalSonoroUrgente = () => {
     if (typeof window === 'undefined' || !somAlertaAtivo) return;
@@ -595,7 +637,7 @@ export default function ProducaoPage() {
       clearInterval(audioIntervalRef.current);
       audioIntervalRef.current = null;
     }
-    if (encomendasUrgentesParaAceitar.length > 0 && somAlertaAtivo) {
+    if (temItensUrgentesPorDecidir && somAlertaAtivo) {
       tocarSinalSonoroUrgente();
       audioIntervalRef.current = setInterval(() => {
         tocarSinalSonoroUrgente();
@@ -604,14 +646,19 @@ export default function ProducaoPage() {
     return () => {
       if (audioIntervalRef.current) clearInterval(audioIntervalRef.current);
     };
-  }, [encomendasUrgentesParaAceitar.length, somAlertaAtivo]);
+  }, [temItensUrgentesPorDecidir, somAlertaAtivo]);
 
-  const aceitarEncomendaUrgente = async (enc: Encomenda) => {
+  const concluirTriagemUrgente = async (enc: Encomenda) => {
+    await handleGuardarObsProducao(enc);
     const novaLista = Array.from(new Set([...encomendasUrgentesAceites, enc.id]));
     setEncomendasUrgentesAceites(novaLista);
     if (typeof window !== 'undefined') {
       localStorage.setItem(URGENTES_ACEITES_STORAGE_KEY, JSON.stringify(novaLista));
     }
+  };
+
+  const aceitarTodosItensUrgente = async (enc: Encomenda) => {
+    await handleGuardarObsProducao(enc);
     await moverEncomendaKanban(enc.id, 'em_producao');
   };
 
@@ -642,10 +689,11 @@ export default function ProducaoPage() {
     qtdItensProntos: number;
   }>();
 
-  // 1. Somar quantidades das encomendas filtradas
+  // 1. Somar quantidades das encomendas filtradas (excluindo artigos recusados)
   encomendasFiltradas.forEach((enc) => {
     if (enc.estado === 'cancelado') return;
     enc.itens.forEach((it) => {
+      if (it.estado_producao === 'recusado') return;
       if (setorAtivo !== 'todos' && it.setor !== setorAtivo) return;
       const existente = mapaPool.get(it.produto_id) || {
         produto_id: it.produto_id,
@@ -933,7 +981,7 @@ export default function ProducaoPage() {
 
         {/* ALERTA SONORO E VISUAL DE ENCOMENDAS URGENTES (< 3 HORAS) */}
         {encomendasUrgentesParaAceitar.length > 0 && (
-          <div className="mb-6 rounded-3xl bg-red-600 text-white p-4 shadow-xl border-2 border-red-300 animate-pulse">
+          <div className={`mb-6 rounded-3xl bg-red-600 text-white p-4 shadow-xl border-2 border-red-300 ${temItensUrgentesPorDecidir ? 'animate-pulse' : ''}`}>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-red-400/60 pb-3 mb-3">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-2xl bg-white text-red-600 shadow-xs">
@@ -944,7 +992,7 @@ export default function ProducaoPage() {
                     🚨 Alerta de Encomenda Urgente (&le; 3 Horas para Recolha/Entrega)
                   </h3>
                   <p className="text-xs text-red-100 font-medium">
-                    Existem {encomendasUrgentesParaAceitar.length} encomenda(s) com entrega nas próximas 3 horas. Aceite para produção para desligar o sinal sonoro.
+                    Verifique o conteúdo detalhado do pedido, o canal e a loja, e aceite ou recuse cada artigo individualmente para produção.
                   </p>
                 </div>
               </div>
@@ -958,39 +1006,215 @@ export default function ProducaoPage() {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {encomendasUrgentesParaAceitar.map((enc) => (
-                <div
-                  key={enc.id}
-                  className="bg-white text-gray-900 p-3.5 rounded-2xl shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                >
-                  <div className="space-y-1 text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-black text-red-700 bg-red-50 px-2 py-0.5 rounded border border-red-200">
-                        {enc.codigo}
-                      </span>
-                      <span className="font-black text-gray-900">
-                        ⏰ {enc.hora_agendamento} ({enc.data_agendamento})
-                      </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-700">
-                        {enc.loja_nome}
-                      </span>
-                    </div>
-                    <p className="font-bold text-gray-800">
-                      Cliente: {enc.cliente.nome} ({enc.itens.map((i) => `${i.quantidade}x ${i.produto_nome}`).join(', ')})
-                    </p>
-                  </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {encomendasUrgentesParaAceitar.map((enc) => {
+                const obsAtual = obsProducaoPorEncomenda[enc.id] ?? enc.observacoes_producao ?? '';
+                const canalLabel =
+                  enc.canal_origem === 'site_online'
+                    ? '🌐 Canal: App Cliente (Online)'
+                    : enc.canal_origem === 'whatsapp'
+                    ? '💬 Canal: WhatsApp'
+                    : enc.canal_origem === 'telefone'
+                    ? '📞 Canal: Telefone'
+                    : '🏪 Canal: Presencial (Balcão)';
 
-                  <button
-                    type="button"
-                    onClick={() => aceitarEncomendaUrgente(enc)}
-                    className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-sm transition shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
+                const lojaDestinoLabel =
+                  enc.tipo === 'levantamento_loja'
+                    ? `🏪 Levantamento na Loja: ${enc.loja_nome || 'Padaria da Vila'}`
+                    : `🚚 Domicílio (${enc.carrinha_nome || enc.loja_nome || 'Frota'})${enc.cliente.morada ? ` — ${enc.cliente.morada}` : ''}`;
+
+                return (
+                  <div
+                    key={enc.id}
+                    className="bg-white text-gray-900 p-4 rounded-2xl shadow-md space-y-3 border border-red-200 flex flex-col justify-between"
                   >
-                    <CheckCircle2 className="h-4 w-4" />
-                    <span>Aceitar p/ Produção</span>
-                  </button>
-                </div>
-              ))}
+                    {/* 1. Cabeçalho do Pedido Urgente: Código, Hora, Canal e Loja */}
+                    <div className="space-y-2 border-b border-stone-200 pb-2.5">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="font-mono font-black text-xs text-red-700 bg-red-50 px-2 py-0.5 rounded border border-red-200">
+                            {enc.codigo}
+                          </span>
+                          <span className="font-black text-xs text-gray-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                            ⏰ {enc.hora_agendamento} ({enc.data_agendamento})
+                          </span>
+                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-md border ${
+                            enc.canal_origem === 'site_online'
+                              ? 'bg-indigo-50 text-indigo-900 border-indigo-200'
+                              : enc.canal_origem === 'whatsapp'
+                              ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
+                              : enc.canal_origem === 'telefone'
+                              ? 'bg-amber-50 text-amber-900 border-amber-200'
+                              : 'bg-stone-100 text-stone-800 border-stone-300'
+                          }`}>
+                            {canalLabel}
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => aceitarTodosItensUrgente(enc)}
+                          className="text-[10px] font-black px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition cursor-pointer"
+                          title="Aceitar todos os artigos desta encomenda para produção"
+                        >
+                          ✓ Aceitar Todos os Artigos
+                        </button>
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span className="font-bold text-stone-900">
+                          👤 Cliente: {enc.cliente.nome} <span className="text-stone-500 font-mono">({enc.cliente.telefone})</span>
+                        </span>
+                        <span className="text-[11px] font-bold text-amber-900 bg-amber-50/80 px-2 py-0.5 rounded-lg border border-amber-200">
+                          {lojaDestinoLabel}
+                        </span>
+                      </div>
+
+                      {enc.notas_cliente && (
+                        <p className="text-[11px] text-stone-600 bg-stone-50 px-2.5 py-1.5 rounded-lg border border-stone-200 italic">
+                          💬 Notas do Pedido: {enc.notas_cliente}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* 2. Conteúdo Detalhado do Pedido (Aceitação ou Recusa Artigo a Artigo) */}
+                    <div className="space-y-1.5">
+                      <span className="block text-[10px] font-black uppercase tracking-wider text-stone-500">
+                        Conteúdo do Pedido — Decisão Artigo a Artigo ({enc.itens.length} artigo(s)):
+                      </span>
+                      <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                        {enc.itens.map((item) => {
+                          const aceite = item.estado_producao === 'em_preparo' || item.estado_producao === 'pronto';
+                          const recusado = item.estado_producao === 'recusado';
+
+                          return (
+                            <div
+                              key={item.id}
+                              className={`p-2.5 rounded-xl border text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 transition ${
+                                aceite
+                                  ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
+                                  : recusado
+                                  ? 'bg-red-50 border-red-300 text-red-950 opacity-85'
+                                  : 'bg-stone-50 border-stone-200 text-stone-900'
+                              }`}
+                            >
+                              <div>
+                                <div className="flex items-center gap-1.5 font-black">
+                                  <span>{item.setor === 'pastelaria' ? '🎂' : '🥖'}</span>
+                                  <span className={`text-sm ${recusado ? 'line-through text-red-700' : 'text-stone-900'}`}>
+                                    {item.quantidade}x {item.produto_nome}
+                                  </span>
+                                  <span className={`text-[9px] uppercase px-1.5 py-0.5 rounded font-black ${
+                                    aceite
+                                      ? 'bg-emerald-200 text-emerald-900'
+                                      : recusado
+                                      ? 'bg-red-200 text-red-900'
+                                      : 'bg-amber-100 text-amber-900'
+                                  }`}>
+                                    {aceite ? '✓ Em Produção' : recusado ? '✕ Não Produzir' : '⏳ Por Decidir'}
+                                  </span>
+                                </div>
+                                {item.notas_personalizacao && (
+                                  <span className="block text-[11px] text-amber-900 font-semibold italic mt-0.5 pl-5">
+                                    » Personalização: {item.notas_personalizacao}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => atualizarEstadoItem(enc.id, item.id, 'em_preparo')}
+                                  className={`px-2.5 py-1.5 rounded-lg font-black text-[11px] flex items-center gap-1 transition cursor-pointer ${
+                                    aceite
+                                      ? 'bg-emerald-600 text-white shadow-2xs'
+                                      : 'bg-white hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-300'
+                                  }`}
+                                >
+                                  <Check className="h-3.5 w-3.5" />
+                                  <span>Produzir</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => atualizarEstadoItem(enc.id, item.id, 'recusado')}
+                                  className={`px-2.5 py-1.5 rounded-lg font-black text-[11px] flex items-center gap-1 transition cursor-pointer ${
+                                    recusado
+                                      ? 'bg-red-600 text-white shadow-2xs'
+                                      : 'bg-white hover:bg-red-600 text-red-700 hover:text-white border border-red-300'
+                                  }`}
+                                >
+                                  <span>✕ Não Produzir</span>
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* 3. Observações para o Cliente & Envio de Informação Parcelar (App Cliente ou WhatsApp) */}
+                    <div className="pt-2.5 border-t border-stone-200 space-y-2">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5">
+                        <input
+                          type="text"
+                          value={obsAtual}
+                          onChange={(e) =>
+                            setObsProducaoPorEncomenda((prev) => ({
+                              ...prev,
+                              [enc.id]: e.target.value,
+                            }))
+                          }
+                          placeholder="Observações p/ cliente (ex: motivo de artigo indisponível ou ajuste)..."
+                          className="flex-1 px-2.5 py-1.5 rounded-xl border border-stone-300 text-xs text-stone-900 bg-stone-50 focus:bg-white focus:outline-hidden"
+                        />
+                        {enc.canal_origem === 'site_online' && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await handleGuardarObsProducao(enc, obsAtual);
+                              alert('Estado parcelar dos artigos e observações atualizados na App do Cliente!');
+                            }}
+                            className="px-2.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] shrink-0 transition cursor-pointer"
+                          >
+                            Atualizar na App Cliente
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                        <a
+                          href={gerarLinkWhatsAppDecisaoEncomenda(enc, obsAtual)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => handleGuardarObsProducao(enc, obsAtual)}
+                          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl font-black text-xs transition shadow-2xs ${
+                            enc.canal_origem !== 'site_online'
+                              ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                              : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          }`}
+                        >
+                          <MessageSquare className="h-3.5 w-3.5" />
+                          <span>
+                            {enc.canal_origem !== 'site_online'
+                              ? 'Enviar Confirmação / Estado Parcelar via WhatsApp'
+                              : 'Enviar também via WhatsApp ao Cliente'}
+                          </span>
+                        </a>
+
+                        <button
+                          type="button"
+                          onClick={() => concluirTriagemUrgente(enc)}
+                          className="px-3.5 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-black text-xs transition flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5 text-amber-400" />
+                          <span>Concluir Triagem / Fechar Alerta</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -1673,6 +1897,8 @@ export default function ProducaoPage() {
                                         ? 'bg-emerald-50 border-emerald-300 text-emerald-950 opacity-80'
                                         : item.estado_producao === 'em_preparo'
                                         ? 'bg-amber-50 border-amber-300 text-amber-950 shadow-xs'
+                                        : item.estado_producao === 'recusado'
+                                        ? 'bg-red-50 border-red-300 text-red-950 opacity-80'
                                         : 'bg-white border-stone-200 text-stone-900'
                                     }`}
                                   >
@@ -1681,7 +1907,7 @@ export default function ProducaoPage() {
                                         <span className="text-xs font-black text-stone-500 uppercase block mb-0.5">
                                           {item.setor === 'padaria' ? `🥖 ${t.bakeryTab}` : `🎂 ${t.pastryTab}`}
                                         </span>
-                                        <h4 className="text-sm font-black text-gray-900 leading-tight">
+                                        <h4 className={`text-sm font-black leading-tight ${item.estado_producao === 'recusado' ? 'line-through text-red-700' : 'text-gray-900'}`}>
                                           <span className="text-amber-700 mr-1.5">{item.quantidade}x</span>
                                           {item.produto_nome}
                                         </h4>
@@ -1692,9 +1918,17 @@ export default function ProducaoPage() {
                                           ? 'bg-emerald-200 text-emerald-900 border-emerald-400'
                                           : item.estado_producao === 'em_preparo'
                                           ? 'bg-amber-200 text-amber-900 border-amber-400'
+                                          : item.estado_producao === 'recusado'
+                                          ? 'bg-red-200 text-red-900 border-red-400'
                                           : 'bg-stone-200 text-stone-700 border-stone-300'
                                       }`}>
-                                        {item.estado_producao === 'pronto' ? t.readyPrep : item.estado_producao === 'em_preparo' ? t.inPrep : t.pendingPrep}
+                                        {item.estado_producao === 'pronto'
+                                          ? t.readyPrep
+                                          : item.estado_producao === 'em_preparo'
+                                          ? t.inPrep
+                                          : item.estado_producao === 'recusado'
+                                          ? 'Não Produzido'
+                                          : t.pendingPrep}
                                       </span>
                                     </div>
 
@@ -1710,29 +1944,51 @@ export default function ProducaoPage() {
                                       </div>
                                     )}
 
-                                    <div className="mt-3 flex items-center justify-end gap-2 pt-2 border-t border-stone-200/60">
+                                    <div className="mt-3 flex flex-wrap items-center justify-end gap-1.5 pt-2 border-t border-stone-200/60">
                                       {temPermissaoEdicao ? (
                                         <>
                                           {item.estado_producao === 'pendente' && (
-                                            <button
-                                              onClick={() => atualizarEstadoItem(enc.id, item.id, 'em_preparo')}
-                                              className="rounded-lg bg-amber-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-amber-700 transition cursor-pointer"
-                                            >
-                                              Iniciar Preparação
-                                            </button>
+                                            <>
+                                              <button
+                                                onClick={() => atualizarEstadoItem(enc.id, item.id, 'em_preparo')}
+                                                className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-amber-700 transition cursor-pointer"
+                                              >
+                                                Iniciar Preparação
+                                              </button>
+                                              <button
+                                                onClick={() => atualizarEstadoItem(enc.id, item.id, 'recusado')}
+                                                className="rounded-lg bg-white border border-red-300 text-red-700 px-2.5 py-1.5 text-xs font-bold hover:bg-red-50 transition cursor-pointer"
+                                              >
+                                                ✕ Não Produzir
+                                              </button>
+                                            </>
                                           )}
                                           {item.estado_producao === 'em_preparo' && (
-                                            <button
-                                              onClick={() => atualizarEstadoItem(enc.id, item.id, 'pronto')}
-                                              className="rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition flex items-center gap-1 cursor-pointer"
-                                            >
-                                              <CheckCircle2 className="h-3.5 w-3.5" /> Marcar Pronto
-                                            </button>
+                                            <>
+                                              <button
+                                                onClick={() => atualizarEstadoItem(enc.id, item.id, 'pronto')}
+                                                className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition flex items-center gap-1 cursor-pointer"
+                                              >
+                                                <CheckCircle2 className="h-3.5 w-3.5" /> Marcar Pronto
+                                              </button>
+                                              <button
+                                                onClick={() => atualizarEstadoItem(enc.id, item.id, 'recusado')}
+                                                className="rounded-lg bg-white border border-red-300 text-red-700 px-2 py-1.5 text-[11px] font-bold hover:bg-red-50 transition cursor-pointer"
+                                              >
+                                                ✕ Recusar
+                                              </button>
+                                            </>
                                           )}
-                                          {item.estado_producao === 'pronto' && (
+                                          {(item.estado_producao === 'pronto' || item.estado_producao === 'recusado') && (
                                             <div className="flex items-center gap-2">
-                                              <span className="flex items-center gap-1 text-xs font-bold text-emerald-700">
-                                                <CheckCircle2 className="h-4 w-4" /> Pronto na Bancada
+                                              <span className={`flex items-center gap-1 text-xs font-bold ${item.estado_producao === 'pronto' ? 'text-emerald-700' : 'text-red-700'}`}>
+                                                {item.estado_producao === 'pronto' ? (
+                                                  <>
+                                                    <CheckCircle2 className="h-4 w-4" /> Pronto na Bancada
+                                                  </>
+                                                ) : (
+                                                  '✕ Artigo Recusado'
+                                                )}
                                               </span>
                                               <button
                                                 onClick={() => atualizarEstadoItem(enc.id, item.id, 'pendente')}
@@ -1746,20 +2002,72 @@ export default function ProducaoPage() {
                                         </>
                                       ) : (
                                         <span className="text-xs font-bold text-stone-500">
-                                          {item.estado_producao === 'pronto' ? '✓ Pronto na Bancada' : item.estado_producao === 'em_preparo' ? 'Em Preparação' : 'Pendente'}
+                                          {item.estado_producao === 'pronto'
+                                            ? '✓ Pronto na Bancada'
+                                            : item.estado_producao === 'em_preparo'
+                                            ? 'Em Preparação'
+                                            : item.estado_producao === 'recusado'
+                                            ? '✕ Não Produzido'
+                                            : 'Pendente'}
                                         </span>
                                       )}
                                     </div>
                                   </div>
                                 ))}
+
+                                {/* Campo de Observações da Produção & Botão WhatsApp / App Cliente */}
+                                {temPermissaoEdicao && (
+                                  <div className="pt-2 border-t border-stone-200 space-y-2">
+                                    <input
+                                      type="text"
+                                      value={obsProducaoPorEncomenda[enc.id] ?? enc.observacoes_producao ?? ''}
+                                      onChange={(e) =>
+                                        setObsProducaoPorEncomenda((prev) => ({
+                                          ...prev,
+                                          [enc.id]: e.target.value,
+                                        }))
+                                      }
+                                      onBlur={() => handleGuardarObsProducao(enc)}
+                                      placeholder="Observações p/ cliente sobre artigos produzidos/indisponíveis..."
+                                      className="w-full px-2.5 py-1.5 rounded-xl border border-stone-300 bg-white text-[11px] text-stone-900 focus:outline-hidden"
+                                    />
+                                    <div className="flex items-center justify-between gap-2">
+                                      <a
+                                        href={gerarLinkWhatsAppDecisaoEncomenda(
+                                          enc,
+                                          obsProducaoPorEncomenda[enc.id] ?? enc.observacoes_producao ?? ''
+                                        )}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={() => handleGuardarObsProducao(enc)}
+                                        className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] transition"
+                                      >
+                                        <MessageSquare className="h-3.5 w-3.5" />
+                                        <span>Notificar Cliente via WhatsApp</span>
+                                      </a>
+                                      {enc.canal_origem === 'site_online' && (
+                                        <button
+                                          type="button"
+                                          onClick={async () => {
+                                            await handleGuardarObsProducao(enc);
+                                            alert('Estado parcelar e observações sincronizados com a App do Cliente!');
+                                          }}
+                                          className="py-1.5 px-2.5 rounded-xl bg-indigo-50 text-indigo-800 border border-indigo-200 font-bold text-[11px] hover:bg-indigo-100 transition cursor-pointer"
+                                        >
+                                          Guardar p/ App
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
 
                               <div className="p-3 bg-stone-100 border-t border-stone-200 flex items-center justify-between text-xs text-stone-600">
                                 <span className="font-semibold">
-                                  Destino: {enc.tipo === 'entrega_domicilio' ? 'Carrinha de Entrega' : 'Balcão de Loja'}
+                                  Destino: {enc.tipo === 'entrega_domicilio' ? 'Carrinha de Entrega' : `Loja (${enc.loja_nome || 'Balcão'})`}
                                 </span>
                                 <span className="font-bold text-stone-800">
-                                  {enc.itens.filter((i) => i.estado_producao === 'pronto').length} / {enc.itens.length} Concluídos
+                                  {enc.itens.filter((i) => i.estado_producao === 'pronto').length} / {enc.itens.filter((i) => i.estado_producao !== 'recusado').length} Concluídos
                                 </span>
                               </div>
                             </div>

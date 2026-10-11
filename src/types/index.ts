@@ -4,7 +4,7 @@ export type CategoriaProduto = 'padaria' | 'pastelaria' | 'bebidas_outros';
 export type SetorProducao = 'padaria' | 'pastelaria';
 export type TipoEntrega = 'levantamento_loja' | 'entrega_domicilio';
 export type EstadoEncomenda = 'pendente' | 'em_producao' | 'pronto_loja' | 'em_rota' | 'entregue' | 'cancelado';
-export type EstadoProducaoItem = 'pendente' | 'em_preparo' | 'pronto';
+export type EstadoProducaoItem = 'pendente' | 'em_preparo' | 'pronto' | 'recusado';
 export type EstadoPagamento = 'pendente' | 'pago';
 export type MetodoPagamento = 'dinheiro' | 'multibanco' | 'mbway' | 'transferencia';
 
@@ -16,6 +16,7 @@ export interface Loja {
   telefone: string;
   nif?: string;
   ativo: boolean;
+  criado_em?: string;
 }
 
 export interface Cliente {
@@ -43,8 +44,9 @@ export interface Carrinha {
   loja_id: string;
   identificador: string;
   matricula: string;
-  motorista_id?: string;
+  motorista_id?: string | null;
   ativo: boolean;
+  criado_em?: string;
 }
 
 export interface ItemEncomenda {
@@ -79,6 +81,7 @@ export interface Encomenda {
   metodo_pagamento?: MetodoPagamento;
   total?: number;
   notas_cliente?: string;
+  observacoes_producao?: string; // Observações sobre aceitação total/parcelar ou recusa enviadas pela Produção
   data_entrega_real?: string; // YYYY-MM-DD real da entrega/levantamento
   hora_entrega_real?: string; // HH:MM real da entrega
   ordem_rota?: number; // Sequência manual ou otimizada da carrinha

@@ -206,6 +206,17 @@ export default function EncomendarClientePage() {
         });
 
         // 3. Combinar resultados do Supabase com a cache local (atualizando o estado em tempo real do Supabase)
+        let estadosItensLocal: Record<string, 'pendente' | 'em_preparo' | 'pronto' | 'recusado'> = {};
+        let obsProdLocal: Record<string, string> = {};
+        if (typeof window !== 'undefined') {
+          try {
+            const rawEst = localStorage.getItem('padaria_estado_itens_v1');
+            if (rawEst) estadosItensLocal = JSON.parse(rawEst);
+            const rawObs = localStorage.getItem('padaria_obs_producao_v1');
+            if (rawObs) obsProdLocal = JSON.parse(rawObs);
+          } catch {}
+        }
+
         const mapaCombinado = new Map<string, Encomenda>();
         for (const encDb of doClienteDb) {
           const localMatch = locaisCliente.find((l) => l.id === encDb.id || l.codigo === encDb.codigo);
@@ -214,22 +225,34 @@ export default function EncomendarClientePage() {
             encDb.itens && encDb.itens.length > 0
               ? encDb.itens.map((it, idx) => ({
                   ...it,
+                  estado_producao: estadosItensLocal[it.id] || it.estado_producao,
                   produto_nome:
                     it.produto_nome && it.produto_nome !== 'Artigo de Padaria/Pastelaria'
                       ? it.produto_nome
                       : localMatch?.itens?.[idx]?.produto_nome || it.produto_nome,
                 }))
-              : localMatch?.itens || [];
+              : (localMatch?.itens || []).map((it) => ({
+                  ...it,
+                  estado_producao: estadosItensLocal[it.id] || it.estado_producao,
+                }));
 
           mapaCombinado.set(encDb.codigo, {
             ...encDb,
+            observacoes_producao: encDb.observacoes_producao || obsProdLocal[encDb.id] || localMatch?.observacoes_producao,
             itens: itensFinais,
           });
         }
 
         for (const encLocal of locaisCliente) {
           if (!mapaCombinado.has(encLocal.codigo)) {
-            mapaCombinado.set(encLocal.codigo, encLocal);
+            mapaCombinado.set(encLocal.codigo, {
+              ...encLocal,
+              observacoes_producao: encLocal.observacoes_producao || obsProdLocal[encLocal.id],
+              itens: (encLocal.itens || []).map((it) => ({
+                ...it,
+                estado_producao: estadosItensLocal[it.id] || it.estado_producao,
+              })),
+            });
           }
         }
 
@@ -1310,10 +1333,16 @@ export default function EncomendarClientePage() {
                 {minhasEncomendas.map((enc) => {
                   // 4 Estados Oficiais: 1. Encomendado | 2. Em Produção | 3. Em Distribuição | 4. Entregue
                   const estStr = String(enc.estado);
+                  const qtdAceites = enc.itens.filter((i) => i.estado_producao === 'em_preparo' || i.estado_producao === 'pronto').length;
+                  const qtdRecusados = enc.itens.filter((i) => i.estado_producao === 'recusado').length;
+                  const isCanceladoOuTudoRecusado =
+                    estStr === 'cancelado' || (enc.itens.length > 0 && qtdRecusados === enc.itens.length);
+                  const isProducaoParcelar = qtdAceites > 0 && qtdRecusados > 0;
+
                   const etapa =
-                    estStr === 'pendente'
+                    estStr === 'pendente' && qtdAceites === 0
                       ? 1
-                      : estStr === 'em_preparacao' || estStr === 'em_producao'
+                      : estStr === 'em_preparacao' || estStr === 'em_producao' || (estStr === 'pendente' && qtdAceites > 0)
                       ? 2
                       : estStr === 'pronto' || estStr === 'pronto_loja' || estStr === 'em_rota'
                       ? 3
@@ -1322,11 +1351,17 @@ export default function EncomendarClientePage() {
                   return (
                     <div
                       key={enc.id}
-                      className="bg-white p-5 rounded-3xl border border-stone-200 shadow-xs space-y-4"
+                      className={`bg-white p-5 rounded-3xl border shadow-xs space-y-4 ${
+                        isCanceladoOuTudoRecusado
+                          ? 'border-red-300 bg-red-50/20'
+                          : isProducaoParcelar
+                          ? 'border-amber-300'
+                          : 'border-stone-200'
+                      }`}
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3">
                         <div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-mono font-black text-sm text-stone-900 bg-stone-100 px-2 py-0.5 rounded border border-stone-300">
                               {enc.codigo}
                             </span>
@@ -1337,6 +1372,11 @@ export default function EncomendarClientePage() {
                             }`}>
                               {enc.tipo === 'levantamento_loja' ? `🏪 Levantamento em ${enc.loja_nome}` : '🚚 Entrega ao Domicílio'}
                             </span>
+                            {isProducaoParcelar && (
+                              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                                ⚠️ Pedido Parcelar ({qtdAceites}/{enc.itens.length} artigos aceites)
+                              </span>
+                            )}
                           </div>
                           <p className="text-xs text-stone-500 mt-1">
                             Agendado para <strong>{enc.data_agendamento} às {enc.hora_agendamento}</strong>
@@ -1348,61 +1388,140 @@ export default function EncomendarClientePage() {
                           </p>
                         </div>
 
-                        <span className={`self-start sm:self-auto text-xs font-black px-3 py-1 rounded-xl uppercase tracking-wider ${
-                          etapa === 4
-                            ? 'bg-emerald-100 text-emerald-900'
-                            : etapa === 3
-                            ? 'bg-blue-100 text-blue-900 animate-pulse'
-                            : etapa === 2
-                            ? 'bg-amber-100 text-amber-900'
-                            : 'bg-stone-100 text-stone-800'
-                        }`}>
-                          {etapa === 4
-                            ? '✅ Entregue'
-                            : etapa === 3
-                            ? '🚚 Em Distribuição'
-                            : etapa === 2
-                            ? '👨‍🍳 Em Produção'
-                            : '📝 Encomendado'}
-                        </span>
+                        {isCanceladoOuTudoRecusado ? (
+                          <span className="self-start sm:self-auto text-xs font-black px-3 py-1 rounded-xl uppercase tracking-wider bg-red-100 text-red-900 border border-red-300">
+                            ❌ Não Produzido
+                          </span>
+                        ) : (
+                          <span className={`self-start sm:self-auto text-xs font-black px-3 py-1 rounded-xl uppercase tracking-wider ${
+                            etapa === 4
+                              ? 'bg-emerald-100 text-emerald-900'
+                              : etapa === 3
+                              ? 'bg-blue-100 text-blue-900 animate-pulse'
+                              : etapa === 2
+                              ? 'bg-amber-100 text-amber-900'
+                              : 'bg-stone-100 text-stone-800'
+                          }`}>
+                            {etapa === 4
+                              ? '✅ Entregue'
+                              : etapa === 3
+                              ? '🚚 Pronta / Em Distribuição'
+                              : etapa === 2
+                              ? isProducaoParcelar
+                                ? '👨‍🍳 Em Produção (Parcelar)'
+                                : '👨‍🍳 Em Produção'
+                              : '📝 Encomendado'}
+                          </span>
+                        )}
                       </div>
 
                       {/* Barra de Progresso Visual de 4 Etapas Oficiais */}
-                      <div className="bg-stone-50 p-3.5 rounded-2xl border border-stone-200">
-                        <div className="grid grid-cols-4 gap-2 text-center">
-                          <div className={`space-y-1 ${etapa >= 1 ? 'text-amber-700 font-bold' : 'text-stone-400'}`}>
-                            <div className={`h-2 rounded-full ${etapa >= 1 ? 'bg-amber-600' : 'bg-stone-200'}`} />
-                            <span className="text-[10px] block">1. Encomendado</span>
+                      {!isCanceladoOuTudoRecusado && (
+                        <div className="bg-stone-50 p-3.5 rounded-2xl border border-stone-200">
+                          <div className="grid grid-cols-4 gap-2 text-center">
+                            <div className={`space-y-1 ${etapa >= 1 ? 'text-amber-700 font-bold' : 'text-stone-400'}`}>
+                              <div className={`h-2 rounded-full ${etapa >= 1 ? 'bg-amber-600' : 'bg-stone-200'}`} />
+                              <span className="text-[10px] block">1. Encomendado</span>
+                            </div>
+                            <div className={`space-y-1 ${etapa >= 2 ? 'text-amber-700 font-bold' : 'text-stone-400'}`}>
+                              <div className={`h-2 rounded-full ${etapa >= 2 ? 'bg-amber-600' : 'bg-stone-200'}`} />
+                              <span className="text-[10px] block">2. Em Produção</span>
+                            </div>
+                            <div className={`space-y-1 ${etapa >= 3 ? 'text-blue-700 font-bold' : 'text-stone-400'}`}>
+                              <div className={`h-2 rounded-full ${etapa >= 3 ? 'bg-blue-600' : 'bg-stone-200'}`} />
+                              <span className="text-[10px] block">3. Em Distribuição</span>
+                            </div>
+                            <div className={`space-y-1 ${etapa >= 4 ? 'text-emerald-700 font-bold' : 'text-stone-400'}`}>
+                              <div className={`h-2 rounded-full ${etapa >= 4 ? 'bg-emerald-600' : 'bg-stone-200'}`} />
+                              <span className="text-[10px] block">4. Entregue</span>
+                            </div>
                           </div>
-                          <div className={`space-y-1 ${etapa >= 2 ? 'text-amber-700 font-bold' : 'text-stone-400'}`}>
-                            <div className={`h-2 rounded-full ${etapa >= 2 ? 'bg-amber-600' : 'bg-stone-200'}`} />
-                            <span className="text-[10px] block">2. Em Produção</span>
-                          </div>
-                          <div className={`space-y-1 ${etapa >= 3 ? 'text-blue-700 font-bold' : 'text-stone-400'}`}>
-                            <div className={`h-2 rounded-full ${etapa >= 3 ? 'bg-blue-600' : 'bg-stone-200'}`} />
-                            <span className="text-[10px] block">3. Em Distribuição</span>
-                          </div>
-                          <div className={`space-y-1 ${etapa >= 4 ? 'text-emerald-700 font-bold' : 'text-stone-400'}`}>
-                            <div className={`h-2 rounded-full ${etapa >= 4 ? 'bg-emerald-600' : 'bg-stone-200'}`} />
-                            <span className="text-[10px] block">4. Entregue</span>
-                          </div>
+                        </div>
+                      )}
+
+                      {/* Alerta informativo de Produção Parcelar ou Recusa */}
+                      {isCanceladoOuTudoRecusado && (
+                        <div className="p-3 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-900 font-medium">
+                          <strong>❌ Informação da Produção:</strong> Não foi possível aceitar a produção dos artigos desta encomenda para o horário solicitado.
+                        </div>
+                      )}
+                      {isProducaoParcelar && (
+                        <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 font-medium">
+                          <strong>⚠️ Produção Parcelar:</strong> A nossa produção conseguiu aceitar <strong>{qtdAceites} de {enc.itens.length} artigos</strong> do seu pedido, mas <strong>{qtdRecusados} artigo(s)</strong> não poderão ser produzidos a tempo. Verifique o estado individual de cada artigo abaixo.
+                        </div>
+                      )}
+
+                      {/* Artigos e Estado Parcelar por Artigo (Sem Preços) */}
+                      <div className="space-y-1.5 text-xs">
+                        <span className="font-bold text-stone-700 uppercase text-[10px] tracking-wider block">
+                          Artigos da Encomenda & Estado de Produção:
+                        </span>
+                        <div className="grid grid-cols-1 gap-2">
+                          {enc.itens.map((it) => {
+                            const isRecusado = it.estado_producao === 'recusado';
+                            const isPronto = it.estado_producao === 'pronto' || etapa >= 3;
+                            const isEmPreparo = it.estado_producao === 'em_preparo' || (etapa === 2 && !isRecusado);
+
+                            return (
+                              <div
+                                key={it.id}
+                                className={`p-2.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+                                  isRecusado
+                                    ? 'bg-red-50/70 border-red-200 text-red-900'
+                                    : isPronto
+                                    ? 'bg-emerald-50/60 border-emerald-200 text-stone-900'
+                                    : isEmPreparo
+                                    ? 'bg-amber-50/60 border-amber-200 text-stone-900'
+                                    : 'bg-stone-50 border-stone-200 text-stone-800'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className={`font-mono font-black px-2 py-0.5 rounded text-xs ${
+                                    isRecusado
+                                      ? 'bg-red-100 text-red-800 line-through'
+                                      : 'bg-white border border-stone-200 text-amber-900'
+                                  }`}>
+                                    {it.quantidade} un.
+                                  </span>
+                                  <span className={`font-bold ${isRecusado ? 'line-through text-red-800/80' : 'text-stone-900'}`}>
+                                    {it.produto_nome}
+                                  </span>
+                                </div>
+
+                                <span className={`self-start sm:self-auto text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider ${
+                                  isRecusado
+                                    ? 'bg-red-600 text-white'
+                                    : isPronto
+                                    ? 'bg-emerald-600 text-white'
+                                    : isEmPreparo
+                                    ? 'bg-amber-500 text-stone-950'
+                                    : 'bg-stone-200 text-stone-700'
+                                }`}>
+                                  {isRecusado
+                                    ? '✕ Não Produzido / Indisponível'
+                                    : isPronto
+                                    ? '✓ Pronto'
+                                    : isEmPreparo
+                                    ? '👨‍🍳 Aceite (Em Produção)'
+                                    : '⏳ A aguardar confirmação'}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
 
-                      {/* Artigos e Quantidades da Encomenda (Sem Preços) */}
-                      <div className="space-y-1 text-xs">
-                        <span className="font-bold text-stone-700 uppercase text-[10px] tracking-wider block">
-                          Quantidades Encomendadas:
-                        </span>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                          {enc.itens.map((it) => (
-                            <div key={it.id} className="p-2 rounded-xl bg-stone-50 flex items-center justify-between text-stone-800">
-                              <span>• {it.produto_nome}</span>
-                              <span className="font-mono font-bold text-amber-900">{it.quantidade} un.</span>
-                            </div>
-                          ))}
+                      {/* Observações da Produção (se existirem) */}
+                      {enc.observacoes_producao && (
+                        <div className="p-3.5 rounded-2xl bg-stone-900 text-amber-50 border border-stone-700 text-xs space-y-1">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">
+                            💬 Observações da Padaria / Produção:
+                          </span>
+                          <p className="text-stone-100 font-medium leading-relaxed">
+                            {enc.observacoes_producao}
+                          </p>
                         </div>
-                      </div>
+                      )}
                     </div>
                   );
                 })}
