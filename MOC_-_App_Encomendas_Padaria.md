@@ -61,6 +61,7 @@ Todos os documentos abaixo são mantidos automaticamente sincronizados em Markdo
 4. [[docs/04_Dossier_Projeto_Cliente_Backlog_Horas_e_Oportunidades|📋 04 - Dossier Mestre do Projeto: Cliente, Backlog, Orçamento, Bolsa de Horas, Sprints & Oportunidades]]
 5. [[docs/05_Proposta_Comercial_e_Demonstracao_de_Valor|💼 05 - Proposta Comercial Executiva & Demonstração de Valor]]
 6. [[docs/06_Relatorio_Auditoria_Bulletproof_Swarm|🛡️ 06 - Relatório de Auditoria & Certificação de Qualidade — Bulletproof Agent Swarm]]
+7. [[docs/assets/processo_as_is/Processo_As_Is_Mapa_Diario_Padaria_da_Vila|📄 Evidência do Processo As-Is — Mapa Diário Manual em Papel e Excel (10/10/2026)]]
 
 ---
 

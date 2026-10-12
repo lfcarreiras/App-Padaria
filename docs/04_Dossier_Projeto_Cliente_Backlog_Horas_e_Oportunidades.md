@@ -38,12 +38,14 @@ tags:
 
 ---
 
-## 2. O Problema a Resolver (Dores Operacionais Diagnosticadas)
+## 2. O Problema a Resolver (Dores Operacionais Diagnosticadas & Processo *As-Is*)
 
 1. **Fragmentação de Encomendas Multicanal:** Pedidos recebidos presencialmente nos 3 balcões, por telefone e por WhatsApp apontados em papel, gerando falhas de comunicação com o fabrico, dificuldade em editar pedidos já registados e ausência de confirmação estruturada ao cliente quando algum artigo já não pode ser produzido.
 2. **Falta de Visibilidade de Urgências (< 3 Horas) e Ocupação dos 3 Fornos:** Encomendas de última hora para o próprio dia sem alarme imediato na fábrica e necessidade de controlar o que está a cozer em cada um dos **3 Fornos** e os respetivos tempos de fornada.
-3. **Trabalho Manual Diário no «Mapa Diário» das 5 Carrinhas:** Elevado esforço manual diário para somar, ao longo de 29 referências de pão/pastelaria, as quantidades da **Base Fixa de Particulares (1.º ao 4.º Carro)**, as **Quantidades Semanais dos 13 Clientes Empresariais (5.º Carro)** e os **Pedidos Adicionais do Dia**.
+3. **Trabalho Manual Diário no «Mapa Diário» das 5 Carrinhas ($75\text{ min/dia} \rightarrow 438\text{ horas/ano}$):** Todos os dias, um colaborador recolhe manualmente os pedidos em papel das lojas, soma as quantidades da **Base Fixa de Particulares (1.º ao 4.º Carro)** com as **Quantidades Semanais dos Clientes Empresariais (5.º Carro)** e os **Pedidos Adicionais**, e digita tudo numa folha Excel (`MAPA DIARIO`) para imprimir em papel. A automatização deste processo liberta **$438\text{ horas/ano}$** só na compilação diária (**$618\text{ horas/ano}$** incluindo o tempo poupado nos 3 balcões e na produção).
 4. **Necessidade de Isolamento por Posto de Trabalho:** Cada equipa (`Loja 1`, `Loja 2`, `Loja 3`, `Centro de Produção`, `Carrinhas` e `Gestão`) precisa de um ecrã limpo e focado apenas na sua função, sem menus desnecessários.
+
+![Processo As-Is: Folha Física do Mapa Diário compilada manualmente em Excel a partir de pedidos em papel (10/10/2026)](assets/processo_as_is/mapa_diario_papel_as_is_10_10_2026.jpg)
 
 ---
 
