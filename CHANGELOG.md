@@ -42,6 +42,42 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.1.0] - 2026-10-12
+### 🚀 Adicionado (Added)
+- **Triagem Parcelar Artigo a Artigo nos Alertas de Encomenda Urgente ($\le 3\text{ Horas}$) (`/producao`)**:
+  - Exibição explícita do **Canal de Origem** (`🌐 App Cliente`, `💬 WhatsApp`, `📞 Telefone`, `🏪 Presencial`) e da **Loja / Destino** no cartão de alerta urgente.
+  - Visualização completa dos artigos do pedido com botões individuais **`✓ Produzir`** e **`✕ Não Produzir`** por artigo, além do botão rápido **`✓ Aceitar Todos os Artigos`**.
+  - Campo de **Observações da Produção para o Cliente** (`observacoes_producao`) sincronizado com a base de dados (`[OBS_PROD:...]`).
+- **Feedback Parcelar de Produção na App Cliente (`/encomendar`) e via WhatsApp**:
+  - No menu *«As Minhas Encomendas»* da App Cliente, exibição do estado individual de cada artigo (`👨‍🍳 Aceite (Em Produção)`, `✓ Pronto`, `✕ Não Produzido / Indisponível`), aviso de **Produção Parcelar** e caixa de **Observações da Padaria / Produção**.
+  - Botão de envio via WhatsApp na Produção (`gerarLinkWhatsAppDecisaoEncomenda`) para pedidos feitos fora da App Cliente (ou como reforço opcional), listando artigos aceites (`✅`), recusados (`❌`) e observações.
+- **Disparo Automático de WhatsApp na Loja ao Marcar Encomenda como Pronta (`/loja`)**:
+  - Botão **`✅ Dar Encomenda como Pronta p/ Entrega`** que muda o estado para `pronto_loja` e abre automaticamente o WhatsApp (`gerarLinkWhatsAppEncomendaPronta`) para o telemóvel do cliente.
+- **Suite Documental Viva Inprooval® (`docs/01` a `docs/05`)**:
+  - Criação dos 5 documentos canónicos vivos do projeto em `docs/`.
+
+### 🐛 Corrigido (Fixed)
+- Sincronização e backup estruturado (`[ITENS_BACKUP:...]`) das linhas de `itens_encomenda` submetidas na App Cliente para garantir que nenhum pedido aparece com `0 artigos` na Produção.
+- Ajuste de altura `h-dvh max-h-dvh` nos ecrãs de login (`/login` e `/encomendar`) para que o badge oficial *Powered by Inprooval* seja sempre visível sem scroll.
+
+### 🔗 Referência Técnica
+- Commit: `e3b93fd` | Tag: `v2.1.0`
+
+## [v2.0.0] - 2026-10-11
+### 🚀 Adicionado (Added)
+- **Implementação dos 22 Requisitos Operacionais da Reunião em Arouca**:
+  - Login da equipa (`/login`) com seleção obrigatória de **Cockpit de Trabalho** (`Loja 1`, `Loja 2`, `Loja 3`, `Centro de Produção`, `Carrinhas`, `Gestão`) e isolamento de menus.
+  - Ecrã de login autónomo para clientes em `/encomendar` (Módulo Extra / Add-On), sem exposição de preços e com tracking em 4 estados.
+  - Expansão da frota para **5 Carrinhas (`1.º Carro` ao `5.º Carro`)**: `1.º` ao `4.º Carro` dedicados a particulares (Base Fixa Diária + Adicionais) e `5.º Carro` dedicado aos **13 Clientes Empresariais B2B** de Arouca.
+  - Grelha de **Base Fixa (1.º ao 4.º Carro)** e **Matriz Semanal B2B (5.º Carro)** com upload/exportação Excel em `/gestao`.
+  - Exportação com 1 clique do ficheiro Excel oficial **«MAPA DIÁRIO»** em `/entregas`.
+  - **Pool Consolidada do Dia** e **3 Cartões de Forno (`Forno 1`, `Forno 2`, `Forno 3`)** com cronómetro em tempo real e histórico de fornadas em `/producao`.
+  - Edição completa de artigos (adicionar/eliminar/alterar quantidades) em encomendas já registadas em `/encomendas`.
+  - Calibração nativa do talão térmico para a impressora **Epson M249A TM-T20 (80mm / 72mm úteis)**.
+
+### 🔗 Referência Técnica
+- Commit: `7ae6771` | Tag: `v2.0.0`
+
 ## [v1.9.0] - 2026-09-21
 ### 🎨 Integração do TinaCMS (Git-Backed Content Management)
 - **Arquitetura Híbrida Oficial**: Integração do TinaCMS para gestão visual de conteúdos institucionais e de montra em conformidade com o padrão oficial Inprooval® / EyeQ Lda (`Next.js + TinaCMS + GitHub + Vercel`), mantendo o Supabase para a operação transacional em tempo real (encomendas, Kanban, rotas e auditoria).

@@ -51,12 +51,27 @@ updated: 2026-09-14
 
 ---
 
-## 🏷️ 3. Histórico de Versões & Tags Git (SemVer)
+## 📚 3. Suite Documental Viva Inprooval® (5 Documentos Canónicos)
+
+Todos os documentos abaixo são mantidos automaticamente sincronizados em Markdown (`docs/*.md`) e dispõem de geração direta em **PDF Institucional Inprooval®** (com sanitização automática de notas internas):
+
+1. [[docs/01_Dossier_Tecnico_e_Evolucao_Arquitetural|🛠️ 01 - Dossier Técnico & Passo-a-Passo do Desenvolvimento da Solução]]
+2. [[docs/02_Manual_Utilizador_Jornadas_e_Fluxos_de_Pedidos|📘 02 - Manual de Utilização, Jornadas por Perfil & Fluxos End-to-End de Pedidos]]
+3. [[docs/03_Manual_Administrador_Configuracoes_e_KPIs_Gestao|📊 03 - Manual do Administrador: Configurações & Fórmulas de Indicadores do Cockpit de Gestão]]
+4. [[docs/04_Dossier_Projeto_Cliente_Backlog_Horas_e_Oportunidades|📋 04 - Dossier Mestre do Projeto: Cliente, Backlog, Orçamento, Bolsa de Horas, Sprints & Oportunidades]]
+5. [[docs/05_Proposta_Comercial_e_Demonstracao_de_Valor|💼 05 - Proposta Comercial Executiva & Demonstração de Valor]]
+
+---
+
+## 🏷️ 4. Histórico de Versões & Tags Git (SemVer)
 
 O projeto adere estritamente à [[solutions_versioning_and_retrofit|Diretiva de Versionamento Contínuo e Retrofit]].  
 Consulte o histórico detalhado em `[[CHANGELOG]]`.
 
 | Versão | Tag Git | Commit | Data | Marco Funcional Principal |
+| :--- | :--- | :--- | :--- | :--- |
+| **v2.1.0** | `v2.1.0` | `e3b93fd` | 2026-10-12 | Triagem parcelar artigo a artigo nos alertas urgentes (<3h), feedback parcelar na App Cliente e via WhatsApp, WhatsApp automático na Loja e Suite Documental Viva (5 Documentos + PDFs) |
+| **v2.0.0** | `v2.0.0` | `7ae6771` | 2026-10-11 | Implementação dos 22 requisitos de Arouca: Login Cockpit, 5 Carrinhas, Base Fixa, 13 Clientes B2B, Excel «Mapa Diário», 3 Fornos, Epson TM-T20 e App Cliente dedicada |
 | **v1.9.0** | `v1.9.0` | `HEAD` | 2026-09-21 | Integração do TinaCMS (Git-Backed) com coleções de configuração da marca, lojas físicas e catálogo visual de produtos, atalho no Admin e arquitetura híbrida com Supabase |
 | **v1.8.0** | `v1.8.0` | `4963bbd` | 2026-09-17 | Histórico de auditoria de utilizadores em todos os painéis, remoção de preços no configurador de talão e exportação de folhas de fabrico Excel por setor (Padaria e Pastelaria) |
 | **v1.7.1** | `v1.7.1` | `4dca984` | 2026-09-16 | Correção do corte no talão pré-impressão (layout de bloco sem flex stretch) e remoção do duplo + no botão |
