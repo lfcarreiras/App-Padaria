@@ -28,8 +28,8 @@ tags:
    - Somava manualmente as quantidades de cada artigo por carrinha (`1.º CARRO` ao `5.º CARRO`) e por cliente empresarial/institucional (*Gamarão, Patronato, P.-Telhe, Lar 3.ª Idade, Hospital, Centro D. Urrô, Lar Infância e Juventude, Centro Social Burgo, Cavadinha, Merc. Ribeiro, Café Praça, Pacheco Molde, Empregados, Padaria da Vila*).
    - Introduzia somas compostas diretamente em células de texto (ex.: `15+30`, `5+5`, `10+10`) e imprimia a tabela (frequentemente no verso de guias de remessa reutilizadas e com células truncadas `##`).
 2. **Impacto da Automatização Inprooval® (*To-Be*):**
-   - **Libertação de $438\text{ horas/ano}$** diretamente na compilação e consolidação diária do Mapa Diário ($75\text{ min/dia} \rightarrow 2\text{ min/dia}$ em $360\text{ dias/ano}$).
-   - **Libertação Global de $618\text{ horas/ano}$** ($\approx 6.489,00\text{ €/ano}$ @ $10,50\text{ €/h}$) quando somado o tempo poupado nos 3 balcões e na produção, pagando o investimento inicial (`2.500,00 €`) em **4,6 a 6,5 meses**.
+   - **Libertação de $272,25\text{ horas/ano}$** diretamente na compilação e consolidação diária do Mapa Diário ($45\text{ min/dia} \times 363\text{ dias/ano} \approx 22,7\text{ horas/mês}$), equivalente a **$2.858,63\text{ €/ano}$** (@ $10,50\text{ €/h}$).
+   - **Libertação Global de $393,25\text{ horas/ano}$** ($\approx 4.129,13\text{ €/ano}$ @ $10,50\text{ €/h}$) quando somado o tempo poupado nos 3 balcões e na produção ($20\text{ min/dia}$), pagando o investimento inicial (`2.500,00 €`) em **$7,3\text{ a }10,5\text{ meses}$**.
 
 ---
 

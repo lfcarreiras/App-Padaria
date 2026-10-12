@@ -33,16 +33,16 @@ O trabalho desenvolvido pela **Inprooval®** transforma processos manuais basead
 | :--- | :--- | :--- |
 | **Pedidos dispersos em papel, telefone e WhatsApp:** Risco de esquecimentos, notas perdidas e dificuldade em alterar artigos depois de o pedido inicial ser anotado. | **Balcão Digital Multicanal (`/encomendas`):** Registo rápido com identificação do canal, edição livre de artigos a qualquer momento e impressão imediata na **Epson M249A TM-T20 (80mm)**. | **Zero pedidos esquecidos** e atendimento ao balcão em menos de 30 segundos. |
 | **Encomendas urgentes (< 3h) sem aviso imediato na produção e sem resposta rápida ao cliente quando falta um artigo.** | **Alerta Sonoro/Visual (< 3h) com Decisão Artigo a Artigo (`/producao`):** O padeiro vê o canal, a loja e os artigos do pedido, aceita ou recusa artigo a artigo (`✓ Produzir` / `✕ Não Produzir`), adiciona observações e notifica o cliente na App ou por WhatsApp. | **100% de controlo sobre urgências** e comunicação transparente e profissional com o cliente. |
-| **Recolha diária de papéis e criação manual da tabela Excel «Mapa Diário» das 5 Carrinhas e Clientes B2B ($75\text{ min/dia}$).** | **Consolidação Automática em Tempo Real & Extração com 1 Clique do Excel Oficial «MAPA DIÁRIO» (`/entregas` e `/gestao`):** Soma automaticamente Base Fixa (1.º ao 4.º Carro), Matriz Semanal B2B (5.º Carro) e Pedidos Adicionais. | **Libertação de $438\text{ horas/ano}$** só na compilação diária (**$618\text{ horas/ano}$** no global da operação). |
+| **Recolha diária de papéis e criação manual da tabela Excel «Mapa Diário» das 5 Carrinhas e Clientes B2B ($45\text{ min/dia}$ durante $363\text{ dias/ano}$).** | **Consolidação Automática em Tempo Real & Extração com 1 Clique do Excel Oficial «MAPA DIÁRIO» (`/entregas` e `/gestao`):** Soma automaticamente Base Fixa (1.º ao 4.º Carro), Matriz Semanal B2B (5.º Carro) e Pedidos Adicionais. | **Libertação direta de $272,25\text{ horas/ano}$** só na elaboração do Mapa Diário (**$393,25\text{ horas/ano}$** no global da operação). |
 | **Clientes sem visibilidade de quando a encomenda fica pronta na loja.** | **Notificação Automática por WhatsApp na Loja (`/loja`):** Quando a loja dá a encomenda como pronta para entrega, abre automaticamente o WhatsApp para avisar o cliente que já pode levantar o seu pedido. | **Redução drástica de chamadas** para as lojas e maior satisfação do cliente. |
 
 ---
 
 ## 2. Demonstração de Impacto Real: Processo *As-Is* (Papel/Excel Manual) vs. Libertação de Horas Anuais (*To-Be*)
 
-### 2.1.Diagnóstico do Processo Atual (*As-Is*)
+### 2.1. Diagnóstico do Processo Atual (*As-Is* — $45\text{ Minutos/Dia}$, $363\text{ Dias/Ano}$)
 
-Atualmente, **todos os dias do ano**, um colaborador tem de recolher manualmente os pedidos apontados em papel nas lojas, cruzar com as quantidades fixas das carrinhas particulares (`1.º ao 4.º Carro`) e com os pedidos específicos de cada cliente empresarial (`5.º Carro`), efetuar somas parcelares à mão ou na folha de cálculo (como `15+30`, `5+5`, `10+10`) e preencher manualmente a grelha em Excel para imprimir o **«MAPA DIÁRIO»** que vai para os fornos e motoristas:
+Atualmente, durante **$363\text{ dias por ano}$**, um colaborador despende **$45\text{ minutos todos os dias}$** para recolher manualmente os pedidos apontados em papel nas lojas, cruzar com as quantidades fixas das carrinhas particulares (`1.º ao 4.º Carro`) e com os pedidos específicos de cada cliente empresarial (`5.º Carro`), efetuar somas parcelares à mão ou na folha de cálculo (como `15+30`, `5+5`, `10+10`) e preencher manualmente a grelha em Excel para imprimir o **«MAPA DIÁRIO»** que segue para os fornos e motoristas:
 
 ![Processo As-Is: Folha Física do Mapa Diário compilada manualmente em Excel a partir de pedidos em papel (10/10/2026)](assets/processo_as_is/mapa_diario_papel_as_is_10_10_2026.jpg)
 
@@ -50,34 +50,36 @@ Atualmente, **todos os dias do ano**, um colaborador tem de recolher manualmente
 
 ---
 
-### 2.2. Contabilização Rigorosa da Libertação de Horas Anuais (`360 Dias Operacionais / Ano`)
+### 2.2. Contabilização Rigorosa da Libertação de Horas Anuais ($45\text{ min/dia} \times 363\text{ Dias Operacionais / Ano}$)
 
-Com a digitalização e automatização deste fluxo na plataforma **Inprooval®**, as quantidades da **Base Fixa (1.º ao 4.º Carro)** e da **Matriz Semanal B2B (5.º Carro)** ficam parametrizadas e editáveis no Cockpit de Gestão (`/gestao`), e todos os pedidos registados nas lojas ou na App somam-se **automaticamente e em tempo real** no Centro de Produção (`/producao`) e no gerador do Excel oficial (`/entregas`).
+Com a digitalização e automatização deste fluxo na plataforma **Inprooval®**, as quantidades da **Base Fixa (1.º ao 4.º Carro)** e da **Matriz Semanal B2B (5.º Carro)** ficam parametrizadas e editáveis no Cockpit de Gestão (`/gestao`), e todos os pedidos registados nas lojas ou na App somam-se **automaticamente e em tempo real** no Centro de Produção (`/producao`) e no gerador do Excel oficial (`/entregas`), libertando na totalidade os **$45\text{ minutos diários}$**:
 
-| Tarefa Operacional Diária | Tempo Manual Atual (*As-Is*) | Tempo Digital Inprooval® (*To-Be*) | Poupança Diária | Horas Libertadas / Mês (`30 dias`) | **Horas Libertadas / Ano (`360 dias`)** |
+$$\text{Horas Anuais Libertadas no Mapa Diário} = \frac{45\text{ min/dia}}{60} \times 363\text{ dias/ano} = \mathbf{272,25\text{ horas / ano}} \quad (\approx \mathbf{22,7\text{ horas / mês}})$$
+
+| Tarefa Operacional Diária (`363 dias/ano`) | Tempo Manual Atual (*As-Is*) | Tempo Digital Inprooval® (*To-Be*) | Poupança Diária | Horas Libertadas / Mês | **Horas Libertadas / Ano (`363 dias`)** |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **1. Recolha e conferência de pedidos manuais em papel** (3 lojas, telefone e mensagens dispersas) | $20\text{ min/dia}$ | $0\text{ min/dia}$ *(Sincronização direta)* | **$20\text{ min/dia}$** | $10,0\text{ h/mês}$ | **$120,0\text{ horas / ano}$** |
-| **2. Compilação das 4 Carrinhas Particulares (`1.º ao 4.º Carro`)** (cruzamento da Base Fixa + encomendas extra por artigo) | $20\text{ min/dia}$ | $0\text{ min/dia}$ *(Cálculo automático)* | **$20\text{ min/dia}$** | $10,0\text{ h/mês}$ | **$120,0\text{ horas / ano}$** |
-| **3. Compilação dos Clientes Empresariais B2B (`5.º Carro`)** (verificar dia da semana + somas parcelares `15+30`, `10+10`) | $20\text{ min/dia}$ | $0\text{ min/dia}$ *(Matriz semanal ativa)* | **$20\text{ min/dia}$** | $10,0\text{ h/mês}$ | **$120,0\text{ horas / ano}$** |
-| **4. Digitação no Excel «Mapa Diário», revisão de totais (`3.114 un.`) e preparação de folhas de forno** | $15\text{ min/dia}$ | $2\text{ min/dia}$ *(Extração 1-Clique)* | **$13\text{ min/dia}$** | $6,5\text{ h/mês}$ | **$78,0\text{ horas / ano}$** |
-| **SUBTOTAL 1 — Compilação e Consolidação Diária do «Mapa Diário»** | **$75\text{ min/dia}$ ($1\text{h}15\text{m}$)** | **$2\text{ min/dia}$** | **$73\text{ min/dia}$** | **$36,5\text{ h/mês}$** | **$438,0\text{ horas / ano}$** |
-| **5. Balcões das 3 Lojas & Produção** (alterações de encomendas sem rasuras em papel + aviso WhatsApp automático *"Encomenda Pronta"* que elimina chamadas) | $30\text{ min/dia}$ *(agregado 3 lojas)* | $0\text{ min/dia}$ *(Fluxo digital + WA)* | **$30\text{ min/dia}$** | $15,0\text{ h/mês}$ | **$180,0\text{ horas / ano}$** |
-| **IMPACTO GLOBAL CONSOLIDADO NA PADARIA DA VILA** | **$105\text{ min/dia}$ ($1\text{h}45\text{m}$)** | **$2\text{ min/dia}$** | **$103\text{ min/dia}$** | **$51,5\text{ h/mês}$** | **🏆 $618,0\text{ horas / ano}$** |
+| **1. Recolha e conferência de pedidos manuais em papel** (3 lojas, telefone e mensagens dispersas) | $12\text{ min/dia}$ | $0\text{ min/dia}$ *(Sincronização direta)* | **$12\text{ min/dia}$** | $6,05\text{ h/mês}$ | **$72,60\text{ horas / ano}$** |
+| **2. Compilação das 4 Carrinhas Particulares (`1.º ao 4.º Carro`)** (cruzamento da Base Fixa + encomendas extra por artigo) | $12\text{ min/dia}$ | $0\text{ min/dia}$ *(Cálculo automático)* | **$12\text{ min/dia}$** | $6,05\text{ h/mês}$ | **$72,60\text{ horas / ano}$** |
+| **3. Compilação dos Clientes Empresariais B2B (`5.º Carro`)** (verificar dia da semana + somas parcelares `15+30`, `10+10`) | $11\text{ min/dia}$ | $0\text{ min/dia}$ *(Matriz semanal ativa)* | **$11\text{ min/dia}$** | $5,55\text{ h/mês}$ | **$66,55\text{ horas / ano}$** |
+| **4. Digitação no Excel «Mapa Diário», revisão de totais (`3.114 un.`) e preparação de folhas de forno** | $10\text{ min/dia}$ | $0\text{ min/dia}$ *(Extração 1-Clique)* | **$10\text{ min/dia}$** | $5,04\text{ h/mês}$ | **$60,50\text{ horas / ano}$** |
+| **SUBTOTAL 1 — Elaboração Diária do «Mapa Diário» ($45\text{ min/dia}$)** | **$45\text{ min/dia}$** | **$0\text{ min/dia}$** | **$45\text{ min/dia}$** | **$22,69\text{ h/mês}$** | **🎯 $272,25\text{ horas / ano}$** |
+| **5. Balcões das 3 Lojas & Produção** (alterações de encomendas sem rasuras em papel + aviso WhatsApp automático *"Encomenda Pronta"* que elimina chamadas) | $20\text{ min/dia}$ *(agregado 3 lojas)* | $0\text{ min/dia}$ *(Fluxo digital + WA)* | **$20\text{ min/dia}$** | $10,08\text{ h/mês}$ | **$121,00\text{ horas / ano}$** |
+| **IMPACTO GLOBAL CONSOLIDADO NA PADARIA DA VILA** | **$65\text{ min/dia}$** | **$0\text{ min/dia}$** | **$65\text{ min/dia}$** | **$32,77\text{ h/mês}$** | **🏆 $393,25\text{ horas / ano}$** |
 
 ---
 
 ### 2.3. Tradução Económica das Horas Libertadas & Retorno do Investimento (ROI / Payback)
 
-Considerando um custo médio empresa conservador de **$10,50\text{ € / hora}$** (incluindo vencimento base, TSU patronal, subsídios de férias/Natal e seguro de acidentes de trabalho) e um ano operacional de $1.760\text{ horas}$ úteis por trabalhador:
+Considerando um custo médio empresa conservador de **$10,50\text{ € / hora}$** (incluindo vencimento base, TSU patronal, subsídios de férias/Natal e seguro de acidentes de trabalho) e um mês útil padrão de $160\text{ horas}$ por trabalhador:
 
-$$\text{Horas Libertadas no Mapa Diário} = 438\text{ h/ano} \times 10,50\text{ €/h} = \mathbf{4.599,00\text{ € / ano}}$$
+$$\text{Valor Anual Libertado só no Mapa Diário} = 272,25\text{ h/ano} \times 10,50\text{ €/h} = \mathbf{2.858,63\text{ € / ano}}$$
 
-$$\text{Horas Totais Libertadas (Mapa Diário + 3 Lojas + Produção)} = 618\text{ h/ano} \times 10,50\text{ €/h} = \mathbf{6.489,00\text{ € / ano}}$$
+$$\text{Valor Anual Global Libertado (Mapa Diário + 3 Lojas + Produção)} = 393,25\text{ h/ano} \times 10,50\text{ €/h} = \mathbf{4.129,13\text{ € / ano}}$$
 
-* **Equivalência em Tempo Humano:** As **$438\text{ horas/ano}$** libertadas apenas na compilação do Mapa Diário equivalem a **2,5 meses completos de trabalho** de um colaborador a tempo inteiro todos os anos (subindo para **3,5 meses completos de trabalho/ano** quando incluído o ganho nos 3 balcões e na produção).
-* **Payback Rápido do Investimento Base (`2.500,00 €`):**
-  - Contabilizando **apenas** a poupança direta na compilação diária do Mapa Diário ($438\text{h/ano} = 383,25\text{ €/mês}$), o investimento inicial de implementação de `2.500,00 €` **paga-se integralmente em $6,5\text{ meses}$**.
-  - Contabilizando a libertação global de horas na operação ($618\text{h/ano} = 540,75\text{ €/mês}$), o investimento inicial **paga-se em apenas $4,6\text{ meses}$**, gerando um benefício líquido positivo logo no primeiro semestre de utilização.
+* **Equivalência em Tempo Humano:** As **$272,25\text{ horas/ano}$** libertadas apenas na elaboração do Mapa Diário equivalem a **1,7 meses completos de trabalho útil** ($34\text{ dias}$ de 8 horas) de um funcionário todos os anos — subindo para **2,5 meses completos de trabalho/ano** ($393,25\text{ horas/ano}$) quando incluído o tempo poupado nos balcões das 3 lojas e na produção.
+* **Payback do Investimento Base (`2.500,00 €`):**
+  - Contabilizando **exclusivamente** os $45\text{ minutos/dia}$ poupados no Mapa Diário ($272,25\text{h/ano} = 2.858,63\text{ €/ano}$), o investimento inicial de implementação de `2.500,00 €` **paga-se na totalidade em menos de $10,5\text{ meses}$** no primeiro ano.
+  - Contabilizando a libertação global de horas na operação ($393,25\text{h/ano} = 4.129,13\text{ €/ano}$), o investimento inicial **paga-se em apenas $7,3\text{ meses}$**.
 
 ---
 
