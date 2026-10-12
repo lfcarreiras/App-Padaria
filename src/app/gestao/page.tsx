@@ -2426,18 +2426,43 @@ export default function AdminPage() {
                                 </button>
                               </div>
                             ) : (
-                              <span
-                                onClick={() => {
-                                  if (temPermissaoEdicaoGestao) {
-                                    setArtigoBaseFixaEmEdicao(prodNome);
-                                    setNovoNomeArtigoBaseFixa(prodNome);
-                                  }
-                                }}
-                                className={temPermissaoEdicaoGestao ? 'cursor-pointer hover:text-blue-700 hover:underline' : ''}
-                                title={temPermissaoEdicaoGestao ? 'Clique para corrigir ou alterar o nome do artigo' : undefined}
-                              >
-                                {prodNome}
-                              </span>
+                              <div className="flex items-center justify-between gap-2">
+                                <span
+                                  onClick={() => {
+                                    if (temPermissaoEdicaoGestao) {
+                                      setArtigoBaseFixaEmEdicao(prodNome);
+                                      setNovoNomeArtigoBaseFixa(prodNome);
+                                    }
+                                  }}
+                                  className={temPermissaoEdicaoGestao ? 'cursor-pointer hover:text-blue-700 hover:underline' : ''}
+                                  title={temPermissaoEdicaoGestao ? 'Clique para editar o nome do artigo' : undefined}
+                                >
+                                  {prodNome}
+                                </span>
+                                {temPermissaoEdicaoGestao && (
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setArtigoBaseFixaEmEdicao(prodNome);
+                                        setNovoNomeArtigoBaseFixa(prodNome);
+                                      }}
+                                      className="p-1 rounded-md text-blue-600 hover:bg-blue-100 transition cursor-pointer"
+                                      title="Editar nome deste artigo"
+                                    >
+                                      <Edit3 className="h-3.5 w-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleEliminarArtigoBaseFixa(prodNome)}
+                                      className="p-1 rounded-md text-red-600 hover:bg-red-100 transition cursor-pointer"
+                                      title="Apagar este artigo da Base Fixa"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             )}
                           </td>
                           {carrosParticulares.map((c, idx) => (

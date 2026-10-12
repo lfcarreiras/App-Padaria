@@ -1,7 +1,7 @@
 ---
 title: "01 - Dossier Técnico e Evolução Arquitetural da Solução"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.1.0"
+version: "2.1.3"
 date_saved: 2026-10-12
 updated: 2026-10-12
 status: "Em Produção (Live)"
@@ -16,7 +16,7 @@ tags:
 
 **Entidade Tecnológica:** EyeQ Lda / Inprooval®  
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
-**Versão Atual em Produção:** `v2.1.0` (12/10/2026)  
+**Versão Atual em Produção:** `v2.1.3` (12/10/2026)  
 **Repositório & CI/CD:** GitHub (`lfcarreiras/App-Padaria`) $\to$ Vercel Production  
 
 ---
@@ -34,19 +34,19 @@ flowchart TB
         ExpedicaoLoja["🏪 /loja\nBalcão de Levantamento\n(WhatsApp Automático 'Pronta' + Talão 80mm)"]
         Logistica["🚚 /entregas\nFrota 1º ao 5º Carro\n(Particulares + Matriz B2B + Mapa Diário Excel)"]
         CockpitGestao["📊 /gestao\nCockpit Executivo & Admin\n(KPIs On-Time, Base Fixa, B2B, RBAC, Logs)"]
-        PortalCliente["🛍️ /encomendar (Módulo Extra)\nApp de Pedidos Diretos do Cliente\n(Login Telemóvel + Catálogo s/ Preço + Tracking Parcelar)"]
+        PortalCliente["🛍️ /encomendar (Módulo Extra)\nApp de Pedidos Diretos do Cliente\n(Login Password/Email Supabase + Catálogo s/ Preço + Tracking Parcelar)"]
     end
 
     subgraph ServiceLayer ["⚙️ Camada de Serviços & Resiliência (src/lib/)"]
         EncService["encomendasService.ts\nMotor CRUD + Parser Resiliente + Gerador WhatsApp"]
-        AuthCtx["authContext.tsx\nRBAC 3 Níveis + Isolamento de Cockpit"]
+        AuthCtx["authContext.tsx + Supabase Auth\nRBAC 3 Níveis + Isolamento de Cockpit + Recuperação E-mail"]
         ThermalEngine["ThermalReceipt.tsx + receiptConfig.ts\nMotor CSS Paged Media (Epson TM-T20 80mm/72mm)"]
-        ExcelEngine["Motor SheetJS (xlsx)\nExportação Mapa Diário Oficial & Importação B2B"]
+        ExcelEngine["Motor SheetJS (xlsx)\nExportação Mapa Diário Oficial, Base Fixa & Importação B2B"]
         TinaLayer["tinaContent.ts\nConfiguração Institucional Git-Backed"]
     end
 
     subgraph DataLayer ["☁️ Camada de Dados & Persistência Híbrida"]
-        SupabaseDB[("Supabase PostgreSQL\nencomendas | itens_encomenda | clientes\nprodutos | lojas | carrinhas | perfis_acesso")]
+        SupabaseDB[("Supabase PostgreSQL + Supabase Auth\nencomendas | itens_encomenda | clientes\nprodutos | lojas | carrinhas | perfis_acesso")]
         LocalFallback[("Resiliência Local (localStorage)\nCache de Estados Parcelares, Timestamps Reais,\nBase Fixa Carrinhas & Matriz B2B")]
     end
 
@@ -57,6 +57,7 @@ flowchart TB
     Logistica --> EncService
     CockpitGestao --> EncService
     PortalCliente --> EncService
+    PortalCliente --> AuthCtx
 
     ExpedicaoLoja --> ThermalEngine
     Balcao --> ThermalEngine
@@ -65,6 +66,7 @@ flowchart TB
 
     EncService <--> SupabaseDB
     EncService <--> LocalFallback
+    AuthCtx <--> SupabaseDB
 ```
 
 ### 1.1. Stack Tecnológica Oficial
@@ -74,17 +76,17 @@ flowchart TB
 | **Framework Frontend/Fullstack** | **Next.js 14 (App Router) + React 18** | Renderização cliente/servidor, rotas dedicadas por posto de trabalho e estado reativo em tempo real. |
 | **Linguagem & Tipagem** | **TypeScript 5 (Strict Mode)** | Contratos de dados estritos (`src/types/index.ts`) para encomendas, itens, fornos, carrinhas e B2B. |
 | **Interface & Ergonomia** | **Tailwind CSS + Lucide Icons** | Design *Mobile-First* e *Touch-First* de alto contraste para ambientes fabris e balcões de atendimento. |
-| **Base de Dados Relacional** | **Supabase (PostgreSQL Cloud)** | Armazenamento centralizado de encomendas, linhas de artigos, clientes, catálogo, lojas e carrinhas. |
-| **Motor de Folhas de Cálculo** | **SheetJS (`xlsx`)** | Geração automática do «Mapa Diário» oficial das 5 carrinhas, folhas de fabrico e importação/exportação B2B. |
+| **Base de Dados & Autenticação** | **Supabase (PostgreSQL + Supabase Auth)** | Armazenamento centralizado de encomendas, linhas de artigos, clientes, catálogo, lojas, carrinhas e envio real de e-mails de recuperação de password (`signInWithOtp` / `verifyOtp`). |
+| **Motor de Folhas de Cálculo** | **SheetJS (`xlsx`)** | Geração automática do «Mapa Diário» oficial das 5 carrinhas, folhas de fabrico e importação/exportação da Base Fixa e Matriz B2B. |
 | **Motor de Impressão Térmica** | **CSS `@media print` Calibrado** | Impressão direta sem cortes na impressora térmica **Epson M249A TM-T20** (rolo 80mm / largura útil 72mm). |
 | **Notificações & Comunicação** | **Motor Deep-Link WhatsApp (`wa.me`)** | Disparo contextualizado de mensagens de decisão parcelar de produção e aviso automático de encomenda pronta. |
 | **CMS Institucional** | **TinaCMS (Git-Backed)** | Gestão visual de configurações da marca e textos institucionais sincronizados via GitHub. |
 
 ---
 
-## 2. Passo-a-Passo Cronológico do Desenvolvimento Técnico (Sprints 1 a 6.1)
+## 2. Passo-a-Passo Cronológico do Desenvolvimento Técnico (Sprints 1 a 6.3)
 
-O desenvolvimento técnico seguiu uma metodologia iterativa em **6 Sprints principais + 1 Sprint de Refinamento Operacional (v2.1.0)**, garantindo que cada incremento ficou imediatamente disponível em produção na Vercel com possibilidade de *Instant Rollback*.
+O desenvolvimento técnico seguiu uma metodologia iterativa em **6 Sprints principais + Refinamentos Operacionais (`v2.1.0` a `v2.1.3`)**, garantindo que cada incremento ficou imediatamente disponível em produção na Vercel com possibilidade de *Instant Rollback*.
 
 ```mermaid
 flowchart LR
@@ -92,7 +94,7 @@ flowchart LR
     S2 --> S3["Sprint 3 (21 Set – 08 Out)\nv1.9.0\nTinaCMS & Refinamento UX"]
     S3 --> S4["Sprint 4 (09–10 Out)\nv1.9.5\nCenário A, Portal Cliente & Canais"]
     S4 --> S5["Sprint 5 (10–11 Out)\nv2.0.0\n22 Requisitos Reunião Arouca"]
-    S5 --> S6["Sprint 6 (11–12 Out)\nv2.1.0\nTriagem Parcelar Artigo a Artigo & WhatsApp Auto"]
+    S5 --> S6["Sprint 6 (11–12 Out)\nv2.1.0 – v2.1.3\nTriagem Parcelar, Base Fixa Excel & Supabase Auth Email"]
 ```
 
 ### Passo 1 — Fundação Arquitetural, Modelo Relacional e Segurança RBAC (`v1.0.0` a `v1.3.1` | 07/09 a 15/09/2026)
@@ -130,7 +132,7 @@ flowchart LR
 Após a sessão de trabalho presencial com a gerência em Arouca (10/10/2026), a plataforma recebeu uma evolução estrutural profunda:
 1. **Ecrãs de Login Distintos (Equipa vs. Cliente) e Branding Inprooval®:**
    - **Equipa (`/login`):** Seleção obrigatória do **Cockpit de Trabalho** (`Loja 1`, `Loja 2`, `Loja 3`, `Centro de Produção`, `Carrinhas`, `Gestão`), ocultando menus irrelevantes para o posto selecionado.
-   - **Cliente (`/encomendar`):** Ecrã de login dedicado ao cliente final (acesso por número de telemóvel), tratado comercialmente como **Módulo Extra (Add-On)**.
+   - **Cliente (`/encomendar`):** Ecrã de login dedicado ao cliente final, tratado comercialmente como **Módulo Extra (Add-On)**.
    - **Layout Compacto `100dvh` sem Scroll:** Ambos os ecrãs de login foram ajustados com `h-dvh max-h-dvh overflow-hidden` para que o selo oficial `badge_powered_by_white.svg` da **Inprooval®** fique sempre visível no rodapé sem necessidade de fazer scroll.
 2. **Expansão para 5 Carrinhas (`1.º Carro` ao `5.º Carro`) e Matriz Empresarial B2B:**
    - **1.º ao 4.º Carro:** Dedicados às rotas de clientes particulares (Base Fixa Diária + Encomendas Adicionais do dia).
@@ -156,6 +158,16 @@ Após a sessão de trabalho presencial com a gerência em Arouca (10/10/2026), a
 3. **Disparo Automático de WhatsApp na Loja ao Marcar Encomenda como Pronta (`/loja`):**
    - Ao clicar em **`✅ Dar Encomenda como Pronta p/ Entrega`**, a aplicação atualiza o estado para `pronto_loja`, grava o log de auditoria e **abre automaticamente o WhatsApp** (`gerarLinkWhatsAppEncomendaPronta`) para o telemóvel do cliente a avisar que a encomenda já se encontra pronta para levantamento na respetiva loja.
 
+### Passo 7 — Gestão Completa da Base Fixa c/ Excel e Recuperação Real de Password por E-mail via Supabase Auth (`v2.1.2` & `v2.1.3` | 12/10/2026)
+1. **Edição, Eliminação e Extração/Importação Excel na Base Fixa Diária de Particulares (`1.º ao 4.º Carro` — `/gestao`):**
+   - Implementada edição inline do nome de qualquer artigo da grelha Base Fixa (com autocompletar ligado ao catálogo e migração automática de quantidades nas 4 carrinhas e na matriz B2B sem perda de dados), botão de eliminação de linhas, adição de novos artigos e botões **`📥 Extrair Excel Base Fixa (.xlsx)`** e **`📤 Importar Excel Base Fixa`**.
+2. **Autenticação Segura com Password e Recuperação de Password por E-mail via Supabase Auth (`/encomendar`):**
+   - **Login (`🔑 Já sou Cliente`) e Registo (`✨ Novo Registo`):** O portal de clientes exige uma **Password definida pelo utilizador** (mín. 4 caracteres, com confirmação) e o respetivo **E-mail obrigatório para recuperação**, sincronizando os dados em `public.clientes` (`salvarClienteDb`) e `supabase.auth.signUp`. Clientes antigos já registados ao balcão da loja sem password definida transitam automaticamente no 1.º acesso online para o ecrã de configuração de Password e E-mail.
+   - **Fluxo de Recuperação de Password em 3 Etapas via Supabase Auth (`📧 Recuperar`):**
+     - **Passo 1 (Pedido de Recuperação):** Valida se o e-mail pertence a um cliente registado em `public.clientes`, guarda o estado pendente (`padaria_email_recuperacao_pendente`) e dispara o envio real de e-mail através de `supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true, emailRedirectTo: '${window.location.origin}/encomendar' } })` (com fallback para `resetPasswordForEmail`).
+     - **Passo 2 (Validação por Link ou Código OTP):** Suporta tanto o clique direto no **Link de Confirmação / Magic Link** enviado no e-mail da Supabase (intercetado automaticamente via `supabase.auth.onAuthStateChange` e parâmetros de sessão no URL) como a introdução manual do **código de 6 dígitos** (`supabase.auth.verifyOtp`).
+     - **Passo 3 (Redefinição da Nova Password):** Atualiza a nova password na ficha do cliente no Supabase (`public.clientes`), na conta `supabase.auth.updateUser` e na cache local, autenticando o cliente de imediato.
+
 ---
 
 ## 3. Engenharia de Resiliência e Compatibilidade de Esquema (Zero-Downtime Schema Tags)
@@ -169,12 +181,13 @@ Para garantir **100% de retrocompatibilidade** com o esquema PostgreSQL do Supab
 | **Observações da Produção** | `[OBS_PROD:texto da observação]` | `encomendas.notas_cliente` | `padaria_obs_producao_v1` | Extrai para `enc.observacoes_producao` e exibe no Portal do Cliente, Loja e WhatsApp. |
 | **Backup de Artigos do Pedido** | `[ITENS_BACKUP:[...json...]]` | `encomendas.notas_cliente` | `encomendas_portal_cliente_v1` | Garante que nenhum pedido submetido na App Cliente aparece com `0 artigos` na Produção. |
 | **Timestamp Real de Entrega** | `[ENTREGUE: YYYY-MM-DD HH:MM]` | `encomendas.notas_cliente` | `padaria_timestamps_entrega_real_v1` | Extrai `data_entrega_real` e `hora_entrega_real` para cálculo preciso do KPI *% On-Time*. |
+| **Credencial de Cliente (Portal)** | `[AUTH_PWD:hash_b64]` | `clientes.notas` | `padaria_clientes_auth_v1` | Sincroniza a password definida pelo cliente entre dispositivos em conjunto com `supabase.auth`. |
 
 ---
 
-## 4. Auditoria & Blindagem «Bulletproof Agent Swarm» (`v2.1.1` — 12/10/2026)
+## 4. Auditoria & Blindagem «Bulletproof Agent Swarm» (`v2.1.1` a `v2.1.3` — 12/10/2026)
 
-Na release **`v2.1.1`**, a plataforma foi auditada pelos **7 Agentes Especialistas do Inprooval® Bulletproof Agent Swarm**, atingindo um **Readiness Score Certificado de 99,1%**:
+A plataforma foi auditada pelos **7 Agentes Especialistas do Inprooval® Bulletproof Agent Swarm**, atingindo um **Readiness Score Certificado de 99,1%**:
 
 1. **Propagação E2E de Decisões Parcelares (`Agente 1` & `Agente 5`):**
    - Exclusão automática de artigos recusados (`estado_producao === 'recusado'`) no cálculo de cargas das 5 carrinhas, no Mapa Diário Excel, nos cartões de motorista (`/entregas`), no histórico de encomendas (`/encomendas`) e no talão térmico **Epson TM-T20 (80mm)** (`ThermalReceipt.tsx`).
@@ -182,8 +195,8 @@ Na release **`v2.1.1`**, a plataforma foi auditada pelos **7 Agentes Especialist
 2. **Hardening de Cibersegurança OWASP & Isolamento de Cockpits (`Agente 3`):**
    - Configuração de HTTP Security Headers (`X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security`) em `next.config.mjs`.
    - Implementação de *Route Guard* ativo por Cockpit em `Navbar.tsx`.
-3. **Proteção de Dados & Autenticação no Portal de Clientes (`Agente 4`):**
-   - Exigência de password definida pelo utilizador e e-mail para recuperação no Portal Direto de Clientes (`/encomendar`).
+3. **Proteção de Dados & Autenticação com Recuperação por E-mail via Supabase Auth (`Agente 3` & `Agente 4`):**
+   - Exigência de password definida pelo utilizador e e-mail obrigatório para recuperação no Portal Direto de Clientes (`/encomendar`), com disparo real de e-mail via **Supabase Auth** (`signInWithOtp` / Magic Link / código OTP).
    - Nota informativa de Proteção de Dados nos formulários de Login/Registo e Perfil do Portal Direto de Clientes (`/encomendar`).
 4. **Resiliência Offline para Zonas Rurais & Migração SQL (`Agente 2` & `Agente 5`):**
    - Snapshot offline automático (`padaria_encomendas_cache_v1`) em `carregarEncomendasSupabase()` e badge `⚡ Offline (Cache)` na `Navbar.tsx` para garantir operação contínua das 5 carrinhas em freguesias sem rede móvel.
@@ -192,18 +205,29 @@ Na release **`v2.1.1`**, a plataforma foi auditada pelos **7 Agentes Especialist
 <!-- INTERNAL_START -->
 ---
 
-## 5. Notas Técnicas Internas de Manutenção & Deploy (Exclusivo Inprooval®)
+## 5. Notas Técnicas Internas de Manutenção, Supabase Auth & Deploy (Exclusivo Inprooval®)
 
 > [!NOTE]
 > **Secção de Uso Interno Inprooval®** — Esta secção é automaticamente omitida na geração de PDFs destinados ao cliente.
 
+* **Configuração de URLs e E-mail no Painel da Supabase (`Authentication`):**
+  1. **Redirect URLs (`Authentication` $\to$ `URL Configuration`):**
+     * **Site URL:** `https://app-encomendas-padaria.vercel.app`
+     * **Redirect URLs autorizados:**
+       * `https://app-encomendas-padaria.vercel.app/encomendar`
+       * `https://app-encomendas-padaria.vercel.app/**`
+       * `http://localhost:3000/encomendar`
+     * *Nota técnica:* O código em `src/app/encomendar/page.tsx` envia `emailRedirectTo: "${window.location.origin}/encomendar"` sem *query strings* e guarda o e-mail pendente em `localStorage` (`padaria_email_recuperacao_pendente`), garantindo compatibilidade 100% mesmo sem wildcard.
+  2. **Servidor de E-mail (Built-in vs. Custom SMTP em `Project Settings` $\to$ `Authentication` $\to$ `SMTP Settings`):**
+     * Por defeito, o servidor gratuito da Supabase (`noreply@mail.app.supabase.io`) envia e-mails para endereços pertencentes à equipa do projeto na Supabase (com limite de ~2 a 4 e-mails/hora).
+     * Para envio ilimitado a qualquer e-mail externo de clientes finais em produção, ativar **Enable Custom SMTP** com as credenciais de e-mail da padaria/Inprooval (ex.: Gmail com *App Password* em `smtp.gmail.com:465` ou serviço transacional Resend/Brevo).
 * **Comandos de Deploy & Versionamento:**
   ```powershell
   git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" status
   git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" add -A
   git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" commit -m "feat/fix: descricao"
-  git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" tag -a v2.1.1 -m "release: v2.1.1"
-  git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" push origin main --tags
+  git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" tag -a v2.1.3 -m "release: v2.1.3" -f
+  git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" push origin main --tags -f
   ```
 * **Credenciais de Ambiente (`.env.local` / Vercel Environment Variables):**
   * `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` configurados para a instância Supabase do projeto.

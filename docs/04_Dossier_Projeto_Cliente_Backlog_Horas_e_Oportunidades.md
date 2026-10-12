@@ -1,7 +1,7 @@
 ---
 title: "04 - Dossier Mestre do Projeto: Cliente, Backlog, Orçamento, Bolsa de Horas, Sprints e Oportunidades"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.1.0"
+version: "2.1.3"
 date_saved: 2026-10-12
 updated: 2026-10-12
 status: "Em Produção / Fase de Adjudicação & Go-Live"
@@ -19,7 +19,7 @@ tags:
 **Consultor Responsável:** Luís Carreiras  
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
 **Data de Início do Projeto:** 07/09/2026  
-**Última Atualização:** 12/10/2026 (`v2.1.0`)  
+**Última Atualização:** 12/10/2026 (`v2.1.3`)  
 
 ---
 
@@ -51,7 +51,7 @@ tags:
 
 ## 3. Principais Requisitos & Backlog Completo do Produto (Desenvolvido vs. Futuro)
 
-A tabela seguinte apresenta o **Backlog Integral do Produto**, discriminando o que já se encontra **100% desenvolvido e publicado em produção (`v2.1.0`)** face aos itens em **Backlog Futuro (Fase 2 e Fase 3)**:
+A tabela seguinte apresenta o **Backlog Integral do Produto**, discriminando o que já se encontra **100% desenvolvido e publicado em produção (`v2.1.3`)** face aos itens em **Backlog Futuro (Fase 2 e Fase 3)**:
 
 | ID Req. | Módulo / Épico | Descrição do Requisito Funcional | Âmbito Orçamental | Estado Atual | Versão |
 | :---: | :--- | :--- | :---: | :---: | :---: |
@@ -65,9 +65,9 @@ A tabela seguinte apresenta o **Backlog Integral do Produto**, discriminando o q
 | **REQ-08** | Loja: Levantamento & WhatsApp Automático | Ecrã `/loja` filtrado pela loja do Cockpit, com botão **`✅ Dar Encomenda como Pronta p/ Entrega`** que abre **automaticamente o WhatsApp** ao cliente, e botão **`Entregar`** que grava Data e Hora Real. | Base | ✅ **Desenvolvido** | `v2.1.0` |
 | **REQ-09** | Logística: 5 Carrinhas (`1.º` a `5.º Carro`) | Operação de 5 carrinhas: `1.º` ao `4.º Carro` para particulares (Base Fixa + Adicionais) e `5.º Carro` exclusivo para os 13 Clientes Empresariais B2B, com GPS Google Maps e registo de Hora Real de entrega. | Base | ✅ **Desenvolvido** | `v2.0.0` |
 | **REQ-10** | Exportação Excel «MAPA DIÁRIO» | Botão em `/entregas` que exporta o ficheiro `.xlsx` oficial da *União Panificadora Central Arouquense, Lda* (5 carrinhas, 13 clientes B2B e 29 colunas de produtos). | Base | ✅ **Desenvolvido** | `v2.0.0` |
-| **REQ-11** | Cockpit Gestão: Base Fixa & Matriz B2B | Grelha interativa da Base Fixa (1.º ao 4.º Carro) e Matriz Semanal (`Seg`–`Dom`) dos Clientes B2B (5.º Carro) com replicação semanal e Importação/Exportação Excel. | Base | ✅ **Desenvolvido** | `v2.0.0` |
+| **REQ-11** | Cockpit Gestão: Base Fixa & Matriz B2B | Grelha interativa da Base Fixa (1.º ao 4.º Carro) com edição/eliminação de artigos e Extração/Importação Excel, e Matriz Semanal (`Seg`–`Dom`) dos Clientes B2B (5.º Carro) com replicação semanal e Importação/Exportação Excel. | Base | ✅ **Desenvolvido** | `v2.1.2` |
 | **REQ-12** | Cockpit Gestão: KPIs, Logs & RBAC | Dashboard executivo (`% On-Time`, Canais, Top 5, Planeado vs. Real), Logs de Auditoria, Configurador de Talão e Gestão de Acessos RBAC (3 níveis). | Base | ✅ **Desenvolvido** | `v1.8.0` |
-| **REQ-13** | **EXTRA:** App de Pedidos Diretos do Cliente (`/encomendar`) | Login autónomo do cliente por telemóvel, catálogo exclusivo de quantidades (sem preços) e menu *«As Minhas Encomendas»* com 4 estados, **estado parcelar artigo a artigo** e **Observações da Padaria**. | **Extra (Add-On)** | ✅ **Desenvolvido** | `v2.1.0` |
+| **REQ-13** | **EXTRA:** App de Pedidos Diretos do Cliente (`/encomendar`) | Login autónomo do cliente com **Password definida pelo utilizador**, **E-mail obrigatório e Recuperação de Password por E-mail via Supabase Auth**, catálogo exclusivo de quantidades (sem preços) e menu *«As Minhas Encomendas»* com 4 estados, **estado parcelar artigo a artigo** e **Observações da Padaria**. | **Extra (Add-On)** | ✅ **Desenvolvido** | `v2.1.3` |
 | **REQ-14** | Integração Faturação Certificada AT | Emissão automática de Fatura-Recibo / Guia de Transporte via API (Moloni / InvoiceXpress / PHC) no ato da entrega. | Fase 2 (Upsell) | ⏳ **Em Backlog** | Planeado |
 | **REQ-15** | WhatsApp Business API 100% Silencioso (Webhook Cloud) | Disparo de mensagens WhatsApp em background via Meta Cloud API / Twilio sem necessidade de o operador clicar em «Enviar» na janela do WhatsApp. | Fase 2 (Upsell) | ⏳ **Em Backlog** | Planeado |
 | **REQ-16** | Pagamentos Online MB WAY / Multibanco | Integração de gateway Ifthenpay / Easypay no portal `/encomendar` para pré-pagamento de encomendas especiais. | Fase 2 (Upsell) | ⏳ **Em Backlog** | Planeado |
@@ -79,9 +79,9 @@ A tabela seguinte apresenta o **Backlog Integral do Produto**, discriminando o q
 
 | Parcela do Orçamento | Valor Orçamentado (s/ IVA) | Condições de Pagamento | Discriminação Exata do que Está Incluído |
 | :--- | :---: | :---: | :--- |
-| **1. Pacote Operacional Base — Setup & Implementação** | **2.500,00 €** | 50% na Adjudicação (`1.250 €`)<br/>50% no Go-Live (`1.250 €`) | • Configuração completa das **3 Lojas**, **Centro de Produção (3 Fornos)** e **5 Carrinhas (`1.º` ao `5.º Carro`)**.<br/>• Login da equipa por Cockpit com isolamento de menus.<br/>• Alerta Urgente ($\le 3\text{h}$) com triagem parcelar por artigo e notificação WhatsApp.<br/>• Pool Consolidada do Dia e controlo de cozedura nos 3 Fornos.<br/>• Balcão de Loja com abertura automática de WhatsApp quando a encomenda fica pronta.<br/>• Parametrização da Base Fixa (1.º–4.º Carro), Matriz B2B (5.º Carro) e exportação do Excel oficial **«MAPA DIÁRIO»**.<br/>• Calibração da impressora térmica **Epson M249A TM-T20 (80mm)**.<br/>• Cockpit de Gestão (KPIs On-Time, Logs, RBAC) + Formação à equipa. |
+| **1. Pacote Operacional Base — Setup & Implementação** | **2.500,00 €** | 50% na Adjudicação (`1.250 €`)<br/>50% no Go-Live (`1.250 €`) | • Configuração completa das **3 Lojas**, **Centro de Produção (3 Fornos)** e **5 Carrinhas (`1.º` ao `5.º Carro`)**.<br/>• Login da equipa por Cockpit com isolamento de menus.<br/>• Alerta Urgente ($\le 3\text{h}$) com triagem parcelar por artigo e notificação WhatsApp.<br/>• Pool Consolidada do Dia e controlo de cozedura nos 3 Fornos.<br/>• Balcão de Loja com abertura automática de WhatsApp quando a encomenda fica pronta.<br/>• Parametrização da Base Fixa (1.º–4.º Carro com edição/eliminação e Excel), Matriz B2B (5.º Carro) e exportação do Excel oficial **«MAPA DIÁRIO»**.<br/>• Calibração da impressora térmica **Epson M249A TM-T20 (80mm)**.<br/>• Cockpit de Gestão (KPIs On-Time, Logs, RBAC) + Formação à equipa. |
 | **2. Manutenção Mensal, Cloud & Suporte (Pacote Base)** | **250,00 € / mês** | Mensal | • Infraestrutura Cloud (Vercel + Base de Dados Supabase PostgreSQL em tempo real).<br/>• Backups automáticos, monitorização de segurança e auditoria.<br/>• Suporte técnico prioritário e manutenção evolutiva/corretiva. |
-| **3. MÓDULO EXTRA (Add-On): App de Pedidos Diretos pelo Cliente (`/encomendar`)** | **+ 650,00 € (Setup)**<br/>**+ 50,00 € / mês** | Opcional / Add-On | • Ecrã de Login exclusivo para clientes finais (por telemóvel).<br/>• Catálogo digital exclusivo de quantidades (sem exposição de preços).<br/>• Painel *«As Minhas Encomendas»* em tempo real com 4 estados, detalhe parcelar por artigo (aceite vs. não produzido) e observações da padaria.<br/>• Integração automática dos pedidos online no Alerta Urgente da Produção e nas Lojas/Carrinhas. |
+| **3. MÓDULO EXTRA (Add-On): App de Pedidos Diretos pelo Cliente (`/encomendar`)** | **+ 650,00 € (Setup)**<br/>**+ 50,00 € / mês** | Opcional / Add-On | • Ecrã de Login exclusivo para clientes finais com **Password definida pelo utilizador e Recuperação por E-mail via Supabase Auth**.<br/>• Catálogo digital exclusivo de quantidades (sem exposição de preços).<br/>• Painel *«As Minhas Encomendas»* em tempo real com 4 estados, detalhe parcelar por artigo (aceite vs. não produzido) e observações da padaria.<br/>• Integração automática dos pedidos online no Alerta Urgente da Produção e nas Lojas/Carrinhas. |
 
 ---
 
@@ -95,7 +95,7 @@ flowchart TD
         SP3["Sprint 3 (23/09 – 08/10)\nMulti-Loja, Talão Térmico 80mm, Excel & TinaCMS (v1.9)"]
         SP4["Sprint 4 (09/10 – 10/10)\nBlindagem Cenário A, Portal Cliente v1 & Rastreio Canais"]
         SP5["Sprint 5 (10/10 – 11/10)\nReunião Arouca + Implementação dos 22 Requisitos Oficiais (v2.0.0)"]
-        SP6["Sprint 6 (11/10 – 12/10)\nTriagem Parcelar Artigo a Artigo, Feedback App/WhatsApp & Loja Auto-WA (v2.1.0)"]
+        SP6["Sprint 6 (11/10 – 12/10)\nTriagem Parcelar, Base Fixa Excel & Supabase Auth Email (v2.1.0 – v2.1.3)"]
         SP1 --> SP2 --> SP3 --> SP4 --> SP5 --> SP6
     end
 
@@ -122,9 +122,9 @@ flowchart TD
 | **Plafond Total de Horas Orçamentadas (@ 80 €/h)** | **31,25 horas** | **39,38 horas** |
 | **Horas Consumidas no Antigravity (Sprints 1 a 6.2)** | 21,50 horas (`1.720,00 €`) | 21,50 horas (`1.720,00 €`) |
 | **Horas Consumidas em Consultoria Externa (Reuniões)** | 2,75 horas (`220,00 €`) | 2,75 horas (`220,00 €`) |
-| **TOTAL DE HORAS JÁ CONSUMIDAS (até 12/10/2026 — `v2.1.1`)** | **24,25 horas (`1.940,00 €`)** | **24,25 horas (`1.940,00 €`)** |
+| **TOTAL DE HORAS JÁ CONSUMIDAS (até 12/10/2026 — `v2.1.3`)** | **24,25 horas (`1.940,00 €`)** | **24,25 horas (`1.940,00 €`)** |
 | **SALDO REMANESCENTE NA BOLSA DE HORAS (p/ Formação & Go-Live)** | **🟢 + 7,00 horas (`+ 560,00 €`)** | **🟢 + 15,13 horas (`+ 1.210,00 €`)** |
-| **Percentagem de Execução & Readiness Score (Bulletproof Swarm)** | **100% Concluído — Score 99,1% (`v2.1.1`)** | **100% Concluído — Score 99,1% (`v2.1.1`)** |
+| **Percentagem de Execução & Readiness Score (Bulletproof Swarm)** | **100% Concluído — Score 99,1% (`v2.1.3`)** | **100% Concluído — Score 99,1% (`v2.1.3`)** |
 
 ### 6.2. Discriminação Cronológica de Horas Consumidas por Sprint
 
@@ -138,8 +138,8 @@ flowchart TD
 | **Reunião Arouca** | 10/10/2026 | Consultoria Externa (Presencial) | Demonstração ao vivo à gerência, recolha de 22 requisitos e proposta | 1,75 h | 140,00 € |
 | **Sprint 5 (`v2.0.0`)** | 10/10 – 11/10 | Engenharia Antigravity | Implementação dos 22 requisitos de Arouca (5 Carrinhas, B2B, 3 Fornos, Mapa Diário) | 2,86 h | 228,80 € |
 | **Sprint 6.1 (`v2.1.0`)** | 11/10 – 12/10 | Engenharia Antigravity | Triagem parcelar artigo a artigo nos alertas urgentes, estado parcelar na App Cliente, WhatsApp automático na Loja e Dossier Documental | 1,25 h | 100,00 € |
-| **Sprint 6.2 (`v2.1.1`)** | 12/10/2026 | Auditoria & Hardening Swarm | Ronda completa dos 7 Agentes do *Bulletproof Swarm* (OWASP Headers, Proteção de Dados, Cache Offline Carrinhas, Talão Térmico Parcelar — Score `99,1%`) | 0,75 h | 60,00 € |
-| **TOTAL ACUMULADO** | **07/09 – 12/10** | **Híbrido (AGY + Terreno)** | **Solução Integral `v2.1.1` Certificada (`99,1%`)** | **24,25 h** | **1.940,00 €** |
+| **Sprint 6.2 (`v2.1.1`–`v2.1.3`)** | 12/10/2026 | Auditoria & Hardening Swarm | Ronda completa dos 7 Agentes do *Bulletproof Swarm* (OWASP Headers, Proteção de Dados, Base Fixa Excel, Password & Recuperação E-mail Supabase Auth, Cache Offline Carrinhas, Talão Térmico Parcelar — Score `99,1%`) | 0,75 h | 60,00 € |
+| **TOTAL ACUMULADO** | **07/09 – 12/10** | **Híbrido (AGY + Terreno)** | **Solução Integral `v2.1.3` Certificada (`99,1%`)** | **24,25 h** | **1.940,00 €** |
 
 ---
 
@@ -148,7 +148,7 @@ flowchart TD
 1. **Aprendizagem Operacional (Flexibilidade de Produção Parcelar):**
    - Na panificação e pastelaria real, um pedido urgente com vários artigos raramente é "tudo ou nada" — muitas vezes há pão pronto a sair da fornada, mas um artigo específico de pastelaria já não pode ser produzido a tempo. A introdução da **decisão artigo a artigo (`✓ Produzir` vs. `✕ Não Produzir`)** com propagação direta para a App do Cliente e WhatsApp resolve um caso real de atrito diário entre fábrica, balcão e cliente.
 2. **Aprendizagem Técnica (Tags Resilientes em Colunas de Texto vs. Migrações Rígidas):**
-   - Utilizar tags estruturadas (`[CANAL:...]`, `[RECUSADO]`, `[OBS_PROD:...]`, `[ITENS_BACKUP:...]`) interpretadas e limpas na camada de serviço (`encomendasService.ts`) garante que novas funcionalidades entram em produção com **zero risco de erro de schema cache ou violação de constraints** no Supabase, mantendo compatibilidade total com *Instant Rollback*.
+   - Utilizar tags estruturadas (`[CANAL:...]`, `[RECUSADO]`, `[OBS_PROD:...]`, `[ITENS_BACKUP:...]`, `[AUTH_PWD:...]`) interpretadas e limpas na camada de serviço (`encomendasService.ts`) garante que novas funcionalidades entram em produção com **zero risco de erro de schema cache ou violação de constraints** no Supabase, mantendo compatibilidade total com *Instant Rollback*.
 3. **Aprendizagem Comercial (Separação Base vs. Add-On de Cliente):**
    - Desacoplar a **Operação Interna da Equipa (`2.500 €`)** da **App de Pedidos Diretos pelo Cliente (`+650 €`)** com ecrãs de login e jornadas claramente separados permite ao cliente visualizar imediatamente o valor extra de abrir um canal digital autónomo para os seus clientes finais.
 <!-- INTERNAL_END -->

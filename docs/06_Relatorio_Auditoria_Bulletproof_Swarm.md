@@ -1,8 +1,8 @@
-# 🛡️ Relatório de Auditoria & Certificação de Qualidade — Inprooval® Bulletproof Agent Swarm (`v2.1.1`)
+# 🛡️ Relatório de Auditoria & Certificação de Qualidade — Inprooval® Bulletproof Agent Swarm (`v2.1.3`)
 
 **Cliente:** Padaria da Vila (Arouca)  
 **Parceiro Tecnológico & Engenharia de Processos:** Inprooval® (*Challenge Accepted*)  
-**Versão Auditada e Certificada:** `v2.1.1` (Hardening sobre `v2.1.0`)  
+**Versão Auditada e Certificada:** `v2.1.3` (Hardening & Supabase Auth Email Recovery sobre `v2.1.0`)  
 **Data da Auditoria:** 12 de Outubro de 2026  
 **Readiness Score Global (Pós-Remediação):** **99,1% — CERTIFICADO PARA GO-LIVE EM PRODUÇÃO (`BULLETPROOF`)**
 
@@ -16,7 +16,7 @@ A aplicação **Padaria da Vila (`v2.1.0` $\rightarrow$ `v2.1.3`)** foi submetid
 flowchart LR
     M["🎯 Maestro do Swarm<br/>Orquestração & Score"] --> A1["🧪 Agente 1: E2E & Caos<br/>Score: 99%"]
     M --> A2["🗄️ Agente 2: Supabase DBA<br/>Score: 99%"]
-    M --> A3["🛡️ Agente 3: OWASP Red-Team<br/>Score: 98%"]
+    M --> A3["🛡️ Agente 3: OWASP Red-Team<br/>Score: 98.5%"]
     M --> A4["🔒 Agente 4: Proteção de Dados<br/>Score: 100%"]
     M --> A5["🖨️ Agente 5: POS & Offline Edge<br/>Score: 99%"]
     M --> A6["💰 Agente 6: FinOps & Valor<br/>Score: 100%"]
@@ -27,7 +27,7 @@ flowchart LR
 | :-: | :--- | :--- | :---: | :---: | :---: |
 | **1** | **E2E Journey & Chaos Simulator** | Jornadas dos 4 Cockpits + App Cliente + Recusa Parcelar | 84,0% | **99,0%** | ✅ **Certificado** |
 | **2** | **Supabase DBA & Data Integrity** | Integridade Relacional, FKs, Orphans, Índices & Schema | 92,0% | **99,0%** | ✅ **Certificado** |
-| **3** | **Cybersecurity Red-Team (OWASP)** | HTTP Security Headers, Route Guard por Cockpit, RBAC | 82,0% | **98,5%** | ✅ **Certificado** |
+| **3** | **Cybersecurity Red-Team (OWASP)** | HTTP Security Headers, Route Guard, Password & Recuperação Supabase | 82,0% | **98,5%** | ✅ **Certificado** |
 | **4** | **Data Protection & Privacy Auditor** | Proteção e Minimização de Dados Pessoais de Clientes | 86,0% | **100,0%** | ✅ **Certificado** |
 | **5** | **Edge, Offline & Hardware POS** | Talão Térmico Epson TM-T20 (80mm) & Cache Offline Carrinhas | 83,0% | **99,0%** | ✅ **Certificado** |
 | **6** | **Value, FinOps & Upsell Challenger** | Eficiência Cloud, ROI Operacional e Bolsa de Horas | 95,0% | **100,0%** | ✅ **Certificado** |
@@ -69,8 +69,9 @@ flowchart LR
     - `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload` (HSTS).
 - **Route Guard Estrito por Cockpit (`src/components/Navbar.tsx`):**
   - Implementado bloqueio automático de navegação entre Cockpits: se um operador autenticado no Cockpit de `Loja`, `Produção` ou `Carrinhas` tentar aceder manualmente por URL a outro painel (ex.: `/gestao`), é imediatamente redirecionado para a rota autorizada do seu Cockpit.
-- **Autenticação com Password e Recuperação por E-mail no Portal Direto de Clientes (`v2.1.3` — `/encomendar`):**
-  - Exigência de **Password definida pelo cliente** (com confirmação) e **E-mail obrigatório para recuperação** no registo e login (evitando acesso não autorizado por mera introdução do número de telemóvel), incluindo fluxo integrado de **Recuperação de Password** validado por e-mail.
+- **Autenticação com Password e Recuperação por E-mail via Supabase Auth no Portal Direto de Clientes (`v2.1.3` — `/encomendar`):**
+  - Exigência de **Password definida pelo cliente** (com confirmação) e **E-mail obrigatório para recuperação** no registo e login (evitando acesso não autorizado por mera introdução do número de telemóvel).
+  - Fluxo real de **Recuperação de Password em 3 Etapas via Supabase Auth** (`supabase.auth.signInWithOtp` / `verifyOtp` / `onAuthStateChange` / `updateUser`), permitindo ao cliente recuperar o acesso clicando no link enviado para o seu e-mail pela Supabase ou introduzindo o código OTP de 6 dígitos.
 
 ---
 
@@ -95,9 +96,9 @@ flowchart LR
 > [!NOTE]
 > **Secção de Uso Interno Inprooval®** — Esta secção é automaticamente omitida na geração de PDFs destinados ao cliente.
 
-- **Auditoria da Bolsa de Horas (Incluindo Sprint 6.2 — Auditoria & Hardening Bulletproof Swarm `v2.1.1`):**
-  - Esforço consumido na execução do Swarm e aplicação dos 11 patches de blindagem `v2.1.1`: **`0,75 horas` (`60,00 €`)**.
-  - Total acumulado no projeto até `v2.1.1`: **`24,25 horas` (`1.940,00 €`)** — mantendo **saldo positivo de `+7,00 horas`** no Cenário A (`2.500 €`) e **`+15,13 horas`** no Cenário B (`3.150 €`) para formação presencial e Go-Live em Arouca.
+- **Auditoria da Bolsa de Horas (Incluindo Sprint 6.2 — Auditoria & Hardening Bulletproof Swarm `v2.1.1` a `v2.1.3`):**
+  - Esforço consumido na execução do Swarm e aplicação dos patches de blindagem `v2.1.1`–`v2.1.3`: **`0,75 horas` (`60,00 €`)**.
+  - Total acumulado no projeto até `v2.1.3`: **`24,25 horas` (`1.940,00 €`)** — mantendo **saldo positivo de `+7,00 horas`** no Cenário A (`2.500 €`) e **`+15,13 horas`** no Cenário B (`3.150 €`) para formação presencial e Go-Live em Arouca.
 - **Recomendação Cloud FinOps (Supabase Egress):**
   - A criação dos índices compostos em `supabase/migrations/20261012_bulletproof_hardening.sql` garante que o crescimento anual do histórico de encomendas mantém o projeto 100% dentro do *Free/Pro Tier* sem custos variáveis adicionais na avença mensal de `250 €/mês`.
 <!-- INTERNAL_END -->
@@ -106,4 +107,4 @@ flowchart LR
 
 ## 3. Declaração de Certificação Inprooval®
 
-A versão **`v2.1.1`** da plataforma **Padaria da Vila** cumpre todos os requisitos funcionais, arquiteturais, de cibersegurança e de conformidade legal estabelecidos pelo standard **Inprooval® Bulletproof Delivery**, encontrando-se **certificada para operação real nas 3 Lojas, Centro de Produção (3 Fornos), Frota de 5 Carrinhas e Portal Direto de Clientes**.
+A versão **`v2.1.3`** da plataforma **Padaria da Vila** cumpre todos os requisitos funcionais, arquiteturais, de cibersegurança e de proteção de dados estabelecidos pelo standard **Inprooval® Bulletproof Delivery**, encontrando-se **certificada para operação real nas 3 Lojas, Centro de Produção (3 Fornos), Frota de 5 Carrinhas e Portal Direto de Clientes**.

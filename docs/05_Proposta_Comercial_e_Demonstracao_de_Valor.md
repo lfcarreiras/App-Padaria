@@ -19,7 +19,7 @@ tags:
 **Destinatário:** À atenção da Gerência — *Padaria da Vila (União Panificadora Central Arouquense, Lda)*  
 **Âmbito Base:** 3 Lojas Físicas + Centro de Produção (3 Fornos) + Frota de 5 Carrinhas (Particulares & Clientes Empresariais B2B) + Cockpit de Gestão  
 **Módulo Extra (Add-On):** App de Pedidos Diretos feitos pelos Clientes (`/encomendar`)  
-**Data:** 12 de Outubro de 2026 | **Versão:** 3.2 (`v2.1.2`)  
+**Data:** 12 de Outubro de 2026 | **Versão:** 3.3 (`v2.1.3`)  
 
 ---
 
@@ -76,7 +76,7 @@ flowchart LR
     end
 
     subgraph ClienteApp ["🛍️ MÓDULO EXTRA: App Cliente (/encomendar)"]
-        C1["📱 Login por Telemóvel\nCatálogo s/ Preços + Estado Parcelar\npor Artigo em Tempo Real"]
+        C1["📱 Login c/ Password & E-mail\nCatálogo s/ Preços + Estado Parcelar\npor Artigo em Tempo Real"]
     end
 
     C1 <==>|"Sincronização em Tempo Real"| P1
@@ -116,13 +116,13 @@ flowchart LR
 
 | Módulo Extra (Add-On) | Benefícios e Funcionalidades Exclusivas | Investimento Extra (s/ IVA) |
 | :--- | :--- | :---: |
-| **EXTRA: App de Pedidos Diretos pelos Clientes (`/encomendar`)** | • **Jornada e Ecrã de Login Exclusivo para Clientes:** Acesso direto por telemóvel, independente do login da equipa.<br/>• **Catálogo Exclusivo de Quantidades (Sem Preços):** O cliente escolhe artigos, quantidades e notas sem exposição de preços.<br/>• **Tracking em Tempo Real com Estado Parcelar por Artigo:** No menu *«As Minhas Encomendas»*, o cliente acompanha as 4 etapas da encomenda, vê se cada artigo foi aceite ou recusado pela produção e lê as observações da padaria. | **+ 650,00 € (Setup Único)**<br/>**+ 50,00 € / mês** |
+| **EXTRA: App de Pedidos Diretos pelos Clientes (`/encomendar`)** | • **Jornada e Ecrã de Login Exclusivo para Clientes:** Acesso seguro com Password definida pelo cliente e Recuperação de Password por E-mail (via Supabase Auth), independente do login da equipa.<br/>• **Catálogo Exclusivo de Quantidades (Sem Preços):** O cliente escolhe artigos, quantidades e notas sem exposição de preços.<br/>• **Tracking em Tempo Real com Estado Parcelar por Artigo:** No menu *«As Minhas Encomendas»*, o cliente acompanha as 4 etapas da encomenda, vê se cada artigo foi aceite ou recusado pela produção e lê as observações da padaria. | **+ 650,00 € (Setup Único)**<br/>**+ 50,00 € / mês** |
 
 ---
 
 ## 5. Tempo de Desenvolvimento, Implementação e Entrega (Imediato)
 
-Dado que a **Inprooval®** já desenvolveu e validou na íntegra todos os módulos operacionais (encontrando-se a versão `v2.1.2` pronta e funcional), o calendário de entrada em produção é **imediato**:
+Dado que a **Inprooval®** já desenvolveu e validou na íntegra todos os módulos operacionais (encontrando-se a versão `v2.1.3` pronta e funcional), o calendário de entrada em produção é **imediato**:
 
 | Fase de Entrega | Prazo após Adjudicação | Atividades no Terreno / Online |
 | :--- | :---: | :--- |
