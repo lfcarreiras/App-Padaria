@@ -1,4 +1,4 @@
-// Módulo de Carregamento e Fallback para Conteúdos TinaCMS (Git-Backed)
+// Módulo de Carregamento e Fallback para Conteúdos do Studio CMS Nativo (/cms — Git-Backed)
 import configGeralRaw from '../../content/config/geral.json';
 import loja1Raw from '../../content/lojas/loja-1.json';
 import loja2Raw from '../../content/lojas/loja-2.json';

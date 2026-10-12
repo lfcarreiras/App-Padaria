@@ -51,6 +51,8 @@ git push origin main
   - **Fluxo de Recuperação de Password com Envio Real de E-mail via Supabase (`Recuperar`)**: Dispara um e-mail real através do motor **Supabase Auth** (`signInWithOtp` / `resetPasswordForEmail`) para a caixa de correio do cliente. O cliente confirma a posse do e-mail clicando no link enviado para o seu e-mail (que regressa automaticamente a `/encomendar?recuperar=1`) ou introduzindo o código OTP de 6 dígitos recebido (`verifyOtp`), desbloqueando então a definição da nova password.
   - **Edição de Perfil do Cliente**: Modal `Atualizar Dados de Cliente` atualizado para permitir consultar/editar o E-mail de Recuperação e alterar a Password a qualquer momento.
   - **Persistência Híbrida Resiliente (`encomendasService.ts` + Supabase)**: Gravação do e-mail na coluna nativa `clientes.email` e da password em `clientes` (com tag resiliente limpa automaticamente na leitura para não poluir notas de entrega + cache local `padaria_credenciais_clientes_v1` + migração SQL `password_cliente`).
+  - **Hardening Supabase RLS (`20261012_bulletproof_hardening.sql`)**: Ativação de *Row-Level Security* (RLS) em todas as tabelas `public` com políticas granulares de leitura (`SELECT`) e escrita validada (`INSERT`/`UPDATE`/`DELETE` com `id IS NOT NULL`), eliminando todos os erros e avisos de tabelas no *Supabase Security Advisor*.
+  - **Remoção do Pacote Externo `TinaCMS`**: Eliminadas as dependências externas redundantes `tinacms` e `@tinacms/cli` (bem como a pasta `tina/` e `tina-lock.json`), mantendo 100% operacional o **Studio CMS Visual Nativo (`/cms`)** e os ficheiros `content/*.json`.
 
 ## [v2.1.2] - 2026-10-12
 

@@ -42,7 +42,7 @@ flowchart TB
         AuthCtx["authContext.tsx + Supabase Auth\nRBAC 3 Níveis + Isolamento de Cockpit + Recuperação E-mail"]
         ThermalEngine["ThermalReceipt.tsx + receiptConfig.ts\nMotor CSS Paged Media (Epson TM-T20 80mm/72mm)"]
         ExcelEngine["Motor SheetJS (xlsx)\nExportação Mapa Diário Oficial, Base Fixa & Importação B2B"]
-        TinaLayer["tinaContent.ts\nConfiguração Institucional Git-Backed"]
+        TinaLayer["Studio CMS Nativo (/cms)\nConfiguração Institucional Git-Backed"]
     end
 
     subgraph DataLayer ["☁️ Camada de Dados & Persistência Híbrida"]
@@ -80,7 +80,7 @@ flowchart TB
 | **Motor de Folhas de Cálculo** | **SheetJS (`xlsx`)** | Geração automática do «Mapa Diário» oficial das 5 carrinhas, folhas de fabrico e importação/exportação da Base Fixa e Matriz B2B. |
 | **Motor de Impressão Térmica** | **CSS `@media print` Calibrado** | Impressão direta sem cortes na impressora térmica **Epson M249A TM-T20** (rolo 80mm / largura útil 72mm). |
 | **Notificações & Comunicação** | **Motor Deep-Link WhatsApp (`wa.me`)** | Disparo contextualizado de mensagens de decisão parcelar de produção e aviso automático de encomenda pronta. |
-| **CMS Institucional** | **TinaCMS (Git-Backed)** | Gestão visual de configurações da marca e textos institucionais sincronizados via GitHub. |
+| **CMS Institucional** | **Studio CMS Nativo (`/cms` Git-Backed)** | Gestão visual integrada de configurações da marca e textos institucionais sincronizados via GitHub API, sem dependências externas pesadas. |
 
 ---
 
@@ -91,7 +91,7 @@ O desenvolvimento técnico seguiu uma metodologia iterativa em **6 Sprints princ
 ```mermaid
 flowchart LR
     S1["Sprint 1 (07–15 Set)\nv1.0.0 – v1.3.1\nFundação, Supabase & RBAC"] --> S2["Sprint 2 (16–22 Set)\nv1.4.0 – v1.8.0\nKDS, Talão 80mm, On-Time & Logs"]
-    S2 --> S3["Sprint 3 (21 Set – 08 Out)\nv1.9.0\nTinaCMS & Refinamento UX"]
+    S2 --> S3["Sprint 3 (21 Set – 08 Out)\nv1.9.0\nStudio CMS & Refinamento UX"]
     S3 --> S4["Sprint 4 (09–10 Out)\nv1.9.5\nCenário A, Portal Cliente & Canais"]
     S4 --> S5["Sprint 5 (10–11 Out)\nv2.0.0\n22 Requisitos Reunião Arouca"]
     S5 --> S6["Sprint 6 (11–12 Out)\nv2.1.0 – v2.1.3\nTriagem Parcelar, Base Fixa Excel & Supabase Auth Email"]
@@ -116,9 +116,9 @@ flowchart LR
 4. **Rastreabilidade e Logs de Auditoria (`v1.8.0`):**
    - Registo automático de todas as ações críticas (criação, edição, mudança de estado de forno, entrega em loja, entrega em carrinha) com identificação do operador, função, loja e timestamp.
 
-### Passo 3 — Integração CMS Git-Backed e Ergonomia Multiloja (`v1.9.0` | 21/09 a 08/10/2026)
-1. **Integração TinaCMS (`tina/config.ts` e `src/lib/tinaContent.ts`):**
-   - Configuração de coleções em JSON/Markdown para identidade da marca, lojas e catálogo visual, permitindo edição rápida com sincronização Git.
+### Passo 3 — Studio CMS Nativo Git-Backed e Ergonomia Multiloja (`v1.9.0` | 21/09 a 08/10/2026)
+1. **Studio CMS Visual Nativo (`src/app/cms/page.tsx`, `src/app/api/cms/route.ts` e `src/lib/tinaContent.ts`):**
+   - Estruturação de coleções em JSON (`content/`) para identidade da marca, lojas e catálogo visual, com editor visual nativo em `/cms` sincronizado via GitHub API (substituindo completamente dependências externas de CMS como o TinaCMS).
 2. **Desacoplamento de Seletores de Loja:**
    - Otimização da barra de navegação superior (`src/components/Navbar.tsx`) para evitar sobreposição em tablets de 10 polegadas.
 

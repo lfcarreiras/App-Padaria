@@ -72,12 +72,12 @@ Consulte o histórico detalhado em `[[CHANGELOG]]`.
 
 | Versão | Tag Git | Commit | Data | Marco Funcional Principal |
 | :--- | :--- | :--- | :--- | :--- |
-| **v2.1.3** | `v2.1.3` | `HEAD` | 2026-10-12 | Autenticação no Portal Direto de Clientes (`/encomendar`) com Password definida pelo utilizador, E-mail obrigatório e fluxo de Recuperação de Password |
+| **v2.1.3** | `v2.1.3` | `HEAD` | 2026-10-12 | Autenticação no Portal Direto de Clientes (`/encomendar`) com Password definida pelo utilizador, E-mail obrigatório e Recuperação por E-mail via Supabase Auth + Hardening RLS Supabase + Remoção do pacote externo TinaCMS |
 | **v2.1.2** | `v2.1.2` | `a36c995` | 2026-10-12 | Edição/correção e eliminação de artigos na Base Fixa Diária de Clientes Particulares (1.º ao 4.º Carro) + Extração e Importação Excel (`.xlsx`) tal como no B2B |
 | **v2.1.1** | `v2.1.1` | `b19e04f` | 2026-10-12 | 1.ª Ronda Completa do Inprooval® Bulletproof Agent Swarm (Readiness Score: 99,1%): Hardening OWASP, Proteção de Dados, Cache Offline Carrinhas, Talão Térmico Parcelar e Relatório `DOC 06` |
 | **v2.1.0** | `v2.1.0` | `1a8eea1` | 2026-10-12 | Triagem parcelar artigo a artigo nos alertas urgentes (<3h), feedback parcelar na App Cliente e via WhatsApp, WhatsApp automático na Loja e Suite Documental Viva (5 Documentos + PDFs) |
 | **v2.0.0** | `v2.0.0` | `7ae6771` | 2026-10-11 | Implementação dos 22 requisitos de Arouca: Login Cockpit, 5 Carrinhas, Base Fixa, 13 Clientes B2B, Excel «Mapa Diário», 3 Fornos, Epson TM-T20 e App Cliente dedicada |
-| **v1.9.0** | `v1.9.0` | `HEAD` | 2026-09-21 | Integração do TinaCMS (Git-Backed) com coleções de configuração da marca, lojas físicas e catálogo visual de produtos, atalho no Admin e arquitetura híbrida com Supabase |
+| **v1.9.0** | `v1.9.0` | `HEAD` | 2026-09-21 | Studio CMS Nativo (`/cms` Git-Backed) com coleções de configuração da marca, lojas físicas e catálogo visual de produtos e arquitetura híbrida com Supabase |
 | **v1.8.0** | `v1.8.0` | `4963bbd` | 2026-09-17 | Histórico de auditoria de utilizadores em todos os painéis, remoção de preços no configurador de talão e exportação de folhas de fabrico Excel por setor (Padaria e Pastelaria) |
 | **v1.7.1** | `v1.7.1` | `4dca984` | 2026-09-16 | Correção do corte no talão pré-impressão (layout de bloco sem flex stretch) e remoção do duplo + no botão |
 | **v1.7.0** | `v1.7.0` | `cdadbf7` | 2026-09-16 | Tabela réplica do Supabase, filtros consolidada, restrição criação lojas/carrinhas, Title Case e 100 encomendas |

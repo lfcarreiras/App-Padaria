@@ -92,7 +92,7 @@ flowchart TD
     subgraph Concluidos ["✅ SPRINTS CONCLUÍDOS (07/09/2026 a 12/10/2026)"]
         SP1["Sprint 1 (07/09 – 15/09)\nFundação, Supabase PostgreSQL, Autenticação & RBAC (v1.0 – v1.3)"]
         SP2["Sprint 2 (16/09 – 22/09)\nBalcão, KDS Produção, Rotas GPS, On-Time & Auditoria (v1.4 – v1.8)"]
-        SP3["Sprint 3 (23/09 – 08/10)\nMulti-Loja, Talão Térmico 80mm, Excel & TinaCMS (v1.9)"]
+        SP3["Sprint 3 (23/09 – 08/10)\nMulti-Loja, Talão Térmico 80mm, Excel & Studio CMS (v1.9)"]
         SP4["Sprint 4 (09/10 – 10/10)\nBlindagem Cenário A, Portal Cliente v1 & Rastreio Canais"]
         SP5["Sprint 5 (10/10 – 11/10)\nReunião Arouca + Implementação dos 22 Requisitos Oficiais (v2.0.0)"]
         SP6["Sprint 6 (11/10 – 12/10)\nTriagem Parcelar, Base Fixa Excel & Supabase Auth Email (v2.1.0 – v2.1.3)"]
@@ -134,7 +134,7 @@ flowchart TD
 | **Sprint 1** | 07/09 – 15/09 | Engenharia Antigravity | Arquitetura Next.js, Supabase PostgreSQL e RBAC (`v1.0`–`v1.3.1`) | 3,80 h | 304,00 € |
 | **Sprint 2** | 16/09 – 22/09 | Engenharia Antigravity | Balcão, KDS Fabrico, Rotas GPS, On-Time e Logs (`v1.4`–`v1.8`) | 4,25 h | 340,00 € |
 | **Sprint 3** | 23/09 – 02/10 | Engenharia Antigravity | Multi-Loja, Talão Térmico 80mm e Exportação Excel | 3,15 h | 252,00 € |
-| **Sprint 4** | 03/10 – 10/10 | Engenharia Antigravity | Studio TinaCMS, Blindagem Cenário A, Portal Cliente v1 e Canais | 5,44 h | 435,20 € |
+| **Sprint 4** | 03/10 – 10/10 | Engenharia Antigravity | Studio CMS Nativo (`/cms`), Blindagem Cenário A, Portal Cliente v1 e Canais | 5,44 h | 435,20 € |
 | **Reunião Arouca** | 10/10/2026 | Consultoria Externa (Presencial) | Demonstração ao vivo à gerência, recolha de 22 requisitos e proposta | 1,75 h | 140,00 € |
 | **Sprint 5 (`v2.0.0`)** | 10/10 – 11/10 | Engenharia Antigravity | Implementação dos 22 requisitos de Arouca (5 Carrinhas, B2B, 3 Fornos, Mapa Diário) | 2,86 h | 228,80 € |
 | **Sprint 6.1 (`v2.1.0`)** | 11/10 – 12/10 | Engenharia Antigravity | Triagem parcelar artigo a artigo nos alertas urgentes, estado parcelar na App Cliente, WhatsApp automático na Loja e Dossier Documental | 1,25 h | 100,00 € |

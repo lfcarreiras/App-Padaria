@@ -29,7 +29,7 @@ O utilizador com perfil **Administrador** seleciona no login o Cockpit **`Gestã
 flowchart LR
     Admin(["🔐 Administrador (/gestao)"]) --> T1["1. 📊 Métricas & KPIs\n(On-Time, Canais, Rankings,\nPlaneado vs Real)"]
     Admin --> T2["2. 🏪 Lojas & 5 Carrinhas\n(Base Fixa 1º-4º Carro\n+ Matriz B2B 5º Carro)"]
-    Admin --> T3["3. 🗄️ Base de Dados\n(Catálogo Produtos, Clientes,\nImport Excel & TinaCMS)"]
+    Admin --> T3["3. 🗄️ Base de Dados\n(Catálogo Produtos, Clientes,\nImport Excel & Studio CMS)"]
     Admin --> T4["4. 🛡️ Logs de Auditoria\n(Rastreabilidade Total\nde Operadores)"]
     Admin --> T5["5. 🖨️ Talão Térmico\n(Calibração Epson TM-T20\n80mm / 72mm)"]
     Admin --> T6["6. 🔑 Acessos RBAC\n(Utilizadores, Senhas e\nPermissões por Painel)"]
@@ -144,8 +144,8 @@ Esta aba centraliza toda a parametrização logística da *Padaria da Vila*:
    - Criação avulsa de novos produtos ou clientes através do botão **`+ Novo Registo na BD`**.
 2. **Importação e Exportação Massiva em Excel/CSV:**
    - Suporte a ficheiros `.xlsx`, `.xls` e `.csv` para atualização em lote de **Produtos** ou **Clientes**, com pré-visualização das primeiras linhas antes de confirmar a gravação na base de dados.
-3. **Atalho para o Studio Visual (TinaCMS):**
-   - Ligação direta para `/admin/index.html` para gestão de conteúdos institucionais sincronizados com o GitHub.
+3. **Studio CMS Visual Nativo (`/cms`):**
+   - Editor visual integrado da solução (`/cms`) para gestão de conteúdos institucionais e textos de interface sincronizados com o GitHub.
 
 ---
 
