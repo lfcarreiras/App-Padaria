@@ -171,10 +171,10 @@ flowchart TD
 ---
 
 ### 3.5. Perfil 5: Cliente Final — App de Pedidos Diretos (`/encomendar`)
-1. **Autenticação Segura com Password e E-mail de Recuperação:**
+1. **Autenticação Segura com Password e Recuperação por E-mail (via Supabase Auth):**
    - **Já sou Cliente (`Login`):** O cliente acede a `/encomendar` e introduz o seu **Número de Telemóvel (ou E-mail)** e a sua **Password**. (Caso o cliente já tenha ficha criada ao balcão da padaria mas seja o seu 1.º acesso online, o sistema redireciona automaticamente para definir a sua Password e E-mail de Recuperação).
    - **Novo Registo:** No primeiro acesso, o cliente indica **Telemóvel**, **Nome Completo**, **E-mail para Recuperação de Password** (obrigatório), define e confirma a sua **Password** (mínimo 4 caracteres) e morada opcional.
-   - **Recuperar Password:** Caso se esqueça da password, o cliente clica em *«Recuperar»* (ou *«Esqueceu-se da password?»*), valida o seu **E-mail de Recuperação** (e telemóvel associado) e define de imediato uma nova password.
+   - **Recuperar Password (Envio Real de E-mail via Supabase):** Caso se esqueça da password, o cliente clica em *«Recuperar»* (ou *«Esqueceu-se da password?»*), indica o seu **E-mail de Recuperação** e clica em **Enviar E-mail de Recuperação**. A **Supabase** envia de imediato um e-mail para a caixa de correio do cliente: o cliente clica no **link de confirmação recebido no e-mail** (ou introduz o **código de 6 dígitos** enviado) e define de seguida a sua nova password.
 2. **Catálogo Exclusivo de Quantidades (Sem Preços):**
    - Navega pelos artigos de Padaria e Pastelaria, adiciona quantidades ao carrinho e escreve notas de personalização se desejar.
 3. **Checkout Rápido:**

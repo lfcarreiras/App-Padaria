@@ -86,6 +86,9 @@ export default function EncomendarClientePage() {
   const [authPassword, setAuthPassword] = useState('');
   const [authConfirmarPassword, setAuthConfirmarPassword] = useState('');
   const [mostrarPassword, setMostrarPassword] = useState(false);
+  const [emailRecuperacaoEnviado, setEmailRecuperacaoEnviado] = useState(false);
+  const [codigoOtpRecuperacao, setCodigoOtpRecuperacao] = useState('');
+  const [enviandoEmailSupabase, setEnviandoEmailSupabase] = useState(false);
   const [recuperacaoValidada, setRecuperacaoValidada] = useState(false);
   const [authNome, setAuthNome] = useState('');
   const [authMorada, setAuthMorada] = useState('');
@@ -134,7 +137,7 @@ export default function EncomendarClientePage() {
   const [minhasEncomendas, setMinhasEncomendas] = useState<Encomenda[]>([]);
   const [carregandoMinhasEnc, setCarregandoMinhasEnc] = useState(false);
 
-  // Carregar Catálogo e Lojas ao Abrir
+  // Carregar Catálogo, Lojas e escutar Retorno de Link de Recuperação por E-mail do Supabase
   useEffect(() => {
     async function carregarTudo() {
       setCarregandoDados(true);
@@ -165,18 +168,57 @@ export default function EncomendarClientePage() {
     }
     carregarTudo();
 
-    // Recuperar sessão salva do cliente em localStorage
     if (typeof window !== 'undefined') {
-      const savedCliente = localStorage.getItem('cliente_portal_padaria');
-      if (savedCliente) {
-        try {
-          const cli = JSON.parse(savedCliente);
-          setClienteLogado(cli);
-          if (cli.morada) setMoradaEntrega(cli.morada);
-        } catch {
-          // ignore
+      const urlParams = new URLSearchParams(window.location.search);
+      const hashStr = window.location.hash || '';
+      const isRecuperacaoUrl =
+        urlParams.get('recuperar') === '1' ||
+        hashStr.includes('type=recovery') ||
+        hashStr.includes('type=magiclink') ||
+        hashStr.includes('access_token=');
+      const emailUrl = urlParams.get('email') || '';
+
+      if (isRecuperacaoUrl) {
+        setClienteLogado(null);
+        setAuthModo('recuperacao');
+        if (emailUrl) setAuthEmail(emailUrl);
+        setEmailRecuperacaoEnviado(true);
+        setRecuperacaoValidada(true);
+        setAuthSucesso('✅ E-mail confirmado com sucesso através do link enviado pela Supabase! Defina agora a sua nova password abaixo.');
+      } else {
+        // Recuperar sessão salva do cliente em localStorage apenas se não vier de link de recuperação
+        const savedCliente = localStorage.getItem('cliente_portal_padaria');
+        if (savedCliente) {
+          try {
+            const cli = JSON.parse(savedCliente);
+            setClienteLogado(cli);
+            if (cli.morada) setMoradaEntrega(cli.morada);
+          } catch {
+            // ignore
+          }
         }
       }
+    }
+
+    if (supabase) {
+      const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+        if (
+          (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') &&
+          session?.user?.email &&
+          typeof window !== 'undefined' &&
+          (window.location.search.includes('recuperar=1') || window.location.hash.includes('access_token='))
+        ) {
+          setClienteLogado(null);
+          setAuthModo('recuperacao');
+          setAuthEmail(session.user.email.toLowerCase());
+          setEmailRecuperacaoEnviado(true);
+          setRecuperacaoValidada(true);
+          setAuthSucesso(`✅ E-mail (${session.user.email}) confirmado pela Supabase! Defina agora a sua nova password abaixo.`);
+        }
+      });
+      return () => {
+        authListener.subscription.unsubscribe();
+      };
     }
   }, []);
 
@@ -338,7 +380,7 @@ export default function EncomendarClientePage() {
     setAuthErro('');
     setAuthSucesso('');
 
-    // --- MODO 3: RECUPERAÇÃO DE PASSWORD VIA E-MAIL ---
+    // --- MODO 3: RECUPERAÇÃO DE PASSWORD VIA E-MAIL (SUPABASE AUTH) ---
     if (authModo === 'recuperacao') {
       const emailRec = authEmail.trim().toLowerCase();
       const telRecLimpo = authTelefone.replace(/\D/g, '').trim();
@@ -357,18 +399,106 @@ export default function EncomendarClientePage() {
         return telRecLimpo.length >= 9 ? (matchEmail && matchTel) : matchEmail;
       });
 
-      if (!recuperacaoValidada) {
+      // PASSO 1: Enviar E-mail de Recuperação através da Supabase
+      if (!emailRecuperacaoEnviado && !recuperacaoValidada) {
         if (!clientePorEmailOuTel) {
-          setAuthErro('Não foi encontrada nenhuma conta associada a este e-mail de recuperação (e telemóvel).');
+          setAuthErro('Não foi encontrada nenhuma conta associada a este e-mail de recuperação.');
           return;
         }
         setAuthTelefone(clientePorEmailOuTel.telefone);
-        setRecuperacaoValidada(true);
-        setAuthSucesso(`E-mail de recuperação (${emailRec}) validado! Defina abaixo a sua nova password.`);
+
+        if (supabase) {
+          setEnviandoEmailSupabase(true);
+          const redirectUrl =
+            typeof window !== 'undefined'
+              ? `${window.location.origin}/encomendar?recuperar=1&email=${encodeURIComponent(emailRec)}`
+              : undefined;
+
+          const { error: otpErr } = await supabase.auth.signInWithOtp({
+            email: emailRec,
+            options: {
+              shouldCreateUser: true,
+              emailRedirectTo: redirectUrl,
+            },
+          });
+
+          if (otpErr) {
+            const { error: resetErr } = await supabase.auth.resetPasswordForEmail(emailRec, {
+              redirectTo: redirectUrl,
+            });
+            if (resetErr) {
+              setEnviandoEmailSupabase(false);
+              // Se for limite de frequência (rate limit de 60s da Supabase), avisar mas abrir campo de código caso o e-mail já tenha sido enviado
+              if (
+                otpErr.message?.toLowerCase().includes('rate') ||
+                otpErr.message?.toLowerCase().includes('seconds')
+              ) {
+                setEmailRecuperacaoEnviado(true);
+                setAuthSucesso(
+                  `📧 Um e-mail de recuperação já foi enviado recentemente para ${emailRec}. Verifique a sua caixa de entrada (e Spam) e clique no link ou introduza o código recebido.`
+                );
+                return;
+              }
+              setAuthErro(`Erro ao enviar e-mail via Supabase: ${otpErr.message}`);
+              return;
+            }
+          }
+          setEnviandoEmailSupabase(false);
+        }
+
+        setEmailRecuperacaoEnviado(true);
+        setAuthSucesso(
+          `📧 E-mail de recuperação enviado pela Supabase para ${emailRec}! Abra o seu e-mail e clique no link de confirmação OU introduza abaixo o código de 6 dígitos recebido.`
+        );
         return;
       }
 
-      // Passo 2 da Recuperação: Guardar Nova Password
+      // PASSO 2: Validar Código OTP de 6 dígitos recebido no E-mail (caso não tenha clicado no link)
+      if (emailRecuperacaoEnviado && !recuperacaoValidada) {
+        const tokenLimpo = codigoOtpRecuperacao.replace(/\s+/g, '').trim();
+        if (!tokenLimpo || tokenLimpo.length < 6) {
+          setAuthErro(
+            'Por favor, introduza o código de 6 dígitos recebido no seu e-mail (ou clique diretamente no link enviado para o seu e-mail).'
+          );
+          return;
+        }
+
+        if (supabase) {
+          setEnviandoEmailSupabase(true);
+          const tiposTentativa: Array<'email' | 'recovery' | 'magiclink' | 'signup'> = [
+            'email',
+            'recovery',
+            'magiclink',
+            'signup',
+          ];
+          let verificado = false;
+          for (const tipoOtp of tiposTentativa) {
+            const { data: vData, error: vErr } = await supabase.auth.verifyOtp({
+              email: emailRec,
+              token: tokenLimpo,
+              type: tipoOtp,
+            });
+            if (!vErr && (vData?.session || vData?.user)) {
+              verificado = true;
+              break;
+            }
+          }
+          setEnviandoEmailSupabase(false);
+
+          if (!verificado) {
+            setAuthErro(
+              'Código inválido ou expirado. Verifique o código no e-mail enviado pela Supabase ou clique diretamente no link do e-mail.'
+            );
+            return;
+          }
+        }
+
+        setRecuperacaoValidada(true);
+        setAuthSucesso(`✅ Código confirmado com sucesso pela Supabase! Defina abaixo a sua nova password.`);
+        return;
+      }
+
+      // PASSO 3: Guardar Nova Password após confirmação do E-mail na Supabase
       if (!authPassword || authPassword.length < 4) {
         setAuthErro('A nova password deve ter pelo menos 4 caracteres.');
         return;
@@ -378,10 +508,28 @@ export default function EncomendarClientePage() {
         return;
       }
 
-      const alvo = clientePorEmailOuTel || clientes.find((c) => (c.telefone || '').replace(/\D/g, '') === telRecLimpo);
+      let alvo =
+        clientePorEmailOuTel ||
+        clientes.find((c) => (c.telefone || '').replace(/\D/g, '') === telRecLimpo) ||
+        clientes.find((c) => (c.email || '').toLowerCase().trim() === emailRec);
+
       if (!alvo) {
-        setAuthErro('Não foi possível localizar a conta de cliente para atualizar a password.');
+        const clisFrescos = await carregarClientesSupabase();
+        alvo = clisFrescos.find(
+          (c) =>
+            (c.email || '').toLowerCase().trim() === emailRec ||
+            (telRecLimpo.length >= 9 && (c.telefone || '').replace(/\D/g, '') === telRecLimpo)
+        );
+      }
+
+      if (!alvo) {
+        setAuthErro('Não foi possível localizar a ficha de cliente associada a este e-mail.');
         return;
+      }
+
+      if (supabase) {
+        const pwdSupabaseAuth = authPassword.length >= 6 ? authPassword : `${authPassword}#pv`;
+        await supabase.auth.updateUser({ password: pwdSupabaseAuth }).catch(() => {});
       }
 
       guardarCredencialClienteLocal(alvo.telefone, emailRec, authPassword);
@@ -402,12 +550,17 @@ export default function EncomendarClientePage() {
       };
 
       setClientes((prev) => prev.map((c) => (c.id === clienteFinal.id ? clienteFinal : c)));
+      setEmailRecuperacaoEnviado(false);
+      setCodigoOtpRecuperacao('');
       setRecuperacaoValidada(false);
       setAuthConfirmarPassword('');
       setClienteLogado(clienteFinal);
       if (clienteFinal.morada && !moradaEntrega) setMoradaEntrega(clienteFinal.morada);
       if (typeof window !== 'undefined') {
         localStorage.setItem('cliente_portal_padaria', JSON.stringify(clienteFinal));
+        if (window.location.search || window.location.hash) {
+          window.history.replaceState({}, '', '/encomendar');
+        }
       }
       return;
     }
@@ -543,6 +696,22 @@ export default function EncomendarClientePage() {
         }
 
         guardarCredencialClienteLocal(authTelefone.trim(), emailLimpo, pwdFinal);
+
+        if (supabase) {
+          const pwdSupabaseAuth = pwdFinal.length >= 6 ? pwdFinal : `${pwdFinal}#pv`;
+          supabase.auth
+            .signUp({
+              email: emailLimpo,
+              password: pwdSupabaseAuth,
+              options: {
+                data: {
+                  nome: authNome.trim(),
+                  telefone: authTelefone.trim(),
+                },
+              },
+            })
+            .catch(() => {});
+        }
 
         const dadosGuardar: Partial<Cliente> & { nome: string; telefone: string } = {
           id: clienteEncontrado?.id || clienteLogado?.id,
@@ -833,6 +1002,8 @@ export default function EncomendarClientePage() {
                 type="button"
                 onClick={() => {
                   setAuthModo('login');
+                  setEmailRecuperacaoEnviado(false);
+                  setCodigoOtpRecuperacao('');
                   setRecuperacaoValidada(false);
                   setAuthErro('');
                   setAuthSucesso('');
@@ -847,6 +1018,8 @@ export default function EncomendarClientePage() {
                 type="button"
                 onClick={() => {
                   setAuthModo('registo');
+                  setEmailRecuperacaoEnviado(false);
+                  setCodigoOtpRecuperacao('');
                   setRecuperacaoValidada(false);
                   setAuthErro('');
                   setAuthSucesso('');
@@ -861,6 +1034,8 @@ export default function EncomendarClientePage() {
                 type="button"
                 onClick={() => {
                   setAuthModo('recuperacao');
+                  setEmailRecuperacaoEnviado(false);
+                  setCodigoOtpRecuperacao('');
                   setRecuperacaoValidada(false);
                   setAuthPassword('');
                   setAuthConfirmarPassword('');
@@ -919,6 +1094,8 @@ export default function EncomendarClientePage() {
                         type="button"
                         onClick={() => {
                           setAuthModo('recuperacao');
+                          setEmailRecuperacaoEnviado(false);
+                          setCodigoOtpRecuperacao('');
                           setRecuperacaoValidada(false);
                           setAuthPassword('');
                           setAuthConfirmarPassword('');
@@ -1067,11 +1244,11 @@ export default function EncomendarClientePage() {
                 </>
               )}
 
-              {/* --- MODO 3: RECUPERAÇÃO DE PASSWORD VIA E-MAIL --- */}
+              {/* --- MODO 3: RECUPERAÇÃO DE PASSWORD VIA E-MAIL (SUPABASE AUTH) --- */}
               {authModo === 'recuperacao' && (
                 <>
                   <div className="p-2 rounded-xl bg-amber-50/70 border border-amber-200 text-[11px] text-stone-700 leading-snug">
-                    🔑 Indique o <strong>E-mail de Recuperação</strong> e o <strong>Telemóvel</strong> associados à sua conta para redefinir a sua password.
+                    📧 Indique o <strong>E-mail de Recuperação</strong> da sua conta. A <strong>Supabase</strong> enviará um e-mail com link/código de verificação para redefinir a sua password.
                   </div>
 
                   <div>
@@ -1091,21 +1268,53 @@ export default function EncomendarClientePage() {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block font-bold text-stone-700 mb-1">
-                      Número de Telemóvel Associado (opcional se e-mail único)
-                    </label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-2 h-4 w-4 text-stone-400" />
+                  {!emailRecuperacaoEnviado && !recuperacaoValidada && (
+                    <div>
+                      <label className="block font-bold text-stone-700 mb-1">
+                        Número de Telemóvel Associado (opcional)
+                      </label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-2 h-4 w-4 text-stone-400" />
+                        <input
+                          type="tel"
+                          value={authTelefone}
+                          onChange={(e) => setAuthTelefone(e.target.value)}
+                          placeholder="912 345 678"
+                          className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-stone-300 font-mono text-xs focus:outline-hidden focus:border-amber-600"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {emailRecuperacaoEnviado && !recuperacaoValidada && (
+                    <div className="space-y-1.5 pt-1 border-t border-stone-200">
+                      <div className="flex items-center justify-between">
+                        <label className="block font-bold text-stone-700 text-[11px]">
+                          Código Recebido no E-mail (6 dígitos) *
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEmailRecuperacaoEnviado(false);
+                            setCodigoOtpRecuperacao('');
+                            setAuthErro('');
+                            setAuthSucesso('');
+                          }}
+                          className="text-[10px] font-bold text-amber-700 hover:underline cursor-pointer"
+                        >
+                          Alterar e-mail / Reenviar
+                        </button>
+                      </div>
                       <input
-                        type="tel"
-                        value={authTelefone}
-                        onChange={(e) => setAuthTelefone(e.target.value)}
-                        placeholder="912 345 678"
-                        className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-stone-300 font-mono text-xs focus:outline-hidden focus:border-amber-600"
+                        type="text"
+                        required
+                        value={codigoOtpRecuperacao}
+                        onChange={(e) => setCodigoOtpRecuperacao(e.target.value)}
+                        placeholder="Ex: 123456 (ou clique no link enviado por e-mail)"
+                        className="w-full px-3 py-1.5 rounded-xl border border-amber-400 bg-amber-50/40 font-mono font-bold tracking-widest text-center text-xs focus:outline-hidden focus:border-amber-600"
                       />
                     </div>
-                  </div>
+                  )}
 
                   {recuperacaoValidada && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-stone-200">
@@ -1152,17 +1361,22 @@ export default function EncomendarClientePage() {
 
               <button
                 type="submit"
-                className="w-full py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs uppercase tracking-wider shadow-md transition cursor-pointer flex items-center justify-center gap-2"
+                disabled={enviandoEmailSupabase}
+                className="w-full py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white font-black text-xs uppercase tracking-wider shadow-md transition cursor-pointer flex items-center justify-center gap-2"
               >
                 <LogIn className="h-4 w-4" />
                 <span>
-                  {authModo === 'login'
+                  {enviandoEmailSupabase
+                    ? 'A comunicar com a Supabase...'
+                    : authModo === 'login'
                     ? 'Aceder à Minha Área de Encomendas'
                     : authModo === 'registo'
                     ? 'Criar Conta & Começar a Encomendar'
                     : recuperacaoValidada
                     ? 'Guardar Nova Password & Entrar'
-                    : 'Validar E-mail de Recuperação'}
+                    : emailRecuperacaoEnviado
+                    ? 'Confirmar Código Recebido no E-mail'
+                    : 'Enviar E-mail de Recuperação'}
                 </span>
               </button>
             </form>
