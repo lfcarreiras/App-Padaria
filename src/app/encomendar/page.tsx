@@ -1145,9 +1145,9 @@ export default function EncomendarClientePage() {
                 </>
               )}
 
-              {/* Aviso de Privacidade e Proteção de Dados (Art. 13.º RGPD) */}
+              {/* Aviso de Proteção de Dados */}
               <div className="p-2 rounded-xl bg-stone-50 border border-stone-200 text-[10px] text-stone-600 leading-snug">
-                🔒 <strong>Proteção de Dados (RGPD — Art. 13.º):</strong> O seu nome, telemóvel, e-mail de recuperação e morada são tratados exclusivamente pela {configMarca.nomeEmpresa || 'Padaria da Vila'} para gestão da sua conta, encomendas e notificações de estado.
+                🔒 <strong>Proteção de Dados:</strong> Os seus dados são tratados exclusivamente pela {configMarca.nomeEmpresa || 'Padaria da Vila'} para processamento da encomenda, entrega e notificações de estado.
               </div>
 
               <button
@@ -2152,7 +2152,7 @@ export default function EncomendarClientePage() {
               </div>
 
               <div className="p-2 rounded-xl bg-stone-50 border border-stone-200 text-[10px] text-stone-600 leading-snug">
-                🔒 <strong>RGPD (Art. 13.º):</strong> Os seus dados e e-mail de recuperação destinam-se exclusivamente à gestão da sua conta e entrega das suas encomendas na {configMarca.nomeEmpresa || 'Padaria da Vila'}.
+                🔒 <strong>Proteção de Dados:</strong> Os seus dados são tratados exclusivamente pela {configMarca.nomeEmpresa || 'Padaria da Vila'} para processamento da encomenda, entrega e notificações de estado.
               </div>
 
               <button

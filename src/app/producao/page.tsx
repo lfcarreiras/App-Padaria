@@ -996,14 +996,9 @@ export default function ProducaoPage() {
                   <AlertTriangle className="h-6 w-6" />
                 </div>
                 <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-sm sm:text-base font-black uppercase tracking-wide">
-                      🚨 Alerta de Encomenda Urgente (&le; 3 Horas para Recolha/Entrega)
-                    </h3>
-                    <span className="px-2 py-0.5 rounded-full bg-red-900/70 border border-red-300/60 text-[10px] font-bold uppercase tracking-wider text-red-100">
-                      🛡️ Decisão Humana Obrigatória (Art. 14.º EU AI Act)
-                    </span>
-                  </div>
+                  <h3 className="text-sm sm:text-base font-black uppercase tracking-wide">
+                    🚨 Alerta de Encomenda Urgente (&le; 3 Horas para Recolha/Entrega)
+                  </h3>
                   <p className="text-xs text-red-100 font-medium">
                     Verifique o conteúdo detalhado do pedido, o canal e a loja, e aceite ou recuse cada artigo individualmente para produção.
                   </p>

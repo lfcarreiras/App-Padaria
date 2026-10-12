@@ -441,7 +441,6 @@ export function gerarLinkWhatsAppDecisaoEncomenda(enc: Encomenda, obsExtra?: str
   const tel = formatarTelefoneWhatsApp(enc.cliente?.telefone);
   const obs = (obsExtra !== undefined ? obsExtra : enc.observacoes_producao || '').trim();
   const obsTexto = obs ? `\n\n📝 Observações da Padaria: ${obs}` : '';
-  const assinaturaTransparencia = `\n\n🤖 _Notificação gerada pelo sistema da Padaria da Vila (validada pela equipa)._`;
   const destinoTexto =
     enc.tipo === 'levantamento_loja'
       ? `Levantamento em ${enc.loja_nome || 'Loja'}`
@@ -455,17 +454,17 @@ export function gerarLinkWhatsAppDecisaoEncomenda(enc: Encomenda, obsExtra?: str
   let mensagem = '';
   if (itensAceites.length > 0 && itensRecusados.length === 0) {
     const lista = itensAceites.map((i) => `${i.quantidade}x ${i.produto_nome}`).join(', ');
-    mensagem = `Olá ${enc.cliente.nome}! Confirmamos que a sua encomenda ${enc.codigo} (${destinoTexto} para ${enc.data_agendamento} às ${enc.hora_agendamento}) entrou em produção na Padaria da Vila:\n✅ Artigos a preparar: ${lista}.${obsTexto}${assinaturaTransparencia}`;
+    mensagem = `Olá ${enc.cliente.nome}! Confirmamos que a sua encomenda ${enc.codigo} (${destinoTexto} para ${enc.data_agendamento} às ${enc.hora_agendamento}) entrou em produção na Padaria da Vila:\n✅ Artigos a preparar: ${lista}.${obsTexto}`;
   } else if (itensAceites.length > 0 && itensRecusados.length > 0) {
     const listaSim = itensAceites.map((i) => `${i.quantidade}x ${i.produto_nome}`).join(', ');
     const listaNao = itensRecusados.map((i) => `${i.quantidade}x ${i.produto_nome}`).join(', ');
-    mensagem = `Olá ${enc.cliente.nome}! Relativamente à sua encomenda ${enc.codigo} (${destinoTexto} para ${enc.data_agendamento} às ${enc.hora_agendamento}), informamos a confirmação parcelar do pedido:\n✅ Artigos que serão preparados: ${listaSim}\n❌ Artigos indisponíveis (não produzidos): ${listaNao}${obsTexto}${assinaturaTransparencia}`;
+    mensagem = `Olá ${enc.cliente.nome}! Relativamente à sua encomenda ${enc.codigo} (${destinoTexto} para ${enc.data_agendamento} às ${enc.hora_agendamento}), informamos a confirmação parcelar do pedido:\n✅ Artigos que serão preparados: ${listaSim}\n❌ Artigos indisponíveis (não produzidos): ${listaNao}${obsTexto}`;
   } else if (itensAceites.length === 0 && itensRecusados.length > 0) {
     const listaNao = itensRecusados.map((i) => `${i.quantidade}x ${i.produto_nome}`).join(', ');
-    mensagem = `Olá ${enc.cliente.nome}! Lamentamos informar que não nos será possível preparar a sua encomenda ${enc.codigo} (${listaNao}) agendada para ${enc.data_agendamento} às ${enc.hora_agendamento}.${obsTexto}${assinaturaTransparencia}`;
+    mensagem = `Olá ${enc.cliente.nome}! Lamentamos informar que não nos será possível preparar a sua encomenda ${enc.codigo} (${listaNao}) agendada para ${enc.data_agendamento} às ${enc.hora_agendamento}.${obsTexto}`;
   } else {
     const listaTodos = enc.itens.map((i) => `${i.quantidade}x ${i.produto_nome}`).join(', ');
-    mensagem = `Olá ${enc.cliente.nome}! Contacto da Padaria da Vila sobre a sua encomenda ${enc.codigo} (${listaTodos}) para ${enc.data_agendamento} às ${enc.hora_agendamento}.${obsTexto}${assinaturaTransparencia}`;
+    mensagem = `Olá ${enc.cliente.nome}! Contacto da Padaria da Vila sobre a sua encomenda ${enc.codigo} (${listaTodos}) para ${enc.data_agendamento} às ${enc.hora_agendamento}.${obsTexto}`;
   }
 
   return `https://wa.me/${tel}?text=${encodeURIComponent(mensagem)}`;
@@ -477,12 +476,11 @@ export function gerarLinkWhatsAppEncomendaPronta(enc: Encomenda): string {
   const lista = (itensProduzidos.length > 0 ? itensProduzidos : enc.itens)
     .map((i) => `${i.quantidade}x ${i.produto_nome}`)
     .join(', ');
-  const assinaturaTransparencia = `\n\n🤖 _Notificação gerada pelo sistema da Padaria da Vila (validada pela equipa)._`;
 
   const mensagem =
     enc.tipo === 'levantamento_loja'
-      ? `Olá ${enc.cliente.nome}! A sua encomenda ${enc.codigo} (${lista}) já se encontra PRONTA para levantamento no balcão da loja ${enc.loja_nome || 'Padaria da Vila'}. Até já!${assinaturaTransparencia}`
-      : `Olá ${enc.cliente.nome}! A sua encomenda ${enc.codigo} (${lista}) já se encontra PRONTA para entrega ao domicílio (${enc.cliente.morada || 'Arouca'}). Até já!${assinaturaTransparencia}`;
+      ? `Olá ${enc.cliente.nome}! A sua encomenda ${enc.codigo} (${lista}) já se encontra PRONTA para levantamento no balcão da loja ${enc.loja_nome || 'Padaria da Vila'}. Até já!`
+      : `Olá ${enc.cliente.nome}! A sua encomenda ${enc.codigo} (${lista}) já se encontra PRONTA para entrega ao domicílio (${enc.cliente.morada || 'Arouca'}). Até já!`;
 
   return `https://wa.me/${tel}?text=${encodeURIComponent(mensagem)}`;
 }

@@ -75,9 +75,8 @@ git push origin main
 - **Agente 3 (`Cybersecurity Red-Team — OWASP`)**:
   - Configuração de HTTP Security Headers (`X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security`) em `next.config.mjs`.
   - Implementação de *Route Guard* ativo por Cockpit na `Navbar.tsx`.
-- **Agente 4 (`EU AI Act & RGPD Compliance Auditor`)**:
-  - Adição de selo de supervisão humana obrigatória (**Art. 14.º EU AI Act**) na triagem de urgência em `/producao` e assinatura de transparência (**Art. 50.º EU AI Act**) nas mensagens WhatsApp geradas pelo sistema.
-  - Adição de nota informativa de proteção e minimização de dados pessoais (**Art. 13.º RGPD**) nos formulários de Login/Registo e Perfil do Portal Direto de Clientes (`/encomendar`).
+- **Agente 4 (`Data Protection & Privacy Auditor`)**:
+  - Adição de nota informativa de Proteção de Dados nos formulários de Login/Registo e Perfil do Portal Direto de Clientes (`/encomendar`).
 - **Agente 5 (`Edge, Offline & Hardware POS Resilience`)**:
   - Atualização do talão térmico **Epson M249A TM-T20 (80mm)** (`ThermalReceipt.tsx`) para assinalar artigos recusados com `[NÃO PROD.]`, excluí-los do somatório de unidades entregues e imprimir `observacoes_producao`.
   - Implementação de cache offline automática (`padaria_encomendas_cache_v1`) e badge `⚡ Offline (Cache)` na `Navbar.tsx` para operação contínua das 5 carrinhas em zonas sem rede.

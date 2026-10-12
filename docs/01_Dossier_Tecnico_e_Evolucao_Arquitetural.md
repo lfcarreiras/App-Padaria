@@ -182,9 +182,9 @@ Na release **`v2.1.1`**, a plataforma foi auditada pelos **7 Agentes Especialist
 2. **Hardening de Cibersegurança OWASP & Isolamento de Cockpits (`Agente 3`):**
    - Configuração de HTTP Security Headers (`X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security`) em `next.config.mjs`.
    - Implementação de *Route Guard* ativo por Cockpit em `Navbar.tsx`.
-3. **Conformidade Regulatória EU AI Act & RGPD (`Agente 4`):**
-   - Selo de supervisão humana obrigatória (**Art. 14.º EU AI Act**) na triagem de urgência em `/producao` e assinatura de transparência (**Art. 50.º EU AI Act**) nas notificações automáticas de WhatsApp.
-   - Nota informativa de proteção e minimização de dados pessoais (**Art. 13.º RGPD**) nos formulários de Login/Registo e Perfil do Portal Direto de Clientes (`/encomendar`).
+3. **Proteção de Dados & Autenticação no Portal de Clientes (`Agente 4`):**
+   - Exigência de password definida pelo utilizador e e-mail para recuperação no Portal Direto de Clientes (`/encomendar`).
+   - Nota informativa de Proteção de Dados nos formulários de Login/Registo e Perfil do Portal Direto de Clientes (`/encomendar`).
 4. **Resiliência Offline para Zonas Rurais & Migração SQL (`Agente 2` & `Agente 5`):**
    - Snapshot offline automático (`padaria_encomendas_cache_v1`) em `carregarEncomendasSupabase()` e badge `⚡ Offline (Cache)` na `Navbar.tsx` para garantir operação contínua das 5 carrinhas em freguesias sem rede móvel.
    - Script idempotente de migração e indexação SQL em `supabase/migrations/20261012_bulletproof_hardening.sql`.

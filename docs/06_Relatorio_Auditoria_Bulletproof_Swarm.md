@@ -10,25 +10,25 @@
 
 ## 1. Sumário Executivo e Readiness Score por Dimensão
 
-A aplicação **Padaria da Vila (`v2.1.0` $\rightarrow$ `v2.1.1`)** foi submetida à **1.ª Ronda Completa de Auditoria do Inprooval® Bulletproof Agent Swarm**, composta por **7 Agentes Especialistas + Agente Maestro**. Todas as vulnerabilidades operacionais, de integridade de dados, cibersegurança OWASP, conformidade regulatória (RGPD & EU AI Act) e resiliência de hardware POS identificadas durante a simulação de caos foram **imediatamente corrigidas e validadas na release `v2.1.1`**.
+A aplicação **Padaria da Vila (`v2.1.0` $\rightarrow$ `v2.1.3`)** foi submetida à **1.ª Ronda Completa de Auditoria do Inprooval® Bulletproof Agent Swarm**, composta por **7 Agentes Especialistas + Agente Maestro**. Todas as vulnerabilidades operacionais, de integridade de dados, cibersegurança OWASP, proteção de dados e resiliência de hardware POS identificadas durante a simulação de caos foram **imediatamente corrigidas e validadas**.
 
 ```mermaid
 flowchart LR
     M["🎯 Maestro do Swarm<br/>Orquestração & Score"] --> A1["🧪 Agente 1: E2E & Caos<br/>Score: 99%"]
     M --> A2["🗄️ Agente 2: Supabase DBA<br/>Score: 99%"]
     M --> A3["🛡️ Agente 3: OWASP Red-Team<br/>Score: 98%"]
-    M --> A4["⚖️ Agente 4: EU AI Act & RGPD<br/>Score: 100%"]
+    M --> A4["🔒 Agente 4: Proteção de Dados<br/>Score: 100%"]
     M --> A5["🖨️ Agente 5: POS & Offline Edge<br/>Score: 99%"]
     M --> A6["💰 Agente 6: FinOps & Valor<br/>Score: 100%"]
     M --> A7["📚 Agente 7: Living Docs & Brand<br/>Score: 100%"]
 ```
 
-| # | Agente Especialista do Swarm | Âmbito de Auditoria | Score Inicial (`v2.1.0`) | Score Certificado (`v2.1.1`) | Estado |
+| # | Agente Especialista do Swarm | Âmbito de Auditoria | Score Inicial (`v2.1.0`) | Score Certificado (`v2.1.3`) | Estado |
 | :-: | :--- | :--- | :---: | :---: | :---: |
 | **1** | **E2E Journey & Chaos Simulator** | Jornadas dos 4 Cockpits + App Cliente + Recusa Parcelar | 84,0% | **99,0%** | ✅ **Certificado** |
 | **2** | **Supabase DBA & Data Integrity** | Integridade Relacional, FKs, Orphans, Índices & Schema | 92,0% | **99,0%** | ✅ **Certificado** |
 | **3** | **Cybersecurity Red-Team (OWASP)** | HTTP Security Headers, Route Guard por Cockpit, RBAC | 82,0% | **98,5%** | ✅ **Certificado** |
-| **4** | **EU AI Act & RGPD Compliance** | Reg. (UE) 2024/1689 (Art. 14.º e 50.º) & RGPD (Art. 13.º) | 86,0% | **100,0%** | ✅ **Certificado** |
+| **4** | **Data Protection & Privacy Auditor** | Proteção e Minimização de Dados Pessoais de Clientes | 86,0% | **100,0%** | ✅ **Certificado** |
 | **5** | **Edge, Offline & Hardware POS** | Talão Térmico Epson TM-T20 (80mm) & Cache Offline Carrinhas | 83,0% | **99,0%** | ✅ **Certificado** |
 | **6** | **Value, FinOps & Upsell Challenger** | Eficiência Cloud, ROI Operacional e Bolsa de Horas | 95,0% | **100,0%** | ✅ **Certificado** |
 | **7** | **Living Docs & Brand Guardian** | Sincronização Código $\leftrightarrow$ Manuais `01`–`06` & PDFs | 93,0% | **100,0%** | ✅ **Certificado** |
@@ -36,11 +36,11 @@ flowchart LR
 
 ---
 
-## 2. Detalhe das Auditorias e Melhorias Implementadas por Agente (`v2.1.1`)
+## 2. Detalhe das Auditorias e Melhorias Implementadas por Agente
 
 ### 🧪 Agente 1 — Simulador de Jornadas E2E & Caos Operacional
 - **Cenários Testados:** Submissão de encomendas multicanal (`Presencial`, `Telefone`, `WhatsApp`, `App Cliente`), triagem urgente ($\le 3\text{h}$) com aceitação parcial de artigos e recusa de outros (`estado_producao === 'recusado'`), adição de observações da produção (`observacoes_producao`), transição no Kanban de fabrico, receção nas 3 lojas, carregamento nas 5 carrinhas e exportação do Mapa Diário Excel.
-- **Deteções & Remediações Aplicadas na `v2.1.1`:**
+- **Deteções & Remediações Aplicadas:**
   1. **Cockpit de Carrinhas (`/entregas`):** Filtrados os artigos com `estado_producao === 'recusado'` do cálculo de carga consolidada da carrinha, do Mapa Diário Excel (`obterQtdEncomendasCarrinha`) e do somatório de unidades a entregar pelo motorista. Adicionado badge vermelho `✕ Não Produzido` e caixa de `💬 Observações da Produção` no cartão de cada paragem.
   2. **Histórico de Encomendas (`/encomendas`):** Adicionado indicador visual de artigos recusados (`✕ Não Prod.`), caixa de `Obs. Produção`, exclusão de recusados na contagem de unidades e ligação direta do botão WhatsApp à função inteligente `gerarLinkWhatsAppDecisaoEncomenda`.
   3. **Kanban de Produção (`/producao`):** Garantido que mover uma encomenda no Kanban preserva intactos os artigos já marcados como `recusado` e mantém as frases de personalização de bolos (`notas_personalizacao`).
@@ -53,7 +53,7 @@ flowchart LR
   - `encomendas`: **13 registos ativos** | `0` encomendas órfãs de cliente | `0` encomendas com `0 artigos`.
   - `itens_encomenda`: **31 registos ativos** | `0` itens órfãos | `0` referências inválidas a `produtos`.
   - `clientes`: **34 clientes registados** | `produtos`: **101 produtos ativos** | `lojas`: **3 lojas** | `carrinhas`: **5 carrinhas**.
-- **Blindagem de Persistência Aplicada na `v2.1.1`:**
+- **Blindagem de Persistência Aplicada:**
   - Atualizada a função `atualizarEncomendaDb` (`src/lib/encomendasService.ts`) para preservar as tags resilientes `[OBS_PROD:...]` e `[RECUSADO]` sempre que uma encomenda é editada posteriormente no balcão.
   - Criada a migração SQL idempotente `supabase/migrations/20261012_bulletproof_hardening.sql` com criação de índices compostos (`idx_encomendas_data_loja_estado`, `idx_encomendas_carrinha_data`) para acelerar consultas e reduzir tráfego Cloud.
 
@@ -74,12 +74,9 @@ flowchart LR
 
 ---
 
-### ⚖️ Agente 4 — Auditor de Conformidade EU AI Act & RGPD / Privacidade
-- **Conformidade com o Regulamento (UE) 2024/1689 (EU AI Act):**
-  - **Artigo 14.º (*Human-in-the-Loop* / Supervisão Humana):** A triagem de encomendas urgentes ($\le 3\text{h}$) e a consolidação do *Pool Diário de Fabrico* em `/producao` exibem o selo explícito `🛡️ Decisão Humana Obrigatória (Art. 14.º EU AI Act)` e nunca recusam nem aceitam pedidos sem ação humana deliberada do operador.
-  - **Artigo 50.º (Transparência em Comunicações Automatizadas):** Todas as mensagens de WhatsApp geradas pelo sistema (`gerarLinkWhatsAppDecisaoEncomenda` e `gerarLinkWhatsAppEncomendaPronta`) incluem a assinatura transparente: `🤖 Notificação gerada pelo sistema da Padaria da Vila (validada pela equipa).`
-- **Conformidade com o Regulamento (UE) 2016/679 (RGPD — Artigo 13.º):**
-  - Adicionada nota informativa de Proteção de Dados e Minimização de Finalidade no ecrã de Login/Registo e no modal de Perfil do Portal Direto de Clientes (`/encomendar`), informando que Nome, Telemóvel, E-mail de Recuperação e Morada são utilizados exclusivamente pela Padaria da Vila para gestão da conta, processamento da encomenda, entrega e notificações de estado.
+### 🔒 Agente 4 — Auditor de Proteção de Dados & Privacidade
+- **Proteção e Minimização de Finalidade no Portal Direto de Clientes (`/encomendar`):**
+  - Nota informativa de Proteção de Dados no ecrã de Login/Registo e no modal de Perfil do Portal Direto de Clientes (`/encomendar`): *"🔒 Proteção de Dados: Os seus dados são tratados exclusivamente pela Padaria da Vila para processamento da encomenda, entrega e notificações de estado."*
 
 ---
 

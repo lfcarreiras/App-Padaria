@@ -138,7 +138,7 @@ flowchart TD
 | **Reunião Arouca** | 10/10/2026 | Consultoria Externa (Presencial) | Demonstração ao vivo à gerência, recolha de 22 requisitos e proposta | 1,75 h | 140,00 € |
 | **Sprint 5 (`v2.0.0`)** | 10/10 – 11/10 | Engenharia Antigravity | Implementação dos 22 requisitos de Arouca (5 Carrinhas, B2B, 3 Fornos, Mapa Diário) | 2,86 h | 228,80 € |
 | **Sprint 6.1 (`v2.1.0`)** | 11/10 – 12/10 | Engenharia Antigravity | Triagem parcelar artigo a artigo nos alertas urgentes, estado parcelar na App Cliente, WhatsApp automático na Loja e Dossier Documental | 1,25 h | 100,00 € |
-| **Sprint 6.2 (`v2.1.1`)** | 12/10/2026 | Auditoria & Hardening Swarm | Ronda completa dos 7 Agentes do *Bulletproof Swarm* (OWASP Headers, RGPD Art. 13.º, EU AI Act Art. 14.º/50.º, Cache Offline Carrinhas, Talão Térmico Parcelar — Score `99,1%`) | 0,75 h | 60,00 € |
+| **Sprint 6.2 (`v2.1.1`)** | 12/10/2026 | Auditoria & Hardening Swarm | Ronda completa dos 7 Agentes do *Bulletproof Swarm* (OWASP Headers, Proteção de Dados, Cache Offline Carrinhas, Talão Térmico Parcelar — Score `99,1%`) | 0,75 h | 60,00 € |
 | **TOTAL ACUMULADO** | **07/09 – 12/10** | **Híbrido (AGY + Terreno)** | **Solução Integral `v2.1.1` Certificada (`99,1%`)** | **24,25 h** | **1.940,00 €** |
 
 ---

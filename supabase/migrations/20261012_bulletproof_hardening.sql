@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS public.perfis_acesso (
   criado_em timestamptz NOT NULL DEFAULT now()
 );
 
--- 4. Criar tabela `logs_auditoria` para rastreabilidade imutável (Art. 14.º EU AI Act & FinOps)
+-- 4. Criar tabela `logs_auditoria` para rastreabilidade imutável e FinOps
 CREATE TABLE IF NOT EXISTS public.logs_auditoria (
   id text PRIMARY KEY,
   data_hora timestamptz NOT NULL DEFAULT now(),
