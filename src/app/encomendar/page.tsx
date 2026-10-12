@@ -171,12 +171,16 @@ export default function EncomendarClientePage() {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const hashStr = window.location.hash || '';
+      const emailPendente = localStorage.getItem('padaria_email_recuperacao_pendente') || '';
       const isRecuperacaoUrl =
         urlParams.get('recuperar') === '1' ||
+        Boolean(urlParams.get('code')) ||
+        Boolean(urlParams.get('token_hash')) ||
         hashStr.includes('type=recovery') ||
         hashStr.includes('type=magiclink') ||
+        hashStr.includes('type=signup') ||
         hashStr.includes('access_token=');
-      const emailUrl = urlParams.get('email') || '';
+      const emailUrl = urlParams.get('email') || emailPendente;
 
       if (isRecuperacaoUrl) {
         setClienteLogado(null);
@@ -202,11 +206,16 @@ export default function EncomendarClientePage() {
 
     if (supabase) {
       const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+        const emailPendente =
+          typeof window !== 'undefined' ? localStorage.getItem('padaria_email_recuperacao_pendente') : null;
         if (
           (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') &&
           session?.user?.email &&
           typeof window !== 'undefined' &&
-          (window.location.search.includes('recuperar=1') || window.location.hash.includes('access_token='))
+          (window.location.search.includes('recuperar=1') ||
+            window.location.search.includes('code=') ||
+            window.location.hash.includes('access_token=') ||
+            Boolean(emailPendente))
         ) {
           setClienteLogado(null);
           setAuthModo('recuperacao');
@@ -407,12 +416,14 @@ export default function EncomendarClientePage() {
         }
         setAuthTelefone(clientePorEmailOuTel.telefone);
 
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('padaria_email_recuperacao_pendente', emailRec);
+        }
+
         if (supabase) {
           setEnviandoEmailSupabase(true);
           const redirectUrl =
-            typeof window !== 'undefined'
-              ? `${window.location.origin}/encomendar?recuperar=1&email=${encodeURIComponent(emailRec)}`
-              : undefined;
+            typeof window !== 'undefined' ? `${window.location.origin}/encomendar` : undefined;
 
           const { error: otpErr } = await supabase.auth.signInWithOtp({
             email: emailRec,
@@ -435,7 +446,7 @@ export default function EncomendarClientePage() {
               ) {
                 setEmailRecuperacaoEnviado(true);
                 setAuthSucesso(
-                  `📧 Um e-mail de recuperação já foi enviado recentemente para ${emailRec}. Verifique a sua caixa de entrada (e Spam) e clique no link ou introduza o código recebido.`
+                  `📧 Um e-mail de recuperação já foi enviado recentemente para ${emailRec}. Verifique a sua caixa de entrada (e Spam/Promoções) e clique no link ou introduza o código recebido.`
                 );
                 return;
               }
@@ -448,7 +459,7 @@ export default function EncomendarClientePage() {
 
         setEmailRecuperacaoEnviado(true);
         setAuthSucesso(
-          `📧 E-mail de recuperação enviado pela Supabase para ${emailRec}! Abra o seu e-mail e clique no link de confirmação OU introduza abaixo o código de 6 dígitos recebido.`
+          `📧 E-mail de recuperação enviado pela Supabase para ${emailRec}! Abra o seu e-mail (verifique também o Spam) e clique no link de confirmação OU introduza abaixo o código de 6 dígitos recebido.`
         );
         return;
       }
@@ -557,6 +568,7 @@ export default function EncomendarClientePage() {
       setClienteLogado(clienteFinal);
       if (clienteFinal.morada && !moradaEntrega) setMoradaEntrega(clienteFinal.morada);
       if (typeof window !== 'undefined') {
+        localStorage.removeItem('padaria_email_recuperacao_pendente');
         localStorage.setItem('cliente_portal_padaria', JSON.stringify(clienteFinal));
         if (window.location.search || window.location.hash) {
           window.history.replaceState({}, '', '/encomendar');
