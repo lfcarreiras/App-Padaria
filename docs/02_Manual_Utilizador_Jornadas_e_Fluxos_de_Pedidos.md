@@ -1,7 +1,7 @@
 ---
 title: "02 - Manual de Utilização, Jornadas por Perfil e Fluxos End-to-End de Pedidos"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.1.0"
+version: "2.1.3"
 date_saved: 2026-10-12
 updated: 2026-10-12
 status: "Em Produção (Live)"
@@ -16,7 +16,7 @@ tags:
 
 **Entidade Tecnológica:** EyeQ Lda / Inprooval®  
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
-**Versão:** `v2.1.0` (12/10/2026)  
+**Versão:** `v2.1.3` (12/10/2026)  
 
 ---
 
@@ -27,7 +27,7 @@ A plataforma separa de forma estrita a **Jornada Interna da Equipa** e a **Jorna
 | Tipo de Utilizador | URL de Acesso | Método de Autenticação | Isolamento de Ecrã / Experiência |
 | :--- | :--- | :--- | :--- |
 | **Equipa Interna** (*Atendentes, Padeiros, Pasteleiros, Motoristas, Gerência*) | `/login` | Utilizador + Palavra-passe + **Seleção Obrigatória do Cockpit de Trabalho** (`Loja 1`, `Loja 2`, `Loja 3`, `Centro de Produção`, `Carrinhas`, `Gestão`) | Mostra apenas os menus e dados pertinentes ao posto de trabalho selecionado. |
-| **Cliente Final** (*Módulo Extra: App de Pedidos Diretos*) | `/encomendar` | Número de Telemóvel (Login imediato ou criação instantânea de conta no primeiro acesso) | Acesso exclusivo ao Catálogo de Quantidades (sem preços) e ao painel *«As Minhas Encomendas»*. |
+| **Cliente Final** (*Módulo Extra: App de Pedidos Diretos*) | `/encomendar` | **Telemóvel (ou E-mail) + Password Definida pelo Utilizador** + **E-mail Obrigatório para Recuperação de Password** | Acesso exclusivo ao Catálogo de Quantidades (sem preços) e ao painel *«As Minhas Encomendas»*. |
 
 ---
 
@@ -38,7 +38,7 @@ A plataforma separa de forma estrita a **Jornada Interna da Equipa** e a **Jorna
 ```mermaid
 flowchart TD
     subgraph JornadaCliente ["🛍️ JORNADA DO CLIENTE FINAL (/encomendar)"]
-        C1["1. Login por Telemóvel\n(Sem Senha Complexa)"] --> C2["2. Seleção de Artigos e Quantidades\n(Catálogo s/ Preços + Notas)"]
+        C1["1. Login c/ Telemóvel/E-mail + Password\n(ou Registo / Recuperação por E-mail)"] --> C2["2. Seleção de Artigos e Quantidades\n(Catálogo s/ Preços + Notas)"]
         C2 --> C3["3. Escolha de Entrega:\nLevantamento (Loja 1, 2, 3) ou Domicílio"]
         C3 --> C4["4. Acompanhamento em 'As Minhas Encomendas'\n(4 Etapas + Estado Parcelar por Artigo + Observações)"]
     end
@@ -171,8 +171,10 @@ flowchart TD
 ---
 
 ### 3.5. Perfil 5: Cliente Final — App de Pedidos Diretos (`/encomendar`)
-1. **Login Simples por Telemóvel:**
-   - O cliente acede a `/encomendar` e introduz apenas o seu número de telemóvel (9 dígitos). Se for a primeira vez, indica o nome e morada opcional e entra de imediato.
+1. **Autenticação Segura com Password e E-mail de Recuperação:**
+   - **Já sou Cliente (`Login`):** O cliente acede a `/encomendar` e introduz o seu **Número de Telemóvel (ou E-mail)** e a sua **Password**. (Caso o cliente já tenha ficha criada ao balcão da padaria mas seja o seu 1.º acesso online, o sistema redireciona automaticamente para definir a sua Password e E-mail de Recuperação).
+   - **Novo Registo:** No primeiro acesso, o cliente indica **Telemóvel**, **Nome Completo**, **E-mail para Recuperação de Password** (obrigatório), define e confirma a sua **Password** (mínimo 4 caracteres) e morada opcional.
+   - **Recuperar Password:** Caso se esqueça da password, o cliente clica em *«Recuperar»* (ou *«Esqueceu-se da password?»*), valida o seu **E-mail de Recuperação** (e telemóvel associado) e define de imediato uma nova password.
 2. **Catálogo Exclusivo de Quantidades (Sem Preços):**
    - Navega pelos artigos de Padaria e Pastelaria, adiciona quantidades ao carrinho e escreve notas de personalização se desejar.
 3. **Checkout Rápido:**

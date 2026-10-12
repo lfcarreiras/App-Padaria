@@ -69,6 +69,8 @@ flowchart LR
     - `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload` (HSTS).
 - **Route Guard Estrito por Cockpit (`src/components/Navbar.tsx`):**
   - Implementado bloqueio automático de navegação entre Cockpits: se um operador autenticado no Cockpit de `Loja`, `Produção` ou `Carrinhas` tentar aceder manualmente por URL a outro painel (ex.: `/gestao`), é imediatamente redirecionado para a rota autorizada do seu Cockpit.
+- **Autenticação com Password e Recuperação por E-mail no Portal Direto de Clientes (`v2.1.3` — `/encomendar`):**
+  - Exigência de **Password definida pelo cliente** (com confirmação) e **E-mail obrigatório para recuperação** no registo e login (evitando acesso não autorizado por mera introdução do número de telemóvel), incluindo fluxo integrado de **Recuperação de Password** validado por e-mail.
 
 ---
 
@@ -77,7 +79,7 @@ flowchart LR
   - **Artigo 14.º (*Human-in-the-Loop* / Supervisão Humana):** A triagem de encomendas urgentes ($\le 3\text{h}$) e a consolidação do *Pool Diário de Fabrico* em `/producao` exibem o selo explícito `🛡️ Decisão Humana Obrigatória (Art. 14.º EU AI Act)` e nunca recusam nem aceitam pedidos sem ação humana deliberada do operador.
   - **Artigo 50.º (Transparência em Comunicações Automatizadas):** Todas as mensagens de WhatsApp geradas pelo sistema (`gerarLinkWhatsAppDecisaoEncomenda` e `gerarLinkWhatsAppEncomendaPronta`) incluem a assinatura transparente: `🤖 Notificação gerada pelo sistema da Padaria da Vila (validada pela equipa).`
 - **Conformidade com o Regulamento (UE) 2016/679 (RGPD — Artigo 13.º):**
-  - Adicionada nota informativa de Proteção de Dados e Minimização de Finalidade no ecrã de Login/Registo e no modal de Perfil do Portal Direto de Clientes (`/encomendar`), informando que Nome, Telemóvel e Morada são utilizados exclusivamente pela Padaria da Vila para processamento da encomenda, entrega e notificações de estado.
+  - Adicionada nota informativa de Proteção de Dados e Minimização de Finalidade no ecrã de Login/Registo e no modal de Perfil do Portal Direto de Clientes (`/encomendar`), informando que Nome, Telemóvel, E-mail de Recuperação e Morada são utilizados exclusivamente pela Padaria da Vila para gestão da conta, processamento da encomenda, entrega e notificações de estado.
 
 ---
 

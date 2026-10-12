@@ -24,6 +24,7 @@ export interface Cliente {
   nome: string;
   telefone: string;
   email?: string;
+  password?: string;
   morada?: string;
   codigo_postal?: string;
   notas_entrega?: string;

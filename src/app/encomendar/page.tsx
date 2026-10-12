@@ -13,6 +13,8 @@ import {
   carregarLojasSupabase, 
   carregarClientesSupabase,
   salvarClienteDb,
+  lerCredenciaisClientesLocal,
+  guardarCredencialClienteLocal,
   registarLogAuditoria,
   guardarCanalOrigemLocal
 } from '../../lib/encomendasService';
@@ -47,7 +49,12 @@ import {
   Package,
   Sparkles,
   ShieldCheck,
-  Check
+  Check,
+  Lock,
+  Mail,
+  Eye,
+  EyeOff,
+  KeyRound
 } from 'lucide-react';
 
 interface ItemCarrinhoCliente {
@@ -73,11 +80,17 @@ export default function EncomendarClientePage() {
   // Cliente Autenticado na Sessão do Portal (Ecrã de Login Dedicado ao Cliente)
   const [clienteLogado, setClienteLogado] = useState<Cliente | null>(null);
   const [modalAuthAberto, setModalAuthAberto] = useState(false);
-  const [authModo, setAuthModo] = useState<'login' | 'registo'>('login');
+  const [authModo, setAuthModo] = useState<'login' | 'registo' | 'recuperacao'>('login');
   const [authTelefone, setAuthTelefone] = useState('');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authConfirmarPassword, setAuthConfirmarPassword] = useState('');
+  const [mostrarPassword, setMostrarPassword] = useState(false);
+  const [recuperacaoValidada, setRecuperacaoValidada] = useState(false);
   const [authNome, setAuthNome] = useState('');
   const [authMorada, setAuthMorada] = useState('');
   const [authErro, setAuthErro] = useState('');
+  const [authSucesso, setAuthSucesso] = useState('');
 
   // Aba / Vista do Portal ('catalogo' | 'checkout' | 'minhas_encomendas')
   const [vistaAtiva, setVistaAtiva] = useState<'catalogo' | 'checkout' | 'minhas_encomendas'>('catalogo');
@@ -319,53 +332,246 @@ export default function EncomendarClientePage() {
     });
   }, [produtos, categoriaAtiva, buscaProduto]);
 
-  // Autenticação / Registo Rápido do Cliente
+  // Autenticação, Registo com Password/E-mail e Recuperação de Password do Cliente
   const handleLoginOuRegisto = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthErro('');
+    setAuthSucesso('');
 
-    const telLimpo = authTelefone.replace(/\D/g, '').trim();
-    if (!telLimpo || telLimpo.length < 9) {
-      setAuthErro('Por favor, indique um número de telefone válido (mínimo 9 dígitos).');
+    // --- MODO 3: RECUPERAÇÃO DE PASSWORD VIA E-MAIL ---
+    if (authModo === 'recuperacao') {
+      const emailRec = authEmail.trim().toLowerCase();
+      const telRecLimpo = authTelefone.replace(/\D/g, '').trim();
+
+      if (!emailRec || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailRec)) {
+        setAuthErro('Por favor, indique o seu e-mail de recuperação válido.');
+        return;
+      }
+
+      const credsLocais = lerCredenciaisClientesLocal();
+      const clientePorEmailOuTel = clientes.find((c) => {
+        const cTel = (c.telefone || '').replace(/\D/g, '');
+        const cEmail = (c.email || credsLocais[cTel]?.email || '').toLowerCase().trim();
+        const matchEmail = cEmail && cEmail === emailRec;
+        const matchTel = telRecLimpo.length >= 9 && cTel === telRecLimpo;
+        return telRecLimpo.length >= 9 ? (matchEmail && matchTel) : matchEmail;
+      });
+
+      if (!recuperacaoValidada) {
+        if (!clientePorEmailOuTel) {
+          setAuthErro('Não foi encontrada nenhuma conta associada a este e-mail de recuperação (e telemóvel).');
+          return;
+        }
+        setAuthTelefone(clientePorEmailOuTel.telefone);
+        setRecuperacaoValidada(true);
+        setAuthSucesso(`E-mail de recuperação (${emailRec}) validado! Defina abaixo a sua nova password.`);
+        return;
+      }
+
+      // Passo 2 da Recuperação: Guardar Nova Password
+      if (!authPassword || authPassword.length < 4) {
+        setAuthErro('A nova password deve ter pelo menos 4 caracteres.');
+        return;
+      }
+      if (authPassword !== authConfirmarPassword) {
+        setAuthErro('A confirmação da nova password não coincide.');
+        return;
+      }
+
+      const alvo = clientePorEmailOuTel || clientes.find((c) => (c.telefone || '').replace(/\D/g, '') === telRecLimpo);
+      if (!alvo) {
+        setAuthErro('Não foi possível localizar a conta de cliente para atualizar a password.');
+        return;
+      }
+
+      guardarCredencialClienteLocal(alvo.telefone, emailRec, authPassword);
+      const atualizado = await salvarClienteDb({
+        id: alvo.id,
+        nome: alvo.nome,
+        telefone: alvo.telefone,
+        email: emailRec,
+        password: authPassword,
+        morada: alvo.morada,
+        notas_entrega: alvo.notas_entrega,
+      });
+
+      const clienteFinal: Cliente = atualizado || {
+        ...alvo,
+        email: emailRec,
+        password: authPassword,
+      };
+
+      setClientes((prev) => prev.map((c) => (c.id === clienteFinal.id ? clienteFinal : c)));
+      setRecuperacaoValidada(false);
+      setAuthConfirmarPassword('');
+      setClienteLogado(clienteFinal);
+      if (clienteFinal.morada && !moradaEntrega) setMoradaEntrega(clienteFinal.morada);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('cliente_portal_padaria', JSON.stringify(clienteFinal));
+      }
       return;
     }
 
-    if (authModo === 'registo' && (!authNome.trim() || authNome.trim().length < 2)) {
-      setAuthErro('Por favor, indique o seu nome completo.');
+    // --- ATUALIZAÇÃO DE PERFIL NO MODAL INTERNO (QUANDO JÁ LOGADO) ---
+    if (clienteLogado && modalAuthAberto) {
+      const telLimpoModal = authTelefone.replace(/\D/g, '').trim();
+      if (!telLimpoModal || telLimpoModal.length < 9) {
+        setAuthErro('Indique um número de telemóvel válido (mínimo 9 dígitos).');
+        return;
+      }
+      if (!authNome.trim() || authNome.trim().length < 2) {
+        setAuthErro('Indique o seu nome completo.');
+        return;
+      }
+      if (!authEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(authEmail.trim())) {
+        setAuthErro('Indique um e-mail válido para recuperação de password.');
+        return;
+      }
+
+      const novaPwd = authPassword.trim() ? authPassword : clienteLogado.password;
+      guardarCredencialClienteLocal(authTelefone.trim(), authEmail.trim().toLowerCase(), novaPwd);
+      const salvoModal = await salvarClienteDb({
+        id: clienteLogado.id,
+        nome: authNome.trim(),
+        telefone: authTelefone.trim(),
+        email: authEmail.trim().toLowerCase(),
+        password: novaPwd,
+        morada: authMorada.trim() || undefined,
+      });
+
+      const atualizadoObj: Cliente = salvoModal || {
+        ...clienteLogado,
+        nome: authNome.trim(),
+        telefone: authTelefone.trim(),
+        email: authEmail.trim().toLowerCase(),
+        password: novaPwd,
+        morada: authMorada.trim() || undefined,
+      };
+      setClienteLogado(atualizadoObj);
+      setClientes((prev) => prev.map((c) => (c.id === atualizadoObj.id ? atualizadoObj : c)));
+      if (atualizadoObj.morada) setMoradaEntrega(atualizadoObj.morada);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('cliente_portal_padaria', JSON.stringify(atualizadoObj));
+      }
+      setModalAuthAberto(false);
+      return;
+    }
+
+    // --- MODO 1 (LOGIN) & MODO 2 (REGISTO) ---
+    const inputTrim = authTelefone.trim();
+    const isInputEmail = inputTrim.includes('@');
+    const telLimpo = inputTrim.replace(/\D/g, '').trim();
+
+    if (!isInputEmail && (!telLimpo || telLimpo.length < 9)) {
+      setAuthErro('Por favor, indique um número de telemóvel válido (mínimo 9 dígitos) ou o seu e-mail.');
       return;
     }
 
     try {
-      let clienteEncontrado = clientes.find((c) => c.telefone.replace(/\D/g, '') === telLimpo);
+      const credsLocais = lerCredenciaisClientesLocal();
+      let clienteEncontrado = clientes.find((c) => {
+        const cTel = (c.telefone || '').replace(/\D/g, '');
+        const cEmail = (c.email || credsLocais[cTel]?.email || '').toLowerCase().trim();
+        if (isInputEmail) return cEmail === inputTrim.toLowerCase();
+        return cTel === telLimpo;
+      });
 
       if (authModo === 'login') {
         if (!clienteEncontrado) {
           setAuthModo('registo');
-          setAuthErro('Número não encontrado. Por favor, introduza o seu nome para criar a sua conta de cliente.');
+          if (isInputEmail) {
+            setAuthEmail(inputTrim.toLowerCase());
+            setAuthTelefone('');
+          }
+          setAuthErro('Conta não encontrada. Crie a sua conta abaixo definindo a sua password e e-mail de recuperação.');
           return;
         }
+
+        const cTel = (clienteEncontrado.telefone || '').replace(/\D/g, '');
+        const pwdGuardada = clienteEncontrado.password || credsLocais[cTel]?.password;
+        const emailGuardado = clienteEncontrado.email || credsLocais[cTel]?.email;
+
+        // Se o cliente já existia na loja física mas ainda não definiu password/email no Portal Online:
+        if (!pwdGuardada) {
+          setAuthModo('registo');
+          setAuthTelefone(clienteEncontrado.telefone);
+          setAuthNome(clienteEncontrado.nome || '');
+          setAuthEmail(emailGuardado || '');
+          setAuthMorada(clienteEncontrado.morada || '');
+          setAuthSucesso('Encontrámos a sua ficha de cliente! Como é o seu 1.º acesso online, defina por favor a sua Password e o seu E-mail para recuperação.');
+          return;
+        }
+
+        if (!authPassword) {
+          setAuthErro('Por favor, introduza a sua password.');
+          return;
+        }
+
+        if (pwdGuardada !== authPassword) {
+          setAuthErro('Password incorreta. Tente novamente ou clique em «Recuperar Password».');
+          return;
+        }
+
+        clienteEncontrado = {
+          ...clienteEncontrado,
+          email: emailGuardado || clienteEncontrado.email,
+          password: pwdGuardada,
+        };
       } else {
-        if (!clienteEncontrado) {
-          const novoCli: Omit<Cliente, 'id'> = {
+        // Modo Registo (ou 1.º acesso de cliente existente)
+        if (!telLimpo || telLimpo.length < 9) {
+          setAuthErro('Por favor, indique um número de telemóvel válido (mínimo 9 dígitos).');
+          return;
+        }
+        if (!authNome.trim() || authNome.trim().length < 2) {
+          setAuthErro('Por favor, indique o seu nome completo.');
+          return;
+        }
+        const emailLimpo = authEmail.trim().toLowerCase();
+        if (!emailLimpo || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLimpo)) {
+          setAuthErro('Por favor, indique um endereço de e-mail válido (obrigatório para recuperação de password).');
+          return;
+        }
+        const pwdFinal = authPassword.trim() || clienteLogado?.password || clienteEncontrado?.password || '';
+        if (!pwdFinal || pwdFinal.length < 4) {
+          setAuthErro('Por favor, defina uma password com pelo menos 4 caracteres.');
+          return;
+        }
+        if (authPassword.trim() && authPassword !== authConfirmarPassword) {
+          setAuthErro('A confirmação da password não coincide.');
+          return;
+        }
+
+        guardarCredencialClienteLocal(authTelefone.trim(), emailLimpo, pwdFinal);
+
+        const dadosGuardar: Partial<Cliente> & { nome: string; telefone: string } = {
+          id: clienteEncontrado?.id || clienteLogado?.id,
+          nome: authNome.trim(),
+          telefone: authTelefone.trim(),
+          email: emailLimpo,
+          password: pwdFinal,
+          morada: authMorada.trim() || clienteEncontrado?.morada || undefined,
+          notas_entrega: clienteEncontrado?.notas_entrega,
+        };
+
+        const criadoOuAtualizado = await salvarClienteDb(dadosGuardar);
+        if (criadoOuAtualizado) {
+          clienteEncontrado = criadoOuAtualizado;
+          setClientes((prev) => {
+            const jaExiste = prev.some((c) => c.id === criadoOuAtualizado.id);
+            return jaExiste
+              ? prev.map((c) => (c.id === criadoOuAtualizado.id ? criadoOuAtualizado : c))
+              : [criadoOuAtualizado, ...prev];
+          });
+        } else {
+          clienteEncontrado = {
+            id: clienteEncontrado?.id || `cli-${Date.now()}`,
             nome: authNome.trim(),
             telefone: authTelefone.trim(),
+            email: emailLimpo,
+            password: authPassword,
             morada: authMorada.trim() || undefined,
           };
-          const criado = await salvarClienteDb(novoCli);
-          if (criado) {
-            clienteEncontrado = criado;
-            setClientes((prev) => [criado, ...prev]);
-          } else {
-            clienteEncontrado = {
-              id: `cli-${Date.now()}`,
-              nome: authNome.trim(),
-              telefone: authTelefone.trim(),
-              morada: authMorada.trim() || undefined,
-            };
-          }
-        } else {
-          if (authNome.trim()) clienteEncontrado.nome = authNome.trim();
-          if (authMorada.trim()) clienteEncontrado.morada = authMorada.trim();
         }
       }
 
@@ -386,6 +592,8 @@ export default function EncomendarClientePage() {
 
   const handleLogout = () => {
     setClienteLogado(null);
+    setAuthPassword('');
+    setAuthConfirmarPassword('');
     if (typeof window !== 'undefined') {
       localStorage.removeItem('cliente_portal_padaria');
     }
@@ -599,33 +807,35 @@ export default function EncomendarClientePage() {
   // ECRÃ DE LOGIN DEDICADO AO CLIENTE (Separado do login da equipa)
   if (!clienteLogado) {
     return (
-      <div className="h-dvh max-h-dvh overflow-y-auto flex flex-col justify-between bg-gradient-to-br from-stone-900 via-stone-950 to-amber-950 text-white px-4 py-2.5 sm:py-3">
-        <div className="flex-1 flex items-center justify-center py-2">
-          <div className="max-w-md w-full bg-white text-stone-900 rounded-3xl shadow-2xl border border-amber-200/40 p-5 sm:p-6 space-y-4">
-            <div className="text-center space-y-1.5">
+      <div className="h-dvh max-h-dvh overflow-y-auto flex flex-col justify-between bg-gradient-to-br from-stone-900 via-stone-950 to-amber-950 text-white px-4 py-2 sm:py-3">
+        <div className="flex-1 flex items-center justify-center py-1">
+          <div className="max-w-md w-full bg-white text-stone-900 rounded-3xl shadow-2xl border border-amber-200/40 p-4 sm:p-5 space-y-3">
+            <div className="text-center space-y-1">
               <img
                 src="/logo-padaria.jpg"
                 alt="Padaria da Vila"
-                className="h-12 w-12 rounded-2xl object-cover mx-auto border-2 border-amber-400 shadow-md"
+                className="h-11 w-11 rounded-2xl object-cover mx-auto border-2 border-amber-400 shadow-md"
               />
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-black uppercase tracking-wider">
                 Área Exclusiva de Clientes
               </span>
-              <h1 className="text-lg font-black text-stone-900 leading-tight">
+              <h1 className="text-base sm:text-lg font-black text-stone-900 leading-tight">
                 {configMarca.nomeEmpresa || 'Padaria da Vila'}
               </h1>
               <p className="text-[11px] text-stone-500 leading-snug">
-                Faça as suas encomendas diretas e acompanhe o estado do seu pedido em tempo real (Encomendado, Em Produção, Em Distribuição ou Entregue).
+                Faça as suas encomendas diretas e acompanhe o estado do seu pedido em tempo real.
               </p>
             </div>
 
-            {/* Alternador Entrar / Registar */}
-            <div className="grid grid-cols-2 gap-1.5 bg-stone-100 p-1 rounded-2xl text-xs font-bold">
+            {/* Alternador Entrar / Registar / Recuperar */}
+            <div className="grid grid-cols-3 gap-1 bg-stone-100 p-1 rounded-2xl text-[11px] font-bold">
               <button
                 type="button"
                 onClick={() => {
                   setAuthModo('login');
+                  setRecuperacaoValidada(false);
                   setAuthErro('');
+                  setAuthSucesso('');
                 }}
                 className={`py-1.5 rounded-xl transition cursor-pointer ${
                   authModo === 'login' ? 'bg-amber-600 text-white shadow-xs' : 'text-stone-600 hover:text-stone-900'
@@ -637,7 +847,9 @@ export default function EncomendarClientePage() {
                 type="button"
                 onClick={() => {
                   setAuthModo('registo');
+                  setRecuperacaoValidada(false);
                   setAuthErro('');
+                  setAuthSucesso('');
                 }}
                 className={`py-1.5 rounded-xl transition cursor-pointer ${
                   authModo === 'registo' ? 'bg-amber-600 text-white shadow-xs' : 'text-stone-600 hover:text-stone-900'
@@ -645,51 +857,203 @@ export default function EncomendarClientePage() {
               >
                 Novo Registo
               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthModo('recuperacao');
+                  setRecuperacaoValidada(false);
+                  setAuthPassword('');
+                  setAuthConfirmarPassword('');
+                  setAuthErro('');
+                  setAuthSucesso('');
+                }}
+                className={`py-1.5 rounded-xl transition cursor-pointer ${
+                  authModo === 'recuperacao' ? 'bg-amber-600 text-white shadow-xs' : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                Recuperar
+              </button>
             </div>
 
             {authErro && (
-              <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-semibold flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-red-50 border border-red-200 text-red-800 text-[11px] font-semibold flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 text-red-600 shrink-0" />
                 <span>{authErro}</span>
               </div>
             )}
 
-            <form onSubmit={handleLoginOuRegisto} className="space-y-3 text-xs">
-              <div>
-                <label className="block font-bold text-stone-700 mb-1">
-                  Número de Telemóvel *
-                </label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-2 h-4 w-4 text-stone-400" />
-                  <input
-                    type="tel"
-                    required
-                    value={authTelefone}
-                    onChange={(e) => setAuthTelefone(e.target.value)}
-                    placeholder="912 345 678"
-                    className="w-full pl-9 pr-3 py-2 rounded-xl border border-stone-300 font-mono text-xs focus:outline-hidden focus:border-amber-600"
-                  />
-                </div>
+            {authSucesso && (
+              <div className="p-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px] font-semibold flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-amber-600 shrink-0" />
+                <span>{authSucesso}</span>
               </div>
+            )}
 
-              {authModo === 'registo' && (
+            <form onSubmit={handleLoginOuRegisto} className="space-y-2.5 text-xs">
+              {/* --- MODO 1: LOGIN --- */}
+              {authModo === 'login' && (
                 <>
                   <div>
                     <label className="block font-bold text-stone-700 mb-1">
-                      Nome Completo *
+                      Telemóvel ou E-mail *
                     </label>
-                    <input
-                      type="text"
-                      required
-                      value={authNome}
-                      onChange={(e) => setAuthNome(e.target.value)}
-                      placeholder="Ex: Maria Ferreira"
-                      className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs focus:outline-hidden focus:border-amber-600"
-                    />
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-2 h-4 w-4 text-stone-400" />
+                      <input
+                        type="text"
+                        required
+                        value={authTelefone}
+                        onChange={(e) => setAuthTelefone(e.target.value)}
+                        placeholder="912 345 678 ou email@exemplo.pt"
+                        className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-stone-300 text-xs focus:outline-hidden focus:border-amber-600"
+                      />
+                    </div>
                   </div>
 
                   <div>
-                    <label className="block font-bold text-stone-700 mb-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-bold text-stone-700">
+                        Password *
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAuthModo('recuperacao');
+                          setRecuperacaoValidada(false);
+                          setAuthPassword('');
+                          setAuthConfirmarPassword('');
+                          setAuthErro('');
+                          setAuthSucesso('');
+                        }}
+                        className="text-[11px] font-bold text-amber-700 hover:text-amber-800 underline cursor-pointer"
+                      >
+                        Esqueceu-se da password?
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-2 h-4 w-4 text-stone-400" />
+                      <input
+                        type={mostrarPassword ? 'text' : 'password'}
+                        required
+                        value={authPassword}
+                        onChange={(e) => setAuthPassword(e.target.value)}
+                        placeholder="Introduza a sua password"
+                        className="w-full pl-9 pr-9 py-1.5 rounded-xl border border-stone-300 text-xs focus:outline-hidden focus:border-amber-600"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setMostrarPassword(!mostrarPassword)}
+                        className="absolute right-2.5 top-2 text-stone-400 hover:text-stone-700 cursor-pointer"
+                        tabIndex={-1}
+                      >
+                        {mostrarPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* --- MODO 2: NOVO REGISTO (OU 1.º ACESSO ONLINE) --- */}
+              {authModo === 'registo' && (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label className="block font-bold text-stone-700 mb-0.5 text-[11px]">
+                        Número de Telemóvel *
+                      </label>
+                      <div className="relative">
+                        <Phone className="absolute left-2.5 top-2 h-3.5 w-3.5 text-stone-400" />
+                        <input
+                          type="tel"
+                          required
+                          value={authTelefone}
+                          onChange={(e) => setAuthTelefone(e.target.value)}
+                          placeholder="912 345 678"
+                          className="w-full pl-8 pr-2.5 py-1.5 rounded-xl border border-stone-300 font-mono text-xs focus:outline-hidden focus:border-amber-600"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-stone-700 mb-0.5 text-[11px]">
+                        Nome Completo *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={authNome}
+                        onChange={(e) => setAuthNome(e.target.value)}
+                        placeholder="Ex: Maria Ferreira"
+                        className="w-full px-2.5 py-1.5 rounded-xl border border-stone-300 text-xs focus:outline-hidden focus:border-amber-600"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-stone-700 mb-0.5 text-[11px]">
+                      E-mail para Recuperação de Password *
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-2.5 top-2 h-3.5 w-3.5 text-stone-400" />
+                      <input
+                        type="email"
+                        required
+                        value={authEmail}
+                        onChange={(e) => setAuthEmail(e.target.value)}
+                        placeholder="cliente@email.pt"
+                        className="w-full pl-8 pr-2.5 py-1.5 rounded-xl border border-stone-300 text-xs focus:outline-hidden focus:border-amber-600"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label className="block font-bold text-stone-700 mb-0.5 text-[11px]">
+                        Definir Password *
+                      </label>
+                      <div className="relative">
+                        <Lock className="absolute left-2.5 top-2 h-3.5 w-3.5 text-stone-400" />
+                        <input
+                          type={mostrarPassword ? 'text' : 'password'}
+                          required
+                          minLength={4}
+                          value={authPassword}
+                          onChange={(e) => setAuthPassword(e.target.value)}
+                          placeholder="Mín. 4 caracteres"
+                          className="w-full pl-8 pr-7 py-1.5 rounded-xl border border-stone-300 text-xs focus:outline-hidden focus:border-amber-600"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setMostrarPassword(!mostrarPassword)}
+                          className="absolute right-2 top-2 text-stone-400 hover:text-stone-700 cursor-pointer"
+                          tabIndex={-1}
+                        >
+                          {mostrarPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-stone-700 mb-0.5 text-[11px]">
+                        Confirmar Password *
+                      </label>
+                      <div className="relative">
+                        <Lock className="absolute left-2.5 top-2 h-3.5 w-3.5 text-stone-400" />
+                        <input
+                          type={mostrarPassword ? 'text' : 'password'}
+                          required
+                          minLength={4}
+                          value={authConfirmarPassword}
+                          onChange={(e) => setAuthConfirmarPassword(e.target.value)}
+                          placeholder="Repetir password"
+                          className="w-full pl-8 pr-2.5 py-1.5 rounded-xl border border-stone-300 text-xs focus:outline-hidden focus:border-amber-600"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-stone-700 mb-0.5 text-[11px]">
                       Morada Habitual em Arouca (opcional)
                     </label>
                     <input
@@ -697,15 +1061,93 @@ export default function EncomendarClientePage() {
                       value={authMorada}
                       onChange={(e) => setAuthMorada(e.target.value)}
                       placeholder="Rua, número, freguesia..."
-                      className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs focus:outline-hidden focus:border-amber-600"
+                      className="w-full px-2.5 py-1.5 rounded-xl border border-stone-300 text-xs focus:outline-hidden focus:border-amber-600"
                     />
                   </div>
                 </>
               )}
 
+              {/* --- MODO 3: RECUPERAÇÃO DE PASSWORD VIA E-MAIL --- */}
+              {authModo === 'recuperacao' && (
+                <>
+                  <div className="p-2 rounded-xl bg-amber-50/70 border border-amber-200 text-[11px] text-stone-700 leading-snug">
+                    🔑 Indique o <strong>E-mail de Recuperação</strong> e o <strong>Telemóvel</strong> associados à sua conta para redefinir a sua password.
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-stone-700 mb-1">
+                      E-mail de Recuperação *
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-2 h-4 w-4 text-stone-400" />
+                      <input
+                        type="email"
+                        required
+                        value={authEmail}
+                        onChange={(e) => setAuthEmail(e.target.value)}
+                        placeholder="cliente@email.pt"
+                        className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-stone-300 text-xs focus:outline-hidden focus:border-amber-600"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-stone-700 mb-1">
+                      Número de Telemóvel Associado (opcional se e-mail único)
+                    </label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-2 h-4 w-4 text-stone-400" />
+                      <input
+                        type="tel"
+                        value={authTelefone}
+                        onChange={(e) => setAuthTelefone(e.target.value)}
+                        placeholder="912 345 678"
+                        className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-stone-300 font-mono text-xs focus:outline-hidden focus:border-amber-600"
+                      />
+                    </div>
+                  </div>
+
+                  {recuperacaoValidada && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-stone-200">
+                      <div>
+                        <label className="block font-bold text-stone-700 mb-0.5 text-[11px]">
+                          Nova Password *
+                        </label>
+                        <div className="relative">
+                          <KeyRound className="absolute left-2.5 top-2 h-3.5 w-3.5 text-amber-600" />
+                          <input
+                            type={mostrarPassword ? 'text' : 'password'}
+                            required
+                            minLength={4}
+                            value={authPassword}
+                            onChange={(e) => setAuthPassword(e.target.value)}
+                            placeholder="Nova password"
+                            className="w-full pl-8 pr-2.5 py-1.5 rounded-xl border border-amber-400 bg-amber-50/30 text-xs focus:outline-hidden focus:border-amber-600"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block font-bold text-stone-700 mb-0.5 text-[11px]">
+                          Confirmar Nova Password *
+                        </label>
+                        <input
+                          type={mostrarPassword ? 'text' : 'password'}
+                          required
+                          minLength={4}
+                          value={authConfirmarPassword}
+                          onChange={(e) => setAuthConfirmarPassword(e.target.value)}
+                          placeholder="Repetir password"
+                          className="w-full px-2.5 py-1.5 rounded-xl border border-amber-400 bg-amber-50/30 text-xs focus:outline-hidden focus:border-amber-600"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
               {/* Aviso de Privacidade e Proteção de Dados (Art. 13.º RGPD) */}
               <div className="p-2 rounded-xl bg-stone-50 border border-stone-200 text-[10px] text-stone-600 leading-snug">
-                🔒 <strong>Proteção de Dados (RGPD — Art. 13.º):</strong> O seu nome, telemóvel e morada são tratados exclusivamente pela {configMarca.nomeEmpresa || 'Padaria da Vila'} para processamento da encomenda, entrega e notificações de estado.
+                🔒 <strong>Proteção de Dados (RGPD — Art. 13.º):</strong> O seu nome, telemóvel, e-mail de recuperação e morada são tratados exclusivamente pela {configMarca.nomeEmpresa || 'Padaria da Vila'} para gestão da sua conta, encomendas e notificações de estado.
               </div>
 
               <button
@@ -713,14 +1155,22 @@ export default function EncomendarClientePage() {
                 className="w-full py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs uppercase tracking-wider shadow-md transition cursor-pointer flex items-center justify-center gap-2"
               >
                 <LogIn className="h-4 w-4" />
-                <span>{authModo === 'login' ? 'Aceder à Minha Área de Encomendas' : 'Criar Conta & Começar a Encomendar'}</span>
+                <span>
+                  {authModo === 'login'
+                    ? 'Aceder à Minha Área de Encomendas'
+                    : authModo === 'registo'
+                    ? 'Criar Conta & Começar a Encomendar'
+                    : recuperacaoValidada
+                    ? 'Guardar Nova Password & Entrar'
+                    : 'Validar E-mail de Recuperação'}
+                </span>
               </button>
             </form>
           </div>
         </div>
 
         {/* Rodapé com Badge Oficial Inprooval */}
-        <footer className="pt-2 pb-1 shrink-0 text-center space-y-1">
+        <footer className="pt-1.5 pb-1 shrink-0 text-center space-y-0.5">
           <div className="flex justify-center">
             <img
               src="/badge_powered_by_white.svg"
@@ -807,14 +1257,29 @@ export default function EncomendarClientePage() {
             {/* Perfil do Cliente */}
             {clienteLogado ? (
               <div className="flex items-center gap-2 pl-2 border-l border-stone-200">
-                <div className="hidden md:block text-right">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthModo('registo');
+                    setAuthNome(clienteLogado.nome || '');
+                    setAuthTelefone(clienteLogado.telefone || '');
+                    setAuthEmail(clienteLogado.email || '');
+                    setAuthMorada(clienteLogado.morada || '');
+                    setAuthPassword('');
+                    setAuthConfirmarPassword('');
+                    setAuthErro('');
+                    setModalAuthAberto(true);
+                  }}
+                  className="hidden md:block text-right hover:bg-stone-100 px-2 py-1 rounded-lg transition cursor-pointer"
+                  title="Editar Dados, E-mail e Password"
+                >
                   <span className="text-xs font-bold text-stone-900 block leading-tight truncate max-w-[120px]">
                     {clienteLogado.nome}
                   </span>
                   <span className="text-[10px] text-stone-500 block">
                     {clienteLogado.telefone}
                   </span>
-                </div>
+                </button>
                 <button
                   type="button"
                   onClick={handleLogout}
@@ -1200,15 +1665,25 @@ export default function EncomendarClientePage() {
                     <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200 flex items-center justify-between">
                       <div>
                         <p className="text-xs font-black text-stone-900">{clienteLogado.nome}</p>
-                        <p className="text-[11px] text-stone-500">{clienteLogado.telefone}</p>
+                        <p className="text-[11px] text-stone-500">
+                          {clienteLogado.telefone}
+                          {clienteLogado.email ? ` • ${clienteLogado.email}` : ''}
+                        </p>
                       </div>
                       <button
                         type="button"
                         onClick={() => {
                           setAuthModo('registo');
+                          setAuthNome(clienteLogado.nome || '');
+                          setAuthTelefone(clienteLogado.telefone || '');
+                          setAuthEmail(clienteLogado.email || '');
+                          setAuthMorada(clienteLogado.morada || '');
+                          setAuthPassword('');
+                          setAuthConfirmarPassword('');
+                          setAuthErro('');
                           setModalAuthAberto(true);
                         }}
-                        className="text-xs text-amber-700 font-bold hover:underline"
+                        className="text-xs text-amber-700 font-bold hover:underline cursor-pointer"
                       >
                         Alterar Dados
                       </button>
@@ -1616,6 +2091,55 @@ export default function EncomendarClientePage() {
 
               <div>
                 <label className="block font-bold text-stone-700 mb-1">
+                  E-mail de Recuperação *
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-2.5 h-4 w-4 text-stone-400" />
+                  <input
+                    type="email"
+                    required
+                    value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)}
+                    placeholder="cliente@email.pt"
+                    className="w-full pl-9 pr-3 py-2 rounded-xl border border-stone-300 text-xs focus:outline-hidden"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div>
+                  <label className="block font-bold text-stone-700 mb-1 text-[11px]">
+                    Nova Password (opcional)
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-stone-400" />
+                    <input
+                      type={mostrarPassword ? 'text' : 'password'}
+                      minLength={4}
+                      value={authPassword}
+                      onChange={(e) => setAuthPassword(e.target.value)}
+                      placeholder="Deixe vazio p/ manter"
+                      className="w-full pl-8 pr-2.5 py-2 rounded-xl border border-stone-300 text-xs focus:outline-hidden"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block font-bold text-stone-700 mb-1 text-[11px]">
+                    Confirmar Nova Password
+                  </label>
+                  <input
+                    type={mostrarPassword ? 'text' : 'password'}
+                    minLength={4}
+                    value={authConfirmarPassword}
+                    onChange={(e) => setAuthConfirmarPassword(e.target.value)}
+                    placeholder="Repetir nova password"
+                    className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs focus:outline-hidden"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-stone-700 mb-1">
                   Morada Principal (opcional)
                 </label>
                 <input
@@ -1628,7 +2152,7 @@ export default function EncomendarClientePage() {
               </div>
 
               <div className="p-2 rounded-xl bg-stone-50 border border-stone-200 text-[10px] text-stone-600 leading-snug">
-                🔒 <strong>RGPD (Art. 13.º):</strong> Os seus dados destinam-se exclusivamente à gestão e entrega das suas encomendas na {configMarca.nomeEmpresa || 'Padaria da Vila'}.
+                🔒 <strong>RGPD (Art. 13.º):</strong> Os seus dados e e-mail de recuperação destinam-se exclusivamente à gestão da sua conta e entrega das suas encomendas na {configMarca.nomeEmpresa || 'Padaria da Vila'}.
               </div>
 
               <button

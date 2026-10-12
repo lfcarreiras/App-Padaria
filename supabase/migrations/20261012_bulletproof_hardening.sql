@@ -69,3 +69,12 @@ CREATE INDEX IF NOT EXISTS idx_itens_encomenda_encomenda_id
 
 CREATE INDEX IF NOT EXISTS idx_clientes_telefone
   ON public.clientes (telefone);
+
+-- 6. Autenticação no Portal Direto de Clientes (/encomendar) com Password e E-mail de Recuperação (v2.1.3)
+ALTER TABLE public.clientes
+  ADD COLUMN IF NOT EXISTS email text,
+  ADD COLUMN IF NOT EXISTS password_cliente text;
+
+CREATE INDEX IF NOT EXISTS idx_clientes_email
+  ON public.clientes (email);
+

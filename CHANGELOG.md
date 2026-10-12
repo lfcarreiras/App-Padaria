@@ -42,6 +42,16 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.1.3] - 2026-10-12
+
+### Added & Security
+- **Autenticação com Password Definida pelo Utilizador & E-mail de Recuperação no Portal Direto de Clientes (`/encomendar`)**:
+  - **Login Seguro (`Já sou Cliente`)**: Exige **Número de Telemóvel (ou E-mail)** + **Password definida pelo cliente** (com botão de mostrar/ocultar password). Caso o cliente já tenha ficha criada ao balcão da loja mas ainda não tenha password definida, é automaticamente encaminhado para o 1.º acesso online com os seus dados pré-preenchidos para definir a sua Password e E-mail de Recuperação.
+  - **Registo com E-mail Obrigatório (`Novo Registo`)**: Exige Telemóvel, Nome Completo, **E-mail para Recuperação de Password** (`email`), **Password** (mínimo 4 caracteres) e **Confirmação de Password**.
+  - **Fluxo de Recuperação de Password (`Recuperar`)**: Permite ao cliente validar o seu **E-mail de Recuperação** (e número de telemóvel associado) e definir imediatamente uma nova password.
+  - **Edição de Perfil do Cliente**: Modal `Atualizar Dados de Cliente` atualizado para permitir consultar/editar o E-mail de Recuperação e alterar a Password a qualquer momento.
+  - **Persistência Híbrida Resiliente (`encomendasService.ts` + Supabase)**: Gravação do e-mail na coluna nativa `clientes.email` e da password em `clientes` (com tag resiliente limpa automaticamente na leitura para não poluir notas de entrega + cache local `padaria_credenciais_clientes_v1` + migração SQL `password_cliente`).
+
 ## [v2.1.2] - 2026-10-12
 
 ### Added

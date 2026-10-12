@@ -189,9 +189,12 @@ export function parseEncomendasFromDb(data: any[]): Encomenda[] {
         id: cliente.id || '',
         nome: cliente.nome || 'Cliente',
         telefone: cliente.telefone || '',
+        email: cliente.email || undefined,
         morada: cliente.morada || undefined,
         codigo_postal: cliente.codigo_postal || undefined,
-        notas_entrega: cliente.notas_entrega || undefined,
+        notas_entrega: cliente.notas_entrega
+          ? String(cliente.notas_entrega).replace(/\[AUTH_PWD:[^\]]+\]\s*/g, '').trim() || undefined
+          : undefined,
       },
       tipo: row.tipo,
       canal_origem: (canalExtraido as any) || 'presencial',
@@ -646,6 +649,52 @@ export async function atualizarEncomendaDb(encomenda: Partial<Encomenda> & { id:
 
 // ---------------- CLIENTES ---------------- //
 
+const CREDENCIAIS_CLIENTES_KEY = 'padaria_credenciais_clientes_v1';
+
+export function lerCredenciaisClientesLocal(): Record<string, { password?: string; email?: string }> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(CREDENCIAIS_CLIENTES_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function guardarCredencialClienteLocal(telefone: string, email?: string, password?: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const telLimpo = (telefone || '').replace(/\D/g, '');
+    if (!telLimpo) return;
+    const atual = lerCredenciaisClientesLocal();
+    atual[telLimpo] = {
+      email: email?.trim() || atual[telLimpo]?.email,
+      password: password || atual[telLimpo]?.password,
+    };
+    localStorage.setItem(CREDENCIAIS_CLIENTES_KEY, JSON.stringify(atual));
+  } catch {}
+}
+
+function mapearLinhaClienteDb(row: any): Cliente {
+  const telLimpo = String(row?.telefone || '').replace(/\D/g, '');
+  const localCred = lerCredenciaisClientesLocal()[telLimpo];
+  const rawNotas = String(row?.notas_entrega || '');
+  const matchPwd = rawNotas.match(/\[AUTH_PWD:([^\]]+)\]/);
+  const pwdExtraida = matchPwd ? matchPwd[1] : undefined;
+  const notasLimpa = rawNotas.replace(/\[AUTH_PWD:[^\]]+\]\s*/g, '').trim();
+
+  return {
+    id: row.id,
+    nome: row.nome,
+    telefone: row.telefone,
+    email: row.email || localCred?.email || undefined,
+    password: row.password_cliente || pwdExtraida || localCred?.password || undefined,
+    morada: row.morada || undefined,
+    codigo_postal: row.codigo_postal || undefined,
+    notas_entrega: notasLimpa || undefined,
+  };
+}
+
 export async function carregarClientesSupabase(): Promise<Cliente[]> {
   if (!supabase) return [];
   const { data, error } = await supabase
@@ -657,7 +706,7 @@ export async function carregarClientesSupabase(): Promise<Cliente[]> {
     console.error('Erro ao carregar clientes:', error);
     return [];
   }
-  return data || [];
+  return (data || []).map(mapearLinhaClienteDb);
 }
 
 /**
@@ -710,34 +759,52 @@ export function formatarNomeEntidade(texto: string): string {
 }
 
 export async function salvarClienteDb(cliente: Partial<Cliente> & { nome: string; telefone: string }) {
+  if (cliente.email || cliente.password) {
+    guardarCredencialClienteLocal(cliente.telefone, cliente.email, cliente.password);
+  }
+
   if (!supabase) return null;
+
+  const telLimpo = (cliente.telefone || '').replace(/\D/g, '');
+  const credLocal = lerCredenciaisClientesLocal()[telLimpo];
+  const pwdFinal = cliente.password || credLocal?.password;
+  const notasBaseLimpa = (cliente.notas_entrega || '').replace(/\[AUTH_PWD:[^\]]+\]\s*/g, '').trim();
+  const notasComPwd = pwdFinal
+    ? `${notasBaseLimpa ? `${notasBaseLimpa} ` : ''}[AUTH_PWD:${pwdFinal}]`
+    : notasBaseLimpa || null;
 
   const payload = {
     nome: formatarNomeEntidade(cliente.nome),
     telefone: cliente.telefone.trim(),
-    email: cliente.email?.trim() || null,
+    email: cliente.email?.trim() || credLocal?.email || null,
     morada: cliente.morada?.trim() || null,
     codigo_postal: cliente.codigo_postal?.trim() || null,
-    notas_entrega: cliente.notas_entrega?.trim() || null,
+    notas_entrega: notasComPwd,
   };
 
-  if (cliente.id) {
+  if (cliente.id && !cliente.id.startsWith('cli-')) {
     const { data, error } = await supabase
       .from('clientes')
       .update(payload)
       .eq('id', cliente.id)
       .select()
       .single();
-    if (error) console.error('Erro ao atualizar cliente:', error);
-    return data;
+    if (error) {
+      console.error('Erro ao atualizar cliente:', error);
+      return null;
+    }
+    return data ? mapearLinhaClienteDb(data) : null;
   } else {
     const { data, error } = await supabase
       .from('clientes')
       .insert(payload)
       .select()
       .single();
-    if (error) console.error('Erro ao criar cliente:', error);
-    return data;
+    if (error) {
+      console.error('Erro ao criar cliente:', error);
+      return null;
+    }
+    return data ? mapearLinhaClienteDb(data) : null;
   }
 }
 
