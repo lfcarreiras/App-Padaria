@@ -150,8 +150,13 @@ Esta aba centraliza toda a parametrização logística da *Padaria da Vila*:
 ## 5. Aba 4: Histórico & Logs de Auditoria de Utilizadores (`logs`)
 
 Garante **rastreabilidade total (Accountability)** de todas as operações realizadas na plataforma:
-- **Campos Registados por Evento:** `Data e Hora Exata`, `Código da Encomenda`, `Nome do Cliente`, `Utilizador (Nome + Role)`, `Painel de Origem` (`encomendas`, `producao`, `loja`, `entregas`, `gestao`), `Ação Executada` e `Detalhes Completos`.
-- **Filtros Avançados:** Pesquisa por código de encomenda, cliente, operador específico, perfil/função, painel, tipo de ação e intervalo de datas (`Hoje`, `Últimos 7 Dias`, `Este Mês` ou datas personalizadas), com paginação configurável (`25`, `50`, `100` ou `Todos`).
+- **4 Indicadores Rápidos de Auditoria (KPIs de Topo):**
+  1. `Ações Auditadas` (total de eventos filtrados),
+  2. `Ações de Hoje` (operações realizadas no próprio dia),
+  3. `Colaboradores Ativos` (número de operadores distintos com atividade registada),
+  4. `Entregas Concluídas` (total de encomendas marcadas como entregues no registo).
+- **Campos Registados por Evento:** `Data e Hora Exata`, `Código da Encomenda` (clicável para abrir a pré-visualização e impressão do talão térmico), `Nome do Cliente`, `Utilizador (Nome + Role)`, `Painel de Origem` (`encomendas`, `producao`, `loja`, `entregas`, `gestao`), `Ação Executada` e `Detalhes Completos`.
+- **Filtros Avançados:** Pesquisa por código de encomenda, cliente, operador específico, perfil/função, painel, tipo de ação e atalhos rápidos (`Todo o Histórico`, `Hoje`, `Ontem`, `Últimos 7 Dias` ou datas personalizadas), com paginação configurável (`25`, `50`, `100` ou `Todos`).
 
 ---
 
@@ -159,16 +164,17 @@ Garante **rastreabilidade total (Accountability)** de todas as operações reali
 
 Permite personalizar o layout do talão impresso nas lojas sem necessidade de intervenção técnica:
 - **Largura do Papel:** Configurado por defeito para **80mm (72mm de largura útil — Calibrado para Epson M249A TM-T20)**, com suporte alternativo para bobinas de **58mm**.
-- **Campos Editáveis:** Nome da Empresa, Slogan / Subtítulo, Morada, Telefone, NIF, Mensagem de Rodapé, Tamanho de Letra (`Pequeno`, `Médio`, `Grande`) e interruptores para mostrar/ocultar NIF, Morada, Telefone, Notas de Personalização e Rodapé.
-- **Pré-visualização ao Vivo + Impressão de Teste:** Mostra em tempo real no ecrã como ficará o talão e permite disparar um **Teste de Impressão** imediato na impressora térmica ligada ao posto.
+- **Campos Editáveis:** Nome da Empresa, Slogan / Subtítulo, Morada, Telefone, NIF, Mensagem de Rodapé, Tamanho de Letra (`Compacto`, `Médio`, `Grande`) e interruptores para mostrar/ocultar NIF, Morada, Telefone, Separação Padaria/Pastelaria, Destaque de Notas de Bolo e **QR Code no rodapé (`showQrCode`)**.
+- **Suporte Automático a Produção Parcelar (`v2.1.1`):** O talão assinala automaticamente artigos recusados com `[NÃO PROD.]`, exclui-os do somatório de unidades entregues e imprime as `Observações da Produção`.
+- **Pré-visualização ao Vivo:** Mostra em tempo real no ecrã como ficará o talão térmico calibrado.
 
 ---
 
 ## 7. Aba 6: Gestão de Acessos & Permissões RBAC (`acessos`)
 
 Permite ao Administrador gerir toda a equipa e controlar o que cada colaborador pode ver ou editar:
-- **Gestão de Utilizadores:** Criar novo colaborador, definir Nome, Email/Username, Palavra-passe, Função (`admin`, `gestor`, `atendente`, `padeiro`, `motorista`) e estado (`Ativo` / `Inativo`).
-- **Matriz de Permissões Granulares por Painel:** Para cada utilizador, define-se individualmente o nível de acesso aos 5 módulos (`Encomendas`, `Produção`, `Loja`, `Entregas`, `Gestão`):
-  - **`🚫 Sem Acesso` (`sem_acesso`):** O menu não aparece na barra de navegação e a rota está bloqueada.
+- **Gestão de Utilizadores:** Criar novo colaborador, definir Nome, Email/Username, Palavra-passe, Função (`admin`, `gerente_loja`, `atendente`, `operador_padaria`, `operador_pastelaria`, `motorista`) e estado (`Ativo` / `Inativo`).
+- **Matriz de Permissões Granulares por Painel & Route Guard por Cockpit:** Para cada utilizador, define-se individualmente o nível de acesso aos 5 módulos (`Encomendas`, `Produção`, `Loja`, `Entregas`, `Gestão`):
+  - **`🚫 Sem Acesso` (`sem_acesso`):** O menu não aparece na barra de navegação e a rota está bloqueada por *Route Guard* automático.
   - **`👁️ Apenas Leitura` (`leitura`):** O utilizador pode consultar o ecrã, mas todos os botões de ação/gravação ficam desativados.
   - **`✏️ Edição Total` (`edicao`):** O utilizador pode executar todas as operações daquele painel.
