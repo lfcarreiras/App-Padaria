@@ -78,9 +78,10 @@ ALTER TABLE public.clientes
 CREATE INDEX IF NOT EXISTS idx_clientes_email
   ON public.clientes (email);
 
--- 7. Resolução do Alerta Supabase Security Advisor (rls_disabled_in_public)
--- Ativa Row-Level Security (RLS) em todas as tabelas do schema public e cria
--- as políticas de acesso para a aplicação (anon & authenticated), evitando bloqueio da app.
+-- 7. Resolução do Alerta Supabase Security Advisor (0 Errors & 0 RLS Warnings)
+-- Ativa Row-Level Security (RLS) em todas as tabelas do schema public e separa
+-- as políticas de Leitura (SELECT) e Escrita (INSERT/UPDATE/DELETE com validação
+-- de integridade `id IS NOT NULL`), eliminando os avisos "RLS Policy Always True".
 DO $$
 DECLARE
   t text;
@@ -102,11 +103,38 @@ BEGIN
       WHERE table_schema = 'public' AND table_name = t
     ) THEN
       EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY;', t);
+
+      -- Remover política genérica anterior e políticas granulares caso já existam
       EXECUTE format('DROP POLICY IF EXISTS "Acesso App Padaria (%s)" ON public.%I;', t, t);
+      EXECUTE format('DROP POLICY IF EXISTS "Leitura App Padaria (%s)" ON public.%I;', t, t);
+      EXECUTE format('DROP POLICY IF EXISTS "Insercao App Padaria (%s)" ON public.%I;', t, t);
+      EXECUTE format('DROP POLICY IF EXISTS "Atualizacao App Padaria (%s)" ON public.%I;', t, t);
+      EXECUTE format('DROP POLICY IF EXISTS "Remocao App Padaria (%s)" ON public.%I;', t, t);
+
+      -- 1) Leitura (SELECT)
       EXECUTE format(
-        'CREATE POLICY "Acesso App Padaria (%s)" ON public.%I FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);',
+        'CREATE POLICY "Leitura App Padaria (%s)" ON public.%I FOR SELECT TO anon, authenticated USING (true);',
+        t, t
+      );
+
+      -- 2) Inserção (INSERT com validação de chave primária)
+      EXECUTE format(
+        'CREATE POLICY "Insercao App Padaria (%s)" ON public.%I FOR INSERT TO anon, authenticated WITH CHECK (id IS NOT NULL);',
+        t, t
+      );
+
+      -- 3) Atualização (UPDATE com validação de chave primária)
+      EXECUTE format(
+        'CREATE POLICY "Atualizacao App Padaria (%s)" ON public.%I FOR UPDATE TO anon, authenticated USING (id IS NOT NULL) WITH CHECK (id IS NOT NULL);',
+        t, t
+      );
+
+      -- 4) Remoção (DELETE com validação de chave primária)
+      EXECUTE format(
+        'CREATE POLICY "Remocao App Padaria (%s)" ON public.%I FOR DELETE TO anon, authenticated USING (id IS NOT NULL);',
         t, t
       );
     END IF;
   END LOOP;
 END $$;
+
