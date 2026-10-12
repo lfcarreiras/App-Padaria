@@ -574,7 +574,7 @@ export default function AdminPage() {
 
   // Encomendas para a Tabela de Detalhe Consolidado de Planeamento vs Real (com filtros e ordenação)
   const encomendasTabelaConsolidada = useMemo(() => {
-    let base = [...encomendas];
+    let base = [...encomendasFiltradas];
 
     if (filtroDataConsolidada) {
       base = base.filter((e) => e.data_agendamento === filtroDataConsolidada);
@@ -650,7 +650,7 @@ export default function AdminPage() {
     });
 
     return base;
-  }, [encomendas, filtroDataConsolidada, filtroConsolidada, sortConsolidada]);
+  }, [encomendasFiltradas, filtroDataConsolidada, filtroConsolidada, sortConsolidada]);
 
   // Ações da Tabela Interativa de Produtos
   const handleToggleSortProdutos = (col: 'nome' | 'categoria' | 'unidade' | 'ativo') => {

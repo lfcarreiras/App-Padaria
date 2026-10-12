@@ -150,71 +150,104 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
                 {itensPadaria.length > 0 && (
                   <div className="mb-2">
                     <p className="font-bold uppercase tracking-wider text-[11px] mb-1">{t.receiptBakerySection}</p>
-                    {itensPadaria.map((item) => (
-                      <div key={item.id} className="mb-1">
-                        <div className="flex justify-between">
-                          <span className="font-bold">
-                            {item.quantidade}x {item.produto_nome}
-                          </span>
+                    {itensPadaria.map((item) => {
+                      const isRecusado = item.estado_producao === 'recusado';
+                      return (
+                        <div key={item.id} className="mb-1">
+                          <div className="flex justify-between items-center gap-1">
+                            <span className={`font-bold ${isRecusado ? 'line-through opacity-70' : ''}`}>
+                              {item.quantidade}x {item.produto_nome}
+                            </span>
+                            {isRecusado && (
+                              <span className="text-[9px] font-black uppercase border border-black px-1 shrink-0">
+                                NÃO PROD.
+                              </span>
+                            )}
+                          </div>
+                          {item.notas_personalizacao && cfg.highlightCakeNotes && (
+                            <p className="text-[10px] italic pl-2">» {item.notas_personalizacao}</p>
+                          )}
                         </div>
-                        {item.notas_personalizacao && cfg.highlightCakeNotes && (
-                          <p className="text-[10px] italic pl-2">» {item.notas_personalizacao}</p>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
 
                 {itensPastelaria.length > 0 && (
                   <div className="mb-2">
                     <p className="font-bold uppercase tracking-wider text-[11px] mb-1">{t.receiptPastrySection}</p>
-                    {itensPastelaria.map((item) => (
-                      <div key={item.id} className="mb-1">
-                        <div className="flex justify-between">
-                          <span className="font-bold">
-                            {item.quantidade}x {item.produto_nome}
-                          </span>
-                        </div>
-                        {item.notas_personalizacao && cfg.highlightCakeNotes && (
-                          <div className="bg-gray-100 p-1 border border-black my-0.5">
-                            <p className="text-[10px] font-bold">{t.customizationNotes}</p>
-                            <p className="text-[10px]">{item.notas_personalizacao}</p>
+                    {itensPastelaria.map((item) => {
+                      const isRecusado = item.estado_producao === 'recusado';
+                      return (
+                        <div key={item.id} className="mb-1">
+                          <div className="flex justify-between items-center gap-1">
+                            <span className={`font-bold ${isRecusado ? 'line-through opacity-70' : ''}`}>
+                              {item.quantidade}x {item.produto_nome}
+                            </span>
+                            {isRecusado && (
+                              <span className="text-[9px] font-black uppercase border border-black px-1 shrink-0">
+                                NÃO PROD.
+                              </span>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          {item.notas_personalizacao && cfg.highlightCakeNotes && (
+                            <div className="bg-gray-100 p-1 border border-black my-0.5">
+                              <p className="text-[10px] font-bold">{t.customizationNotes}</p>
+                              <p className="text-[10px]">{item.notas_personalizacao}</p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </>
             ) : (
               <div className="mb-2">
                 <p className="font-bold uppercase tracking-wider text-[11px] mb-1">{t.receiptAllItemsSection}</p>
-                {todosItens.map((item) => (
-                  <div key={item.id} className="mb-1">
-                    <div className="flex justify-between">
-                      <span className="font-bold">
-                        {item.quantidade}x {item.produto_nome}
-                      </span>
+                {todosItens.map((item) => {
+                  const isRecusado = item.estado_producao === 'recusado';
+                  return (
+                    <div key={item.id} className="mb-1">
+                      <div className="flex justify-between items-center gap-1">
+                        <span className={`font-bold ${isRecusado ? 'line-through opacity-70' : ''}`}>
+                          {item.quantidade}x {item.produto_nome}
+                        </span>
+                        {isRecusado && (
+                          <span className="text-[9px] font-black uppercase border border-black px-1 shrink-0">
+                            NÃO PROD.
+                          </span>
+                        )}
+                      </div>
+                      {item.notas_personalizacao && cfg.highlightCakeNotes && (
+                        <p className="text-[10px] italic pl-2">» {item.notas_personalizacao}</p>
+                      )}
                     </div>
-                    {item.notas_personalizacao && cfg.highlightCakeNotes && (
-                      <p className="text-[10px] italic pl-2">» {item.notas_personalizacao}</p>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
             <div className="my-2 border-b border-dashed border-black" />
 
-            {/* Resumo de Artigos (sem preços nem pagamentos) */}
+            {/* Resumo de Artigos (excluindo artigos não produzidos/recusados) */}
             <div className="space-y-1">
               <div className="flex justify-between text-xs font-bold uppercase border-t border-b border-black py-1">
                 <span>{t.totalItems}:</span>
                 <span className="font-black">
-                  {encomenda.itens.reduce((acc: number, item: any) => acc + item.quantidade, 0)} un.
+                  {encomenda.itens
+                    .filter((item: any) => item.estado_producao !== 'recusado')
+                    .reduce((acc: number, item: any) => acc + item.quantidade, 0)} un.
                 </span>
               </div>
             </div>
+
+            {encomenda.observacoes_producao && (
+              <div className="mt-2 pt-1 border-t border-dotted border-black text-[10px]">
+                <p className="font-bold uppercase">Obs. Produção:</p>
+                <p>{encomenda.observacoes_producao}</p>
+              </div>
+            )}
 
             {encomenda.notas_cliente && (
               <div className="mt-2 pt-1 border-t border-dotted border-gray-400 text-[10px]">

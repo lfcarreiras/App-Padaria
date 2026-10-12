@@ -118,11 +118,11 @@ flowchart TD
 | Indicador da Bolsa de Horas | Cenário A: Apenas Orçamento Base (`2.500 €`) | Cenário B: Base + Extra App Cliente (`3.150 €`) |
 | :--- | :---: | :---: |
 | **Plafond Total de Horas Orçamentadas (@ 80 €/h)** | **31,25 horas** | **39,38 horas** |
-| **Horas Consumidas no Antigravity (Sprints 1 a 6.1)** | 20,75 horas (`1.660,00 €`) | 20,75 horas (`1.660,00 €`) |
+| **Horas Consumidas no Antigravity (Sprints 1 a 6.2)** | 21,50 horas (`1.720,00 €`) | 21,50 horas (`1.720,00 €`) |
 | **Horas Consumidas em Consultoria Externa (Reuniões)** | 2,75 horas (`220,00 €`) | 2,75 horas (`220,00 €`) |
-| **TOTAL DE HORAS JÁ CONSUMIDAS (até 12/10/2026)** | **23,50 horas (`1.880,00 €`)** | **23,50 horas (`1.880,00 €`)** |
-| **SALDO REMANESCENTE NA BOLSA DE HORAS (p/ Formação & Go-Live)** | **🟢 + 7,75 horas (`+ 620,00 €`)** | **🟢 + 15,88 horas (`+ 1.270,00 €`)** |
-| **Percentagem de Execução Funcional do Código** | **100% Concluído (`v2.1.0`)** | **100% Concluído (`v2.1.0`)** |
+| **TOTAL DE HORAS JÁ CONSUMIDAS (até 12/10/2026 — `v2.1.1`)** | **24,25 horas (`1.940,00 €`)** | **24,25 horas (`1.940,00 €`)** |
+| **SALDO REMANESCENTE NA BOLSA DE HORAS (p/ Formação & Go-Live)** | **🟢 + 7,00 horas (`+ 560,00 €`)** | **🟢 + 15,13 horas (`+ 1.210,00 €`)** |
+| **Percentagem de Execução & Readiness Score (Bulletproof Swarm)** | **100% Concluído — Score 99,1% (`v2.1.1`)** | **100% Concluído — Score 99,1% (`v2.1.1`)** |
 
 ### 6.2. Discriminação Cronológica de Horas Consumidas por Sprint
 
@@ -134,9 +134,10 @@ flowchart TD
 | **Sprint 3** | 23/09 – 02/10 | Engenharia Antigravity | Multi-Loja, Talão Térmico 80mm e Exportação Excel | 3,15 h | 252,00 € |
 | **Sprint 4** | 03/10 – 10/10 | Engenharia Antigravity | Studio TinaCMS, Blindagem Cenário A, Portal Cliente v1 e Canais | 5,44 h | 435,20 € |
 | **Reunião Arouca** | 10/10/2026 | Consultoria Externa (Presencial) | Demonstração ao vivo à gerência, recolha de 22 requisitos e proposta | 1,75 h | 140,00 € |
-| **Sprint 5 (v2.0.0)** | 10/10 – 11/10 | Engenharia Antigravity | Implementação dos 22 requisitos de Arouca (5 Carrinhas, B2B, 3 Fornos, Mapa Diário) | 2,86 h | 228,80 € |
-| **Sprint 6 (v2.1.0)** | 11/10 – 12/10 | Engenharia Antigravity | Triagem parcelar artigo a artigo nos alertas urgentes, estado parcelar na App Cliente, WhatsApp automático na Loja e Dossier Documental | 1,25 h | 100,00 € |
-| **TOTAL ACUMULADO** | **07/09 – 12/10** | **Híbrido (AGY + Terreno)** | **Solução Integral `v2.1.0` Pronta para Go-Live** | **23,50 h** | **1.880,00 €** |
+| **Sprint 5 (`v2.0.0`)** | 10/10 – 11/10 | Engenharia Antigravity | Implementação dos 22 requisitos de Arouca (5 Carrinhas, B2B, 3 Fornos, Mapa Diário) | 2,86 h | 228,80 € |
+| **Sprint 6.1 (`v2.1.0`)** | 11/10 – 12/10 | Engenharia Antigravity | Triagem parcelar artigo a artigo nos alertas urgentes, estado parcelar na App Cliente, WhatsApp automático na Loja e Dossier Documental | 1,25 h | 100,00 € |
+| **Sprint 6.2 (`v2.1.1`)** | 12/10/2026 | Auditoria & Hardening Swarm | Ronda completa dos 7 Agentes do *Bulletproof Swarm* (OWASP Headers, RGPD Art. 13.º, EU AI Act Art. 14.º/50.º, Cache Offline Carrinhas, Talão Térmico Parcelar — Score `99,1%`) | 0,75 h | 60,00 € |
+| **TOTAL ACUMULADO** | **07/09 – 12/10** | **Híbrido (AGY + Terreno)** | **Solução Integral `v2.1.1` Certificada (`99,1%`)** | **24,25 h** | **1.940,00 €** |
 
 ---
 

@@ -17,6 +17,7 @@ import {
   atualizarEncomendaDb,
   alternarTipoEntregaDb,
   guardarCanalOrigemLocal,
+  gerarLinkWhatsAppDecisaoEncomenda,
   registarLogAuditoria 
 } from '../../lib/encomendasService';
 import { Encomenda, Produto, ItemEncomenda, TipoEntrega, MetodoPagamento, Cliente, Loja, Carrinha, CanalOrigemEncomenda } from '../../types';
@@ -1375,7 +1376,9 @@ export default function EncomendasPage() {
                                         </span>
                                       </div>
                                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border shrink-0 ${
-                                        enc.estado === 'entregue'
+                                        enc.estado === 'cancelado'
+                                          ? 'bg-red-50 text-red-800 border-red-200'
+                                          : enc.estado === 'entregue'
                                           ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                                           : enc.estado === 'pronto_loja' || enc.estado === 'em_rota'
                                           ? 'bg-blue-50 text-blue-800 border-blue-200'
@@ -1415,7 +1418,10 @@ export default function EncomendasPage() {
                                         {enc.data_agendamento} às {enc.hora_agendamento}
                                       </span>
                                       <span className="font-bold text-xs text-stone-800 bg-stone-200/80 px-2 py-0.5 rounded-md">
-                                        {enc.itens.reduce((acc, i) => acc + i.quantidade, 0)} {t.totalItems.toLowerCase()}
+                                        {enc.itens
+                                          .filter((i) => i.estado_producao !== 'recusado')
+                                          .reduce((acc, i) => acc + i.quantidade, 0)}{' '}
+                                        {t.totalItems.toLowerCase()}
                                       </span>
                                     </div>
 
@@ -1429,15 +1435,39 @@ export default function EncomendasPage() {
                                       </div>
                                     )}
 
-                                    {/* Resumo de Artigos */}
-                                    <div className="mt-2 space-y-0.5">
-                                      {enc.itens.map((it) => (
-                                        <div key={it.id} className="text-[11px] text-gray-600 flex justify-between">
-                                          <span>• {it.produto_nome}</span>
-                                          <span className="font-bold">{it.quantidade} un.</span>
-                                        </div>
-                                      ))}
+                                    {/* Resumo de Artigos com estado parcelar */}
+                                    <div className="mt-2 space-y-1">
+                                      {enc.itens.map((it) => {
+                                        const isRecusado = it.estado_producao === 'recusado';
+                                        return (
+                                          <div
+                                            key={it.id}
+                                            className={`text-[11px] flex items-center justify-between ${
+                                              isRecusado ? 'text-red-700 line-through opacity-75' : 'text-gray-600'
+                                            }`}
+                                          >
+                                            <span>• {it.produto_nome}</span>
+                                            <span className="font-bold flex items-center gap-1">
+                                              {it.quantidade} un.
+                                              {isRecusado && (
+                                                <span className="px-1 py-0.2 rounded bg-red-100 text-red-800 text-[9px] font-black uppercase no-underline">
+                                                  ✕ Não Prod.
+                                                </span>
+                                              )}
+                                            </span>
+                                          </div>
+                                        );
+                                      })}
                                     </div>
+
+                                    {enc.observacoes_producao && (
+                                      <div className="mt-2 rounded-xl bg-amber-50 border border-amber-200 p-2 text-[11px] text-amber-950">
+                                        <span className="font-black uppercase text-[9px] text-amber-800 block">
+                                          💬 Obs. Produção:
+                                        </span>
+                                        <p className="font-medium">{enc.observacoes_producao}</p>
+                                      </div>
+                                    )}
                                   </div>
 
                                   {/* Ações da Encomenda */}
@@ -1483,13 +1513,11 @@ export default function EncomendasPage() {
                                     </button>
 
                                     <a
-                                      href={`https://wa.me/351${enc.cliente.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(
-                                        `🥖 *Padaria da Vila*\nOlá ${enc.cliente.nome}, o seu pedido *${enc.codigo}* está confirmado para ${enc.data_agendamento} às ${enc.hora_agendamento}.\nFormato: ${enc.tipo === 'entrega_domicilio' ? `Entrega em ${enc.cliente.morada}` : 'Levantamento no Balcão'}.\nArtigos: ${enc.itens.map(i => `${i.quantidade}x ${i.produto_nome}`).join(', ')}.\nObrigado pela sua preferência!`
-                                      )}`}
+                                      href={gerarLinkWhatsAppDecisaoEncomenda(enc)}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="flex items-center justify-center p-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 transition"
-                                      title="Enviar WhatsApp"
+                                      title="Enviar Estado da Encomenda via WhatsApp"
                                     >
                                       <MessageSquare className="h-3.5 w-3.5 text-emerald-600" />
                                     </a>

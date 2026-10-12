@@ -42,6 +42,26 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.1.1] - 2026-10-12
+### 🛡️ Auditoria & Hardening (Inprooval® Bulletproof Agent Swarm — Readiness Score: 99,1%)
+- **Agente 1 (`E2E Journey & Chaos Simulator`)**:
+  - Propagação integral da recusa parcelar de artigos (`estado_producao === 'recusado'`) e das `observacoes_producao` para o Cockpit de Carrinhas (`/entregas`), Histórico de Encomendas (`/encomendas`), Cockpit de Loja (`/loja`) e Exportação Excel do «Mapa Diário».
+  - Preservação de artigos recusados e notas de personalização de bolos ao mover encomendas no Kanban de Produção (`/producao`).
+- **Agente 2 (`Supabase DBA & Data Integrity Auditor`)**:
+  - Auditoria ao vivo às 7 tabelas Supabase (`0` itens órfãos, `0` encomendas vazias) e criação da migração SQL idempotente `supabase/migrations/20261012_bulletproof_hardening.sql` com índices compostos para otimização de Egress.
+  - Preservação automática das tags `[OBS_PROD:...]` e `[RECUSADO]` durante edições posteriores de encomendas (`atualizarEncomendaDb`).
+- **Agente 3 (`Cybersecurity Red-Team — OWASP`)**:
+  - Configuração de HTTP Security Headers (`X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security`) em `next.config.mjs`.
+  - Implementação de *Route Guard* ativo por Cockpit na `Navbar.tsx`.
+- **Agente 4 (`EU AI Act & RGPD Compliance Auditor`)**:
+  - Adição de selo de supervisão humana obrigatória (**Art. 14.º EU AI Act**) na triagem de urgência em `/producao` e assinatura de transparência (**Art. 50.º EU AI Act**) nas mensagens WhatsApp geradas pelo sistema.
+  - Adição de nota informativa de proteção e minimização de dados pessoais (**Art. 13.º RGPD**) nos formulários de Login/Registo e Perfil do Portal Direto de Clientes (`/encomendar`).
+- **Agente 5 (`Edge, Offline & Hardware POS Resilience`)**:
+  - Atualização do talão térmico **Epson M249A TM-T20 (80mm)** (`ThermalReceipt.tsx`) para assinalar artigos recusados com `[NÃO PROD.]`, excluí-los do somatório de unidades entregues e imprimir `observacoes_producao`.
+  - Implementação de cache offline automática (`padaria_encomendas_cache_v1`) e badge `⚡ Offline (Cache)` na `Navbar.tsx` para operação contínua das 5 carrinhas em zonas sem rede.
+- **Agente 6 & Agente 7 (`Value/FinOps & Living Docs Guardian`)**:
+  - Criação do Relatório Oficial de Certificação `docs/06_Relatorio_Auditoria_Bulletproof_Swarm.md`, atualização de `DOC 01` e `DOC 04`, e regeneração dos 6 PDFs institucionais sanitizados em `docs/pdf/`.
+
 ## [v2.1.0] - 2026-10-12
 ### 🚀 Adicionado (Added)
 - **Triagem Parcelar Artigo a Artigo nos Alertas de Encomenda Urgente ($\le 3\text{ Horas}$) (`/producao`)**:

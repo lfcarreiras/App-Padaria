@@ -276,6 +276,7 @@ export default function EntregasPage() {
       let soma = 0;
       encsCarrinha.forEach((enc) => {
         enc.itens.forEach((it) => {
+          if (it.estado_producao === 'recusado') return;
           if (
             it.produto_id === colNome ||
             (it.produto_nome || '').toLowerCase() === (colNome || '').toLowerCase()
@@ -850,6 +851,7 @@ export default function EntregasPage() {
                       )
                       .forEach((enc) => {
                         enc.itens.forEach((it) => {
+                          if (it.estado_producao === 'recusado') return;
                           const chave = totaisArtigo.has(it.produto_nome) ? it.produto_nome : it.produto_id;
                           const atual = totaisArtigo.get(chave) || {
                             nome: it.produto_nome,
@@ -1194,24 +1196,51 @@ export default function EntregasPage() {
                     {/* Resumo Operacional dos Artigos (sem preços nem pagamentos) */}
                     <div className="rounded-xl bg-gray-50 p-3 text-xs border border-gray-200/80">
                       <p className="text-[11px] font-bold text-gray-500 uppercase mb-1.5 tracking-wider">{t.itemsToDeliver}</p>
-                      <ul className="space-y-1">
-                        {enc.itens.map((item) => (
-                          <li key={item.id} className="font-medium text-gray-800">
-                            <span>
-                              <b className="text-amber-800 font-bold mr-1">{item.quantidade}x</b> {item.produto_nome}
-                              {item.notas_personalizacao && (
-                                <span className="block text-[11px] text-amber-800 italic pl-3">
-                                  » {item.notas_personalizacao}
+                      <ul className="space-y-1.5">
+                        {enc.itens.map((item) => {
+                          const isRecusado = item.estado_producao === 'recusado';
+                          return (
+                            <li
+                              key={item.id}
+                              className={`flex items-center justify-between font-medium ${
+                                isRecusado ? 'text-red-700 line-through opacity-75' : 'text-gray-800'
+                              }`}
+                            >
+                              <span>
+                                <b className={`${isRecusado ? 'text-red-700' : 'text-amber-800'} font-bold mr-1`}>
+                                  {item.quantidade}x
+                                </b>{' '}
+                                {item.produto_nome}
+                                {item.notas_personalizacao && (
+                                  <span className="block text-[11px] text-amber-800 italic pl-3">
+                                    » {item.notas_personalizacao}
+                                  </span>
+                                )}
+                              </span>
+                              {isRecusado && (
+                                <span className="ml-2 px-1.5 py-0.5 rounded bg-red-100 text-red-800 text-[9px] font-black uppercase no-underline shrink-0">
+                                  ✕ Não Produzido
                                 </span>
                               )}
-                            </span>
-                          </li>
-                        ))}
+                            </li>
+                          );
+                        })}
                       </ul>
+                      {enc.observacoes_producao && (
+                        <div className="mt-2 rounded-xl bg-amber-50 border border-amber-200 p-2.5 text-xs text-amber-950">
+                          <span className="text-[10px] font-black uppercase text-amber-800 block mb-0.5">
+                            💬 Observações da Produção:
+                          </span>
+                          <p className="font-medium">{enc.observacoes_producao}</p>
+                        </div>
+                      )}
                       <div className="mt-2.5 pt-2 border-t border-gray-200 flex justify-between text-xs font-bold text-gray-700">
                         <span>{t.totalItems}:</span>
                         <span className="font-black text-gray-900">
-                          {enc.itens.reduce((acc, i) => acc + i.quantidade, 0)} un.
+                          {enc.itens
+                            .filter((i) => i.estado_producao !== 'recusado')
+                            .reduce((acc, i) => acc + i.quantidade, 0)}{' '}
+                          un.
                         </span>
                       </div>
                     </div>

@@ -146,7 +146,7 @@ export function parseEncomendasFromDb(data: any[]): Encomenda[] {
     }
 
     // Determinar canal de origem
-    let canalExtraido = row.canal_origem || localCanais[row.id];
+    let canalExtraido = row.canal_origem || localCanais[row.id] || localCanais[row.codigo];
     if (!canalExtraido && row.notas_cliente) {
       const matchCanal = row.notas_cliente.match(/\[CANAL:(presencial|telefone|whatsapp|site_online)\]/i);
       if (matchCanal) {
@@ -216,48 +216,71 @@ export function parseEncomendasFromDb(data: any[]): Encomenda[] {
   });
 }
 
-export async function carregarEncomendasSupabase(): Promise<Encomenda[]> {
-  if (!supabase) return [];
+const OFFLINE_ENCOMENDAS_CACHE_KEY = 'padaria_encomendas_cache_v1';
 
-  const { data, error } = await supabase
-    .from('encomendas')
-    .select(`
-      id,
-      numero_sequencial,
-      codigo,
-      loja_id,
-      tipo,
-      carrinha_id,
-      data_agendamento,
-      hora_agendamento,
-      estado,
-      estado_pagamento,
-      metodo_pagamento,
-      total,
-      notas_cliente,
-      criado_em,
-      clientes(id, nome, telefone, morada, codigo_postal, notas_entrega),
-      lojas(id, nome, codigo),
-      carrinhas(id, identificador, matricula),
-      itens_encomenda(
-        id,
-        produto_id,
-        setor,
-        quantidade,
-        preco_unitario,
-        notas_personalizacao,
-        estado_producao,
-        produtos(id, nome)
-      )
-    `)
-    .order('criado_em', { ascending: false });
-
-  if (error) {
-    console.error('Erro ao carregar encomendas reais do Supabase:', error);
+function lerCacheEncomendasOffline(): Encomenda[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(OFFLINE_ENCOMENDAS_CACHE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
     return [];
   }
+}
 
-  return parseEncomendasFromDb(data);
+export async function carregarEncomendasSupabase(): Promise<Encomenda[]> {
+  if (!supabase) return lerCacheEncomendasOffline();
+
+  try {
+    const { data, error } = await supabase
+      .from('encomendas')
+      .select(`
+        id,
+        numero_sequencial,
+        codigo,
+        loja_id,
+        tipo,
+        carrinha_id,
+        data_agendamento,
+        hora_agendamento,
+        estado,
+        estado_pagamento,
+        metodo_pagamento,
+        total,
+        notas_cliente,
+        criado_em,
+        clientes(id, nome, telefone, morada, codigo_postal, notas_entrega),
+        lojas(id, nome, codigo),
+        carrinhas(id, identificador, matricula),
+        itens_encomenda(
+          id,
+          produto_id,
+          setor,
+          quantidade,
+          preco_unitario,
+          notas_personalizacao,
+          estado_producao,
+          produtos(id, nome)
+        )
+      `)
+      .order('criado_em', { ascending: false });
+
+    if (error) {
+      console.error('Erro ao carregar encomendas reais do Supabase (usando cache offline):', error);
+      return lerCacheEncomendasOffline();
+    }
+
+    const parsed = parseEncomendasFromDb(data);
+    if (typeof window !== 'undefined' && parsed.length > 0) {
+      try {
+        localStorage.setItem(OFFLINE_ENCOMENDAS_CACHE_KEY, JSON.stringify(parsed));
+      } catch {}
+    }
+    return parsed;
+  } catch (err) {
+    console.warn('Falha de rede ao ligar ao Supabase, ativando cache offline local:', err);
+    return lerCacheEncomendasOffline();
+  }
 }
 
 export async function atualizarEstadoEncomendaDb(
@@ -415,6 +438,7 @@ export function gerarLinkWhatsAppDecisaoEncomenda(enc: Encomenda, obsExtra?: str
   const tel = formatarTelefoneWhatsApp(enc.cliente?.telefone);
   const obs = (obsExtra !== undefined ? obsExtra : enc.observacoes_producao || '').trim();
   const obsTexto = obs ? `\n\n📝 Observações da Padaria: ${obs}` : '';
+  const assinaturaTransparencia = `\n\n🤖 _Notificação gerada pelo sistema da Padaria da Vila (validada pela equipa)._`;
   const destinoTexto =
     enc.tipo === 'levantamento_loja'
       ? `Levantamento em ${enc.loja_nome || 'Loja'}`
@@ -428,17 +452,17 @@ export function gerarLinkWhatsAppDecisaoEncomenda(enc: Encomenda, obsExtra?: str
   let mensagem = '';
   if (itensAceites.length > 0 && itensRecusados.length === 0) {
     const lista = itensAceites.map((i) => `${i.quantidade}x ${i.produto_nome}`).join(', ');
-    mensagem = `Olá ${enc.cliente.nome}! Confirmamos que a sua encomenda ${enc.codigo} (${destinoTexto} para ${enc.data_agendamento} às ${enc.hora_agendamento}) entrou em produção na Padaria da Vila:\n✅ Artigos a preparar: ${lista}.${obsTexto}`;
+    mensagem = `Olá ${enc.cliente.nome}! Confirmamos que a sua encomenda ${enc.codigo} (${destinoTexto} para ${enc.data_agendamento} às ${enc.hora_agendamento}) entrou em produção na Padaria da Vila:\n✅ Artigos a preparar: ${lista}.${obsTexto}${assinaturaTransparencia}`;
   } else if (itensAceites.length > 0 && itensRecusados.length > 0) {
     const listaSim = itensAceites.map((i) => `${i.quantidade}x ${i.produto_nome}`).join(', ');
     const listaNao = itensRecusados.map((i) => `${i.quantidade}x ${i.produto_nome}`).join(', ');
-    mensagem = `Olá ${enc.cliente.nome}! Relativamente à sua encomenda ${enc.codigo} (${destinoTexto} para ${enc.data_agendamento} às ${enc.hora_agendamento}), informamos a confirmação parcelar do pedido:\n✅ Artigos que serão preparados: ${listaSim}\n❌ Artigos indisponíveis (não produzidos): ${listaNao}${obsTexto}`;
+    mensagem = `Olá ${enc.cliente.nome}! Relativamente à sua encomenda ${enc.codigo} (${destinoTexto} para ${enc.data_agendamento} às ${enc.hora_agendamento}), informamos a confirmação parcelar do pedido:\n✅ Artigos que serão preparados: ${listaSim}\n❌ Artigos indisponíveis (não produzidos): ${listaNao}${obsTexto}${assinaturaTransparencia}`;
   } else if (itensAceites.length === 0 && itensRecusados.length > 0) {
     const listaNao = itensRecusados.map((i) => `${i.quantidade}x ${i.produto_nome}`).join(', ');
-    mensagem = `Olá ${enc.cliente.nome}! Lamentamos informar que não nos será possível preparar a sua encomenda ${enc.codigo} (${listaNao}) agendada para ${enc.data_agendamento} às ${enc.hora_agendamento}.${obsTexto}`;
+    mensagem = `Olá ${enc.cliente.nome}! Lamentamos informar que não nos será possível preparar a sua encomenda ${enc.codigo} (${listaNao}) agendada para ${enc.data_agendamento} às ${enc.hora_agendamento}.${obsTexto}${assinaturaTransparencia}`;
   } else {
     const listaTodos = enc.itens.map((i) => `${i.quantidade}x ${i.produto_nome}`).join(', ');
-    mensagem = `Olá ${enc.cliente.nome}! Contacto da Padaria da Vila sobre a sua encomenda ${enc.codigo} (${listaTodos}) para ${enc.data_agendamento} às ${enc.hora_agendamento}.${obsTexto}`;
+    mensagem = `Olá ${enc.cliente.nome}! Contacto da Padaria da Vila sobre a sua encomenda ${enc.codigo} (${listaTodos}) para ${enc.data_agendamento} às ${enc.hora_agendamento}.${obsTexto}${assinaturaTransparencia}`;
   }
 
   return `https://wa.me/${tel}?text=${encodeURIComponent(mensagem)}`;
@@ -450,11 +474,12 @@ export function gerarLinkWhatsAppEncomendaPronta(enc: Encomenda): string {
   const lista = (itensProduzidos.length > 0 ? itensProduzidos : enc.itens)
     .map((i) => `${i.quantidade}x ${i.produto_nome}`)
     .join(', ');
+  const assinaturaTransparencia = `\n\n🤖 _Notificação gerada pelo sistema da Padaria da Vila (validada pela equipa)._`;
 
   const mensagem =
     enc.tipo === 'levantamento_loja'
-      ? `Olá ${enc.cliente.nome}! A sua encomenda ${enc.codigo} (${lista}) já se encontra PRONTA para levantamento no balcão da loja ${enc.loja_nome || 'Padaria da Vila'}. Até já!`
-      : `Olá ${enc.cliente.nome}! A sua encomenda ${enc.codigo} (${lista}) já se encontra PRONTA para entrega ao domicílio (${enc.cliente.morada || 'Arouca'}). Até já!`;
+      ? `Olá ${enc.cliente.nome}! A sua encomenda ${enc.codigo} (${lista}) já se encontra PRONTA para levantamento no balcão da loja ${enc.loja_nome || 'Padaria da Vila'}. Até já!${assinaturaTransparencia}`
+      : `Olá ${enc.cliente.nome}! A sua encomenda ${enc.codigo} (${lista}) já se encontra PRONTA para entrega ao domicílio (${enc.cliente.morada || 'Arouca'}). Até já!${assinaturaTransparencia}`;
 
   return `https://wa.me/${tel}?text=${encodeURIComponent(mensagem)}`;
 }
@@ -540,10 +565,16 @@ export async function atualizarEncomendaDb(encomenda: Partial<Encomenda> & { id:
     if (encomenda.hora_agendamento) updates.hora_agendamento = encomenda.hora_agendamento;
     if (encomenda.estado) updates.estado = encomenda.estado;
     if (encomenda.estado_pagamento) updates.estado_pagamento = encomenda.estado_pagamento;
-    if (encomenda.notas_cliente !== undefined) {
+    if (encomenda.notas_cliente !== undefined || encomenda.observacoes_producao !== undefined) {
       const canalTag = encomenda.canal_origem ? `[CANAL:${encomenda.canal_origem}] ` : '';
-      const notaSemTag = (encomenda.notas_cliente || '').replace(/\[CANAL:(presencial|telefone|whatsapp|site_online)\]\s*/gi, '').trim();
-      updates.notas_cliente = `${canalTag}${notaSemTag}`.trim() || null;
+      const obsProdVal = encomenda.observacoes_producao || lerObservacoesProducaoLocal()[encomenda.id] || '';
+      const obsProdTag = obsProdVal.trim() ? `[OBS_PROD:${obsProdVal.trim()}] ` : '';
+      const notaSemTag = (encomenda.notas_cliente || '')
+        .replace(/\[CANAL:(presencial|telefone|whatsapp|site_online)\]\s*/gi, '')
+        .replace(/\[OBS_PROD:[\s\S]*?\]\s*/gi, '')
+        .replace(/\[ITENS_BACKUP:[\s\S]*?\]\s*/gi, '')
+        .trim();
+      updates.notas_cliente = `${canalTag}${obsProdTag}${notaSemTag}`.trim() || null;
     }
     if (encomenda.total !== undefined) updates.total = encomenda.total;
 
@@ -580,19 +611,25 @@ export async function atualizarEncomendaDb(encomenda: Partial<Encomenda> & { id:
         .eq('id', encomenda.cliente.id);
     }
 
-    // Sincronizar itens_encomenda (incluindo novos artigos adicionados no modal de edição)
+    // Sincronizar itens_encomenda (incluindo novos artigos adicionados no modal de edição e preservando [RECUSADO])
     if (encomenda.itens && Array.isArray(encomenda.itens)) {
       await supabase.from('itens_encomenda').delete().eq('encomenda_id', encomenda.id);
       if (encomenda.itens.length > 0) {
-        const itensPayload = encomenda.itens.map((it) => ({
-          encomenda_id: encomenda.id,
-          produto_id: it.produto_id && !it.produto_id.startsWith('prod-') && !it.produto_id.startsWith('temp-') ? it.produto_id : null,
-          setor: it.setor || 'padaria',
-          quantidade: Number(it.quantidade) || 1,
-          preco_unitario: Number(it.preco_unitario) || 0,
-          notas_personalizacao: it.notas_personalizacao || null,
-          estado_producao: it.estado_producao || 'pendente',
-        }));
+        const itensPayload = encomenda.itens.map((it) => {
+          const isRecusado = it.estado_producao === 'recusado';
+          const notaLimpa = (it.notas_personalizacao || '').replace(/^\[RECUSADO\]\s*/i, '').trim();
+          return {
+            encomenda_id: encomenda.id,
+            produto_id: it.produto_id && !it.produto_id.startsWith('prod-') && !it.produto_id.startsWith('temp-') ? it.produto_id : null,
+            setor: it.setor || 'padaria',
+            quantidade: Number(it.quantidade) || 1,
+            preco_unitario: Number(it.preco_unitario) || 0,
+            notas_personalizacao: isRecusado
+              ? `[RECUSADO] ${notaLimpa}`.trim()
+              : notaLimpa || null,
+            estado_producao: isRecusado ? 'pendente' : it.estado_producao || 'pendente',
+          };
+        });
         const { error: itensError } = await supabase.from('itens_encomenda').insert(itensPayload);
         if (itensError) {
           console.warn('Aviso ao sincronizar itens da encomenda:', itensError);
@@ -1319,7 +1356,7 @@ export async function registarLogAuditoria(
         logsAtuais = [...LOGS_AUDITORIA_MOCK];
       }
       logsAtuais.unshift(novoLog);
-      localStorage.setItem(AUDIT_LOGS_STORAGE_KEY, JSON.stringify(logsAtuais));
+      localStorage.setItem(AUDIT_LOGS_STORAGE_KEY, JSON.stringify(logsAtuais.slice(0, 500)));
     } catch (e) {
       console.error('Erro ao gravar log no localStorage:', e);
     }

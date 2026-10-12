@@ -19,7 +19,21 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId = 'todas', onSele
   const pathname = usePathname();
   const router = useRouter();
   const { language, setLanguage, t } = useTranslation();
-  const { usuario, cockpitAtivo, lojaTrabalhoNome, logout, getNivelAcesso } = useAuth();
+  const { usuario, cockpitAtivo, lojaTrabalhoNome, loading, logout, getNivelAcesso, obterRotaInicial } = useAuth();
+  const [isOnline, setIsOnline] = React.useState(true);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setIsOnline(navigator.onLine);
+    const onOnline = () => setIsOnline(true);
+    const onOffline = () => setIsOnline(false);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -51,6 +65,15 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId = 'todas', onSele
     const nivel = getNivelAcesso(item.panel);
     return nivel !== 'sem_acesso';
   });
+
+  // Route Guard estrito por Cockpit Ativo (Agente 3 OWASP RBAC Enforcement)
+  React.useEffect(() => {
+    if (loading || !usuario || !cockpitAtivo) return;
+    const rotasPermitidas = links.flatMap((l) => [l.href, ...(l.aliases || [])]);
+    if (rotasPermitidas.length > 0 && !rotasPermitidas.includes(pathname)) {
+      router.replace(obterRotaInicial(usuario, cockpitAtivo));
+    }
+  }, [loading, usuario, cockpitAtivo, pathname]);
 
   return (
     <header className="no-print sticky top-0 z-40 w-full border-b border-bakery-200 bg-white/95 backdrop-blur shadow-xs">
@@ -123,6 +146,14 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId = 'todas', onSele
 
         {/* Área do Utilizador & Idioma */}
         <div className="flex items-center gap-1.5 sm:gap-2 pl-1 sm:pl-2 border-l border-gray-200 shrink-0">
+          {!isOnline && (
+            <span
+              className="px-2 py-1 rounded-lg bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black uppercase tracking-wider"
+              title="Sem ligação à Internet — A operar em modo Cache Offline Resiliente"
+            >
+              ⚡ Offline (Cache)
+            </span>
+          )}
           {usuario ? (
             <div className="flex items-center gap-1.5 sm:gap-2">
               <div className="hidden lg:block text-right">

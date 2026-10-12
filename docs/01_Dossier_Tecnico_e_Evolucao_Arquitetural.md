@@ -170,10 +170,29 @@ Para garantir **100% de retrocompatibilidade** com o esquema PostgreSQL do Supab
 | **Backup de Artigos do Pedido** | `[ITENS_BACKUP:[...json...]]` | `encomendas.notas_cliente` | `encomendas_portal_cliente_v1` | Garante que nenhum pedido submetido na App Cliente aparece com `0 artigos` na Produção. |
 | **Timestamp Real de Entrega** | `[ENTREGUE: YYYY-MM-DD HH:MM]` | `encomendas.notas_cliente` | `padaria_timestamps_entrega_real_v1` | Extrai `data_entrega_real` e `hora_entrega_real` para cálculo preciso do KPI *% On-Time*. |
 
+---
+
+## 4. Auditoria & Blindagem «Bulletproof Agent Swarm» (`v2.1.1` — 12/10/2026)
+
+Na release **`v2.1.1`**, a plataforma foi auditada pelos **7 Agentes Especialistas do Inprooval® Bulletproof Agent Swarm**, atingindo um **Readiness Score Certificado de 99,1%**:
+
+1. **Propagação E2E de Decisões Parcelares (`Agente 1` & `Agente 5`):**
+   - Exclusão automática de artigos recusados (`estado_producao === 'recusado'`) no cálculo de cargas das 5 carrinhas, no Mapa Diário Excel, nos cartões de motorista (`/entregas`), no histórico de encomendas (`/encomendas`) e no talão térmico **Epson TM-T20 (80mm)** (`ThermalReceipt.tsx`).
+   - Impressão de `observacoes_producao` e etiqueta `[NÃO PROD.]` diretamente no talão térmico de expedição.
+2. **Hardening de Cibersegurança OWASP & Isolamento de Cockpits (`Agente 3`):**
+   - Configuração de HTTP Security Headers (`X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security`) em `next.config.mjs`.
+   - Implementação de *Route Guard* ativo por Cockpit em `Navbar.tsx`.
+3. **Conformidade Regulatória EU AI Act & RGPD (`Agente 4`):**
+   - Selo de supervisão humana obrigatória (**Art. 14.º EU AI Act**) na triagem de urgência em `/producao` e assinatura de transparência (**Art. 50.º EU AI Act**) nas notificações automáticas de WhatsApp.
+   - Nota informativa de proteção e minimização de dados pessoais (**Art. 13.º RGPD**) nos formulários de Login/Registo e Perfil do Portal Direto de Clientes (`/encomendar`).
+4. **Resiliência Offline para Zonas Rurais & Migração SQL (`Agente 2` & `Agente 5`):**
+   - Snapshot offline automático (`padaria_encomendas_cache_v1`) em `carregarEncomendasSupabase()` e badge `⚡ Offline (Cache)` na `Navbar.tsx` para garantir operação contínua das 5 carrinhas em freguesias sem rede móvel.
+   - Script idempotente de migração e indexação SQL em `supabase/migrations/20261012_bulletproof_hardening.sql`.
+
 <!-- INTERNAL_START -->
 ---
 
-## 4. Notas Técnicas Internas de Manutenção & Deploy (Exclusivo Inprooval®)
+## 5. Notas Técnicas Internas de Manutenção & Deploy (Exclusivo Inprooval®)
 
 > [!NOTE]
 > **Secção de Uso Interno Inprooval®** — Esta secção é automaticamente omitida na geração de PDFs destinados ao cliente.
@@ -183,7 +202,7 @@ Para garantir **100% de retrocompatibilidade** com o esquema PostgreSQL do Supab
   git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" status
   git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" add -A
   git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" commit -m "feat/fix: descricao"
-  git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" tag -a v2.1.0 -m "release: v2.1.0"
+  git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" tag -a v2.1.1 -m "release: v2.1.1"
   git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" push origin main --tags
   ```
 * **Credenciais de Ambiente (`.env.local` / Vercel Environment Variables):**

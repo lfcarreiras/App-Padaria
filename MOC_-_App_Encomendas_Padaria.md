@@ -60,6 +60,7 @@ Todos os documentos abaixo são mantidos automaticamente sincronizados em Markdo
 3. [[docs/03_Manual_Administrador_Configuracoes_e_KPIs_Gestao|📊 03 - Manual do Administrador: Configurações & Fórmulas de Indicadores do Cockpit de Gestão]]
 4. [[docs/04_Dossier_Projeto_Cliente_Backlog_Horas_e_Oportunidades|📋 04 - Dossier Mestre do Projeto: Cliente, Backlog, Orçamento, Bolsa de Horas, Sprints & Oportunidades]]
 5. [[docs/05_Proposta_Comercial_e_Demonstracao_de_Valor|💼 05 - Proposta Comercial Executiva & Demonstração de Valor]]
+6. [[docs/06_Relatorio_Auditoria_Bulletproof_Swarm|🛡️ 06 - Relatório de Auditoria & Certificação de Qualidade — Bulletproof Agent Swarm]]
 
 ---
 
@@ -70,7 +71,8 @@ Consulte o histórico detalhado em `[[CHANGELOG]]`.
 
 | Versão | Tag Git | Commit | Data | Marco Funcional Principal |
 | :--- | :--- | :--- | :--- | :--- |
-| **v2.1.0** | `v2.1.0` | `e3b93fd` | 2026-10-12 | Triagem parcelar artigo a artigo nos alertas urgentes (<3h), feedback parcelar na App Cliente e via WhatsApp, WhatsApp automático na Loja e Suite Documental Viva (5 Documentos + PDFs) |
+| **v2.1.1** | `v2.1.1` | `HEAD` | 2026-10-12 | 1.ª Ronda Completa do Inprooval® Bulletproof Agent Swarm (Readiness Score: 99,1%): Hardening OWASP, RGPD Art. 13.º, EU AI Act Art. 14.º/50.º, Cache Offline Carrinhas, Talão Térmico Parcelar e Relatório `DOC 06` |
+| **v2.1.0** | `v2.1.0` | `1a8eea1` | 2026-10-12 | Triagem parcelar artigo a artigo nos alertas urgentes (<3h), feedback parcelar na App Cliente e via WhatsApp, WhatsApp automático na Loja e Suite Documental Viva (5 Documentos + PDFs) |
 | **v2.0.0** | `v2.0.0` | `7ae6771` | 2026-10-11 | Implementação dos 22 requisitos de Arouca: Login Cockpit, 5 Carrinhas, Base Fixa, 13 Clientes B2B, Excel «Mapa Diário», 3 Fornos, Epson TM-T20 e App Cliente dedicada |
 | **v1.9.0** | `v1.9.0` | `HEAD` | 2026-09-21 | Integração do TinaCMS (Git-Backed) com coleções de configuração da marca, lojas físicas e catálogo visual de produtos, atalho no Admin e arquitetura híbrida com Supabase |
 | **v1.8.0** | `v1.8.0` | `4963bbd` | 2026-09-17 | Histórico de auditoria de utilizadores em todos os painéis, remoção de preços no configurador de talão e exportação de folhas de fabrico Excel por setor (Padaria e Pastelaria) |

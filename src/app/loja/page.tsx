@@ -453,7 +453,9 @@ export default function EntregaLojaPage() {
                                            enc.canal_origem === 'telefone' ? '📞 Telefone' : '🏪 Presencial'}
                                         </span>
                                         <span className={`px-2 py-0.5 text-[9px] font-black uppercase rounded-md border ${
-                                          enc.estado === 'entregue'
+                                          enc.estado === 'cancelado'
+                                            ? 'bg-red-100 text-red-900 border-red-300'
+                                            : enc.estado === 'entregue'
                                             ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
                                             : enc.estado === 'pronto_loja' || enc.estado === 'em_rota'
                                             ? 'bg-blue-100 text-blue-900 border-blue-300'
@@ -461,7 +463,9 @@ export default function EntregaLojaPage() {
                                             ? 'bg-amber-100 text-amber-900 border-amber-300'
                                             : 'bg-stone-100 text-stone-800 border-stone-300'
                                         }`}>
-                                          {enc.estado === 'entregue'
+                                          {enc.estado === 'cancelado'
+                                            ? '❌ Cancelado / Recusado'
+                                            : enc.estado === 'entregue'
                                             ? '✅ Entregue'
                                             : enc.estado === 'pronto_loja' || enc.estado === 'em_rota'
                                             ? '🚚 Em Distribuição / Pronto'
@@ -469,6 +473,11 @@ export default function EntregaLojaPage() {
                                             ? '👨‍🍳 Em Produção'
                                             : '📝 Encomendado'}
                                         </span>
+                                        {enc.estado !== 'cancelado' && enc.itens.some((i) => i.estado_producao === 'recusado') && (
+                                          <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-md bg-amber-100 text-amber-900 border border-amber-300">
+                                            ⚠️ Produção Parcial
+                                          </span>
+                                        )}
                                       </div>
                                       <h4 className="text-sm font-bold text-gray-900">{enc.cliente.nome}</h4>
                                     </div>

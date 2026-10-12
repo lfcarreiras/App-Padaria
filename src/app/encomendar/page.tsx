@@ -703,6 +703,11 @@ export default function EncomendarClientePage() {
                 </>
               )}
 
+              {/* Aviso de Privacidade e Proteção de Dados (Art. 13.º RGPD) */}
+              <div className="p-2 rounded-xl bg-stone-50 border border-stone-200 text-[10px] text-stone-600 leading-snug">
+                🔒 <strong>Proteção de Dados (RGPD — Art. 13.º):</strong> O seu nome, telemóvel e morada são tratados exclusivamente pela {configMarca.nomeEmpresa || 'Padaria da Vila'} para processamento da encomenda, entrega e notificações de estado.
+              </div>
+
               <button
                 type="submit"
                 className="w-full py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs uppercase tracking-wider shadow-md transition cursor-pointer flex items-center justify-center gap-2"
@@ -1620,6 +1625,10 @@ export default function EncomendarClientePage() {
                   placeholder="Rua, número, andar, freguesia em Arouca"
                   className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs focus:outline-hidden"
                 />
+              </div>
+
+              <div className="p-2 rounded-xl bg-stone-50 border border-stone-200 text-[10px] text-stone-600 leading-snug">
+                🔒 <strong>RGPD (Art. 13.º):</strong> Os seus dados destinam-se exclusivamente à gestão e entrega das suas encomendas na {configMarca.nomeEmpresa || 'Padaria da Vila'}.
               </div>
 
               <button
