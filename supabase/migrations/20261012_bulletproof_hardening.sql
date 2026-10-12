@@ -78,3 +78,35 @@ ALTER TABLE public.clientes
 CREATE INDEX IF NOT EXISTS idx_clientes_email
   ON public.clientes (email);
 
+-- 7. Resolução do Alerta Supabase Security Advisor (rls_disabled_in_public)
+-- Ativa Row-Level Security (RLS) em todas as tabelas do schema public e cria
+-- as políticas de acesso para a aplicação (anon & authenticated), evitando bloqueio da app.
+DO $$
+DECLARE
+  t text;
+BEGIN
+  FOREACH t IN ARRAY ARRAY[
+    'lojas',
+    'perfis',
+    'perfis_acesso',
+    'clientes',
+    'produtos',
+    'carrinhas',
+    'encomendas',
+    'itens_encomenda',
+    'logs_auditoria'
+  ]
+  LOOP
+    IF EXISTS (
+      SELECT 1 FROM information_schema.tables
+      WHERE table_schema = 'public' AND table_name = t
+    ) THEN
+      EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY;', t);
+      EXECUTE format('DROP POLICY IF EXISTS "Acesso App Padaria (%s)" ON public.%I;', t, t);
+      EXECUTE format(
+        'CREATE POLICY "Acesso App Padaria (%s)" ON public.%I FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);',
+        t, t
+      );
+    END IF;
+  END LOOP;
+END $$;
