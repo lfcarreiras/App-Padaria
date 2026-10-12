@@ -42,6 +42,18 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.1.2] - 2026-10-12
+
+### Added
+- **Edição, Correção e Eliminação de Artigos na Base Fixa Diária de Clientes Particulares (`1.º ao 4.º Carro`) (`/gestao`)**:
+  - Edição inline do nome de qualquer artigo na grelha **«Base Fixa Diária de Clientes Particulares (1.º ao 4.º Carro)»** (clicando no nome do artigo ou no botão **`✏️ Editar`**), com suporte a autocompletar a partir do catálogo de produtos e migração automática das quantidades existentes nas 4 carrinhas e na matriz B2B.
+  - Botão **`🗑️ Eliminar`** em cada linha para remover artigos da Base Fixa Diária.
+  - Adição rápida de novos artigos por seleção do catálogo ou introdução de nome personalizado (`+ Adicionar`).
+- **Extração e Importação Excel (`.xlsx` / `.xls` / `.csv`) na Base Fixa Diária de Clientes Particulares (`/gestao`)**:
+  - Botão **`Extrair Excel Base Fixa (.xlsx)`** que exporta o ficheiro `Base_Fixa_Clientes_Particulares_1a4_Carro_YYYY-MM-DD.xlsx` com as colunas `Produto_Artigo`, `1º Carro`, `2º Carro`, `3º Carro`, `4º Carro` e `Total_Particulares`, incluindo linha de totais.
+  - Botão **`Importar Excel Base Fixa`** que permite carregar e atualizar em lote os artigos e quantidades das 4 carrinhas particulares, igualando a capacidade de extração/importação do módulo B2B (`5.º Carro`).
+  - Sincronização automática da lista de artigos ativos (`carregarArtigosBaseFixa` / `salvarArtigosBaseFixa`) com a exportação do **Mapa Diário Oficial Excel** em `/entregas` e com o template B2B.
+
 ## [v2.1.1] - 2026-10-12
 ### 🛡️ Auditoria & Hardening (Inprooval® Bulletproof Agent Swarm — Readiness Score: 99,1%)
 - **Agente 1 (`E2E Journey & Chaos Simulator`)**:

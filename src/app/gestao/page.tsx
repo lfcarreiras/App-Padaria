@@ -28,6 +28,8 @@ import {
   reiniciarLogsAuditoriaParaMock,
   carregarBaseFixaCarrinhas,
   salvarBaseFixaCarrinhas,
+  carregarArtigosBaseFixa,
+  salvarArtigosBaseFixa,
   carregarClientesEmpresariaisB2B,
   salvarClientesEmpresariaisB2B
 } from '../../lib/encomendasService';
@@ -174,6 +176,9 @@ export default function AdminPage() {
 
   // Base Fixa de Particulares (1º ao 4º Carro) & Clientes Empresariais B2B (5º Carro)
   const [baseFixaCarrinhas, setBaseFixaCarrinhas] = useState<BaseFixaCarrinha[]>([]);
+  const [artigosBaseFixa, setArtigosBaseFixa] = useState<string[]>([]);
+  const [artigoBaseFixaEmEdicao, setArtigoBaseFixaEmEdicao] = useState<string | null>(null);
+  const [novoNomeArtigoBaseFixa, setNovoNomeArtigoBaseFixa] = useState<string>('');
   const [clientesB2B, setClientesB2B] = useState<ClienteEmpresarialB2B[]>([]);
   const [diaSemanaB2B, setDiaSemanaB2B] = useState<DiaSemana>('seg');
   const [clienteB2BEmEdicao, setClienteB2BEmEdicao] = useState<ClienteEmpresarialB2B | null>(null);
@@ -201,21 +206,25 @@ export default function AdminPage() {
       if (pfs.length) setPerfis(pfs);
       if (logs.length) setLogsAuditoria(logs);
       setReceiptConfig(getReceiptConfig());
-      setBaseFixaCarrinhas(carregarBaseFixaCarrinhas());
+      const bfCarregada = carregarBaseFixaCarrinhas();
+      setBaseFixaCarrinhas(bfCarregada);
+      const artsGuardados = carregarArtigosBaseFixa();
+      const setCombinado = new Set<string>(artsGuardados);
+      bfCarregada.forEach((bf) => {
+        const mapa = bf?.quantidades_por_produto || bf?.quantidades || {};
+        Object.keys(mapa).forEach((prod) => setCombinado.add(prod));
+      });
+      setArtigosBaseFixa(Array.from(setCombinado));
       setClientesB2B(carregarClientesEmpresariaisB2B());
     }
     carregar();
   }, []);
 
-  // Artigos visíveis na grelha de Base Fixa (Colunas Oficiais + artigos personalizados com quantidade)
+  // Artigos visíveis na grelha de Base Fixa (Editáveis e elimináveis pelo Administrador)
   const artigosGrelhaBaseFixa = useMemo(() => {
-    const setNomes = new Set<string>(COLUNAS_MAPA_DIARIO_OFICIAL);
-    baseFixaCarrinhas.forEach((bf) => {
-      const mapa = bf?.quantidades_por_produto || bf?.quantidades || {};
-      Object.keys(mapa).forEach((prod) => setNomes.add(prod));
-    });
-    return Array.from(setNomes);
-  }, [baseFixaCarrinhas]);
+    if (artigosBaseFixa.length > 0) return artigosBaseFixa;
+    return COLUNAS_MAPA_DIARIO_OFICIAL;
+  }, [artigosBaseFixa]);
 
   const handleAlterarQtdBaseFixa = (carrinhaId: string, carrinhaNome: string, produtoNome: string, valor: number) => {
     const qtdLimpa = Math.max(0, Math.floor(Number(valor) || 0));
@@ -249,9 +258,208 @@ export default function AdminPage() {
     salvarBaseFixaCarrinhas(novaLista);
   };
 
+  const handleAdicionarArtigoBaseFixa = (nomeRaw: string) => {
+    const nomeLimpo = nomeRaw.trim();
+    if (!nomeLimpo) return;
+    if (!artigosGrelhaBaseFixa.includes(nomeLimpo)) {
+      const novaListaArtigos = [...artigosGrelhaBaseFixa, nomeLimpo];
+      setArtigosBaseFixa(novaListaArtigos);
+      salvarArtigosBaseFixa(novaListaArtigos);
+    }
+    setNovoArtigoBaseFixa('');
+    setFeedbackBaseFixa(`Artigo "${nomeLimpo}" adicionado à grelha da Base Fixa!`);
+    setTimeout(() => setFeedbackBaseFixa(null), 3000);
+  };
+
+  const handleRenomearArtigoBaseFixa = (nomeAntigo: string, nomeNovoRaw: string) => {
+    const nomeNovo = nomeNovoRaw.trim();
+    if (!nomeNovo || nomeNovo === nomeAntigo) {
+      setArtigoBaseFixaEmEdicao(null);
+      return;
+    }
+
+    // 1. Atualizar lista de artigos mantendo a posição original
+    const novaListaArtigos = Array.from(
+      new Set(artigosGrelhaBaseFixa.map((a) => (a === nomeAntigo ? nomeNovo : a)))
+    );
+    setArtigosBaseFixa(novaListaArtigos);
+    salvarArtigosBaseFixa(novaListaArtigos);
+
+    // 2. Migrar quantidades nas 4 carrinhas da Base Fixa
+    const novaBaseFixa = baseFixaCarrinhas.map((bf) => {
+      const mapaAtual = { ...(bf.quantidades_por_produto || bf.quantidades || {}) };
+      if (nomeAntigo in mapaAtual) {
+        const qtdAntiga = Number(mapaAtual[nomeAntigo] || 0);
+        const qtdExistente = Number(mapaAtual[nomeNovo] || 0);
+        delete mapaAtual[nomeAntigo];
+        if (qtdAntiga + qtdExistente > 0) {
+          mapaAtual[nomeNovo] = qtdAntiga + qtdExistente;
+        }
+      }
+      return {
+        ...bf,
+        quantidades_por_produto: mapaAtual,
+        quantidades: mapaAtual,
+      };
+    });
+    setBaseFixaCarrinhas(novaBaseFixa);
+    salvarBaseFixaCarrinhas(novaBaseFixa);
+
+    // 3. Migrar também nos clientes B2B caso usassem o nome antigo
+    const todosDias: DiaSemana[] = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
+    const novosClientesB2B = clientesB2B.map((cli) => {
+      const semanaAtual = cli.quantidades_semanais || cli.quantidades_semana || ({} as Record<DiaSemana, Record<string, number>>);
+      const novaSemana: any = { ...semanaAtual };
+      todosDias.forEach((d) => {
+        const mapaDia = { ...(novaSemana[d] || {}) };
+        if (nomeAntigo in mapaDia) {
+          const qOld = Number(mapaDia[nomeAntigo] || 0);
+          const qNew = Number(mapaDia[nomeNovo] || 0);
+          delete mapaDia[nomeAntigo];
+          if (qOld + qNew > 0) mapaDia[nomeNovo] = qOld + qNew;
+          novaSemana[d] = mapaDia;
+        }
+      });
+      return {
+        ...cli,
+        quantidades_semanais: novaSemana,
+        quantidades_semana: novaSemana,
+      };
+    });
+    setClientesB2B(novosClientesB2B);
+    salvarClientesEmpresariaisB2B(novosClientesB2B);
+
+    setArtigoBaseFixaEmEdicao(null);
+    setFeedbackBaseFixa(`Artigo "${nomeAntigo}" corrigido para "${nomeNovo}" com sucesso!`);
+    setTimeout(() => setFeedbackBaseFixa(null), 3500);
+  };
+
+  const handleEliminarArtigoBaseFixa = (prodNome: string) => {
+    if (!window.confirm(`Deseja eliminar o artigo "${prodNome}" da Base Fixa Diária de Clientes Particulares (1º ao 4º Carro)?`)) {
+      return;
+    }
+
+    const novaListaArtigos = artigosGrelhaBaseFixa.filter((a) => a !== prodNome);
+    setArtigosBaseFixa(novaListaArtigos);
+    salvarArtigosBaseFixa(novaListaArtigos);
+
+    const novaBaseFixa = baseFixaCarrinhas.map((bf) => {
+      const mapaAtual = { ...(bf.quantidades_por_produto || bf.quantidades || {}) };
+      delete mapaAtual[prodNome];
+      return {
+        ...bf,
+        quantidades_por_produto: mapaAtual,
+        quantidades: mapaAtual,
+      };
+    });
+    setBaseFixaCarrinhas(novaBaseFixa);
+    salvarBaseFixaCarrinhas(novaBaseFixa);
+
+    if (artigoBaseFixaEmEdicao === prodNome) {
+      setArtigoBaseFixaEmEdicao(null);
+    }
+    setFeedbackBaseFixa(`Artigo "${prodNome}" eliminado da Base Fixa!`);
+    setTimeout(() => setFeedbackBaseFixa(null), 3500);
+  };
+
+  const handleExportarExcelBaseFixa = () => {
+    const wb = XLSX.utils.book_new();
+    const carrosParticulares = [
+      { id: carrinhas[0]?.id || '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75', nome: '1º Carro' },
+      { id: carrinhas[1]?.id || '5ebae97d-593f-4f54-81c5-b200dd04258b', nome: '2º Carro' },
+      { id: carrinhas[2]?.id || 'e062fea7-97da-4b2a-8607-da6a9ea8e668', nome: '3º Carro' },
+      { id: carrinhas[3]?.id || 'a282db95-c427-4ed5-83fc-01403bd24cfc', nome: '4º Carro' },
+    ];
+    const cabecalho = ['Produto_Artigo', '1º Carro', '2º Carro', '3º Carro', '4º Carro', 'Total_Particulares'];
+    const linhas = artigosGrelhaBaseFixa.map((prodNome) => {
+      const qtds = carrosParticulares.map((c, idxCarro) => {
+        const reg =
+          baseFixaCarrinhas.find((b) => b.carrinha_id === c.id || b.carrinha_nome === c.nome) ||
+          baseFixaCarrinhas[idxCarro];
+        const mapa = reg?.quantidades_por_produto || reg?.quantidades || {};
+        return Number(mapa[prodNome] || 0);
+      });
+      const total = qtds.reduce((a, b) => a + b, 0);
+      return [prodNome, ...qtds, total];
+    });
+    const ws = XLSX.utils.aoa_to_sheet([cabecalho, ...linhas]);
+    XLSX.utils.book_append_sheet(wb, ws, 'Base_Fixa_1a4_Carro');
+    const dataStr = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(wb, `Base_Fixa_Clientes_Particulares_1a4_Carro_${dataStr}.xlsx`);
+  };
+
+  const handleImportarExcelBaseFixa = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const buffer = evt.target?.result as ArrayBuffer;
+        if (!buffer) return;
+        const wb = XLSX.read(buffer, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows: any[] = XLSX.utils.sheet_to_json(ws);
+        if (!rows.length) return;
+
+        const carrosParticulares = [
+          { id: carrinhas[0]?.id || '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75', nome: '1º Carro' },
+          { id: carrinhas[1]?.id || '5ebae97d-593f-4f54-81c5-b200dd04258b', nome: '2º Carro' },
+          { id: carrinhas[2]?.id || 'e062fea7-97da-4b2a-8607-da6a9ea8e668', nome: '3º Carro' },
+          { id: carrinhas[3]?.id || 'a282db95-c427-4ed5-83fc-01403bd24cfc', nome: '4º Carro' },
+        ];
+
+        const novosArtigos: string[] = [];
+        const mapasPorCarro: Record<string, number>[] = [{}, {}, {}, {}];
+
+        for (const r of rows) {
+          const prodNome = String(
+            r['Produto_Artigo'] ||
+            r['Produto / Artigo (Mapa Diário)'] ||
+            r['Produto'] ||
+            r['Artigo'] ||
+            r['Nome'] ||
+            ''
+          ).trim();
+          if (!prodNome || prodNome.toUpperCase() === 'TOTAL') continue;
+          if (!novosArtigos.includes(prodNome)) novosArtigos.push(prodNome);
+
+          const q1 = Math.max(0, Math.floor(Number(r['1º Carro'] ?? r['1º CARRO'] ?? r['Carrinha 1'] ?? r['Carro 1'] ?? 0) || 0));
+          const q2 = Math.max(0, Math.floor(Number(r['2º Carro'] ?? r['2º CARRO'] ?? r['Carrinha 2'] ?? r['Carro 2'] ?? 0) || 0));
+          const q3 = Math.max(0, Math.floor(Number(r['3º Carro'] ?? r['3º CARRO'] ?? r['Carrinha 3'] ?? r['Carro 3'] ?? 0) || 0));
+          const q4 = Math.max(0, Math.floor(Number(r['4º Carro'] ?? r['4º CARRO'] ?? r['Carrinha 4'] ?? r['Carro 4'] ?? 0) || 0));
+
+          if (q1 > 0) mapasPorCarro[0][prodNome] = q1;
+          if (q2 > 0) mapasPorCarro[1][prodNome] = q2;
+          if (q3 > 0) mapasPorCarro[2][prodNome] = q3;
+          if (q4 > 0) mapasPorCarro[3][prodNome] = q4;
+        }
+
+        if (novosArtigos.length > 0) {
+          const novaBaseFixa: BaseFixaCarrinha[] = carrosParticulares.map((c, idx) => ({
+            carrinha_id: c.id,
+            carrinha_nome: c.nome,
+            quantidades_por_produto: mapasPorCarro[idx],
+            quantidades: mapasPorCarro[idx],
+          }));
+          setArtigosBaseFixa(novosArtigos);
+          salvarArtigosBaseFixa(novosArtigos);
+          setBaseFixaCarrinhas(novaBaseFixa);
+          salvarBaseFixaCarrinhas(novaBaseFixa);
+          setFeedbackBaseFixa(`Importação concluída! ${novosArtigos.length} artigos atualizados na Base Fixa (1º ao 4º Carro).`);
+          setTimeout(() => setFeedbackBaseFixa(null), 4000);
+        }
+      } catch (err: any) {
+        alert(`Erro ao importar ficheiro de Base Fixa: ${err.message}`);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    e.target.value = '';
+  };
+
   const handleGuardarBaseFixaManual = () => {
+    salvarArtigosBaseFixa(artigosGrelhaBaseFixa);
     salvarBaseFixaCarrinhas(baseFixaCarrinhas);
-    setFeedbackBaseFixa('Quantidades da Base Fixa (1º ao 4º Carro) guardadas com sucesso!');
+    setFeedbackBaseFixa('Artigos e quantidades da Base Fixa (1º ao 4º Carro) guardados com sucesso!');
     setTimeout(() => setFeedbackBaseFixa(null), 3500);
   };
 
@@ -340,7 +548,8 @@ export default function AdminPage() {
 
   const handleExportarTemplateB2B = () => {
     const wb = XLSX.utils.book_new();
-    const cabecalho = ['Cliente_Empresarial', 'Telefone', 'Morada', 'Carrinha', ...COLUNAS_MAPA_DIARIO_OFICIAL];
+    const colunasAtivas = artigosGrelhaBaseFixa.length > 0 ? artigosGrelhaBaseFixa : COLUNAS_MAPA_DIARIO_OFICIAL;
+    const cabecalho = ['Cliente_Empresarial', 'Telefone', 'Morada', 'Carrinha', ...colunasAtivas];
     const linhas = clientesB2B.map((cli) => {
       const semanaAtual = cli.quantidades_semanais || cli.quantidades_semana || ({} as Record<DiaSemana, Record<string, number>>);
       const mapaDia = semanaAtual[diaSemanaB2B] || {};
@@ -349,7 +558,7 @@ export default function AdminPage() {
         cli.telefone || '',
         cli.morada || '',
         '5º Carro',
-        ...COLUNAS_MAPA_DIARIO_OFICIAL.map((col) => mapaDia[col] || ''),
+        ...colunasAtivas.map((col) => mapaDia[col] || ''),
       ];
     });
     const ws = XLSX.utils.aoa_to_sheet([cabecalho, ...linhas]);
@@ -372,13 +581,14 @@ export default function AdminPage() {
 
         const novaLista = [...clientesB2B];
         const todosDias: DiaSemana[] = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
+        const colunasAtivas = artigosGrelhaBaseFixa.length > 0 ? artigosGrelhaBaseFixa : COLUNAS_MAPA_DIARIO_OFICIAL;
 
         for (const r of rows) {
           const nomeCli = String(r['Cliente_Empresarial'] || r['Cliente'] || r['Nome'] || '').trim();
           if (!nomeCli) continue;
 
           const mapaArtigos: Record<string, number> = {};
-          for (const col of COLUNAS_MAPA_DIARIO_OFICIAL) {
+          for (const col of colunasAtivas) {
             const val = Number(r[col] || 0);
             if (val > 0) mapaArtigos[col] = val;
           }
@@ -2032,50 +2242,92 @@ export default function AdminPage() {
                     Base Fixa Diária de Clientes Particulares (1º ao 4º Carro)
                   </h3>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Quantidades globais fixas de cada produto entregues diariamente por cada uma das carrinhas 1 a 4 (somadas automaticamente ao Mapa Diário e ao Centro de Produção).
+                    Quantidades globais fixas de cada produto entregues diariamente por cada uma das carrinhas 1 a 4 (somadas automaticamente ao Mapa Diário e ao Centro de Produção). Pode corrigir/editar o nome de qualquer artigo, eliminar ou extrair/importar via Excel.
                   </p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex items-center gap-1.5">
-                    <select
-                      value={novoArtigoBaseFixa}
-                      onChange={(e) => setNovoArtigoBaseFixa(e.target.value)}
-                      className="text-xs font-bold bg-gray-50 border border-gray-300 rounded-xl px-2.5 py-1.5 text-gray-800"
-                    >
-                      <option value="">+ Adicionar outro artigo do catálogo...</option>
-                      {produtos
-                        .filter((p) => !artigosGrelhaBaseFixa.includes(p.nome))
-                        .map((p) => (
-                          <option key={p.id} value={p.nome}>
-                            {p.nome}
-                          </option>
-                        ))}
-                    </select>
-                    {novoArtigoBaseFixa && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const car1 = carrinhas[0] || CARRINHAS_MOCK[0];
-                          handleAlterarQtdBaseFixa(car1.id, '1º Carro', novoArtigoBaseFixa, 1);
-                          setNovoArtigoBaseFixa('');
+                  {temPermissaoEdicaoGestao && (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <select
+                        value=""
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            handleAdicionarArtigoBaseFixa(e.target.value);
+                          }
                         }}
-                        className="px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition cursor-pointer"
+                        className="text-xs font-bold bg-gray-50 border border-gray-300 rounded-xl px-2.5 py-2 text-gray-800"
                       >
-                        Incluir na Grelha
-                      </button>
-                    )}
-                  </div>
+                        <option value="">+ Escolher artigo do catálogo...</option>
+                        {produtos
+                          .filter((p) => !artigosGrelhaBaseFixa.includes(p.nome))
+                          .map((p) => (
+                            <option key={p.id} value={p.nome}>
+                              {p.nome}
+                            </option>
+                          ))}
+                      </select>
+
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          value={novoArtigoBaseFixa}
+                          onChange={(e) => setNovoArtigoBaseFixa(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAdicionarArtigoBaseFixa(novoArtigoBaseFixa);
+                            }
+                          }}
+                          placeholder="Ou escrever novo artigo..."
+                          className="text-xs font-medium bg-white border border-gray-300 rounded-xl px-2.5 py-1.5 text-gray-800 w-44 focus:outline-hidden focus:border-blue-500"
+                        />
+                        {novoArtigoBaseFixa.trim() && (
+                          <button
+                            type="button"
+                            onClick={() => handleAdicionarArtigoBaseFixa(novoArtigoBaseFixa)}
+                            className="px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition cursor-pointer flex items-center gap-1"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            Adicionar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleExportarExcelBaseFixa}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 text-blue-900 text-xs font-bold hover:bg-blue-100 transition cursor-pointer"
+                    title="Extrair tabela da Base Fixa Diária de Clientes Particulares (1º ao 4º Carro) para Excel (.xlsx)"
+                  >
+                    <Download className="h-3.5 w-3.5 text-blue-700" />
+                    Extrair Excel Base Fixa (.xlsx)
+                  </button>
 
                   {temPermissaoEdicaoGestao && (
-                    <button
-                      type="button"
-                      onClick={handleGuardarBaseFixaManual}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-xs transition cursor-pointer"
-                    >
-                      <Check className="h-4 w-4" />
-                      Guardar Quantidades Base Fixa
-                    </button>
+                    <>
+                      <label className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-900 text-xs font-bold hover:bg-emerald-100 transition cursor-pointer">
+                        <Upload className="h-3.5 w-3.5 text-emerald-700" />
+                        <span>Importar Excel Base Fixa</span>
+                        <input
+                          type="file"
+                          accept=".xlsx,.xls,.csv"
+                          onChange={handleImportarExcelBaseFixa}
+                          className="hidden"
+                        />
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={handleGuardarBaseFixaManual}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-xs transition cursor-pointer"
+                      >
+                        <Check className="h-4 w-4" />
+                        Guardar Quantidades Base Fixa
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -2087,7 +2339,14 @@ export default function AdminPage() {
                 </div>
               )}
 
-              <div className="overflow-x-auto border border-gray-200 rounded-xl max-h-[420px]">
+              {/* Datalist de sugestões do catálogo para correção rápida de nomes */}
+              <datalist id="catalogo-produtos-base-fixa">
+                {produtos.map((p) => (
+                  <option key={p.id} value={p.nome} />
+                ))}
+              </datalist>
+
+              <div className="overflow-x-auto border border-gray-200 rounded-xl max-h-[460px]">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead className="bg-blue-50/80 text-gray-800 border-b border-blue-200 sticky top-0 z-10">
                     <tr>
@@ -2100,6 +2359,11 @@ export default function AdminPage() {
                       <th className="py-2.5 px-3 font-black text-right uppercase text-[11px] w-36 bg-blue-100/70">
                         Total Particulares
                       </th>
+                      {temPermissaoEdicaoGestao && (
+                        <th className="py-2.5 px-3 font-black text-right uppercase text-[11px] w-28 bg-blue-50/90">
+                          Ações
+                        </th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -2121,10 +2385,61 @@ export default function AdminPage() {
                       });
 
                       const somaLinha = qtdsPorCarro.reduce((a, b) => a + b, 0);
+                      const isEditingName = artigoBaseFixaEmEdicao === prodNome;
 
                       return (
                         <tr key={prodNome} className={`hover:bg-blue-50/30 transition ${somaLinha > 0 ? 'bg-amber-50/20' : ''}`}>
-                          <td className="py-2 px-3 font-bold text-gray-900">{prodNome}</td>
+                          <td className="py-2 px-3 font-bold text-gray-900">
+                            {isEditingName ? (
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  type="text"
+                                  list="catalogo-produtos-base-fixa"
+                                  value={novoNomeArtigoBaseFixa}
+                                  onChange={(e) => setNovoNomeArtigoBaseFixa(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      handleRenomearArtigoBaseFixa(prodNome, novoNomeArtigoBaseFixa);
+                                    } else if (e.key === 'Escape') {
+                                      setArtigoBaseFixaEmEdicao(null);
+                                    }
+                                  }}
+                                  autoFocus
+                                  className="px-2 py-1 rounded-lg border border-blue-500 bg-white text-xs font-bold text-gray-900 w-44 focus:outline-hidden"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleRenomearArtigoBaseFixa(prodNome, novoNomeArtigoBaseFixa)}
+                                  className="px-2 py-1 rounded-lg bg-emerald-600 text-white text-[10px] font-black hover:bg-emerald-700 transition cursor-pointer"
+                                  title="Guardar nome corrigido"
+                                >
+                                  ✓ Guardar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setArtigoBaseFixaEmEdicao(null)}
+                                  className="px-1.5 py-1 rounded-lg bg-gray-200 text-gray-700 text-[10px] font-bold hover:bg-gray-300 transition cursor-pointer"
+                                  title="Cancelar edição"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ) : (
+                              <span
+                                onClick={() => {
+                                  if (temPermissaoEdicaoGestao) {
+                                    setArtigoBaseFixaEmEdicao(prodNome);
+                                    setNovoNomeArtigoBaseFixa(prodNome);
+                                  }
+                                }}
+                                className={temPermissaoEdicaoGestao ? 'cursor-pointer hover:text-blue-700 hover:underline' : ''}
+                                title={temPermissaoEdicaoGestao ? 'Clique para corrigir ou alterar o nome do artigo' : undefined}
+                              >
+                                {prodNome}
+                              </span>
+                            )}
+                          </td>
                           {carrosParticulares.map((c, idx) => (
                             <td key={c.id} className="py-1.5 px-3 text-center">
                               <input
@@ -2147,6 +2462,32 @@ export default function AdminPage() {
                           <td className="py-2 px-3 text-right font-mono font-black text-sm text-blue-900 bg-blue-50/40">
                             {somaLinha > 0 ? `${somaLinha} un.` : '—'}
                           </td>
+                          {temPermissaoEdicaoGestao && (
+                            <td className="py-1.5 px-3 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setArtigoBaseFixaEmEdicao(prodNome);
+                                    setNovoNomeArtigoBaseFixa(prodNome);
+                                  }}
+                                  className="px-2 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[11px] flex items-center gap-1 cursor-pointer"
+                                  title="Corrigir ou alterar nome deste artigo"
+                                >
+                                  <Edit3 className="h-3 w-3" />
+                                  Editar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleEliminarArtigoBaseFixa(prodNome)}
+                                  className="p-1 rounded-lg text-red-600 hover:bg-red-50 transition cursor-pointer"
+                                  title="Eliminar artigo da Base Fixa"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       );
                     })}

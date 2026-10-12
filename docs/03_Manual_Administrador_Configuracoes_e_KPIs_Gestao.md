@@ -118,11 +118,13 @@ Esta aba centraliza toda a parametrização logística da *Padaria da Vila*:
 - **Frota de 5 Carrinhas:** Edição do Identificador (`1.º Carro` a `5.º Carro`), Matrícula, Loja Base e estado Ativo/Inativo.
 
 ### 3.2. Grelha da Base Fixa Diária de Particulares (`1.º ao 4.º Carro`)
-- Permite definir as **quantidades globais fixas diárias** que cada uma das 4 primeiras carrinhas leva todos os dias para a venda/entrega porta-a-porta a clientes particulares.
-- **Como Configurar:**
-  1. Na tabela **«Base Fixa de Clientes Particulares (1.º ao 4.º Carro)»**, introduzir a quantidade diária de cada artigo (ao longo dos 29 produtos oficiais do Mapa Diário ou adicionando novos artigos através do seletor *«+ Adicionar outro artigo à grelha»*).
-  2. Clicar em **💾 Guardar Base Fixa**.
-  3. **Impacto Automático:** Estas quantidades entram imediatamente no cálculo da **Pool Consolidada do Dia** em `/producao` e nas linhas `1.º CARRO` a `4.º CARRO` do ficheiro Excel **«MAPA DIÁRIO»** em `/entregas`.
+- Permite definir e gerir tanto a **lista de artigos** como as **quantidades globais fixas diárias** que cada uma das 4 primeiras carrinhas leva todos os dias para a venda/entrega porta-a-porta a clientes particulares.
+- **Funcionalidades de Gestão de Artigos e Extração de Dados (`v2.1.2`):**
+  1. **Editar / Corrigir Nome de Artigos (`✏️ Editar` ou clique direto no nome):** Permite corrigir qualquer gralha ou alterar a designação de um artigo (ex.: `"Boroa"` $\rightarrow$ `"Broa"`, `"Triga Milha"` $\rightarrow$ `"Trigo Milho"`, ou selecionar a partir do autocompletar do catálogo), migrando automaticamente todas as quantidades associadas nas 4 carrinhas e na matriz B2B sem perda de dados.
+  2. **Eliminar Artigos (`🗑️ Eliminar`):** Permite remover qualquer linha de artigo que deixe de fazer parte da Base Fixa diária.
+  3. **Adicionar Novos Artigos:** Permite adicionar artigos selecionando diretamente do catálogo da padaria ou escrevendo um nome personalizado (`+ Adicionar`).
+  4. **Extrair Excel Base Fixa (`.xlsx`) e Importar Excel Base Fixa (`.xlsx`/`.xls`/`.csv`):** Tal como na secção B2B, permite extrair com 1 clique toda a tabela da Base Fixa Diária de Clientes Particulares (`Produto_Artigo`, `1º Carro`, `2º Carro`, `3º Carro`, `4º Carro`, `Total_Particulares`) e reimportar folhas Excel atualizadas.
+  5. **Impacto Automático:** Todas as alterações (nomes de artigos, adições, eliminações e quantidades) refletem-se imediatamente na **Pool Consolidada do Dia** em `/producao` e no ficheiro Excel **«MAPA DIÁRIO»** em `/entregas`.
 
 ### 3.3. Matriz Semanal dos 13 Clientes Empresariais B2B (`5.º Carro`)
 - Permite parametrizar as quantidades fixas frequentes entregues pelo **`5.º Carro`** às 13 entidades empresariais/institucionais de Arouca (*Gamarão, Patronato, P.-Telhe, Lar 3.ª Idade, Hospital, Centro D. Urrô, Lar Infância e Juventude, Centro Social Burgo, Cavadinha, Merc. Ribeiro, Café Praça, Padaria da Vila, Empregados*).

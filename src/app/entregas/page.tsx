@@ -11,6 +11,7 @@ import {
   carregarCarrinhasSupabase,
   carregarProdutosSupabase,
   carregarBaseFixaCarrinhas,
+  carregarArtigosBaseFixa,
   carregarClientesEmpresariaisB2B,
   obterDiaSemanaDeData,
   atualizarEstadoEncomendaDb,
@@ -250,7 +251,8 @@ export default function EntregasPage() {
   // EXPORTAÇÃO EXCEL DO MAPA DIÁRIO OFICIAL (POR ARTIGO E POR CARRINHA + B2B)
   // ---------------------------------------------------------------------------
   const exportarMapaDiarioExcel = async () => {
-    const cabecalhosArtigos = COLUNAS_MAPA_DIARIO_OFICIAL;
+    const artigosAtivos = carregarArtigosBaseFixa();
+    const cabecalhosArtigos = artigosAtivos.length > 0 ? artigosAtivos : COLUNAS_MAPA_DIARIO_OFICIAL;
     const linhaTitulo1 = ['UNIÃO PANIFICADORA CENTRAL AROUQUENSE, LDA'];
     const linhaTitulo2 = [
       'MAPA DIÁRIO DE DISTRIBUIÇÃO E CARRINHAS',
@@ -289,7 +291,7 @@ export default function EntregasPage() {
     };
 
     const linhasTabela: (string | number)[][] = [];
-    const totaisPorColuna = new Array(COLUNAS_MAPA_DIARIO_OFICIAL.length).fill(0);
+    const totaisPorColuna = new Array(cabecalhosArtigos.length).fill(0);
 
     // 1. Linhas 1º CARRO a 4º CARRO (Base Fixa Particulares + Pedidos Adicionais)
     const carrinhas1a4 = carrinhas.slice(0, 4);
@@ -300,7 +302,7 @@ export default function EntregasPage() {
       const mapaFixo = bf?.quantidades_por_produto || bf?.quantidades || {};
       const nomeLinha = `${idx + 1}º CARRO`;
       let totalLinha = 0;
-      const valoresCols = COLUNAS_MAPA_DIARIO_OFICIAL.map((colNome, colIdx) => {
+      const valoresCols = cabecalhosArtigos.map((colNome, colIdx) => {
         const qtdFixa = Number(mapaFixo[colNome] || 0);
         const qtdAdicional = obterQtdEncomendasCarrinha(car.id, colNome);
         const soma = qtdFixa + qtdAdicional;
@@ -315,7 +317,7 @@ export default function EntregasPage() {
     const carrinha5 = carrinhas[4] || CARRINHAS_MOCK[4];
     if (carrinha5) {
       let totalCarro5 = 0;
-      const valoresCarro5 = COLUNAS_MAPA_DIARIO_OFICIAL.map((colNome) => {
+      const valoresCarro5 = cabecalhosArtigos.map((colNome) => {
         const qtdB2B = clientesB2B
           .filter((c) => c?.ativo)
           .reduce((acc, cli) => {
@@ -336,7 +338,7 @@ export default function EntregasPage() {
       const semanaCli = cli?.quantidades_semanais || cli?.quantidades_semana || ({} as Record<string, Record<string, number>>);
       const mapaDia = semanaCli[diaSemanaHoje] || {};
       let totalCli = 0;
-      const valoresCli = COLUNAS_MAPA_DIARIO_OFICIAL.map((colNome, colIdx) => {
+      const valoresCli = cabecalhosArtigos.map((colNome, colIdx) => {
         const qtd = Number(mapaDia[colNome] || 0);
         totaisPorColuna[colIdx] += qtd;
         totalCli += qtd;
@@ -347,7 +349,7 @@ export default function EntregasPage() {
 
     // Somar também eventuais encomendas avulsas atribuídas ao 5º Carro no Total Geral
     if (carrinha5) {
-      COLUNAS_MAPA_DIARIO_OFICIAL.forEach((colNome, colIdx) => {
+      cabecalhosArtigos.forEach((colNome, colIdx) => {
         totaisPorColuna[colIdx] += obterQtdEncomendasCarrinha(carrinha5.id, colNome);
       });
     }
@@ -373,7 +375,7 @@ export default function EntregasPage() {
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws['!cols'] = [
       { wch: 24 }, // VENDEDOR
-      ...COLUNAS_MAPA_DIARIO_OFICIAL.map(() => ({ wch: 11 })),
+      ...cabecalhosArtigos.map(() => ({ wch: 11 })),
       { wch: 16 }, // TOTAL UNIDADES
     ];
     XLSX.utils.book_append_sheet(wb, ws, 'MAPA DIÁRIO');

@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { Encomenda, ItemEncomenda, EstadoEncomenda, EstadoProducaoItem, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, LogAuditoria, BaseFixaCarrinha, ClienteEmpresarialB2B, DiaSemana } from '../types';
-import { LOGS_AUDITORIA_MOCK, CARRINHAS_MOCK, BASE_FIXA_CARRINHAS_INICIAL, CLIENTES_EMPRESARIAIS_B2B_INICIAIS } from './mockData';
+import { LOGS_AUDITORIA_MOCK, CARRINHAS_MOCK, COLUNAS_MAPA_DIARIO_OFICIAL, BASE_FIXA_CARRINHAS_INICIAL, CLIENTES_EMPRESARIAIS_B2B_INICIAIS } from './mockData';
 
 const REAL_DELIVERY_TIMESTAMPS_KEY = 'padaria_timestamps_entrega_real_v1';
 const CANAL_ORIGEM_FALLBACK_KEY = 'padaria_canais_origem_v1';
@@ -1432,6 +1432,33 @@ export function normalizarClienteB2BItem(c: any): ClienteEmpresarialB2B {
     quantidades_semanais: semanaNormalizada,
     quantidades_semana: semanaNormalizada,
   };
+}
+
+const ARTIGOS_BASE_FIXA_STORAGE_KEY = 'padaria_artigos_base_fixa_v1';
+
+export function carregarArtigosBaseFixa(): string[] {
+  const baseDefault = [...COLUNAS_MAPA_DIARIO_OFICIAL];
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem(ARTIGOS_BASE_FIXA_STORAGE_KEY);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((s) => String(s).trim()).filter(Boolean);
+        }
+      } catch (e) {}
+    }
+    localStorage.setItem(ARTIGOS_BASE_FIXA_STORAGE_KEY, JSON.stringify(baseDefault));
+  }
+  return baseDefault;
+}
+
+export function salvarArtigosBaseFixa(artigos: string[]): void {
+  const limpos = Array.from(new Set((artigos || []).map((s) => String(s).trim()).filter(Boolean)));
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(ARTIGOS_BASE_FIXA_STORAGE_KEY, JSON.stringify(limpos));
+    window.dispatchEvent(new Event('app_base_fixa_atualizada'));
+  }
 }
 
 export function carregarBaseFixaCarrinhas(): BaseFixaCarrinha[] {
