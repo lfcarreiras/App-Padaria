@@ -17,7 +17,7 @@ tags:
 
 * **Ficheiro Orientado (Paisagem):** `docs/assets/processo_as_is/mapa_diario_papel_as_is_10_10_2026.jpg`
 * **Ficheiro Original Bruto:** `docs/assets/processo_as_is/mapa_diario_papel_as_is_10_10_2026_original.jpg`
-* **Cópia no Workspace Solopreneur:** `Transição Solopreneur/assets/padaria_da_vila_as_is/mapa_diario_papel_as_is_10_10_2026.jpg`
+* **Cópia no Workspace Inprooval:** `Inprooval/assets/padaria_da_vila_as_is/mapa_diario_papel_as_is_10_10_2026.jpg`
 
 ---
 
