@@ -91,7 +91,7 @@ export default function LoginPage() {
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-stone-100 bg-black/40 hover:bg-black/60 shadow-lg border border-white/20 transition backdrop-blur-sm cursor-pointer"
         >
           <Globe className="h-4 w-4 text-amber-400" />
-          <span>{language === 'pt' ? '🇵🇹 Português' : '🇬🇧 English'}</span>
+          <span>{language === 'pt' ? 'Português (PT)' : 'English (EN)'}</span>
         </button>
       </div>
 
@@ -134,21 +134,21 @@ export default function LoginPage() {
                   onChange={(e) => setLocalizacaoSelecionada(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 rounded-xl border border-amber-300 bg-amber-50/50 text-xs font-bold text-stone-900 focus:bg-white focus:border-amber-600 focus:outline-hidden transition cursor-pointer"
                 >
-                  <optgroup label="🏪 Lojas Físicas (Encomendas & Balcão)">
+                  <optgroup label="Lojas Físicas (Encomendas & Balcão)">
                     {lojas.map((l) => (
                       <option key={l.id} value={`loja:${l.id}`}>
-                        🏪 {l.nome}
+                        {l.nome}
                       </option>
                     ))}
                   </optgroup>
-                  <optgroup label="👨‍🍳 Fabrico & Fornos">
-                    <option value="producao">👨‍🍳 Centro de Produção (Padaria & Pastelaria)</option>
+                  <optgroup label="Fabrico & Fornos">
+                    <option value="producao">Centro de Produção (Padaria & Pastelaria)</option>
                   </optgroup>
-                  <optgroup label="🚚 Logística & Frota">
-                    <option value="carrinhas">🚚 Carrinhas (Distribuição & Rotas)</option>
+                  <optgroup label="Logística & Frota">
+                    <option value="carrinhas">Carrinhas (Distribuição & Rotas)</option>
                   </optgroup>
-                  <optgroup label="⚙️ Administração">
-                    <option value="gestao">⚙️ Gestão (Administração & Controlo)</option>
+                  <optgroup label="Administração">
+                    <option value="gestao">Gestão (Administração & Controlo)</option>
                   </optgroup>
                 </select>
               </div>

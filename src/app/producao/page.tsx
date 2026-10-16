@@ -59,8 +59,13 @@ import {
   Plus,
   Trash2,
   Play,
-  Check
+  Check,
+  Layers,
+  X,
+  User
 } from 'lucide-react';
+import { StatusBadge } from '../../components/StatusBadge';
+import { OriginBadge, SectorBadge } from '../../components/InproovalBadges';
 
 const FORNOS_STORAGE_KEY = 'padaria_fornos_producao_v1';
 const PRODUZIDO_DIA_STORAGE_KEY = 'padaria_produzido_dia_v1';
@@ -997,7 +1002,7 @@ export default function ProducaoPage() {
                 </div>
                 <div>
                   <h3 className="text-sm sm:text-base font-black uppercase tracking-wide">
-                    🚨 Alerta de Encomenda Urgente (&le; 3 Horas para Recolha/Entrega)
+                    Alerta de Encomenda Urgente (&le; 3 Horas para Recolha/Entrega)
                   </h3>
                   <p className="text-xs text-red-100 font-medium">
                     Verifique o conteúdo detalhado do pedido, o canal e a loja, e aceite ou recuse cada artigo individualmente para produção.
@@ -1017,19 +1022,10 @@ export default function ProducaoPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {encomendasUrgentesParaAceitar.map((enc) => {
                 const obsAtual = obsProducaoPorEncomenda[enc.id] ?? enc.observacoes_producao ?? '';
-                const canalLabel =
-                  enc.canal_origem === 'site_online'
-                    ? '🌐 Canal: App Cliente (Online)'
-                    : enc.canal_origem === 'whatsapp'
-                    ? '💬 Canal: WhatsApp'
-                    : enc.canal_origem === 'telefone'
-                    ? '📞 Canal: Telefone'
-                    : '🏪 Canal: Presencial (Balcão)';
-
                 const lojaDestinoLabel =
                   enc.tipo === 'levantamento_loja'
-                    ? `🏪 Levantamento na Loja: ${enc.loja_nome || 'Padaria da Vila'}`
-                    : `🚚 Domicílio (${enc.carrinha_nome || enc.loja_nome || 'Frota'})${enc.cliente.morada ? ` — ${enc.cliente.morada}` : ''}`;
+                    ? `Levantamento na Loja: ${enc.loja_nome || 'Padaria da Vila'}`
+                    : `Domicílio (${enc.carrinha_nome || enc.loja_nome || 'Frota'})${enc.cliente.morada ? ` — ${enc.cliente.morada}` : ''}`;
 
                 return (
                   <div
@@ -1043,44 +1039,40 @@ export default function ProducaoPage() {
                           <span className="font-mono font-black text-xs text-red-700 bg-red-50 px-2 py-0.5 rounded border border-red-200">
                             {enc.codigo}
                           </span>
-                          <span className="font-black text-xs text-gray-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                            ⏰ {enc.hora_agendamento} ({enc.data_agendamento})
+                          <span className="font-black text-xs text-gray-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 inline-flex items-center gap-1">
+                            <Clock className="h-3 w-3 text-amber-700" />
+                            {enc.hora_agendamento} ({enc.data_agendamento})
                           </span>
-                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-md border ${
-                            enc.canal_origem === 'site_online'
-                              ? 'bg-indigo-50 text-indigo-900 border-indigo-200'
-                              : enc.canal_origem === 'whatsapp'
-                              ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
-                              : enc.canal_origem === 'telefone'
-                              ? 'bg-amber-50 text-amber-900 border-amber-200'
-                              : 'bg-stone-100 text-stone-800 border-stone-300'
-                          }`}>
-                            {canalLabel}
-                          </span>
+                          <OriginBadge origem={enc.canal_origem} compact />
                         </div>
 
                         <button
                           type="button"
                           onClick={() => aceitarTodosItensUrgente(enc)}
-                          className="text-[10px] font-black px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition cursor-pointer"
+                          className="text-[10px] font-black px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition cursor-pointer inline-flex items-center gap-1"
                           title="Aceitar todos os artigos desta encomenda para produção"
                         >
-                          ✓ Aceitar Todos os Artigos
+                          <Check className="h-3.5 w-3.5" />
+                          <span>Aceitar Todos os Artigos</span>
                         </button>
                       </div>
 
                       <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                        <span className="font-bold text-stone-900">
-                          👤 Cliente: {enc.cliente.nome} <span className="text-stone-500 font-mono">({enc.cliente.telefone})</span>
+                        <span className="font-bold text-stone-900 inline-flex items-center gap-1">
+                          <User className="h-3.5 w-3.5 text-stone-500" />
+                          <span>Cliente: {enc.cliente.nome}</span>
+                          <span className="text-stone-500 font-mono">({enc.cliente.telefone})</span>
                         </span>
-                        <span className="text-[11px] font-bold text-amber-900 bg-amber-50/80 px-2 py-0.5 rounded-lg border border-amber-200">
-                          {lojaDestinoLabel}
+                        <span className="text-[11px] font-bold text-amber-900 bg-amber-50/80 px-2 py-0.5 rounded-lg border border-amber-200 inline-flex items-center gap-1">
+                          {enc.tipo === 'levantamento_loja' ? <Store className="h-3 w-3 text-amber-700" /> : <Truck className="h-3 w-3 text-amber-700" />}
+                          <span>{lojaDestinoLabel}</span>
                         </span>
                       </div>
 
                       {enc.notas_cliente && (
-                        <p className="text-[11px] text-stone-600 bg-stone-50 px-2.5 py-1.5 rounded-lg border border-stone-200 italic">
-                          💬 Notas do Pedido: {enc.notas_cliente}
+                        <p className="text-[11px] text-stone-600 bg-stone-50 px-2.5 py-1.5 rounded-lg border border-stone-200 italic flex items-center gap-1.5">
+                          <MessageSquare className="h-3 w-3 text-stone-500 shrink-0" />
+                          <span>Notas do Pedido: {enc.notas_cliente}</span>
                         </p>
                       )}
                     </div>
@@ -1108,19 +1100,14 @@ export default function ProducaoPage() {
                             >
                               <div>
                                 <div className="flex items-center gap-1.5 font-black">
-                                  <span>{item.setor === 'pastelaria' ? '🎂' : '🥖'}</span>
+                                  <SectorBadge setor={item.setor} />
                                   <span className={`text-sm ${recusado ? 'line-through text-red-700' : 'text-stone-900'}`}>
                                     {item.quantidade}x {item.produto_nome}
                                   </span>
-                                  <span className={`text-[9px] uppercase px-1.5 py-0.5 rounded font-black ${
-                                    aceite
-                                      ? 'bg-emerald-200 text-emerald-900'
-                                      : recusado
-                                      ? 'bg-red-200 text-red-900'
-                                      : 'bg-amber-100 text-amber-900'
-                                  }`}>
-                                    {aceite ? '✓ Em Produção' : recusado ? '✕ Não Produzir' : '⏳ Por Decidir'}
-                                  </span>
+                                  <StatusBadge
+                                    variant={aceite ? 'em_curso' : recusado ? 'alerta' : 'aguardar'}
+                                    label={aceite ? 'Em Produção' : recusado ? 'Não Produzir' : 'Por Decidir'}
+                                  />
                                 </div>
                                 {item.notas_personalizacao && (
                                   <span className="block text-[11px] text-amber-900 font-semibold italic mt-0.5 pl-5">
@@ -1152,7 +1139,8 @@ export default function ProducaoPage() {
                                       : 'bg-white hover:bg-red-600 text-red-700 hover:text-white border border-red-300'
                                   }`}
                                 >
-                                  <span>✕ Não Produzir</span>
+                                  <X className="h-3.5 w-3.5" />
+                                  <span>Não Produzir</span>
                                 </button>
                               </div>
                             </div>
@@ -1488,9 +1476,9 @@ export default function ProducaoPage() {
                     >
                       <div>
                         <div className="flex items-start justify-between gap-1.5">
-                          <span className="text-xs font-black text-stone-900 leading-snug">
-                            {art.setor === 'pastelaria' ? '🎂 ' : '🥖 '}
-                            {art.produto_nome}
+                          <span className="text-xs font-black text-stone-900 leading-snug flex items-center gap-1.5">
+                            <SectorBadge setor={art.setor} />
+                            <span>{art.produto_nome}</span>
                           </span>
                           <span className={`px-2 py-0.5 rounded-lg font-mono text-xs font-black shrink-0 ${
                             art.restantePool > 0
@@ -1579,19 +1567,19 @@ export default function ProducaoPage() {
                             <h3 className="text-base font-black text-stone-900 uppercase tracking-wide">
                               {forno.nome}
                             </h3>
-                            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full inline-block ${
-                              emPreparacao
-                                ? 'bg-amber-200 text-amber-950'
-                                : forno.itens.length > 0
-                                ? 'bg-blue-100 text-blue-900'
-                                : 'bg-stone-100 text-stone-600'
-                            }`}>
-                              {emPreparacao
-                                ? '🔥 Em Cozedura / Preparação'
-                                : forno.itens.length > 0
-                                ? `Carregado (${totalUnidadesForno} un.)`
-                                : 'Livre — Aguarda Lote'}
-                            </span>
+                            <div className="mt-0.5">
+                              <StatusBadge
+                                variant={emPreparacao ? 'em_curso' : forno.itens.length > 0 ? 'aguardar' : 'inativo'}
+                                label={
+                                  emPreparacao
+                                    ? 'Em Cozedura / Preparação'
+                                    : forno.itens.length > 0
+                                    ? `Carregado (${totalUnidadesForno} un.)`
+                                    : 'Livre — Aguarda Lote'
+                                }
+                                pulse={emPreparacao}
+                              />
+                            </div>
                           </div>
                         </div>
 
@@ -1868,11 +1856,7 @@ export default function ProducaoPage() {
                                     <span className="text-xs bg-stone-700 px-2 py-0.5 rounded-md font-medium text-stone-200">
                                       #{enc.numero_sequencial}
                                     </span>
-                                    <span className="text-[10px] bg-stone-700/80 px-1.5 py-0.5 rounded-md font-bold text-stone-200 border border-stone-600">
-                                      {enc.canal_origem === 'site_online' ? '🌐 Site' :
-                                       enc.canal_origem === 'whatsapp' ? '💬 WhatsApp' :
-                                       enc.canal_origem === 'telefone' ? '📞 Telefone' : '🏪 Presencial'}
-                                    </span>
+                                    <OriginBadge origem={enc.canal_origem} compact />
                                   </div>
                                   <p className="text-xs font-bold text-white mt-0.5">{enc.cliente.nome}</p>
                                 </div>
@@ -1912,32 +1896,35 @@ export default function ProducaoPage() {
                                   >
                                     <div className="flex items-start justify-between gap-2">
                                       <div>
-                                        <span className="text-xs font-black text-stone-500 uppercase block mb-0.5">
-                                          {item.setor === 'padaria' ? `🥖 ${t.bakeryTab}` : `🎂 ${t.pastryTab}`}
-                                        </span>
+                                        <div className="mb-0.5">
+                                          <SectorBadge setor={item.setor} />
+                                        </div>
                                         <h4 className={`text-sm font-black leading-tight ${item.estado_producao === 'recusado' ? 'line-through text-red-700' : 'text-gray-900'}`}>
                                           <span className="text-amber-700 mr-1.5">{item.quantidade}x</span>
                                           {item.produto_nome}
                                         </h4>
                                       </div>
 
-                                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border ${
-                                        item.estado_producao === 'pronto'
-                                          ? 'bg-emerald-200 text-emerald-900 border-emerald-400'
-                                          : item.estado_producao === 'em_preparo'
-                                          ? 'bg-amber-200 text-amber-900 border-amber-400'
-                                          : item.estado_producao === 'recusado'
-                                          ? 'bg-red-200 text-red-900 border-red-400'
-                                          : 'bg-stone-200 text-stone-700 border-stone-300'
-                                      }`}>
-                                        {item.estado_producao === 'pronto'
-                                          ? t.readyPrep
-                                          : item.estado_producao === 'em_preparo'
-                                          ? t.inPrep
-                                          : item.estado_producao === 'recusado'
-                                          ? 'Não Produzido'
-                                          : t.pendingPrep}
-                                      </span>
+                                      <StatusBadge
+                                        variant={
+                                          item.estado_producao === 'pronto'
+                                            ? 'concluido'
+                                            : item.estado_producao === 'em_preparo'
+                                            ? 'em_curso'
+                                            : item.estado_producao === 'recusado'
+                                            ? 'alerta'
+                                            : 'inativo'
+                                        }
+                                        label={
+                                          item.estado_producao === 'pronto'
+                                            ? t.readyPrep
+                                            : item.estado_producao === 'em_preparo'
+                                            ? t.inPrep
+                                            : item.estado_producao === 'recusado'
+                                            ? 'Não Produzido'
+                                            : t.pendingPrep
+                                        }
+                                      />
                                     </div>
 
                                     {item.notas_personalizacao && (
@@ -1965,9 +1952,10 @@ export default function ProducaoPage() {
                                               </button>
                                               <button
                                                 onClick={() => atualizarEstadoItem(enc.id, item.id, 'recusado')}
-                                                className="rounded-lg bg-white border border-red-300 text-red-700 px-2.5 py-1.5 text-xs font-bold hover:bg-red-50 transition cursor-pointer"
+                                                className="rounded-lg bg-white border border-red-300 text-red-700 px-2.5 py-1.5 text-xs font-bold hover:bg-red-50 transition cursor-pointer flex items-center gap-1"
                                               >
-                                                ✕ Não Produzir
+                                                <X className="h-3.5 w-3.5" />
+                                                <span>Não Produzir</span>
                                               </button>
                                             </>
                                           )}
@@ -1981,9 +1969,10 @@ export default function ProducaoPage() {
                                               </button>
                                               <button
                                                 onClick={() => atualizarEstadoItem(enc.id, item.id, 'recusado')}
-                                                className="rounded-lg bg-white border border-red-300 text-red-700 px-2 py-1.5 text-[11px] font-bold hover:bg-red-50 transition cursor-pointer"
+                                                className="rounded-lg bg-white border border-red-300 text-red-700 px-2 py-1.5 text-[11px] font-bold hover:bg-red-50 transition cursor-pointer flex items-center gap-1"
                                               >
-                                                ✕ Recusar
+                                                <X className="h-3 w-3" />
+                                                <span>Recusar</span>
                                               </button>
                                             </>
                                           )}
@@ -1995,7 +1984,9 @@ export default function ProducaoPage() {
                                                     <CheckCircle2 className="h-4 w-4" /> Pronto na Bancada
                                                   </>
                                                 ) : (
-                                                  '✕ Artigo Recusado'
+                                                  <>
+                                                    <X className="h-4 w-4" /> Artigo Recusado
+                                                  </>
                                                 )}
                                               </span>
                                               <button
@@ -2009,14 +2000,20 @@ export default function ProducaoPage() {
                                           )}
                                         </>
                                       ) : (
-                                        <span className="text-xs font-bold text-stone-500">
-                                          {item.estado_producao === 'pronto'
-                                            ? '✓ Pronto na Bancada'
-                                            : item.estado_producao === 'em_preparo'
-                                            ? 'Em Preparação'
-                                            : item.estado_producao === 'recusado'
-                                            ? '✕ Não Produzido'
-                                            : 'Pendente'}
+                                        <span className="text-xs font-bold text-stone-500 flex items-center gap-1">
+                                          {item.estado_producao === 'pronto' ? (
+                                            <>
+                                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Pronto na Bancada
+                                            </>
+                                          ) : item.estado_producao === 'em_preparo' ? (
+                                            'Em Preparação'
+                                          ) : item.estado_producao === 'recusado' ? (
+                                            <>
+                                              <X className="h-3.5 w-3.5 text-red-600" /> Não Produzido
+                                            </>
+                                          ) : (
+                                            'Pendente'
+                                          )}
                                         </span>
                                       )}
                                     </div>

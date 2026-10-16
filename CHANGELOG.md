@@ -42,6 +42,35 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.2.0] - 2026-10-16
+
+### Added & Refactored (Alinhamento com a Norma Técnica de Iconografia, Estados e Design de Interação — Inprooval®)
+- **Eliminação Integral de Emojis Operacionais (Zero Emojis across Codebase)**:
+  - Varredura e substituição completa de todos os emojis em títulos, tabelas, crachás, cabeçalhos, botões, modais, selects e templates de texto por iconografia linear vetorial estandardizada (`lucide-react`, stroke 1.75px–2px).
+- **Implementação do Sistema de Estados Semafóricos Padronizados Inprooval (`StatusBadge`)**:
+  - Novo componente modular `src/components/StatusBadge.tsx` que materializa a fórmula canónica Inprooval: Pílula com Borda Fina + Micro-Ponto Semafórico (6px) + Rótulo Tipográfico.
+  - Suporte estrito aos 5 estados funcionais:
+    - **Concluído / Sucesso / Pronto**: Fundo esmeralda suave (`#ECFDF5`), bordo `#A7F3D0`, texto `#065F46`, ponto verde esmeralda (`#10B981`).
+    - **Em Curso / Em Preparo / Em Rota**: Fundo âmbar/azul suave, bordo de contraste, texto escuro, micro-ponto com pulso subtil animado (`animate-pulse`).
+    - **Aguardar / Pendente**: Fundo azul suave (`#EFF6FF`), bordo `#BFDBFE`, texto `#1E40AF`, micro-ponto azul estático (`#3B82F6`).
+    - **Alerta / Crítico / Recusado**: Fundo rosa/vermelho suave (`#FEF2F2`), bordo `#FECACA`, texto `#991B1B`, micro-ponto vermelho (`#EF4444`).
+    - **Inativo / Neutro / Rascunho**: Fundo ardósia suave (`#F8FAFC`), bordo `#E2E8F0`, texto `#475569`, micro-ponto cinza (`#94A3B8`).
+  - Mapeamento automático inteligente de estados operacionais legados (`pendente`, `em_preparo`, `pronto`, `entregue`, `cancelado`, `recusado`, `atrasado`, `em_rota`, `aceite`).
+- **Novos Componentes Canónicos Inprooval (`InproovalBadges`)**:
+  - `OriginBadge`: Representação vetorial limpa dos canais de entrada de pedidos com ícones Lucide específicos (`Globe` para Site/Online, `MessageSquare` para WhatsApp, `Phone` para Telefone e `Store` para Presencial/Balcão).
+  - `SectorBadge`: Identificação industrial por setor com ícones normalizados (`Flame` para Padaria e `Layers` para Pastelaria).
+  - `SkuTag`: Identificador tipográfico monoespaciado em caixa-alta cinzenta suave (`font-mono text-xs`).
+- **Refatoração Integral dos Cockpits Operacionais**:
+  - **Barra de Navegação (`Navbar.tsx`)**: Cockpits com ícones stroke-first (`Store`, `ChefHat`, `Truck`, `Settings`), telemetria de conectividade com micro-ponto esmeralda pulsante (`Ligado`) e micro-ponto vermelho em caso de perda de ligação (`Offline`).
+  - **Cockpit de Loja (`/loja`)**: Crachás de estado de encomenda atualizados com `StatusBadge`, pílulas de canal via `OriginBadge`, avisos de itens recusados e gatilho de notificação WhatsApp com ícones vetoriais.
+  - **Cockpit de Produção KDS (`/producao`)**: Triagem de alertas urgentes (<3h) com alerta visual limpo, botões de decisão por item com `Check` e `X`, indicação setorial via `SectorBadge` e monitorização dos 3 fornos com crachás de estado canónicos.
+  - **Cockpit de Entregas & Carrinhas (`/entregas`)**: Banners de estado de rota (`Flag`, `Truck`, `Clock`), classificação de clientes B2B vs. Particulares com `Building2` e `Home`, e crachás de conformidade de entrega.
+  - **Registo & Consulta de Encomendas (`/encomendas`)**: Seleção de artigos por setor via `SectorBadge`, campo de pesquisa com limpeza vetorial `X` e pílulas semafóricas nos detalhes dos itens.
+  - **Painel Executivo de Gestão (`/gestao`)**: Cabeçalhos de KPIs corporativos higienizados, gestão de frotas e acessos de segurança via ícones contextuais (`Lock`, `Eye`, `Edit3`).
+  - **Portal de Clientes (`/encomendar`)**: Limpeza dos separadores de categoria, avisos de privacidade RGPD (`ShieldCheck`), alertas de entrega parcelar e rastreio de encomenda via `StatusBadge`.
+  - **Templates de Notificação WhatsApp (`encomendasService.ts`)**: Notificações formatadas profissionalmente com marcadores canónicos entre parêntesis retos (`[Confirmado]`, `[Indisponível]`).
+  - **Ecrãs de Boas-Vindas e Balcão (`/page.tsx`, `/balcao`)**: Indicadores de carregamento limpos com ícone vetorial temático `Flame`.
+
 ## [v2.1.3] - 2026-10-12
 
 ### Added & Security

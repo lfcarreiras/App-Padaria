@@ -19,7 +19,7 @@ tags:
 **Destinatário:** À atenção da Gerência — *Padaria da Vila (União Panificadora Central Arouquense, Lda)*  
 **Âmbito Base:** Rede de 3 Lojas Físicas + Centro de Produção (3 Fornos) + Frota de 5 Carrinhas (Particulares & 13 Clientes Empresariais B2B) + Cockpit de Gestão  
 **Módulo Extra (Add-On Opcional):** App de Pedidos Diretos pelos Clientes (`/encomendar`)  
-**Data:** 15 de Outubro de 2026 | **Versão:** 4.0 (`v2.1.3`)  
+**Data:** 16 de Outubro de 2026 | **Versão:** 4.1 (`v2.2.0`)  
 
 ---
 
@@ -185,7 +185,7 @@ A plataforma foi arquitetada de forma modular para permitir a ativação progres
 
 ## 08 / ROADMAP DE IMPLEMENTAÇÃO E GO-LIVE IMEDIATO
 
-Dado que a **Inprooval®** já desenvolveu, calibrou e certificou a solução completa (`v2.1.3`), o prazo de entrada em operação real é **imediato (6 dias úteis)**:
+Dado que a **Inprooval®** já desenvolveu, calibrou e certificou a solução completa (`v2.2.0`), o prazo de entrada em operação real é **imediato (6 dias úteis)**:
 
 ```mermaid
 flowchart LR

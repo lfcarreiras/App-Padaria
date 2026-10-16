@@ -48,6 +48,8 @@ import {
   FileText,
   Globe
 } from 'lucide-react';
+import { StatusBadge } from '../../components/StatusBadge';
+import { OriginBadge, SectorBadge } from '../../components/InproovalBadges';
 
 export default function EncomendasPage() {
   const { t, language } = useTranslation();
@@ -786,9 +788,9 @@ export default function EncomendasPage() {
                     onClick={() => adicionarAoCarrinho(prod)}
                     className="flex flex-col text-left p-3.5 rounded-2xl bg-white border border-gray-200 shadow-2xs hover:border-bakery-400 hover:shadow-xs transition group"
                   >
-                    <span className="text-xl mb-1">
-                      {prod.categoria === 'padaria' ? '🥖' : '🎂'}
-                    </span>
+                    <div className="mb-2">
+                      <SectorBadge setor={prod.categoria} />
+                    </div>
                     <h4 className="text-xs font-bold text-gray-900 group-hover:text-bakery-700 line-clamp-2">
                       {prod.nome}
                     </h4>
@@ -1072,7 +1074,7 @@ export default function EncomendasPage() {
                   className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-bakery-600 text-white font-black text-sm shadow-md hover:bg-bakery-700 disabled:opacity-50 transition cursor-pointer"
                 >
                   <Printer className="h-4 w-4" />
-                  {aGravar ? 'A registar...' : !temPermissaoEdicao ? `🚫 ${t.readOnlyMode}` : (configMarca.btnRegistarEncomenda || t.registerOrder)}
+                  {aGravar ? 'A registar...' : !temPermissaoEdicao ? t.readOnlyMode : (configMarca.btnRegistarEncomenda || t.registerOrder)}
                 </button>
               </form>
             </div>
@@ -1196,9 +1198,9 @@ export default function EncomendasPage() {
                     <button
                       type="button"
                       onClick={() => setBuscaHistorico('')}
-                      className="absolute right-2.5 top-2.5 text-xs text-gray-400 hover:text-gray-600 font-bold px-1"
+                      className="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
                     >
-                      ✕
+                      <X className="h-3.5 w-3.5" />
                     </button>
                   )}
                 </div>
@@ -1450,9 +1452,7 @@ export default function EncomendasPage() {
                                             <span className="font-bold flex items-center gap-1">
                                               {it.quantidade} un.
                                               {isRecusado && (
-                                                <span className="px-1 py-0.2 rounded bg-red-100 text-red-800 text-[9px] font-black uppercase no-underline">
-                                                  ✕ Não Prod.
-                                                </span>
+                                                <StatusBadge variant="alerta" label="Não Produzido" className="text-[9px] py-0 px-1.5 no-underline" />
                                               )}
                                             </span>
                                           </div>
@@ -1463,7 +1463,7 @@ export default function EncomendasPage() {
                                     {enc.observacoes_producao && (
                                       <div className="mt-2 rounded-xl bg-amber-50 border border-amber-200 p-2 text-[11px] text-amber-950">
                                         <span className="font-black uppercase text-[9px] text-amber-800 block">
-                                          💬 Obs. Produção:
+                                          Obs. Produção:
                                         </span>
                                         <p className="font-medium">{enc.observacoes_producao}</p>
                                       </div>

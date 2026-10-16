@@ -54,8 +54,13 @@ import {
   Mail,
   Eye,
   EyeOff,
-  KeyRound
+  KeyRound,
+  X,
+  Flame,
+  Layers
 } from 'lucide-react';
+import { StatusBadge } from '../../components/StatusBadge';
+import { OriginBadge, SectorBadge } from '../../components/InproovalBadges';
 
 interface ItemCarrinhoCliente {
   id: string;
@@ -188,7 +193,7 @@ export default function EncomendarClientePage() {
         if (emailUrl) setAuthEmail(emailUrl);
         setEmailRecuperacaoEnviado(true);
         setRecuperacaoValidada(true);
-        setAuthSucesso('✅ E-mail confirmado com sucesso através do link enviado pela Supabase! Defina agora a sua nova password abaixo.');
+        setAuthSucesso('E-mail confirmado com sucesso através do link enviado pela Supabase! Defina agora a sua nova password abaixo.');
       } else {
         // Recuperar sessão salva do cliente em localStorage apenas se não vier de link de recuperação
         const savedCliente = localStorage.getItem('cliente_portal_padaria');
@@ -222,7 +227,7 @@ export default function EncomendarClientePage() {
           setAuthEmail(session.user.email.toLowerCase());
           setEmailRecuperacaoEnviado(true);
           setRecuperacaoValidada(true);
-          setAuthSucesso(`✅ E-mail (${session.user.email}) confirmado pela Supabase! Defina agora a sua nova password abaixo.`);
+          setAuthSucesso(`E-mail (${session.user.email}) confirmado pela Supabase! Defina agora a sua nova password abaixo.`);
         }
       });
       return () => {
@@ -349,7 +354,7 @@ export default function EncomendarClientePage() {
           categoria: prod.categoria,
           quantidade: 1,
           preco: prod.preco || 0,
-          emoji: prod.categoria === 'padaria' ? '🥖' : '🎂',
+          emoji: '',
           notas: '',
         },
       ];
@@ -446,7 +451,7 @@ export default function EncomendarClientePage() {
               ) {
                 setEmailRecuperacaoEnviado(true);
                 setAuthSucesso(
-                  `📧 Um e-mail de recuperação já foi enviado recentemente para ${emailRec}. Verifique a sua caixa de entrada (e Spam/Promoções) e clique no link ou introduza o código recebido.`
+                  `Um e-mail de recuperação já foi enviado recentemente para ${emailRec}. Verifique a sua caixa de entrada (e Spam/Promoções) e clique no link ou introduza o código recebido.`
                 );
                 return;
               }
@@ -459,7 +464,7 @@ export default function EncomendarClientePage() {
 
         setEmailRecuperacaoEnviado(true);
         setAuthSucesso(
-          `📧 E-mail de recuperação enviado pela Supabase para ${emailRec}! Abra o seu e-mail (verifique também o Spam) e clique no link de confirmação OU introduza abaixo o código de 6 dígitos recebido.`
+          `E-mail de recuperação enviado pela Supabase para ${emailRec}! Abra o seu e-mail (verifique também o Spam) e clique no link de confirmação OU introduza abaixo o código de 6 dígitos recebido.`
         );
         return;
       }
@@ -505,7 +510,7 @@ export default function EncomendarClientePage() {
         }
 
         setRecuperacaoValidada(true);
-        setAuthSucesso(`✅ Código confirmado com sucesso pela Supabase! Defina abaixo a sua nova password.`);
+        setAuthSucesso(`Código confirmado com sucesso pela Supabase! Defina abaixo a sua nova password.`);
         return;
       }
 
@@ -1260,7 +1265,7 @@ export default function EncomendarClientePage() {
               {authModo === 'recuperacao' && (
                 <>
                   <div className="p-2 rounded-xl bg-amber-50/70 border border-amber-200 text-[11px] text-stone-700 leading-snug">
-                    📧 Indique o <strong>E-mail de Recuperação</strong> da sua conta. A <strong>Supabase</strong> enviará um e-mail com link/código de verificação para redefinir a sua password.
+                    Indique o <strong>E-mail de Recuperação</strong> da sua conta. A <strong>Supabase</strong> enviará um e-mail com link/código de verificação para redefinir a sua password.
                   </div>
 
                   <div>
@@ -1368,7 +1373,7 @@ export default function EncomendarClientePage() {
 
               {/* Aviso de Proteção de Dados */}
               <div className="p-2 rounded-xl bg-stone-50 border border-stone-200 text-[10px] text-stone-600 leading-snug">
-                🔒 <strong>Proteção de Dados:</strong> Os seus dados são tratados exclusivamente pela {configMarca.nomeEmpresa || 'Padaria da Vila'} para processamento da encomenda, entrega e notificações de estado.
+                <ShieldCheck className="h-4 w-4 text-emerald-600 inline mr-1" /><strong>Proteção de Dados:</strong> Os seus dados são tratados exclusivamente pela {configMarca.nomeEmpresa || 'Padaria da Vila'} para processamento da encomenda, entrega e notificações de estado.
               </div>
 
               <button
@@ -1601,8 +1606,8 @@ export default function EncomendarClientePage() {
               <div className="flex flex-wrap items-center gap-1.5 w-full md:w-auto">
                 {[
                   { id: 'todas', label: 'Todos os Artigos' },
-                  { id: 'padaria', label: '🥖 Pão & Padaria' },
-                  { id: 'pastelaria', label: '🎂 Pastelaria & Bolos' },
+                  { id: 'padaria', label: 'Pão & Padaria' },
+                  { id: 'pastelaria', label: 'Pastelaria & Bolos' },
                 ].map((cat) => (
                   <button
                     key={cat.id}
@@ -1656,7 +1661,7 @@ export default function EncomendarClientePage() {
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-3xl">
-                            {prod.categoria === 'pastelaria' ? '🎂' : '🥖'}
+                            <SectorBadge setor={prod.categoria} />
                           </span>
                           <span className="text-[10px] font-black text-amber-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg uppercase">
                             {prod.unidade || 'un.'}
@@ -2093,12 +2098,10 @@ export default function EncomendarClientePage() {
                                 ? 'bg-amber-50 text-amber-800 border-amber-200'
                                 : 'bg-blue-50 text-blue-800 border-blue-200'
                             }`}>
-                              {enc.tipo === 'levantamento_loja' ? `🏪 Levantamento em ${enc.loja_nome}` : '🚚 Entrega ao Domicílio'}
+                              <span className="inline-flex items-center gap-1">{enc.tipo === 'levantamento_loja' ? <Store className="h-3.5 w-3.5 text-amber-700 shrink-0" /> : <Truck className="h-3.5 w-3.5 text-cyan-700 shrink-0" />}<span>{enc.tipo === 'levantamento_loja' ? `Levantamento em ${enc.loja_nome}` : 'Entrega ao Domicílio'}</span></span>
                             </span>
                             {isProducaoParcelar && (
-                              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
-                                ⚠️ Pedido Parcelar ({qtdAceites}/{enc.itens.length} artigos aceites)
-                              </span>
+                              <StatusBadge variant="alerta" label={`Pedido Parcelar (${qtdAceites}/${enc.itens.length} artigos aceites)`} />
                             )}
                           </div>
                           <p className="text-xs text-stone-500 mt-1">
@@ -2112,29 +2115,23 @@ export default function EncomendarClientePage() {
                         </div>
 
                         {isCanceladoOuTudoRecusado ? (
-                          <span className="self-start sm:self-auto text-xs font-black px-3 py-1 rounded-xl uppercase tracking-wider bg-red-100 text-red-900 border border-red-300">
-                            ❌ Não Produzido
-                          </span>
+                          <StatusBadge variant="alerta" label="Não Produzido" />
                         ) : (
-                          <span className={`self-start sm:self-auto text-xs font-black px-3 py-1 rounded-xl uppercase tracking-wider ${
-                            etapa === 4
-                              ? 'bg-emerald-100 text-emerald-900'
-                              : etapa === 3
-                              ? 'bg-blue-100 text-blue-900 animate-pulse'
-                              : etapa === 2
-                              ? 'bg-amber-100 text-amber-900'
-                              : 'bg-stone-100 text-stone-800'
-                          }`}>
-                            {etapa === 4
-                              ? '✅ Entregue'
-                              : etapa === 3
-                              ? '🚚 Pronta / Em Distribuição'
-                              : etapa === 2
-                              ? isProducaoParcelar
-                                ? '👨‍🍳 Em Produção (Parcelar)'
-                                : '👨‍🍳 Em Produção'
-                              : '📝 Encomendado'}
-                          </span>
+                          <StatusBadge
+                            variant={etapa === 4 ? 'concluido' : etapa === 3 ? 'concluido' : etapa === 2 ? 'em_curso' : 'aguardar'}
+                            label={
+                              etapa === 4
+                                ? 'Entregue'
+                                : etapa === 3
+                                ? 'Pronta / Em Distribuição'
+                                : etapa === 2
+                                ? isProducaoParcelar
+                                  ? 'Em Produção (Parcelar)'
+                                  : 'Em Produção'
+                                : 'Encomendado'
+                            }
+                            pulse={etapa === 2 || etapa === 3}
+                          />
                         )}
                       </div>
 
@@ -2165,12 +2162,12 @@ export default function EncomendarClientePage() {
                       {/* Alerta informativo de Produção Parcelar ou Recusa */}
                       {isCanceladoOuTudoRecusado && (
                         <div className="p-3 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-900 font-medium">
-                          <strong>❌ Informação da Produção:</strong> Não foi possível aceitar a produção dos artigos desta encomenda para o horário solicitado.
+                          <span className="font-bold flex items-center gap-1"><AlertCircle className="h-4 w-4 text-red-600 shrink-0 inline" /> Informação da Produção:</span> Não foi possível aceitar a produção dos artigos desta encomenda para o horário solicitado.
                         </div>
                       )}
                       {isProducaoParcelar && (
                         <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 font-medium">
-                          <strong>⚠️ Produção Parcelar:</strong> A nossa produção conseguiu aceitar <strong>{qtdAceites} de {enc.itens.length} artigos</strong> do seu pedido, mas <strong>{qtdRecusados} artigo(s)</strong> não poderão ser produzidos a tempo. Verifique o estado individual de cada artigo abaixo.
+                          <span className="font-bold flex items-center gap-1"><AlertCircle className="h-4 w-4 text-amber-600 shrink-0 inline" /> Produção Parcelar:</span> A nossa produção conseguiu aceitar <strong>{qtdAceites} de {enc.itens.length} artigos</strong> do seu pedido, mas <strong>{qtdRecusados} artigo(s)</strong> não poderão ser produzidos a tempo. Verifique o estado individual de cada artigo abaixo.
                         </div>
                       )}
 
@@ -2211,23 +2208,19 @@ export default function EncomendarClientePage() {
                                   </span>
                                 </div>
 
-                                <span className={`self-start sm:self-auto text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider ${
-                                  isRecusado
-                                    ? 'bg-red-600 text-white'
-                                    : isPronto
-                                    ? 'bg-emerald-600 text-white'
-                                    : isEmPreparo
-                                    ? 'bg-amber-500 text-stone-950'
-                                    : 'bg-stone-200 text-stone-700'
-                                }`}>
-                                  {isRecusado
-                                    ? '✕ Não Produzido / Indisponível'
-                                    : isPronto
-                                    ? '✓ Pronto'
-                                    : isEmPreparo
-                                    ? '👨‍🍳 Aceite (Em Produção)'
-                                    : '⏳ A aguardar confirmação'}
-                                </span>
+                                <StatusBadge
+                                  variant={isRecusado ? 'alerta' : isPronto ? 'concluido' : isEmPreparo ? 'em_curso' : 'aguardar'}
+                                  label={
+                                    isRecusado
+                                      ? 'Não Produzido / Indisponível'
+                                      : isPronto
+                                      ? 'Pronto'
+                                      : isEmPreparo
+                                      ? 'Aceite (Em Produção)'
+                                      : 'A aguardar confirmação'
+                                  }
+                                  pulse={isEmPreparo}
+                                />
                               </div>
                             );
                           })}
@@ -2237,8 +2230,9 @@ export default function EncomendarClientePage() {
                       {/* Observações da Produção (se existirem) */}
                       {enc.observacoes_producao && (
                         <div className="p-3.5 rounded-2xl bg-stone-900 text-amber-50 border border-stone-700 text-xs space-y-1">
-                          <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">
-                            💬 Observações da Padaria / Produção:
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5 mb-0.5">
+                            <MessageSquare className="h-3 w-3 text-amber-400 shrink-0" />
+                            <span>Observações da Padaria / Produção:</span>
                           </span>
                           <p className="text-stone-100 font-medium leading-relaxed">
                             {enc.observacoes_producao}
@@ -2271,9 +2265,7 @@ export default function EncomendarClientePage() {
                 type="button"
                 onClick={() => setModalAuthAberto(false)}
                 className="text-stone-400 hover:text-stone-700 text-sm font-bold p-1"
-              >
-                ✕
-              </button>
+              ><X className="h-4 w-4" /></button>
             </div>
 
             {authErro && (
@@ -2378,7 +2370,7 @@ export default function EncomendarClientePage() {
               </div>
 
               <div className="p-2 rounded-xl bg-stone-50 border border-stone-200 text-[10px] text-stone-600 leading-snug">
-                🔒 <strong>Proteção de Dados:</strong> Os seus dados são tratados exclusivamente pela {configMarca.nomeEmpresa || 'Padaria da Vila'} para processamento da encomenda, entrega e notificações de estado.
+                <ShieldCheck className="h-4 w-4 text-emerald-600 inline mr-1" /><strong>Proteção de Dados:</strong> Os seus dados são tratados exclusivamente pela {configMarca.nomeEmpresa || 'Padaria da Vila'} para processamento da encomenda, entrega e notificações de estado.
               </div>
 
               <button

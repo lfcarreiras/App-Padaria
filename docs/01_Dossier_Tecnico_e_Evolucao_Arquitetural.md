@@ -1,9 +1,9 @@
 ---
 title: "01 - Dossier Técnico e Evolução Arquitetural da Solução"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.1.3"
-date_saved: 2026-10-12
-updated: 2026-10-12
+version: "2.2.0"
+date_saved: 2026-10-16
+updated: 2026-10-16
 status: "Em Produção (Live)"
 tags:
   - #Inprooval/DossierTecnico
@@ -16,7 +16,7 @@ tags:
 
 **Entidade Tecnológica:** EyeQ Lda / Inprooval®  
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
-**Versão Atual em Produção:** `v2.1.3` (12/10/2026)  
+**Versão Atual em Produção:** `v2.2.0` (16/10/2026)  
 **Repositório & CI/CD:** GitHub (`lfcarreiras/App-Padaria`) $\to$ Vercel Production  
 
 ---
@@ -168,6 +168,15 @@ Após a sessão de trabalho presencial com a gerência em Arouca (10/10/2026), a
      - **Passo 2 (Validação por Link ou Código OTP):** Suporta tanto o clique direto no **Link de Confirmação / Magic Link** enviado no e-mail da Supabase (intercetado automaticamente via `supabase.auth.onAuthStateChange` e parâmetros de sessão no URL) como a introdução manual do **código de 6 dígitos** (`supabase.auth.verifyOtp`).
      - **Passo 3 (Redefinição da Nova Password):** Atualiza a nova password na ficha do cliente no Supabase (`public.clientes`), na conta `supabase.auth.updateUser` e na cache local, autenticando o cliente de imediato.
 
+### Passo 8 — Adoção Integral da Norma Técnica de Iconografia, Estados e Design de Interação Inprooval® (`v2.2.0` | 16/10/2026)
+1. **Eliminação Integral de Emojis Operacionais (Zero Emojis):**
+   - Varredura e higienização total de 100% da interface de utilizador, cabeçalhos de secção, botões táteis de KDS, crachás de estado e templates de texto, abolindo representações informais e emojis OS-dependentes em prol de um design corporativo e técnico.
+2. **Componentes Canónicos de Design System Inprooval:**
+   - Criação de `StatusBadge.tsx` (Micro-ponto semafórico 6px, borda fina, cores semânticas esmeralda, ciano, âmbar, vermelho e ardósia com suporte a micro-animações de pulso para processos em curso).
+   - Criação de `InproovalBadges.tsx` (`OriginBadge` para canais de entrada, `SectorBadge` com ícones vetoriais de Padaria e Pastelaria, e `SkuTag`).
+3. **Higienização de Todos os Cockpits:**
+   - Refatoração dos ecrãs de Loja (`/loja`), Produção KDS (`/producao`), Carrinhas (`/entregas`), Encomendas (`/encomendas`), Gestão Executiva (`/gestao`), Portal de Clientes (`/encomendar`), Studio CMS (`/cms`) e Navbar global com ícones lineares vetoriais normalizados (`lucide-react`, stroke 1.75px–2px).
+
 ---
 
 ## 3. Engenharia de Resiliência e Compatibilidade de Esquema (Zero-Downtime Schema Tags)
@@ -226,7 +235,7 @@ A plataforma foi auditada pelos **7 Agentes Especialistas do Inprooval® Bulletp
   git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" status
   git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" add -A
   git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" commit -m "feat/fix: descricao"
-  git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" tag -a v2.1.3 -m "release: v2.1.3" -f
+  git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" tag -a v2.2.0 -m "release: v2.2.0" -f
   git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" push origin main --tags -f
   ```
 * **Credenciais de Ambiente (`.env.local` / Vercel Environment Variables):**

@@ -1,9 +1,9 @@
 ---
 title: "04 - Dossier Mestre do Projeto: Cliente, Backlog, Orçamento, Bolsa de Horas, Sprints e Oportunidades"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.1.3"
-date_saved: 2026-10-12
-updated: 2026-10-12
+version: "2.2.0"
+date_saved: 2026-10-16
+updated: 2026-10-16
 status: "Em Produção / Fase de Adjudicação & Go-Live"
 tags:
   - #Inprooval/DossierProjeto
@@ -19,7 +19,7 @@ tags:
 **Consultor Responsável:** Luís Carreiras  
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
 **Data de Início do Projeto:** 07/09/2026  
-**Última Atualização:** 12/10/2026 (`v2.1.3`)  
+**Última Atualização:** 16/10/2026 (`v2.2.0`)  
 
 ---
 

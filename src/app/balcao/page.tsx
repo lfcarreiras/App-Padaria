@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Flame } from 'lucide-react';
 
 export default function BalcaoRedirectPage() {
   const router = useRouter();
@@ -13,8 +14,8 @@ export default function BalcaoRedirectPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-stone-100">
       <div className="text-center space-y-3">
-        <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500 text-white text-2xl animate-pulse">
-          🥖
+        <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500 text-white animate-pulse">
+          <Flame className="h-6 w-6" />
         </div>
         <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">A redirecionar para Encomendas...</p>
       </div>

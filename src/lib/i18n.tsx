@@ -455,7 +455,7 @@ const translations: Record<Language, Translations> = {
     password: 'Palavra-passe',
 
     // WhatsApp e Rota
-    whatsappOrderBtn: '📥 Pedido WhatsApp',
+    whatsappOrderBtn: 'Pedido WhatsApp',
     whatsappModalTitle: 'Importar Pedido do WhatsApp',
     whatsappPastePlaceholder: 'Cole aqui o texto da mensagem do WhatsApp enviada pelo cliente...',
     whatsappParseBtn: 'Processar e Preencher',
@@ -465,9 +465,9 @@ const translations: Record<Language, Translations> = {
     routeNotStarted: 'Rota Não Iniciada',
     routeInProgress: 'Rota em Curso',
     routeCompleted: 'Rota Concluída com Sucesso',
-    startRoute: '🚀 Iniciar Rota',
-    endRoute: '🏁 Concluir Rota',
-    nextDeliveryLocked: '🔒 Paragem Bloqueada (conclua a paragem anterior)',
+    startRoute: 'Iniciar Rota',
+    endRoute: 'Concluir Rota',
+    nextDeliveryLocked: 'Paragem Bloqueada (conclua a paragem anterior)',
     embeddedMap: 'Navegação GPS',
     showMap: 'Ver Mapa',
     hideMap: 'Ocultar Mapa',
@@ -682,7 +682,7 @@ const translations: Record<Language, Translations> = {
     password: 'Password',
 
     // WhatsApp and Route
-    whatsappOrderBtn: '📥 WhatsApp Order',
+    whatsappOrderBtn: 'WhatsApp Order',
     whatsappModalTitle: 'Import Order from WhatsApp',
     whatsappPastePlaceholder: 'Paste here the WhatsApp message text received from the customer...',
     whatsappParseBtn: 'Process and Auto-fill',
@@ -692,9 +692,9 @@ const translations: Record<Language, Translations> = {
     routeNotStarted: 'Route Not Started',
     routeInProgress: 'Route In Progress',
     routeCompleted: 'Route Completed Successfully',
-    startRoute: '🚀 Start Route',
-    endRoute: '🏁 Complete Route',
-    nextDeliveryLocked: '🔒 Stop Locked (complete the previous stop first)',
+    startRoute: 'Start Route',
+    endRoute: 'Complete Route',
+    nextDeliveryLocked: 'Stop Locked (complete the previous stop first)',
     embeddedMap: 'GPS Navigation',
     showMap: 'View Map',
     hideMap: 'Hide Map',

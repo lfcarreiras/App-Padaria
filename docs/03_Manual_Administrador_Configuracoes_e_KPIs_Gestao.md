@@ -1,9 +1,9 @@
 ---
 title: "03 - Manual do Administrador, Parametrizações e Fórmulas de Indicadores do Cockpit de Gestão"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.1.3"
-date_saved: 2026-10-12
-updated: 2026-10-12
+version: "2.2.0"
+date_saved: 2026-10-16
+updated: 2026-10-16
 status: "Em Produção (Live)"
 tags:
   - #Inprooval/ManualAdmin
@@ -17,7 +17,7 @@ tags:
 **Entidade Tecnológica:** EyeQ Lda / Inprooval®  
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
 **Rota de Acesso:** `/gestao` (Exclusivo para Perfil **Administrador / Gerência**)  
-**Versão:** `v2.1.3` (12/10/2026)  
+**Versão:** `v2.2.0` (16/10/2026)  
 
 ---
 

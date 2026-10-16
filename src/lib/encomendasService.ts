@@ -440,7 +440,7 @@ export function formatarTelefoneWhatsApp(telefone?: string): string {
 export function gerarLinkWhatsAppDecisaoEncomenda(enc: Encomenda, obsExtra?: string): string {
   const tel = formatarTelefoneWhatsApp(enc.cliente?.telefone);
   const obs = (obsExtra !== undefined ? obsExtra : enc.observacoes_producao || '').trim();
-  const obsTexto = obs ? `\n\n📝 Observações da Padaria: ${obs}` : '';
+  const obsTexto = obs ? `\n\nObservações da Padaria: ${obs}` : '';
   const destinoTexto =
     enc.tipo === 'levantamento_loja'
       ? `Levantamento em ${enc.loja_nome || 'Loja'}`
@@ -454,11 +454,11 @@ export function gerarLinkWhatsAppDecisaoEncomenda(enc: Encomenda, obsExtra?: str
   let mensagem = '';
   if (itensAceites.length > 0 && itensRecusados.length === 0) {
     const lista = itensAceites.map((i) => `${i.quantidade}x ${i.produto_nome}`).join(', ');
-    mensagem = `Olá ${enc.cliente.nome}! Confirmamos que a sua encomenda ${enc.codigo} (${destinoTexto} para ${enc.data_agendamento} às ${enc.hora_agendamento}) entrou em produção na Padaria da Vila:\n✅ Artigos a preparar: ${lista}.${obsTexto}`;
+    mensagem = `Olá ${enc.cliente.nome}! Confirmamos que a sua encomenda ${enc.codigo} (${destinoTexto} para ${enc.data_agendamento} às ${enc.hora_agendamento}) entrou em produção na Padaria da Vila:\n[Confirmado] Artigos a preparar: ${lista}.${obsTexto}`;
   } else if (itensAceites.length > 0 && itensRecusados.length > 0) {
     const listaSim = itensAceites.map((i) => `${i.quantidade}x ${i.produto_nome}`).join(', ');
     const listaNao = itensRecusados.map((i) => `${i.quantidade}x ${i.produto_nome}`).join(', ');
-    mensagem = `Olá ${enc.cliente.nome}! Relativamente à sua encomenda ${enc.codigo} (${destinoTexto} para ${enc.data_agendamento} às ${enc.hora_agendamento}), informamos a confirmação parcelar do pedido:\n✅ Artigos que serão preparados: ${listaSim}\n❌ Artigos indisponíveis (não produzidos): ${listaNao}${obsTexto}`;
+    mensagem = `Olá ${enc.cliente.nome}! Relativamente à sua encomenda ${enc.codigo} (${destinoTexto} para ${enc.data_agendamento} às ${enc.hora_agendamento}), informamos a confirmação parcelar do pedido:\n[Confirmado] Artigos a preparar: ${listaSim}\n[Indisponível] Artigos não produzidos: ${listaNao}${obsTexto}`;
   } else if (itensAceites.length === 0 && itensRecusados.length > 0) {
     const listaNao = itensRecusados.map((i) => `${i.quantidade}x ${i.produto_nome}`).join(', ');
     mensagem = `Olá ${enc.cliente.nome}! Lamentamos informar que não nos será possível preparar a sua encomenda ${enc.codigo} (${listaNao}) agendada para ${enc.data_agendamento} às ${enc.hora_agendamento}.${obsTexto}`;

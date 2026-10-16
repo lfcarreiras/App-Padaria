@@ -57,6 +57,8 @@ import {
   Columns,
   Globe
 } from 'lucide-react';
+import { StatusBadge } from '../../components/StatusBadge';
+import { OriginBadge, SectorBadge } from '../../components/InproovalBadges';
 
 const CMS_STORAGE_KEY_TOKEN = 'app_padaria_cms_github_token';
 const CMS_STORAGE_KEY_AUTH = 'app_padaria_cms_auth_unlocked';
@@ -116,8 +118,8 @@ const ENCOMENDAS_DEMO_INICIAIS: EncomendaSimulada[] = [
     estado: 'pendente',
     total: 14.90,
     itens: [
-      { id: 'it-1', nome: 'Pão de Arouca', quantidade: 2, emoji: '🥖', setor: 'padaria', concluido: false },
-      { id: 'it-2', nome: 'Pão de Ló de Arouca', quantidade: 1, emoji: '🎂', setor: 'pastelaria', concluido: false },
+      { id: 'it-1', nome: 'Pão de Arouca', quantidade: 2, emoji: '', setor: 'padaria', concluido: false },
+      { id: 'it-2', nome: 'Pão de Ló de Arouca', quantidade: 1, emoji: '', setor: 'pastelaria', concluido: false },
     ],
     observacoes: 'Pão fatiado fino e embalagem de oferta para o pão de ló.',
   },
@@ -135,8 +137,8 @@ const ENCOMENDAS_DEMO_INICIAIS: EncomendaSimulada[] = [
     estado: 'em_producao',
     total: 21.00,
     itens: [
-      { id: 'it-3', nome: 'Broa de Milho Tradicional', quantidade: 2, emoji: '🍞', setor: 'padaria', concluido: true },
-      { id: 'it-4', nome: 'Castanhas Doces de Arouca', quantidade: 6, emoji: '🧁', setor: 'pastelaria', concluido: false },
+      { id: 'it-3', nome: 'Broa de Milho Tradicional', quantidade: 2, emoji: '', setor: 'padaria', concluido: true },
+      { id: 'it-4', nome: 'Castanhas Doces de Arouca', quantidade: 6, emoji: '', setor: 'pastelaria', concluido: false },
     ],
     observacoes: 'Cliente prefere broa bem estaladiça.',
   },
@@ -155,8 +157,8 @@ const ENCOMENDAS_DEMO_INICIAIS: EncomendaSimulada[] = [
     estado: 'pronto_loja',
     total: 48.60,
     itens: [
-      { id: 'it-5', nome: 'Pão de Arouca', quantidade: 25, emoji: '🥖', setor: 'padaria', concluido: true },
-      { id: 'it-6', nome: 'Croissant Simples', quantidade: 15, emoji: '🥐', setor: 'pastelaria', concluido: true },
+      { id: 'it-5', nome: 'Pão de Arouca', quantidade: 25, emoji: '', setor: 'padaria', concluido: true },
+      { id: 'it-6', nome: 'Croissant Simples', quantidade: 15, emoji: '', setor: 'pastelaria', concluido: true },
     ],
     observacoes: 'Entrega na porta das traseiras do café antes das 08h00.',
   },
@@ -175,8 +177,8 @@ const ENCOMENDAS_DEMO_INICIAIS: EncomendaSimulada[] = [
     estado: 'pendente',
     total: 36.50,
     itens: [
-      { id: 'it-7', nome: 'Broa de Milho Tradicional', quantidade: 8, emoji: '🍞', setor: 'padaria', concluido: false },
-      { id: 'it-8', nome: 'Pão de Centeio Rústico', quantidade: 10, emoji: '🥖', setor: 'padaria', concluido: false },
+      { id: 'it-7', nome: 'Broa de Milho Tradicional', quantidade: 8, emoji: '', setor: 'padaria', concluido: false },
+      { id: 'it-8', nome: 'Pão de Centeio Rústico', quantidade: 10, emoji: '', setor: 'padaria', concluido: false },
     ],
     observacoes: 'Fatura com NIF 509876543.',
   }
@@ -223,7 +225,7 @@ export default function CmsFrontofficeReplicaPage() {
       nome: 'Pão de Arouca',
       categoria: 'padaria',
       quantidade: 2,
-      emoji: '🥖',
+      emoji: '',
       preco: 1.20,
       notas: 'Bem cozido',
     },
@@ -233,7 +235,7 @@ export default function CmsFrontofficeReplicaPage() {
       nome: 'Pão de Ló de Arouca',
       categoria: 'pastelaria',
       quantidade: 1,
-      emoji: '🎂',
+      emoji: '',
       preco: 12.50,
       notas: 'Embalagem de oferta',
     }
@@ -341,7 +343,7 @@ export default function CmsFrontofficeReplicaPage() {
           nome: prod.nome,
           categoria: prod.categoria,
           quantidade: 1,
-          emoji: prod.emoji || (prod.categoria === 'padaria' ? '🥖' : '🎂'),
+          emoji: '',
           preco: prod.preco || 0,
           notas: '',
         },
@@ -391,7 +393,7 @@ export default function CmsFrontofficeReplicaPage() {
       preco: 1.00,
       unidade: 'unidade',
       tempo_preparo_minutos: 60,
-      emoji: '🥖',
+      emoji: '',
       ativo: true,
     });
     setIndiceProdutoEmEdicao(null);
@@ -515,9 +517,7 @@ export default function CmsFrontofficeReplicaPage() {
     return (
       <div className="min-h-screen bg-stone-100 flex items-center justify-center p-4">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-12 w-12 rounded-2xl bg-amber-500 text-stone-950 flex items-center justify-center text-2xl font-black animate-bounce shadow-lg">
-            🥖
-          </div>
+          <div className="h-12 w-12 rounded-2xl bg-amber-500 text-stone-950 flex items-center justify-center text-2xl font-black animate-bounce shadow-lg"><Flame className="h-6 w-6 text-amber-600" /></div>
           <p className="text-xs font-semibold text-stone-600">A carregar Studio CMS • Editor de Todos os Painéis...</p>
         </div>
       </div>
@@ -529,9 +529,7 @@ export default function CmsFrontofficeReplicaPage() {
     return (
       <div className="min-h-screen bg-stone-100 flex flex-col justify-center items-center p-4">
         <div className="w-full max-w-md bg-white border border-stone-200 rounded-3xl p-8 shadow-xl space-y-6 text-center">
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500 text-stone-950 text-3xl font-black shadow-md">
-            🥖
-          </div>
+          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500 text-stone-950 text-3xl font-black shadow-md"><Flame className="h-6 w-6 text-amber-600" /></div>
           <div>
             <h1 className="text-xl font-black text-stone-900 tracking-tight">Studio CMS • Editor Frontoffice</h1>
             <p className="text-xs text-stone-500 mt-1">
@@ -598,9 +596,7 @@ export default function CmsFrontofficeReplicaPage() {
           {/* Identidade CMS & Seletor Rápido de Painel */}
           <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
             <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500 text-stone-950 text-sm font-black shadow-xs">
-                🥖
-              </span>
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500 text-stone-950 text-sm font-black shadow-xs"><Flame className="h-6 w-6 text-amber-600" /></span>
               <div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs sm:text-sm font-black text-amber-400 tracking-tight">Studio CMS</span>
@@ -1001,7 +997,7 @@ export default function CmsFrontofficeReplicaPage() {
                               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                           }`}
                         >
-                          {cat === 'todas' ? 'Todas as Categorias' : cat === 'padaria' ? '🥖 Padaria' : '🎂 Pastelaria'}
+                          {cat === 'todas' ? 'Todas as Categorias' : cat === 'padaria' ? 'Padaria' : 'Pastelaria'}
                         </button>
                       ))}
                     </div>
@@ -1045,7 +1041,7 @@ export default function CmsFrontofficeReplicaPage() {
                           >
                             <div>
                               <div className="flex items-center justify-between mb-1.5">
-                                <span className="text-2xl">{prod.emoji || (prod.categoria === 'padaria' ? '🥖' : '🎂')}</span>
+                                <SectorBadge setor={prod.categoria} />
                                 <span className="text-xs font-black text-amber-700 bg-amber-50 px-2 py-0.5 rounded-lg">
                                   {prod.preco ? `${prod.preco.toFixed(2)} €` : '0.00 €'}
                                 </span>
@@ -1405,7 +1401,7 @@ export default function CmsFrontofficeReplicaPage() {
                               ? 'bg-amber-100 text-amber-900 border border-amber-300'
                               : 'bg-blue-100 text-blue-900 border border-blue-300'
                           }`}>
-                            {enc.tipo === 'levantamento_loja' ? '🏪 Levantamento em Loja' : '🚚 Entrega ao Domicílio'}
+                            <span className="inline-flex items-center gap-1">{enc.tipo === 'levantamento_loja' ? <Store className="h-3 w-3 text-amber-700 shrink-0" /> : <Truck className="h-3 w-3 text-cyan-700 shrink-0" />}<span>{enc.tipo === 'levantamento_loja' ? 'Levantamento em Loja' : 'Entrega ao Domicílio'}</span></span>
                           </span>
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                             enc.canal_origem === 'site_online' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' :
@@ -1413,9 +1409,7 @@ export default function CmsFrontofficeReplicaPage() {
                             enc.canal_origem === 'telefone' ? 'bg-amber-50 text-amber-800 border-amber-200' :
                             'bg-stone-100 text-stone-700 border-stone-200'
                           }`}>
-                            {enc.canal_origem === 'site_online' ? '🌐 Site' :
-                             enc.canal_origem === 'whatsapp' ? '💬 WhatsApp' :
-                             enc.canal_origem === 'telefone' ? '📞 Telefone' : '🏪 Presencial'}
+                            <OriginBadge origem={enc.canal_origem} compact />
                           </span>
                           <span className="text-xs text-gray-600 font-semibold">
                             {enc.data_agendamento} às {enc.hora_agendamento}
@@ -1545,7 +1539,7 @@ export default function CmsFrontofficeReplicaPage() {
                         setorProducao === s ? 'bg-white text-gray-900 shadow-2xs' : 'text-gray-500'
                       }`}
                     >
-                      {s === 'todos' ? 'Todos os Setores' : s === 'padaria' ? '🥖 Padaria' : '🎂 Pastelaria'}
+                      {s === 'todos' ? 'Todos os Setores' : s === 'padaria' ? 'Padaria' : 'Pastelaria'}
                     </button>
                   ))}
                 </div>
@@ -1569,7 +1563,7 @@ export default function CmsFrontofficeReplicaPage() {
                       <span className="text-[10px] bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded font-bold">08:30</span>
                     </div>
                     <p className="text-xs font-black text-gray-900">Manuel Silva</p>
-                    <p className="text-[11px] text-gray-600">🥖 2x Pão de Arouca • 🎂 1x Pão de Ló</p>
+                    <p className="text-[11px] text-gray-600">2x Pão de Arouca • 1x Pão de Ló</p>
                     <button type="button" className="w-full py-1.5 bg-amber-500 hover:bg-amber-600 text-stone-950 text-[10px] font-black uppercase rounded-lg">
                       Iniciar Fornada
                     </button>
@@ -1592,7 +1586,7 @@ export default function CmsFrontofficeReplicaPage() {
                       <span className="text-[10px] bg-blue-100 text-blue-900 px-1.5 py-0.5 rounded font-bold">10:00</span>
                     </div>
                     <p className="text-xs font-black text-gray-900">D. Maria Teresa Rocha</p>
-                    <p className="text-[11px] text-gray-600">🍞 2x Broa de Milho • 🧁 6x Castanhas</p>
+                    <p className="text-[11px] text-gray-600">2x Broa de Milho • 6x Castanhas</p>
                     <button type="button" className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase rounded-lg">
                       Concluir Fabrico
                     </button>
@@ -1615,9 +1609,9 @@ export default function CmsFrontofficeReplicaPage() {
                       <span className="text-[10px] bg-emerald-100 text-emerald-900 px-1.5 py-0.5 rounded font-bold">07:30</span>
                     </div>
                     <p className="text-xs font-black text-gray-900">Café & Snack Central</p>
-                    <p className="text-[11px] text-gray-600">🥖 25x Pão de Arouca • 🥐 15x Croissant</p>
+                    <p className="text-[11px] text-gray-600">25x Pão de Arouca • 15x Croissant</p>
                     <span className="block text-center text-[10px] font-bold text-emerald-700 bg-emerald-50 py-1 rounded">
-                      ✅ Fornada Concluída
+                      Fornada Concluída
                     </span>
                   </div>
                 </div>
@@ -1734,8 +1728,8 @@ export default function CmsFrontofficeReplicaPage() {
                   <div className="p-2.5 bg-stone-50 rounded-xl text-xs text-gray-700 space-y-1">
                     {enc.itens.map((it, idx) => (
                       <div key={idx} className="flex justify-between">
-                        <span>{it.emoji} {it.quantidade}x {it.nome}</span>
-                        <span className="font-bold">✓</span>
+                        <span>{it.quantidade}x {it.nome}</span>
+                        <Check className="h-3.5 w-3.5 text-emerald-600" />
                       </div>
                     ))}
                   </div>
@@ -1840,7 +1834,7 @@ export default function CmsFrontofficeReplicaPage() {
                     <span>ENC-2026-103 • Café & Snack Central</span>
                     <span>07:30</span>
                   </div>
-                  <p className="text-gray-500 text-[11px]">📍 Largo da Feira, nº 45, Arouca</p>
+                  <p className="text-gray-500 text-[11px] flex items-center gap-1"><MapPin className="h-3 w-3 text-stone-400 shrink-0" /><span>Largo da Feira, nº 45, Arouca</span></p>
                 </div>
               </div>
 
@@ -1860,7 +1854,7 @@ export default function CmsFrontofficeReplicaPage() {
                     <span>ENC-2026-104 • Restaurante O Pedrógão</span>
                     <span>11:15</span>
                   </div>
-                  <p className="text-gray-500 text-[11px]">📍 Zona Industrial da Farrapa, Lote 4</p>
+                  <p className="text-gray-500 text-[11px] flex items-center gap-1"><MapPin className="h-3 w-3 text-stone-400 shrink-0" /><span>Zona Industrial da Farrapa, Lote 4</span></p>
                 </div>
               </div>
             </div>
@@ -2019,7 +2013,7 @@ export default function CmsFrontofficeReplicaPage() {
                   abaModalTextos === 'marca' ? 'bg-amber-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                🏷️ Identidade & Marca
+                Identidade & Marca
               </button>
               <button
                 type="button"
@@ -2028,7 +2022,7 @@ export default function CmsFrontofficeReplicaPage() {
                   abaModalTextos === 'encomendas' ? 'bg-amber-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                🛍️ Encomendas
+                Encomendas
               </button>
               <button
                 type="button"
@@ -2037,7 +2031,7 @@ export default function CmsFrontofficeReplicaPage() {
                   abaModalTextos === 'producao' ? 'bg-amber-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                👨‍🍳 Produção
+                Produção
               </button>
               <button
                 type="button"
@@ -2046,7 +2040,7 @@ export default function CmsFrontofficeReplicaPage() {
                   abaModalTextos === 'loja' ? 'bg-amber-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                🏪 Balcão / Loja
+                Balcão / Loja
               </button>
               <button
                 type="button"
@@ -2055,7 +2049,7 @@ export default function CmsFrontofficeReplicaPage() {
                   abaModalTextos === 'entregas' ? 'bg-amber-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                🚚 Entregas
+                Entregas
               </button>
               <button
                 type="button"
@@ -2064,7 +2058,7 @@ export default function CmsFrontofficeReplicaPage() {
                   abaModalTextos === 'gestao' ? 'bg-amber-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                📊 Gestão
+                Gestão
               </button>
             </div>
 
@@ -2645,8 +2639,8 @@ export default function CmsFrontofficeReplicaPage() {
                     onChange={(e) => setProdutoEmEdicao({ ...produtoEmEdicao, categoria: e.target.value as any })}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:outline-none"
                   >
-                    <option value="padaria">🥖 Padaria</option>
-                    <option value="pastelaria">🎂 Pastelaria</option>
+                    <option value="padaria">Padaria</option>
+                    <option value="pastelaria">Pastelaria</option>
                   </select>
                 </div>
 
@@ -2658,7 +2652,7 @@ export default function CmsFrontofficeReplicaPage() {
                     type="text"
                     value={produtoEmEdicao.emoji || ''}
                     onChange={(e) => setProdutoEmEdicao({ ...produtoEmEdicao, emoji: e.target.value })}
-                    placeholder="🥖, 🎂, 🍞, 🥧, 👑"
+                    placeholder="Código ou Referência SKU"
                     className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:outline-none"
                   />
                 </div>

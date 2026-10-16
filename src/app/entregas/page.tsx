@@ -49,8 +49,13 @@ import {
   Globe,
   FileSpreadsheet,
   Building2,
-  Package
+  Package,
+  ChevronUp,
+  ChevronDown,
+  Home
 } from 'lucide-react';
+import { StatusBadge } from '../../components/StatusBadge';
+import { OriginBadge } from '../../components/InproovalBadges';
 
 export default function EntregasPage() {
   const { t } = useTranslation();
@@ -599,16 +604,18 @@ export default function EntregasPage() {
             <button
               type="button"
               onClick={() => setMostrarPool(!mostrarPool)}
-              className="text-xs font-bold text-amber-800 hover:text-amber-950 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-3 py-1.5 rounded-xl transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 hover:text-amber-950 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-3 py-1.5 rounded-xl transition cursor-pointer"
             >
-              {mostrarPool ? 'Ocultar Pool ▲' : 'Mostrar Pool ▼'}
+              <span>{mostrarPool ? 'Ocultar Pool' : 'Mostrar Pool'}</span>
+              {mostrarPool ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
             </button>
           </div>
 
           {mostrarPool && (
             encomendasPool.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/50 p-6 text-center text-xs text-amber-800 font-medium">
-                ✅ Todas as encomendas de entrega ao domicílio de hoje já estão atribuídas às carrinhas!
+              <div className="rounded-xl border border-dashed border-emerald-300 bg-emerald-50/50 p-6 text-center text-xs text-emerald-800 font-medium flex items-center justify-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                <span>Todas as encomendas de entrega ao domicílio de hoje já estão atribuídas às carrinhas!</span>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -630,16 +637,7 @@ export default function EntregasPage() {
                           <span className="font-mono font-black text-xs text-amber-950 bg-amber-200/80 px-1.5 py-0.5 rounded">
                             {enc.codigo}
                           </span>
-                          <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded-md border flex items-center gap-0.5 ${
-                            enc.canal_origem === 'site_online' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' :
-                            enc.canal_origem === 'whatsapp' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
-                            enc.canal_origem === 'telefone' ? 'bg-amber-50 text-amber-800 border-amber-200' :
-                            'bg-stone-100 text-stone-700 border-stone-200'
-                          }`}>
-                            {enc.canal_origem === 'site_online' ? '🌐 Site' :
-                             enc.canal_origem === 'whatsapp' ? '💬 WhatsApp' :
-                             enc.canal_origem === 'telefone' ? '📞 Telefone' : '🏪 Presencial'}
-                          </span>
+                          <OriginBadge origem={enc.canal_origem} compact />
                         </div>
                         <span className="text-[11px] font-bold text-stone-600 flex items-center gap-1">
                           <Clock className="h-3 w-3 text-amber-600" />
@@ -796,9 +794,10 @@ export default function EntregasPage() {
               <button
                 type="button"
                 onClick={() => setMostrarResumoCarga(!mostrarResumoCarga)}
-                className="text-[11px] font-bold text-blue-700 hover:text-blue-900 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 cursor-pointer"
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-blue-700 hover:text-blue-900 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 cursor-pointer"
               >
-                {mostrarResumoCarga ? 'Ocultar Carga ▲' : 'Ver Carga por Carrinha ▼'}
+                <span>{mostrarResumoCarga ? 'Ocultar Carga' : 'Ver Carga por Carrinha'}</span>
+                {mostrarResumoCarga ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
               </button>
             </div>
 
@@ -891,8 +890,18 @@ export default function EntregasPage() {
                               {totalUnidades} un.
                             </span>
                           </div>
-                          <p className="text-[10px] font-bold text-stone-500 mb-2">
-                            {isCarro5 ? '🏢 Clientes Empresariais (B2B)' : '🏠 Particulares (Base Fixa + Extra)'}
+                          <p className="text-[10px] font-bold text-stone-500 mb-2 flex items-center gap-1">
+                            {isCarro5 ? (
+                              <>
+                                <Building2 className="h-3 w-3 text-indigo-600 shrink-0" />
+                                <span>Clientes Empresariais (B2B)</span>
+                              </>
+                            ) : (
+                              <>
+                                <Home className="h-3 w-3 text-blue-600 shrink-0" />
+                                <span>Particulares (Base Fixa + Extra)</span>
+                              </>
+                            )}
                           </p>
 
                           <div className="space-y-1 max-h-32 overflow-y-auto pr-1 text-[11px]">
@@ -914,8 +923,15 @@ export default function EntregasPage() {
                           </div>
                         </div>
 
-                        <div className="mt-2 pt-1.5 border-t border-stone-200/70 text-[10px] font-bold text-blue-700 text-right">
-                          {isSelected ? '✓ Filtro Ativo' : 'Filtrar paragens →'}
+                        <div className="mt-2 pt-1.5 border-t border-stone-200/70 text-[10px] font-bold text-blue-700 text-right flex items-center justify-end gap-1">
+                          {isSelected ? (
+                            <>
+                              <Check className="h-3 w-3 text-blue-700" />
+                              <span>Filtro Ativo</span>
+                            </>
+                          ) : (
+                            <span>Filtrar paragens &rarr;</span>
+                          )}
                         </div>
                       </div>
                     );
@@ -979,7 +995,13 @@ export default function EntregasPage() {
                     ? 'bg-amber-500 animate-pulse' 
                     : 'bg-stone-400'
                 }`}>
-                  {infoRota.estado === 'concluida' ? '🏁' : infoRota.estado === 'em_curso' ? '🚚' : '⏳'}
+                  {infoRota.estado === 'concluida' ? (
+                    <Flag className="h-5 w-5" />
+                  ) : infoRota.estado === 'em_curso' ? (
+                    <Truck className="h-5 w-5" />
+                  ) : (
+                    <Clock className="h-5 w-5" />
+                  )}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -1122,16 +1144,7 @@ export default function EntregasPage() {
                           }`}>
                             {enc.codigo}
                           </span>
-                          <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded-md border flex items-center gap-0.5 ${
-                            enc.canal_origem === 'site_online' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' :
-                            enc.canal_origem === 'whatsapp' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
-                            enc.canal_origem === 'telefone' ? 'bg-amber-50 text-amber-800 border-amber-200' :
-                            'bg-stone-100 text-stone-700 border-stone-200'
-                          }`}>
-                            {enc.canal_origem === 'site_online' ? '🌐 Cliente App' :
-                             enc.canal_origem === 'whatsapp' ? '💬 WhatsApp' :
-                             enc.canal_origem === 'telefone' ? '📞 Telefone' : '🏪 Presencial'}
-                          </span>
+                          <OriginBadge origem={enc.canal_origem} compact />
                           {enc.carrinha_nome && (
                             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                               isActiveStop && infoRota.estado === 'em_curso' ? 'bg-blue-800 text-blue-100' : 'bg-stone-200 text-stone-800'
@@ -1220,9 +1233,7 @@ export default function EntregasPage() {
                                 )}
                               </span>
                               {isRecusado && (
-                                <span className="ml-2 px-1.5 py-0.5 rounded bg-red-100 text-red-800 text-[9px] font-black uppercase no-underline shrink-0">
-                                  ✕ Não Produzido
-                                </span>
+                                <StatusBadge variant="alerta" label="Não Produzido" className="ml-2 text-[10px] py-0 px-1.5 no-underline shrink-0" />
                               )}
                             </li>
                           );
@@ -1230,8 +1241,9 @@ export default function EntregasPage() {
                       </ul>
                       {enc.observacoes_producao && (
                         <div className="mt-2 rounded-xl bg-amber-50 border border-amber-200 p-2.5 text-xs text-amber-950">
-                          <span className="text-[10px] font-black uppercase text-amber-800 block mb-0.5">
-                            💬 Observações da Produção:
+                          <span className="text-[10px] font-bold uppercase text-amber-800 flex items-center gap-1 mb-0.5">
+                            <MessageSquare className="h-3 w-3 text-amber-700 shrink-0" />
+                            Observações da Produção:
                           </span>
                           <p className="font-medium">{enc.observacoes_producao}</p>
                         </div>

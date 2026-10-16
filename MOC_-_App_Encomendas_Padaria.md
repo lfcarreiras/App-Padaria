@@ -72,7 +72,8 @@ Consulte o histórico detalhado em `[[CHANGELOG]]`.
 
 | Versão | Tag Git | Commit | Data | Marco Funcional Principal |
 | :--- | :--- | :--- | :--- | :--- |
-| **v2.1.3** | `v2.1.3` | `HEAD` | 2026-10-12 | Autenticação no Portal Direto de Clientes (`/encomendar`) com Password definida pelo utilizador, E-mail obrigatório e Recuperação por E-mail via Supabase Auth + Hardening RLS Supabase + Remoção do pacote externo TinaCMS |
+| **v2.2.0** | `v2.2.0` | `80d2d7a` | 2026-10-16 | Adoção integral da Norma Técnica de Iconografia, Estados e Design de Interação Inprooval® (Zero Emojis, `StatusBadge` com micro-ponto semafórico 6px, `OriginBadge`, `SectorBadge` e higienização vetorial de todos os cockpits) |
+| **v2.1.3** | `v2.1.3` | `e99f6aa` | 2026-10-12 | Autenticação no Portal Direto de Clientes (`/encomendar`) com Password definida pelo utilizador, E-mail obrigatório e Recuperação por E-mail via Supabase Auth + Hardening RLS Supabase + Remoção do pacote externo TinaCMS |
 | **v2.1.2** | `v2.1.2` | `a36c995` | 2026-10-12 | Edição/correção e eliminação de artigos na Base Fixa Diária de Clientes Particulares (1.º ao 4.º Carro) + Extração e Importação Excel (`.xlsx`) tal como no B2B |
 | **v2.1.1** | `v2.1.1` | `b19e04f` | 2026-10-12 | 1.ª Ronda Completa do Inprooval® Bulletproof Agent Swarm (Readiness Score: 99,1%): Hardening OWASP, Proteção de Dados, Cache Offline Carrinhas, Talão Térmico Parcelar e Relatório `DOC 06` |
 | **v2.1.0** | `v2.1.0` | `1a8eea1` | 2026-10-12 | Triagem parcelar artigo a artigo nos alertas urgentes (<3h), feedback parcelar na App Cliente e via WhatsApp, WhatsApp automático na Loja e Suite Documental Viva (5 Documentos + PDFs) |

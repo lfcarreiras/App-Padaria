@@ -30,8 +30,11 @@ import {
   Eye,
   ArrowRightLeft,
   MessageSquare,
-  Globe
+  Globe,
+  Check
 } from 'lucide-react';
+import { StatusBadge } from '../../components/StatusBadge';
+import { OriginBadge } from '../../components/InproovalBadges';
 
 export default function EntregaLojaPage() {
   const { t } = useTranslation();
@@ -442,41 +445,33 @@ export default function EntregaLojaPage() {
                                     <div>
                                       <div className="flex items-center gap-1.5 flex-wrap">
                                         <span className="text-xs font-mono font-bold text-gray-600">{enc.codigo}</span>
-                                        <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded-md border flex items-center gap-0.5 ${
-                                          enc.canal_origem === 'site_online' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' :
-                                          enc.canal_origem === 'whatsapp' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
-                                          enc.canal_origem === 'telefone' ? 'bg-amber-50 text-amber-800 border-amber-200' :
-                                          'bg-stone-100 text-stone-700 border-stone-200'
-                                        }`}>
-                                          {enc.canal_origem === 'site_online' ? '🌐 Site' :
-                                           enc.canal_origem === 'whatsapp' ? '💬 WhatsApp' :
-                                           enc.canal_origem === 'telefone' ? '📞 Telefone' : '🏪 Presencial'}
-                                        </span>
-                                        <span className={`px-2 py-0.5 text-[9px] font-black uppercase rounded-md border ${
-                                          enc.estado === 'cancelado'
-                                            ? 'bg-red-100 text-red-900 border-red-300'
-                                            : enc.estado === 'entregue'
-                                            ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                                            : enc.estado === 'pronto_loja' || enc.estado === 'em_rota'
-                                            ? 'bg-blue-100 text-blue-900 border-blue-300'
-                                            : enc.estado === 'em_producao'
-                                            ? 'bg-amber-100 text-amber-900 border-amber-300'
-                                            : 'bg-stone-100 text-stone-800 border-stone-300'
-                                        }`}>
-                                          {enc.estado === 'cancelado'
-                                            ? '❌ Cancelado / Recusado'
-                                            : enc.estado === 'entregue'
-                                            ? '✅ Entregue'
-                                            : enc.estado === 'pronto_loja' || enc.estado === 'em_rota'
-                                            ? '🚚 Em Distribuição / Pronto'
-                                            : enc.estado === 'em_producao'
-                                            ? '👨‍🍳 Em Produção'
-                                            : '📝 Encomendado'}
-                                        </span>
+                                        <OriginBadge origem={enc.canal_origem} compact />
+                                        <StatusBadge
+                                          variant={
+                                            enc.estado === 'cancelado'
+                                              ? 'alerta'
+                                              : enc.estado === 'entregue'
+                                              ? 'concluido'
+                                              : enc.estado === 'pronto_loja' || enc.estado === 'em_rota'
+                                              ? 'concluido'
+                                              : enc.estado === 'em_producao'
+                                              ? 'em_curso'
+                                              : 'aguardar'
+                                          }
+                                          label={
+                                            enc.estado === 'cancelado'
+                                              ? 'Cancelado'
+                                              : enc.estado === 'entregue'
+                                              ? 'Entregue'
+                                              : enc.estado === 'pronto_loja' || enc.estado === 'em_rota'
+                                              ? 'Pronta na Loja'
+                                              : enc.estado === 'em_producao'
+                                              ? 'Em Fabrico'
+                                              : 'Encomendado'
+                                          }
+                                        />
                                         {enc.estado !== 'cancelado' && enc.itens.some((i) => i.estado_producao === 'recusado') && (
-                                          <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-md bg-amber-100 text-amber-900 border border-amber-300">
-                                            ⚠️ Produção Parcial
-                                          </span>
+                                          <StatusBadge variant="alerta" label="Produção Parcial" />
                                         )}
                                       </div>
                                       <h4 className="text-sm font-bold text-gray-900">{enc.cliente.nome}</h4>
@@ -521,9 +516,7 @@ export default function EntregaLojaPage() {
                                               )}
                                             </span>
                                             {isRecusado && (
-                                              <span className="ml-2 px-1.5 py-0.5 rounded bg-red-100 text-red-800 text-[9px] font-black uppercase no-underline">
-                                                ✕ Não Produzido
-                                              </span>
+                                              <StatusBadge variant="alerta" label="Não Produzido" className="ml-2 text-[10px] py-0 px-1.5 no-underline" />
                                             )}
                                           </li>
                                         );
@@ -533,8 +526,9 @@ export default function EntregaLojaPage() {
 
                                   {enc.observacoes_producao && (
                                     <div className="rounded-xl bg-amber-50 border border-amber-200 p-2.5 text-xs text-amber-950">
-                                      <span className="text-[10px] font-black uppercase text-amber-800 block mb-0.5">
-                                        💬 Observações da Produção:
+                                      <span className="text-[10px] font-bold uppercase text-amber-800 flex items-center gap-1 mb-0.5">
+                                        <MessageSquare className="h-3 w-3 text-amber-700 shrink-0" />
+                                        Observações da Produção:
                                       </span>
                                       <p className="font-medium">{enc.observacoes_producao}</p>
                                     </div>
@@ -565,8 +559,8 @@ export default function EntregaLojaPage() {
                                               : 'bg-gray-400 cursor-not-allowed opacity-60'
                                           }`}
                                         >
-                                          <MessageSquare className="h-4 w-4" />
-                                          ✅ Dar Encomenda como Pronta p/ Entrega (Abre WhatsApp ao Cliente)
+                                          <Check className="h-4 w-4" />
+                                          Dar Encomenda como Pronta p/ Entrega (WhatsApp)
                                         </button>
                                       ) : (
                                         <a
@@ -576,7 +570,7 @@ export default function EntregaLojaPage() {
                                           className="w-full flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-black bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 transition"
                                         >
                                           <MessageSquare className="h-4 w-4 text-emerald-600" />
-                                          📲 Encomenda Pronta na Loja • Reenviar WhatsApp ao Cliente
+                                          Encomenda Pronta na Loja • Reenviar WhatsApp
                                         </a>
                                       )}
                                     </div>

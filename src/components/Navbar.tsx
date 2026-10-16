@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Store, ShoppingBag, ChefHat, Truck, BarChart3, Globe, LogOut, UserCheck, Eye } from 'lucide-react';
+import { Store, ShoppingBag, ChefHat, Truck, BarChart3, Globe, LogOut, UserCheck, Eye, Settings } from 'lucide-react';
 import { LOJAS_MOCK } from '../lib/mockData';
 import { useTranslation } from '../lib/i18n';
 import { useAuth, PainelApp } from '../lib/authContext';
@@ -91,14 +91,28 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId = 'todas', onSele
                 {configMarca.nomeEmpresa || 'Padaria da Vila'}
               </span>
               {cockpitAtivo && (
-                <span className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded inline-block mt-0.5">
-                  {cockpitAtivo === 'loja'
-                    ? `🏪 ${lojaTrabalhoNome || 'Loja Física'}`
-                    : cockpitAtivo === 'producao'
-                    ? '👨‍🍳 Centro de Produção'
-                    : cockpitAtivo === 'carrinhas'
-                    ? '🚚 Carrinhas & Distribuição'
-                    : '⚙️ Cockpit de Gestão'}
+                <span className="inline-flex items-center gap-1.5 text-[10px] font-medium text-slate-700 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full mt-0.5">
+                  {cockpitAtivo === 'loja' ? (
+                    <>
+                      <Store className="h-3 w-3 text-slate-500 shrink-0" />
+                      <span>{lojaTrabalhoNome || 'Loja Física'}</span>
+                    </>
+                  ) : cockpitAtivo === 'producao' ? (
+                    <>
+                      <ChefHat className="h-3 w-3 text-slate-500 shrink-0" />
+                      <span>Centro de Produção</span>
+                    </>
+                  ) : cockpitAtivo === 'carrinhas' ? (
+                    <>
+                      <Truck className="h-3 w-3 text-slate-500 shrink-0" />
+                      <span>Carrinhas & Distribuição</span>
+                    </>
+                  ) : (
+                    <>
+                      <Settings className="h-3 w-3 text-slate-500 shrink-0" />
+                      <span>Cockpit de Gestão</span>
+                    </>
+                  )}
                 </span>
               )}
             </div>
@@ -146,12 +160,21 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId = 'todas', onSele
 
         {/* Área do Utilizador & Idioma */}
         <div className="flex items-center gap-1.5 sm:gap-2 pl-1 sm:pl-2 border-l border-gray-200 shrink-0">
-          {!isOnline && (
+          {isOnline ? (
             <span
-              className="px-2 py-1 rounded-lg bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black uppercase tracking-wider"
+              className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0"
+              title="Ligação em tempo real ativa"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+              <span>Ligado</span>
+            </span>
+          ) : (
+            <span
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 shrink-0"
               title="Sem ligação à Internet — A operar em modo Cache Offline Resiliente"
             >
-              ⚡ Offline (Cache)
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+              <span>Offline (Cache)</span>
             </span>
           )}
           {usuario ? (

@@ -80,7 +80,10 @@ import {
   Phone,
   MessageSquare,
   Globe
+  Flame
 } from 'lucide-react';
+import { StatusBadge } from '../../components/StatusBadge';
+import { OriginBadge, SectorBadge } from '../../components/InproovalBadges';
 
 export default function AdminPage() {
   const { t, language } = useTranslation();
@@ -1773,7 +1776,7 @@ export default function AdminPage() {
                         <div>
                           <span className="font-bold text-gray-900">{nome}</span>
                           <span className="text-[10px] text-gray-500 block uppercase">
-                            {dados.setor === 'padaria' ? `🥖 ${t.categoryBakery}` : `🎂 ${t.categoryPastry}`}
+                            <span className="inline-flex items-center gap-1.5">{dados.setor === 'padaria' ? <Flame className="w-3.5 h-3.5 text-amber-600" /> : <Layers className="w-3.5 h-3.5 text-purple-600" />}<span>{dados.setor === 'padaria' ? t.categoryBakery : t.categoryPastry}</span></span>
                           </span>
                         </div>
                         <span className="font-black text-sm text-bakery-800">
@@ -1841,7 +1844,7 @@ export default function AdminPage() {
                           <div>
                             <p className="font-bold text-gray-900">{a.nome}</p>
                             <span className="text-[10px] text-gray-500 uppercase">
-                              {a.setor === 'padaria' ? '🥖 Padaria' : '🎂 Pastelaria'}
+                              <SectorBadge setor={a.setor} />
                             </span>
                           </div>
                         </div>
@@ -2035,9 +2038,7 @@ export default function AdminPage() {
                               })}
                               className="text-[9px] text-red-600 hover:underline font-bold px-1"
                               title="Limpar filtros"
-                            >
-                              ✕
-                            </button>
+                            ><X className="h-4 w-4" /></button>
                           )}
                         </div>
                       </th>
@@ -2060,16 +2061,9 @@ export default function AdminPage() {
                           <tr key={enc.id} className="hover:bg-gray-50 transition">
                             <td className="py-2.5 px-3">
                               <span className="font-mono font-bold text-gray-900 block">{enc.codigo}</span>
-                              <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold border mt-0.5 ${
-                                enc.canal_origem === 'site_online' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' :
-                                enc.canal_origem === 'whatsapp' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
-                                enc.canal_origem === 'telefone' ? 'bg-amber-50 text-amber-800 border-amber-200' :
-                                'bg-stone-100 text-stone-700 border-stone-200'
-                              }`}>
-                                {enc.canal_origem === 'site_online' ? '🌐 Site' :
-                                 enc.canal_origem === 'whatsapp' ? '💬 WhatsApp' :
-                                 enc.canal_origem === 'telefone' ? '📞 Telefone' : '🏪 Presencial'}
-                              </span>
+                              <div className="mt-0.5">
+                                <OriginBadge origem={enc.canal_origem} compact />
+                              </div>
                             </td>
                             <td className="py-2.5 px-3">
                               <p className="font-bold text-gray-900">{enc.cliente.nome}</p>
@@ -2079,7 +2073,8 @@ export default function AdminPage() {
                               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${
                                 enc.tipo === 'entrega_domicilio' ? 'bg-blue-50 text-blue-800' : 'bg-amber-50 text-amber-800'
                               }`}>
-                                {enc.tipo === 'entrega_domicilio' ? `🚚 ${enc.carrinha_nome || 'Carrinha'}` : `🏪 ${enc.loja_nome}`}
+                                {enc.tipo === 'entrega_domicilio' ? <Truck className="h-3 w-3 text-cyan-600 shrink-0" /> : <Store className="h-3 w-3 text-amber-600 shrink-0" />}
+                                <span>{enc.tipo === 'entrega_domicilio' ? (enc.carrinha_nome || 'Carrinha') : enc.loja_nome}</span>
                               </span>
                             </td>
                             <td className="py-2.5 px-3 font-medium text-gray-700">{enc.data_agendamento}</td>
@@ -2353,7 +2348,7 @@ export default function AdminPage() {
                       <th className="py-2.5 px-3 font-black uppercase text-[11px]">Produto / Artigo (Mapa Diário)</th>
                       {['1º Carro', '2º Carro', '3º Carro', '4º Carro'].map((nomeCar, i) => (
                         <th key={nomeCar} className="py-2.5 px-3 font-black text-center uppercase text-[11px] w-32">
-                          🚚 {carrinhas[i]?.identificador || nomeCar}
+                          <span className="inline-flex items-center gap-1.5"><Truck className="h-3.5 w-3.5 text-cyan-600" /><span>{carrinhas[i]?.identificador || nomeCar}</span></span>
                         </th>
                       ))}
                       <th className="py-2.5 px-3 font-black text-right uppercase text-[11px] w-36 bg-blue-100/70">
@@ -2414,16 +2409,14 @@ export default function AdminPage() {
                                   className="px-2 py-1 rounded-lg bg-emerald-600 text-white text-[10px] font-black hover:bg-emerald-700 transition cursor-pointer"
                                   title="Guardar nome corrigido"
                                 >
-                                  ✓ Guardar
+                                  Guardar
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => setArtigoBaseFixaEmEdicao(null)}
                                   className="px-1.5 py-1 rounded-lg bg-gray-200 text-gray-700 text-[10px] font-bold hover:bg-gray-300 transition cursor-pointer"
                                   title="Cancelar edição"
-                                >
-                                  ✕
-                                </button>
+                                ><X className="h-4 w-4" /></button>
                               </div>
                             ) : (
                               <div className="flex items-center justify-between gap-2">
@@ -2662,7 +2655,7 @@ export default function AdminPage() {
                           </td>
                           <td className="py-2.5 px-3">
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-100 text-indigo-900 font-black text-[10px]">
-                              🚚 5º Carro
+                              <span className="inline-flex items-center gap-1.5"><Truck className="h-3.5 w-3.5 text-cyan-600" /><span>5º Carro</span></span>
                             </span>
                           </td>
                           <td className="py-2.5 px-3">
@@ -2826,8 +2819,8 @@ export default function AdminPage() {
                           className="w-full py-1 px-1.5 text-xs bg-white border border-gray-200 rounded-lg font-bold focus:outline-hidden"
                         >
                           <option value="todas">Todos os setores</option>
-                          <option value="padaria">🥖 Padaria</option>
-                          <option value="pastelaria">🎂 Pastelaria</option>
+                          <option value="padaria">Padaria</option>
+                          <option value="pastelaria">Pastelaria</option>
                         </select>
                       </th>
                       <th className="py-2.5 px-3 font-black text-gray-900 w-32">
@@ -2894,7 +2887,7 @@ export default function AdminPage() {
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
                               p.categoria === 'padaria' ? 'bg-amber-100 text-amber-900' : 'bg-pink-100 text-pink-900'
                             }`}>
-                              {p.categoria === 'padaria' ? '🥖 Padaria' : '🎂 Pastelaria'}
+                              <SectorBadge setor={p.categoria} />
                             </span>
                           </td>
                           <td className="py-2 px-3">
@@ -2906,7 +2899,7 @@ export default function AdminPage() {
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black ${
                               p.ativo ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-200 text-stone-700'
                             }`}>
-                              {p.ativo ? '● Ativo' : '○ Inativo'}
+                              <StatusBadge variant={p.ativo ? 'concluido' : 'inativo'} label={p.ativo ? 'Ativo' : 'Inativo'} />
                             </span>
                           </td>
                           <td className="py-2 px-3 text-right">
@@ -3027,7 +3020,7 @@ export default function AdminPage() {
                 <label htmlFor={temPermissaoEdicaoGestao ? "excel-upload" : undefined} className={`flex flex-col items-center ${temPermissaoEdicaoGestao ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
                   <FileSpreadsheet className="h-10 w-10 text-emerald-600 mb-2" />
                   <span className="text-xs font-bold text-gray-800">
-                    {!temPermissaoEdicaoGestao ? `🚫 ${t.readOnlyMode} - ${t.importExcel}` : arquivoImportado ? `Ficheiro: ${arquivoImportado}` : 'Clique para carregar ficheiro Excel (.xlsx / .xls)'}
+                    {!temPermissaoEdicaoGestao ? `${t.readOnlyMode} - ${t.importExcel}` : arquivoImportado ? `Ficheiro: ${arquivoImportado}` : 'Clique para carregar ficheiro Excel (.xlsx / .xls)'}
                   </span>
                   <span className="text-[11px] text-gray-400 mt-1">Suporta ficheiros Excel nativos (.xlsx e .xls) e folhas múltiplas (Padaria / Pastelaria)</span>
                 </label>
@@ -4200,7 +4193,7 @@ export default function AdminPage() {
                               : 'text-gray-500 hover:text-gray-900'
                           }`}
                         >
-                          🚫 {t.levelNoAccess}
+                          <span className="inline-flex items-center gap-1.5"><Lock className="h-3.5 w-3.5 text-red-600" /><span>{t.levelNoAccess}</span></span>
                         </button>
                         <button
                           type="button"
@@ -4211,7 +4204,7 @@ export default function AdminPage() {
                               : 'text-gray-500 hover:text-gray-900'
                           }`}
                         >
-                          👁️ {t.levelReadOnly}
+                          <span className="inline-flex items-center gap-1.5"><Eye className="h-3.5 w-3.5 text-blue-600" /><span>{t.levelReadOnly}</span></span>
                         </button>
                         <button
                           type="button"
@@ -4222,7 +4215,7 @@ export default function AdminPage() {
                               : 'text-gray-500 hover:text-gray-900'
                           }`}
                         >
-                          ✏️ {t.levelFullEdit}
+                          <span className="inline-flex items-center gap-1.5"><Edit3 className="h-3.5 w-3.5 text-emerald-600" /><span>{t.levelFullEdit}</span></span>
                         </button>
                       </div>
                     </div>
@@ -4460,9 +4453,7 @@ export default function AdminPage() {
                 type="button"
                 onClick={() => setModalRegistoAvulsoAberto(false)}
                 className="text-gray-400 hover:text-gray-600 text-sm font-bold cursor-pointer"
-              >
-                ✕
-              </button>
+              ><X className="h-4 w-4" /></button>
             </div>
 
             {/* Sub-abas do Modal */}
@@ -4474,7 +4465,7 @@ export default function AdminPage() {
                   subAbaRegistoAvulso === 'cliente' ? 'bg-white text-bakery-900 shadow-2xs' : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                👤 Cliente
+                <span className="inline-flex items-center gap-1.5"><User className="h-3.5 w-3.5" /><span>Cliente</span></span>
               </button>
               <button
                 type="button"
@@ -4483,7 +4474,7 @@ export default function AdminPage() {
                   subAbaRegistoAvulso === 'produto' ? 'bg-white text-bakery-900 shadow-2xs' : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                🥖 Produto
+                <span className="inline-flex items-center gap-1.5"><Flame className="h-3.5 w-3.5" /><span>Produto</span></span>
               </button>
             </div>
 
@@ -4589,8 +4580,8 @@ export default function AdminPage() {
                       onChange={(e) => setNovoProduto({ ...novoProduto, categoria: e.target.value as any })}
                       className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold"
                     >
-                      <option value="padaria">🥖 Padaria</option>
-                      <option value="pastelaria">🎂 Pastelaria</option>
+                      <option value="padaria">Padaria</option>
+                      <option value="pastelaria">Pastelaria</option>
                     </select>
                   </div>
                   <div>
@@ -4642,9 +4633,7 @@ export default function AdminPage() {
                 type="button"
                 onClick={() => setProdutoEmEdicaoModal(null)}
                 className="text-gray-400 hover:text-gray-600 text-sm font-bold cursor-pointer"
-              >
-                ✕
-              </button>
+              ><X className="h-4 w-4" /></button>
             </div>
 
             <form onSubmit={handleSalvarEdicaoProdutoModal} className="space-y-3">
@@ -4668,8 +4657,8 @@ export default function AdminPage() {
                     onChange={(e) => setProdutoEmEdicaoModal({ ...produtoEmEdicaoModal, categoria: e.target.value as any })}
                     className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold"
                   >
-                    <option value="padaria">🥖 Padaria</option>
-                    <option value="pastelaria">🎂 Pastelaria</option>
+                    <option value="padaria">Padaria</option>
+                    <option value="pastelaria">Pastelaria</option>
                   </select>
                 </div>
 
@@ -4738,9 +4727,7 @@ export default function AdminPage() {
                 type="button"
                 onClick={() => setClienteB2BEmEdicao(null)}
                 className="text-gray-400 hover:text-gray-600 text-sm font-bold cursor-pointer"
-              >
-                ✕
-              </button>
+              ><X className="h-4 w-4" /></button>
             </div>
 
             <form onSubmit={handleSalvarClienteB2BModal} className="space-y-4 overflow-y-auto pr-1 flex-1">
