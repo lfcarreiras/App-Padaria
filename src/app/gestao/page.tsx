@@ -79,8 +79,8 @@ import {
   Sparkles,
   Phone,
   MessageSquare,
-  Globe
-  Flame
+  Globe,
+  Flame,
 } from 'lucide-react';
 import { StatusBadge } from '../../components/StatusBadge';
 import { OriginBadge, SectorBadge } from '../../components/InproovalBadges';
