@@ -4152,7 +4152,8 @@ export default function AdminPage() {
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
         {/* ----------------- ABA 5: GESTÃO DE ACESSOS & UTILIZADORES (100% NA APP) ----------------- */}
         {activeTab === 'acessos' && (
