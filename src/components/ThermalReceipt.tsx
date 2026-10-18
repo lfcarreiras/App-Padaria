@@ -17,7 +17,7 @@ interface ThermalReceiptProps {
 
 export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja, config, onClose }) => {
   const { t, language } = useTranslation();
-  const cfg = config || getReceiptConfig();
+  const cfg = config || getReceiptConfig(encomenda.loja_id || loja?.id);
   const tinaMarca = obterConfiguracaoMarca();
   const [montado, setMontado] = useState(false);
 

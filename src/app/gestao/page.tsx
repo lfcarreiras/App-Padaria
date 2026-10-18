@@ -127,8 +127,21 @@ export default function AdminPage() {
   const [carrinhas, setCarrinhas] = useState<Carrinha[]>(CARRINHAS_MOCK);
   const [perfis, setPerfis] = useState<PerfilUtilizador[]>([]);
 
+  // Carrinhas ativas na Base Diária regular (excluindo Carrinha 5 que é exclusiva da rota B2B)
+  const carrinhasBaseDiaria = useMemo(() => {
+    return carrinhas.filter(
+      (c) =>
+        c.id !== 'b555db95-c427-4ed5-83fc-01403bd24cf5' &&
+        !c.identificador?.includes('5') &&
+        !c.nome?.includes('5') &&
+        c.matricula !== '55-EM-26'
+    );
+  }, [carrinhas]);
+
   // Configuração do Talão
   const [receiptConfig, setReceiptConfig] = useState<ReceiptConfig>(DEFAULT_RECEIPT_CONFIG);
+  const [lojaSelecionadaTalao, setLojaSelecionadaTalao] = useState<string>('todas');
+  const [feedbackTalao, setFeedbackTalao] = useState<string | null>(null);
   const [encomendaTesteTalão, setEncomendaTesteTalão] = useState<Encomenda | null>(null);
 
   // Edição de Lojas / Carrinhas / Utilizadores
@@ -467,14 +480,14 @@ export default function AdminPage() {
     ];
 
     listaDias.forEach((d) => {
-      const cabecalho = ['Produto_Artigo', ...carrinhas.map((c) => c.identificador || c.nome), 'Total_Dia'];
+      const cabecalho = ['Produto_Artigo', ...carrinhasBaseDiaria.map((c) => c.identificador || c.nome), 'Total_Dia'];
       const linhas: any[] = artigosGrelhaBaseFixa.map((prodNome) => {
-        const qtds = carrinhas.map((c) => obterQtdBaseCarrinha(c.id, d.id, prodNome));
+        const qtds = carrinhasBaseDiaria.map((c) => obterQtdBaseCarrinha(c.id, d.id, prodNome));
         const total = qtds.reduce((a, b) => a + b, 0);
         return [prodNome, ...qtds, total];
       });
 
-      const totaisPorCarrinha = carrinhas.map((c) => {
+      const totaisPorCarrinha = carrinhasBaseDiaria.map((c) => {
         return artigosGrelhaBaseFixa.reduce((acc, prodNome) => acc + obterQtdBaseCarrinha(c.id, d.id, prodNome), 0);
       });
       const grandeTotal = totaisPorCarrinha.reduce((a, b) => a + b, 0);
@@ -1215,7 +1228,12 @@ export default function AdminPage() {
   // Ações de Talão
   const handleSalvarConfigTalao = (e: React.FormEvent) => {
     e.preventDefault();
-    saveReceiptConfig(receiptConfig);
+    saveReceiptConfig(receiptConfig, lojaSelecionadaTalao);
+    const lojaNome = lojaSelecionadaTalao === 'todas'
+      ? 'Todas as Lojas'
+      : (lojas.find((l) => l.id === lojaSelecionadaTalao)?.nome || 'a loja selecionada');
+    setFeedbackTalao(`Configuração do talão guardada com sucesso para ${lojaNome}!`);
+    setTimeout(() => setFeedbackTalao(null), 4000);
     alert(t.success);
   };
 
@@ -2290,12 +2308,22 @@ export default function AdminPage() {
           <div className="space-y-6">
             {/* Secção de Lojas */}
             <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
-              <div className="border-b pb-3">
-                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                  <Store className="h-4 w-4 text-bakery-600" />
-                  {t.storesSectionTitle}
-                </h3>
-                <p className="text-xs text-gray-500">{t.storesSectionDesc}</p>
+              <div className="flex items-center justify-between border-b pb-3">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                    <Store className="h-4 w-4 text-bakery-600" />
+                    {t.storesSectionTitle}
+                  </h3>
+                  <p className="text-xs text-gray-500">{t.storesSectionDesc}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setLojaEmEdicao({ nome: '', codigo: '', morada: '', telefone: '', nif: '', ativo: true })}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-bakery-600 hover:bg-bakery-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Nova Loja
+                </button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -2305,14 +2333,14 @@ export default function AdminPage() {
                       <span className="font-mono font-bold text-bakery-700 bg-bakery-50 px-2 py-0.5 rounded border border-bakery-200">
                         {l.codigo}
                       </span>
-                      {temPermissaoEdicaoGestao && (
-                        <button
-                          onClick={() => setLojaEmEdicao(l)}
-                          className="flex items-center gap-1 font-bold text-blue-600 hover:text-blue-800 bg-white px-2 py-1 rounded-lg border border-gray-200 shadow-2xs"
-                        >
-                          <Edit3 className="h-3 w-3" /> {t.edit}
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => setLojaEmEdicao(l)}
+                        className="flex items-center gap-1 font-bold text-blue-600 hover:text-blue-800 bg-white px-2 py-1 rounded-lg border border-gray-200 shadow-2xs hover:bg-blue-50 transition cursor-pointer"
+                        title="Editar dados desta loja"
+                      >
+                        <Edit3 className="h-3 w-3" /> {t.edit}
+                      </button>
                     </div>
 
                     <h4 className="font-bold text-sm text-gray-900">{l.nome}</h4>
@@ -2336,6 +2364,14 @@ export default function AdminPage() {
                     Gestão e configuração de viaturas da frota para distribuição de encomendas.
                   </p>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setCarrinhaEmEdicao({ identificador: '', matricula: '', loja_id: lojas[0]?.id || '', ativo: true })}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Nova Carrinha
+                </button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -2348,14 +2384,14 @@ export default function AdminPage() {
                       <span className="font-mono font-black text-gray-900 bg-white px-2 py-0.5 rounded border border-gray-300">
                         {c.matricula}
                       </span>
-                      {temPermissaoEdicaoGestao && (
-                        <button
-                          onClick={() => setCarrinhaEmEdicao(c)}
-                          className="flex items-center gap-1 font-bold text-blue-700 hover:text-blue-900 bg-white px-2 py-1 rounded-lg border border-blue-200"
-                        >
-                          <Edit3 className="h-3 w-3" /> {t.edit}
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => setCarrinhaEmEdicao(c)}
+                        className="flex items-center gap-1 font-bold text-blue-700 hover:text-blue-900 bg-white px-2 py-1 rounded-lg border border-blue-200 hover:bg-blue-50 transition cursor-pointer"
+                        title="Editar dados desta carrinha"
+                      >
+                        <Edit3 className="h-3 w-3" /> {t.edit}
+                      </button>
                     </div>
 
                     <div className="pt-1">
@@ -2380,60 +2416,58 @@ export default function AdminPage() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  {temPermissaoEdicaoGestao && (
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <select
-                        value=""
-                        onChange={(e) => {
-                          if (e.target.value) {
-                            handleAdicionarArtigoBaseFixa(e.target.value);
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <select
+                      value=""
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          handleAdicionarArtigoBaseFixa(e.target.value);
+                        }
+                      }}
+                      className="text-xs font-bold bg-gray-50 border border-gray-300 rounded-xl px-2.5 py-2 text-gray-800 cursor-pointer"
+                    >
+                      <option value="">+ Escolher artigo do catálogo...</option>
+                      {produtos
+                        .filter((p) => !artigosGrelhaBaseFixa.includes(p.nome))
+                        .map((p) => (
+                          <option key={p.id} value={p.nome}>
+                            {p.nome}
+                          </option>
+                        ))}
+                    </select>
+
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="text"
+                        value={novoArtigoBaseFixa}
+                        onChange={(e) => setNovoArtigoBaseFixa(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAdicionarArtigoBaseFixa(novoArtigoBaseFixa);
                           }
                         }}
-                        className="text-xs font-bold bg-gray-50 border border-gray-300 rounded-xl px-2.5 py-2 text-gray-800"
-                      >
-                        <option value="">+ Escolher artigo do catálogo...</option>
-                        {produtos
-                          .filter((p) => !artigosGrelhaBaseFixa.includes(p.nome))
-                          .map((p) => (
-                            <option key={p.id} value={p.nome}>
-                              {p.nome}
-                            </option>
-                          ))}
-                      </select>
-
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="text"
-                          value={novoArtigoBaseFixa}
-                          onChange={(e) => setNovoArtigoBaseFixa(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              handleAdicionarArtigoBaseFixa(novoArtigoBaseFixa);
-                            }
-                          }}
-                          placeholder="Ou escrever novo artigo..."
-                          className="text-xs font-medium bg-white border border-gray-300 rounded-xl px-2.5 py-1.5 text-gray-800 w-44 focus:outline-hidden focus:border-blue-500"
-                        />
-                        {novoArtigoBaseFixa.trim() && (
-                          <button
-                            type="button"
-                            onClick={() => handleAdicionarArtigoBaseFixa(novoArtigoBaseFixa)}
-                            className="px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition cursor-pointer flex items-center gap-1"
-                          >
-                            <Plus className="h-3.5 w-3.5" />
-                            Adicionar
-                          </button>
-                        )}
-                      </div>
+                        placeholder="Ou escrever novo artigo..."
+                        className="text-xs font-medium bg-white border border-gray-300 rounded-xl px-2.5 py-1.5 text-gray-800 w-44 focus:outline-hidden focus:border-blue-500"
+                      />
+                      {novoArtigoBaseFixa.trim() && (
+                        <button
+                          type="button"
+                          onClick={() => handleAdicionarArtigoBaseFixa(novoArtigoBaseFixa)}
+                          className="px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition cursor-pointer flex items-center gap-1"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          Adicionar
+                        </button>
+                      )}
                     </div>
-                  )}
+                  </div>
 
                   <button
                     type="button"
                     onClick={handleExportarExcelBaseFixaConsolidado}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 text-blue-900 text-xs font-bold hover:bg-blue-100 transition cursor-pointer"
-                    title="Exportar Excel consolidado de todas as carrinhas para todos os dias da semana"
+                    title="Exportar Excel consolidado das carrinhas de distribuição regular (1 a 4) para todos os dias da semana"
                   >
                     <Download className="h-3.5 w-3.5 text-blue-700" />
                     Excel Consolidado (.xlsx)
@@ -2446,7 +2480,7 @@ export default function AdminPage() {
                       className="text-xs font-bold bg-white border border-gray-300 rounded-lg px-2 py-1 text-gray-800"
                       title="Selecionar carrinha para exportar individualmente"
                     >
-                      {carrinhas.map((c) => (
+                      {carrinhasBaseDiaria.map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.identificador || c.nome}
                         </option>
@@ -2463,29 +2497,25 @@ export default function AdminPage() {
                     </button>
                   </div>
 
-                  {temPermissaoEdicaoGestao && (
-                    <>
-                      <label className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-900 text-xs font-bold hover:bg-emerald-100 transition cursor-pointer">
-                        <Upload className="h-3.5 w-3.5 text-emerald-700" />
-                        <span>Importar Excel</span>
-                        <input
-                          type="file"
-                          accept=".xlsx,.xls,.csv"
-                          onChange={handleImportarExcelBaseFixa}
-                          className="hidden"
-                        />
-                      </label>
+                  <label className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-900 text-xs font-bold hover:bg-emerald-100 transition cursor-pointer">
+                    <Upload className="h-3.5 w-3.5 text-emerald-700" />
+                    <span>Importar Excel</span>
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls,.csv"
+                      onChange={handleImportarExcelBaseFixa}
+                      className="hidden"
+                    />
+                  </label>
 
-                      <button
-                        type="button"
-                        onClick={handleGuardarBaseFixaManual}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-xs transition cursor-pointer"
-                      >
-                        <Check className="h-4 w-4" />
-                        Guardar Quantidades
-                      </button>
-                    </>
-                  )}
+                  <button
+                    type="button"
+                    onClick={handleGuardarBaseFixaManual}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-xs transition cursor-pointer"
+                  >
+                    <Check className="h-4 w-4" />
+                    Guardar Quantidades
+                  </button>
                 </div>
               </div>
 
@@ -2512,17 +2542,15 @@ export default function AdminPage() {
                   ))}
                 </div>
 
-                {temPermissaoEdicaoGestao && (
-                  <button
-                    type="button"
-                    onClick={() => handleCopiarDiaParaTodaSemanaBaseFixa(diaSemanaBaseFixa)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-blue-300 bg-white hover:bg-blue-50 text-blue-800 text-xs font-bold transition cursor-pointer shrink-0"
-                    title="Copiar quantidades deste dia para todos os outros dias da semana"
-                  >
-                    <Copy className="h-3.5 w-3.5 text-blue-600" />
-                    Replicar {DIAS_SEMANA_NOMES.find((d) => d.id === diaSemanaBaseFixa)?.abrev} para Toda a Semana
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => handleCopiarDiaParaTodaSemanaBaseFixa(diaSemanaBaseFixa)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-blue-300 bg-white hover:bg-blue-50 text-blue-800 text-xs font-bold transition cursor-pointer shrink-0"
+                  title="Copiar quantidades deste dia para todos os outros dias da semana"
+                >
+                  <Copy className="h-3.5 w-3.5 text-blue-600" />
+                  Replicar {DIAS_SEMANA_NOMES.find((d) => d.id === diaSemanaBaseFixa)?.abrev} para Toda a Semana
+                </button>
               </div>
 
               {feedbackBaseFixa && (
@@ -2544,7 +2572,7 @@ export default function AdminPage() {
                   <thead className="bg-blue-50/80 text-gray-800 border-b border-blue-200 sticky top-0 z-10">
                     <tr>
                       <th className="py-2.5 px-3 font-black uppercase text-[11px]">Produto / Artigo (Mapa Diário)</th>
-                      {carrinhas.map((c) => (
+                      {carrinhasBaseDiaria.map((c) => (
                         <th key={c.id} className="py-2.5 px-3 font-black text-center uppercase text-[11px] w-28">
                           <span className="inline-flex items-center gap-1.5">
                             <Truck className="h-3.5 w-3.5 text-cyan-600" />
@@ -2555,16 +2583,14 @@ export default function AdminPage() {
                       <th className="py-2.5 px-3 font-black text-right uppercase text-[11px] w-32 bg-blue-100/70">
                         Total Diário
                       </th>
-                      {temPermissaoEdicaoGestao && (
-                        <th className="py-2.5 px-3 font-black text-right uppercase text-[11px] w-28 bg-blue-50/90">
-                          Ações
-                        </th>
-                      )}
+                      <th className="py-2.5 px-3 font-black text-right uppercase text-[11px] w-28 bg-blue-50/90">
+                        Ações
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {artigosGrelhaBaseFixa.map((prodNome) => {
-                      const somaLinha = carrinhas.reduce(
+                      const somaLinha = carrinhasBaseDiaria.reduce(
                         (acc, c) => acc + obterQtdBaseCarrinha(c.id, diaSemanaBaseFixa, prodNome),
                         0
                       );
@@ -2610,50 +2636,45 @@ export default function AdminPage() {
                               <div className="flex items-center justify-between gap-2">
                                 <span
                                   onClick={() => {
-                                    if (temPermissaoEdicaoGestao) {
-                                      setArtigoBaseFixaEmEdicao(prodNome);
-                                      setNovoNomeArtigoBaseFixa(prodNome);
-                                    }
+                                    setArtigoBaseFixaEmEdicao(prodNome);
+                                    setNovoNomeArtigoBaseFixa(prodNome);
                                   }}
-                                  className={temPermissaoEdicaoGestao ? 'cursor-pointer hover:text-blue-700 hover:underline' : ''}
-                                  title={temPermissaoEdicaoGestao ? 'Clique para editar o nome do artigo' : undefined}
+                                  className="cursor-pointer hover:text-blue-700 hover:underline"
+                                  title="Clique para editar o nome do artigo"
                                 >
                                   {prodNome}
                                 </span>
-                                {temPermissaoEdicaoGestao && (
-                                  <div className="flex items-center gap-1 shrink-0">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setArtigoBaseFixaEmEdicao(prodNome);
-                                        setNovoNomeArtigoBaseFixa(prodNome);
-                                      }}
-                                      className="p-1 rounded-md text-blue-600 hover:bg-blue-100 transition cursor-pointer"
-                                      title="Editar nome deste artigo"
-                                    >
-                                      <Edit3 className="h-3.5 w-3.5" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleEliminarArtigoBaseFixa(prodNome)}
-                                      className="p-1 rounded-md text-red-600 hover:bg-red-100 transition cursor-pointer"
-                                      title="Apagar este artigo da Base Diária"
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </button>
-                                  </div>
-                                )}
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setArtigoBaseFixaEmEdicao(prodNome);
+                                      setNovoNomeArtigoBaseFixa(prodNome);
+                                    }}
+                                    className="p-1 rounded-md text-blue-600 hover:bg-blue-100 transition cursor-pointer"
+                                    title="Editar nome deste artigo"
+                                  >
+                                    <Edit3 className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleEliminarArtigoBaseFixa(prodNome)}
+                                    className="p-1 rounded-md text-red-600 hover:bg-red-100 transition cursor-pointer"
+                                    title="Apagar este artigo da Base Diária"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
                               </div>
                             )}
                           </td>
-                          {carrinhas.map((c) => {
+                          {carrinhasBaseDiaria.map((c) => {
                             const valQtd = obterQtdBaseCarrinha(c.id, diaSemanaBaseFixa, prodNome);
                             return (
                               <td key={c.id} className="py-1.5 px-3 text-center">
                                 <input
                                   type="number"
                                   min={0}
-                                  disabled={!temPermissaoEdicaoGestao}
                                   value={valQtd === 0 ? '' : valQtd}
                                   placeholder="0"
                                   onChange={(e) =>
@@ -2677,32 +2698,30 @@ export default function AdminPage() {
                           <td className="py-2 px-3 text-right font-mono font-black text-sm text-blue-900 bg-blue-50/40">
                             {somaLinha > 0 ? `${somaLinha} un.` : '—'}
                           </td>
-                          {temPermissaoEdicaoGestao && (
-                            <td className="py-1.5 px-3 text-right">
-                              <div className="flex items-center justify-end gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setArtigoBaseFixaEmEdicao(prodNome);
-                                    setNovoNomeArtigoBaseFixa(prodNome);
-                                  }}
-                                  className="px-2 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[11px] flex items-center gap-1 cursor-pointer"
-                                  title="Corrigir ou alterar nome deste artigo"
-                                >
-                                  <Edit3 className="h-3 w-3" />
-                                  Editar
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleEliminarArtigoBaseFixa(prodNome)}
-                                  className="p-1 rounded-lg text-red-600 hover:bg-red-50 transition cursor-pointer"
-                                  title="Eliminar artigo da Base Diária"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
-                            </td>
-                          )}
+                          <td className="py-1.5 px-3 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setArtigoBaseFixaEmEdicao(prodNome);
+                                  setNovoNomeArtigoBaseFixa(prodNome);
+                                }}
+                                className="px-2 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[11px] flex items-center gap-1 cursor-pointer"
+                                title="Corrigir ou alterar nome deste artigo"
+                              >
+                                <Edit3 className="h-3 w-3" />
+                                Editar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleEliminarArtigoBaseFixa(prodNome)}
+                                className="p-1 rounded-lg text-red-600 hover:bg-red-50 transition cursor-pointer"
+                                title="Eliminar artigo da Base Diária"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </td>
                         </tr>
                       );
                     })}
@@ -2717,59 +2736,57 @@ export default function AdminPage() {
                 <div>
                   <h3 className="text-sm font-black text-gray-900 flex items-center gap-2">
                     <Truck className="h-4 w-4 text-indigo-600" />
-                    Clientes Empresariais (B2B)
+                    Clientes Empresariais (B2B) — Rota Exclusiva Carrinha 5 (55-EM-26)
                   </h3>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Quantidades fixas frequentes por dia da semana para cada cliente empresarial.
+                    Quantidades fixas frequentes por dia da semana para cada cliente empresarial (distribuição assegurada pela Carrinha 5).
                   </p>
                 </div>
 
-                {temPermissaoEdicaoGestao && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const vazios: Record<DiaSemana, Record<string, number>> = {
-                          seg: {}, ter: {}, qua: {}, qui: {}, sex: {}, sab: {}, dom: {}
-                        };
-                        setClienteB2BEmEdicao({
-                          id: `b2b-${Date.now()}`,
-                          nome: '',
-                          telefone: '',
-                          morada: 'Arouca',
-                          carrinha_id: 'b555db95-c427-4ed5-83fc-01403bd24cf5',
-                          ativo: true,
-                          quantidades_semanais: vazios,
-                          quantidades_semana: vazios,
-                        });
-                      }}
-                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-xs transition cursor-pointer"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      Novo Cliente Empresarial
-                    </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const vazios: Record<DiaSemana, Record<string, number>> = {
+                        seg: {}, ter: {}, qua: {}, qui: {}, sex: {}, sab: {}, dom: {}
+                      };
+                      setClienteB2BEmEdicao({
+                        id: `b2b-${Date.now()}`,
+                        nome: '',
+                        telefone: '',
+                        morada: 'Arouca',
+                        carrinha_id: 'b555db95-c427-4ed5-83fc-01403bd24cf5',
+                        ativo: true,
+                        quantidades_semanais: vazios,
+                        quantidades_semana: vazios,
+                      });
+                    }}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-xs transition cursor-pointer"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Novo Cliente Empresarial
+                  </button>
 
-                    <button
-                      type="button"
-                      onClick={handleExportarTemplateB2B}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-900 text-xs font-bold hover:bg-indigo-100 transition cursor-pointer"
-                    >
-                      <Download className="h-3.5 w-3.5 text-indigo-700" />
-                      Template Excel B2B (.xlsx)
-                    </button>
+                  <button
+                    type="button"
+                    onClick={handleExportarTemplateB2B}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-900 text-xs font-bold hover:bg-indigo-100 transition cursor-pointer"
+                  >
+                    <Download className="h-3.5 w-3.5 text-indigo-700" />
+                    Template Excel B2B (.xlsx)
+                  </button>
 
-                    <label className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-900 text-xs font-bold hover:bg-emerald-100 transition cursor-pointer">
-                      <Upload className="h-3.5 w-3.5 text-emerald-700" />
-                      <span>Importar Excel B2B</span>
-                      <input
-                        type="file"
-                        accept=".xlsx,.xls,.csv"
-                        onChange={handleImportarExcelB2B}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-                )}
+                  <label className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-900 text-xs font-bold hover:bg-emerald-100 transition cursor-pointer">
+                    <Upload className="h-3.5 w-3.5 text-emerald-700" />
+                    <span>Importar Excel B2B</span>
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls,.csv"
+                      onChange={handleImportarExcelB2B}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
               </div>
 
               {feedbackB2B && (
@@ -2810,15 +2827,13 @@ export default function AdminPage() {
                   ))}
                 </div>
 
-                {temPermissaoEdicaoGestao && (
-                  <button
-                    type="button"
-                    onClick={() => handleCopiarDiaParaTodaSemanaB2B(diaSemanaB2B)}
-                    className="text-xs font-bold text-indigo-700 hover:text-indigo-950 bg-white px-3 py-1.5 rounded-xl border border-indigo-200 shadow-2xs transition cursor-pointer shrink-0"
-                  >
-                    Replicar este dia para Seg–Dom
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => handleCopiarDiaParaTodaSemanaB2B(diaSemanaB2B)}
+                  className="text-xs font-bold text-indigo-700 hover:text-indigo-950 bg-white px-3 py-1.5 rounded-xl border border-indigo-200 shadow-2xs transition cursor-pointer shrink-0"
+                >
+                  Replicar este dia para Seg–Dom
+                </button>
               </div>
 
               {/* Tabela Interativa de Clientes Empresariais B2B */}
@@ -2826,8 +2841,7 @@ export default function AdminPage() {
                 <table className="w-full text-left text-xs border-collapse">
                   <thead className="bg-gray-50 text-gray-700 border-b border-gray-200">
                     <tr>
-                      <th className="py-2.5 px-3 font-black uppercase text-[11px] w-48">Cliente Empresarial (B2B)</th>
-                      <th className="py-2.5 px-3 font-black uppercase text-[11px] w-32">Rota / Carrinha</th>
+                      <th className="py-2.5 px-3 font-black uppercase text-[11px] w-56">Cliente Empresarial (B2B)</th>
                       <th className="py-2.5 px-3 font-black uppercase text-[11px]">
                         Quantidades Fixas no Dia ({diaSemanaB2B.toUpperCase()})
                       </th>
@@ -2851,11 +2865,6 @@ export default function AdminPage() {
                             </p>
                           </td>
                           <td className="py-2.5 px-3">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-100 text-indigo-900 font-black text-[10px]">
-                              <span className="inline-flex items-center gap-1.5"><Truck className="h-3.5 w-3.5 text-cyan-600" /><span>5º Carro</span></span>
-                            </span>
-                          </td>
-                          <td className="py-2.5 px-3">
                             {entries.length === 0 ? (
                               <span className="text-gray-400 italic text-[11px]">
                                 Sem artigos fixos definidos neste dia
@@ -2871,12 +2880,11 @@ export default function AdminPage() {
                                     <input
                                       type="number"
                                       min={0}
-                                      disabled={!temPermissaoEdicaoGestao}
                                       value={qtd}
                                       onChange={(e) =>
                                         handleAlterarQtdClienteB2B(cli.id, diaSemanaB2B, prodNome, Number(e.target.value))
                                       }
-                                      className="w-12 text-center bg-white border border-indigo-300 rounded font-mono font-black text-indigo-900 px-1 py-0.5 text-[11px]"
+                                      className="w-14 text-center bg-white border border-indigo-300 rounded font-mono font-black text-indigo-900 px-1 py-0.5 text-[11px]"
                                     />
                                   </div>
                                 ))}
@@ -2887,27 +2895,25 @@ export default function AdminPage() {
                             {totalCliDia} un.
                           </td>
                           <td className="py-2.5 px-3 text-right">
-                            {temPermissaoEdicaoGestao && (
-                              <div className="flex items-center justify-end gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => setClienteB2BEmEdicao(cli)}
-                                  className="px-2 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[11px] flex items-center gap-1 cursor-pointer"
-                                  title="Configurar artigos e quantidades do cliente empresarial"
-                                >
-                                  <Edit3 className="h-3 w-3" />
-                                  Artigos
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleEliminarClienteB2B(cli.id, cli.nome)}
-                                  className="p-1 rounded-lg text-red-600 hover:bg-red-50 transition cursor-pointer"
-                                  title="Remover cliente empresarial"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
-                            )}
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                type="button"
+                                onClick={() => setClienteB2BEmEdicao(cli)}
+                                className="px-2 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[11px] flex items-center gap-1 cursor-pointer"
+                                title="Configurar artigos e quantidades do cliente empresarial"
+                              >
+                                <Edit3 className="h-3 w-3" />
+                                Editar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleEliminarClienteB2B(cli.id, cli.nome)}
+                                className="p-1 rounded-lg text-red-600 hover:bg-red-50 transition cursor-pointer"
+                                title="Remover cliente empresarial"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -2922,34 +2928,6 @@ export default function AdminPage() {
         {/* ----------------- ABA 3: BASES DE DADOS & EXCEL ----------------- */}
         {activeTab === 'database' && (
           <div className="space-y-6">
-            {/* Secção de Inserção de Registo Avulso */}
-            <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                    <Plus className="h-4 w-4 text-bakery-600" />
-                    Inserir Registo na Base de Dados
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Adicione rapidamente um novo cliente ou produto de forma manual sem necessidade de carregar ficheiro Excel.
-                  </p>
-                </div>
-                {temPermissaoEdicaoGestao && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSubAbaRegistoAvulso('cliente');
-                      setModalRegistoAvulsoAberto(true);
-                    }}
-                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-bakery-600 hover:bg-bakery-700 text-white text-xs font-bold shadow-xs transition cursor-pointer shrink-0"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Inserir registo
-                  </button>
-                )}
-              </div>
-            </div>
-
             {/* TABELA DE ARTIGOS E PRODUTOS (BASE DE DADOS CENTRAL) */}
             <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
@@ -2963,6 +2941,16 @@ export default function AdminPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProdutoEmEdicaoModal({ nome: '', categoria: 'padaria', unidade: 'unidade', ativo: true });
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Novo Artigo
+                  </button>
                   <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-gray-100 text-gray-700 border border-gray-200">
                     Total: <b>{produtos.length}</b> artigos
                   </span>
@@ -3890,144 +3878,200 @@ export default function AdminPage() {
 
         {/* ----------------- ABA 5: CONFIGURADOR DE TALÃO ----------------- */}
         {activeTab === 'talao' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <form onSubmit={handleSalvarConfigTalao} className="lg:col-span-7 bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4 text-xs">
-              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 border-b pb-3">
-                <Printer className="h-4 w-4 text-bakery-600" />
-                {t.tabReceiptConfig}
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-4">
+            {/* Seletor de Loja para Configuração de Talão */}
+            <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Store className="h-5 w-5 text-bakery-600" />
                 <div>
-                  <label className="block font-bold text-gray-700 mb-1">Nome Comercial no Cabeçalho</label>
+                  <h4 className="text-sm font-bold text-gray-900">Configuração de Cabeçalho por Loja</h4>
+                  <p className="text-xs text-gray-500">Cada loja pode ter os seus próprios cabeçalhos, contactos, slogans e mensagens de rodapé impressos no talão térmico.</p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLojaSelecionadaTalao('todas');
+                    setReceiptConfig(getReceiptConfig('todas'));
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    lojaSelecionadaTalao === 'todas'
+                      ? 'bg-bakery-600 text-white shadow-xs'
+                      : 'bg-stone-100 text-gray-700 hover:bg-stone-200'
+                  }`}
+                >
+                  Geral (Todas as Lojas)
+                </button>
+                {lojas.map((l) => (
+                  <button
+                    key={l.id}
+                    type="button"
+                    onClick={() => {
+                      setLojaSelecionadaTalao(l.id);
+                      const cfgLoja = getReceiptConfig(l.id);
+                      setReceiptConfig({
+                        ...cfgLoja,
+                        storeNameOverride: cfgLoja.storeNameOverride || l.nome,
+                      });
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                      lojaSelecionadaTalao === l.id
+                        ? 'bg-bakery-600 text-white shadow-xs'
+                        : 'bg-stone-100 text-gray-700 hover:bg-stone-200'
+                    }`}
+                  >
+                    {l.nome}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {feedbackTalao && (
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-bold flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                <span>{feedbackTalao}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <form onSubmit={handleSalvarConfigTalao} className="lg:col-span-7 bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4 text-xs">
+                <div className="flex items-center justify-between border-b pb-3">
+                  <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                    <Printer className="h-4 w-4 text-bakery-600" />
+                    {t.tabReceiptConfig} — {lojaSelecionadaTalao === 'todas' ? 'Predefinição Geral' : (lojas.find(l => l.id === lojaSelecionadaTalao)?.nome || 'Loja')}
+                  </h3>
+                  <span className="font-mono text-[11px] font-bold text-bakery-800 bg-bakery-50 px-2 py-0.5 rounded border border-bakery-200">
+                    {lojaSelecionadaTalao === 'todas' ? 'GERAL' : (lojas.find(l => l.id === lojaSelecionadaTalao)?.codigo || 'LOJA')}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">Nome Comercial no Cabeçalho</label>
+                    <input
+                      type="text"
+                      value={receiptConfig.storeNameOverride}
+                      onChange={(e) => setReceiptConfig({ ...receiptConfig, storeNameOverride: e.target.value })}
+                      placeholder="Padaria & Pastelaria"
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">Slogan / Subtítulo</label>
+                    <input
+                      type="text"
+                      value={receiptConfig.slogan}
+                      onChange={(e) => setReceiptConfig({ ...receiptConfig, slogan: e.target.value })}
+                      placeholder="Fabrico Próprio Diário"
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 bg-gray-50 p-3 rounded-xl border border-gray-200">
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">Largura da Bobina Térmica</label>
+                    <select
+                      value={receiptConfig.paperWidth}
+                      onChange={(e) => setReceiptConfig({ ...receiptConfig, paperWidth: e.target.value as any })}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold"
+                    >
+                      <option value="80mm">80 mm (Padrão de Balcão)</option>
+                      <option value="58mm">58 mm (Impressora Portátil / Mini)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">Tamanho da Fonte</label>
+                    <select
+                      value={receiptConfig.fontSize}
+                      onChange={(e) => setReceiptConfig({ ...receiptConfig, fontSize: e.target.value as any })}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold"
+                    >
+                      <option value="compact">Compacto</option>
+                      <option value="normal">Normal</option>
+                      <option value="large">Grande</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-gray-100">
+                  <span className="font-bold text-gray-800 block mb-1">Secções a Imprimir:</span>
+                  
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={receiptConfig.showSectionSeparation}
+                      onChange={(e) => setReceiptConfig({ ...receiptConfig, showSectionSeparation: e.target.checked })}
+                      className="rounded text-bakery-600"
+                    />
+                    <span>Separar artigos por setor ([ PADARIA ] e [ PASTELARIA ])</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={receiptConfig.highlightCakeNotes}
+                      onChange={(e) => setReceiptConfig({ ...receiptConfig, highlightCakeNotes: e.target.checked })}
+                      className="rounded text-bakery-600"
+                    />
+                    <span>Destacar notas de personalização de bolos em caixa de destaque</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={receiptConfig.showPhone}
+                      onChange={(e) => setReceiptConfig({ ...receiptConfig, showPhone: e.target.checked })}
+                      className="rounded text-bakery-600"
+                    />
+                    <span>Imprimir telefone da loja no topo</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={receiptConfig.showNif}
+                      onChange={(e) => setReceiptConfig({ ...receiptConfig, showNif: e.target.checked })}
+                      className="rounded text-bakery-600"
+                    />
+                    <span>Imprimir NIF da loja</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={receiptConfig.showQrCode}
+                      onChange={(e) => setReceiptConfig({ ...receiptConfig, showQrCode: e.target.checked })}
+                      className="rounded text-bakery-600"
+                    />
+                    <span>Imprimir QR Code no rodapé</span>
+                  </label>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Mensagem de Rodapé</label>
                   <input
                     type="text"
-                    value={receiptConfig.storeNameOverride}
-                    onChange={(e) => setReceiptConfig({ ...receiptConfig, storeNameOverride: e.target.value })}
-                    placeholder="Padaria & Pastelaria"
+                    value={receiptConfig.footerMessage}
+                    onChange={(e) => setReceiptConfig({ ...receiptConfig, footerMessage: e.target.value })}
+                    placeholder="Obrigado pela sua preferência! Bom apetite."
                     className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
                   />
                 </div>
 
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">Slogan / Subtítulo</label>
-                  <input
-                    type="text"
-                    value={receiptConfig.slogan}
-                    onChange={(e) => setReceiptConfig({ ...receiptConfig, slogan: e.target.value })}
-                    placeholder="Fabrico Próprio Diário"
-                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 bg-gray-50 p-3 rounded-xl border border-gray-200">
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">Largura da Bobina Térmica</label>
-                  <select
-                    value={receiptConfig.paperWidth}
-                    onChange={(e) => setReceiptConfig({ ...receiptConfig, paperWidth: e.target.value as any })}
-                    className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold"
-                  >
-                    <option value="80mm">80 mm (Padrão de Balcão)</option>
-                    <option value="58mm">58 mm (Impressora Portátil / Mini)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">Tamanho da Fonte</label>
-                  <select
-                    value={receiptConfig.fontSize}
-                    onChange={(e) => setReceiptConfig({ ...receiptConfig, fontSize: e.target.value as any })}
-                    className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold"
-                  >
-                    <option value="compact">Compacto</option>
-                    <option value="normal">Normal</option>
-                    <option value="large">Grande</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-2 pt-2 border-t border-gray-100">
-                <span className="font-bold text-gray-800 block mb-1">Secções a Imprimir:</span>
-                
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={receiptConfig.showSectionSeparation}
-                    onChange={(e) => setReceiptConfig({ ...receiptConfig, showSectionSeparation: e.target.checked })}
-                    className="rounded text-bakery-600"
-                  />
-                  <span>Separar artigos por setor ([ PADARIA ] e [ PASTELARIA ])</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={receiptConfig.highlightCakeNotes}
-                    onChange={(e) => setReceiptConfig({ ...receiptConfig, highlightCakeNotes: e.target.checked })}
-                    className="rounded text-bakery-600"
-                  />
-                  <span>Destacar notas de personalização de bolos em caixa de destaque</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={receiptConfig.showPhone}
-                    onChange={(e) => setReceiptConfig({ ...receiptConfig, showPhone: e.target.checked })}
-                    className="rounded text-bakery-600"
-                  />
-                  <span>Imprimir telefone da loja no topo</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={receiptConfig.showNif}
-                    onChange={(e) => setReceiptConfig({ ...receiptConfig, showNif: e.target.checked })}
-                    className="rounded text-bakery-600"
-                  />
-                  <span>Imprimir NIF da loja</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={receiptConfig.showQrCode}
-                    onChange={(e) => setReceiptConfig({ ...receiptConfig, showQrCode: e.target.checked })}
-                    className="rounded text-bakery-600"
-                  />
-                  <span>Imprimir QR Code no rodapé</span>
-                </label>
-              </div>
-
-              <div>
-                <label className="block font-bold text-gray-700 mb-1">Mensagem de Rodapé</label>
-                <input
-                  type="text"
-                  value={receiptConfig.footerMessage}
-                  onChange={(e) => setReceiptConfig({ ...receiptConfig, footerMessage: e.target.value })}
-                  placeholder="Obrigado pela sua preferência! Bom apetite."
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
-                />
-              </div>
-
-              <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-2">
-                {temPermissaoEdicaoGestao ? (
+                <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-2">
                   <button
                     type="submit"
-                    className="px-5 py-2 rounded-xl bg-bakery-600 text-white font-black shadow-xs hover:bg-bakery-700 transition"
+                    className="px-5 py-2 rounded-xl bg-bakery-600 text-white font-black shadow-xs hover:bg-bakery-700 transition cursor-pointer"
                   >
-                    {t.save}
+                    Guardar Configuração ({lojaSelecionadaTalao === 'todas' ? 'Geral' : (lojas.find(l => l.id === lojaSelecionadaTalao)?.nome || 'Loja')})
                   </button>
-                ) : (
-                  <span className="text-xs font-bold text-gray-400 italic">
-                    {t.levelReadOnly}
-                  </span>
-                )}
-              </div>
-            </form>
+                </div>
+              </form>
 
             {/* Pré-visualização Estática */}
             <div className="lg:col-span-5 bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex flex-col items-center">
@@ -4124,31 +4168,29 @@ export default function AdminPage() {
                 </p>
               </div>
 
-              {temPermissaoEdicaoGestao && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPerfilEmEdicao({
-                      nome: '',
-                      telefone: '',
-                      email: '',
-                      password: '123',
-                      role: 'atendente',
-                      loja_id: lojas[0]?.id,
-                      acesso_encomendas: 'edicao',
-                      acesso_producao: 'leitura',
-                      acesso_loja: 'edicao',
-                      acesso_entregas: 'sem_acesso',
-                      acesso_gestao: 'sem_acesso',
-                      ativo: true,
-                    });
-                  }}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-bakery-600 text-white text-xs font-bold hover:bg-bakery-700 transition shadow-xs"
-                >
-                  <Plus className="h-4 w-4" />
-                  {t.newUser}
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setPerfilEmEdicao({
+                    nome: '',
+                    telefone: '',
+                    email: '',
+                    password: '123',
+                    role: 'atendente',
+                    loja_id: lojas[0]?.id,
+                    acesso_encomendas: 'edicao',
+                    acesso_producao: 'leitura',
+                    acesso_loja: 'edicao',
+                    acesso_entregas: 'sem_acesso',
+                    acesso_gestao: 'sem_acesso',
+                    ativo: true,
+                  });
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-bakery-600 text-white text-xs font-bold hover:bg-bakery-700 transition shadow-xs cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                {t.newUser}
+              </button>
             </div>
 
             {/* Tabela de Utilizadores & Permissões */}
@@ -4234,28 +4276,21 @@ export default function AdminPage() {
                         </td>
 
                         <td className="p-3.5 text-right space-x-1.5 whitespace-nowrap">
-                          {temPermissaoEdicaoGestao ? (
-                            <>
-                              <button
-                                onClick={() => setPerfilEmEdicao(p)}
-                                className="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-[11px] transition"
-                              >
-                                {t.edit}
-                              </button>
-                              {p.role !== 'admin' && (
-                                <button
-                                  onClick={() => handleEliminarPerfil(p.id)}
-                                  className="px-2 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-bold text-[11px] transition"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5 inline" />
-                                </button>
-                              )}
-                            </>
-                          ) : (
-                            <span className="text-[11px] text-gray-400 font-semibold italic">
-                              {t.levelReadOnly}
-                            </span>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => setPerfilEmEdicao(p)}
+                            className="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-[11px] transition cursor-pointer"
+                          >
+                            {t.edit}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleEliminarPerfil(p.id)}
+                            className="px-2 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-bold text-[11px] transition cursor-pointer"
+                            title="Eliminar este utilizador"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 inline" />
+                          </button>
                         </td>
                       </tr>
                     );
@@ -5047,20 +5082,35 @@ export default function AdminPage() {
                 })}
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t">
-                <button
-                  type="button"
-                  onClick={() => setClienteB2BEmEdicao(null)}
-                  className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
-                >
-                  {t.cancel}
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 font-black text-white shadow-xs transition cursor-pointer"
-                >
-                  Guardar Cliente Empresarial
-                </button>
+              <div className="flex items-center justify-between pt-3 border-t">
+                {clienteB2BEmEdicao.id && clientesB2B.some((c) => c.id === clienteB2BEmEdicao.id) ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleEliminarClienteB2B(clienteB2BEmEdicao.id, clienteB2BEmEdicao.nome);
+                      setClienteB2BEmEdicao(null);
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 font-bold text-red-600 border border-red-200 transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Eliminar Cliente
+                  </button>
+                ) : <div />}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setClienteB2BEmEdicao(null)}
+                    className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
+                  >
+                    {t.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 font-black text-white shadow-xs transition cursor-pointer"
+                  >
+                    Guardar Cliente Empresarial
+                  </button>
+                </div>
               </div>
             </form>
           </div>

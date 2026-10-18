@@ -1,9 +1,9 @@
 ---
 title: "03 - Manual do Administrador, Parametrizações e Fórmulas de Indicadores do Cockpit de Gestão"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.2.0"
-date_saved: 2026-10-16
-updated: 2026-10-16
+version: "2.3.4"
+date_saved: 2026-10-18
+updated: 2026-10-18
 status: "Em Produção (Live)"
 tags:
   - #Inprooval/ManualAdmin
@@ -17,7 +17,7 @@ tags:
 **Entidade Tecnológica:** EyeQ Lda / Inprooval®  
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
 **Rota de Acesso:** `/gestao` (Exclusivo para Perfil **Administrador / Gerência**)  
-**Versão:** `v2.2.0` (16/10/2026)  
+**Versão:** `v2.3.4` (18/10/2026)  
 
 ---
 
@@ -109,41 +109,46 @@ Mede a tração de cada canal de entrada de encomendas no período filtrado:
 
 ---
 
-## 3. Aba 2: Configuração das 3 Lojas, 5 Carrinhas, Base Fixa & Clientes Empresariais B2B (`lojas_carrinhas`)
+## 3. Aba 2: Configuração das Lojas, Frota de Carrinhas, Base Diária & Clientes Empresariais B2B (`lojas_carrinhas`)
 
 Esta aba centraliza toda a parametrização logística da *Padaria da Vila*:
 
-### 3.1. Gestão das 3 Lojas Físicas e 5 Carrinhas
-- **Lojas Físicas:** Edição de Nome, Código, Morada, Telefone, NIF e estado Ativo/Inativo das 3 lojas (`Padaria da Vila`, `Padaria da Praça`, `Padaria do Liceu`).
-- **Frota de 5 Carrinhas:** Edição do Identificador (`1.º Carro` a `5.º Carro`), Matrícula, Loja Base e estado Ativo/Inativo.
+### 3.1. Gestão das Lojas Físicas e Frota de Carrinhas
+- **Lojas Físicas:** Criação (`+ Nova Loja`) e Edição de Nome, Código, Morada, Telefone, NIF e estado Ativo/Inativo das lojas físicas (`Padaria da Vila`, `Padaria da Praça`, `Padaria do Liceu`, etc.).
+- **Frota de Carrinhas:** Criação (`+ Nova Carrinha`) e Edição do Identificador (`1.º Carro` a `5.º Carro`), Matrícula, Capacidade em Caixas/Kgs, Loja Base e estado Ativo/Inativo.
 
 ### 3.2. Grelha da Base Fixa Diária de Particulares (`1.º ao 4.º Carro`)
-- Permite definir e gerir tanto a **lista de artigos** como as **quantidades globais fixas diárias** que cada uma das 4 primeiras carrinhas leva todos os dias para a venda/entrega porta-a-porta a clientes particulares.
-- **Funcionalidades de Gestão de Artigos e Extração de Dados (`v2.1.2`):**
-  1. **Editar / Corrigir Nome de Artigos (`✏️ Editar` ou clique direto no nome):** Permite corrigir qualquer gralha ou alterar a designação de um artigo (ex.: `"Boroa"` $\rightarrow$ `"Broa"`, `"Triga Milha"` $\rightarrow$ `"Trigo Milho"`, ou selecionar a partir do autocompletar do catálogo), migrando automaticamente todas as quantidades associadas nas 4 carrinhas e na matriz B2B sem perda de dados.
-  2. **Eliminar Artigos (`🗑️ Eliminar`):** Permite remover qualquer linha de artigo que deixe de fazer parte da Base Fixa diária.
-  3. **Adicionar Novos Artigos:** Permite adicionar artigos selecionando diretamente do catálogo da padaria ou escrevendo um nome personalizado (`+ Adicionar`).
-  4. **Extrair Excel Base Fixa (`.xlsx`) e Importar Excel Base Fixa (`.xlsx`/`.xls`/`.csv`):** Tal como na secção B2B, permite extrair com 1 clique toda a tabela da Base Fixa Diária de Clientes Particulares (`Produto_Artigo`, `1º Carro`, `2º Carro`, `3º Carro`, `4º Carro`, `Total_Particulares`) e reimportar folhas Excel atualizadas.
-  5. **Impacto Automático:** Todas as alterações (nomes de artigos, adições, eliminações e quantidades) refletem-se imediatamente na **Pool Consolidada do Dia** em `/producao` e no ficheiro Excel **«MAPA DIÁRIO»** em `/entregas`.
+- Permite definir e gerir tanto a **lista de artigos** como as **quantidades globais fixas diárias** que cada uma das carrinhas de rota particular leva diariamente para venda e distribuição porta-a-porta.
+- **Separação Logística Estrita da Carrinha 5 (`v2.3.4`):** A Carrinha 5 (`55-EM-26`) não surge na Base Diária comum de carrinhas, uma vez que está 100% alocada às entregas institucionais da matriz B2B (*5.º Carro*).
+- **Edição Total de Artigos e Quantidades:**
+  1. **Edição Direta de Quantidades:** Células numéricas interativas para digitação rápida de valores por carrinha e por dia da semana (`Seg` a `Dom`), com botão **«Guardar Quantidades»**.
+  2. **Replicação Instantânea de Dia:** Botão **«Replicar dia p/ toda a semana»** para replicar as quantidades do dia selecionado por toda a semana.
+  3. **Adicionar Artigos:** Botão **«+ Escolher artigo do catálogo»** (com seleção modal e pesquisa) e botão **«+ Adicionar novo artigo»** (com digitação manual).
+  4. **Editar e Eliminar Artigos:** Edição do nome do artigo com propagação automática e eliminação de artigos com ícone de caixote do lixo (`🗑️`).
+  5. **Extração e Importação Excel:** Extração com 1 clique da Base Fixa (`.xlsx`) consolidada (1.º ao 4.º Carro) ou individual por carrinha, e importação de folhas Excel atualizadas.
+  6. **Impacto Automático:** Todas as alterações refletem-se imediatamente na **Pool Consolidada do Dia** em `/producao` e no ficheiro Excel **«MAPA DIÁRIO»** em `/entregas`.
 
-### 3.3. Matriz Semanal dos 13 Clientes Empresariais B2B (`5.º Carro`)
-- Permite parametrizar as quantidades fixas frequentes entregues pelo **`5.º Carro`** às 13 entidades empresariais/institucionais de Arouca (*Gamarão, Patronato, P.-Telhe, Lar 3.ª Idade, Hospital, Centro D. Urrô, Lar Infância e Juventude, Centro Social Burgo, Cavadinha, Merc. Ribeiro, Café Praça, Padaria da Vila, Empregados*).
-- **Funcionalidades de Configuração:**
-  1. **Seleção por Dia da Semana (`Seg`, `Ter`, `Qua`, `Qui`, `Sex`, `Sáb`, `Dom`):** Cada dia da semana pode ter quantidades distintas por cliente e por artigo.
-  2. **Botão «Replicar Dia p/ Toda a Semana»:** Copia com 1 clique as quantidades do dia selecionado para todos os restantes dias da semana (`Seg` a `Dom`).
-  3. **Adicionar / Editar / Remover Clientes B2B:** Permite criar novos clientes empresariais no 5.º Carro ou editar morada e contacto.
-  4. **Exportar Template Excel B2B e Importar Matriz B2B via Excel (`.xlsx`):** Permite descarregar a grelha completa em Excel, preencher as quantidades no computador e fazer upload massivo para atualizar instantaneamente todos os clientes do 5.º Carro.
+### 3.3. Matriz Semanal dos Clientes Empresariais B2B (`5.º Carro`)
+- Parametriza as quantidades fixas diárias entregues pelo **`5.º Carro`** às entidades empresariais/institucionais de Arouca (*Hospital, Patronato, Centros Sociais, Lares, Cafés e Mercearias*).
+- **Simplificação Operacional (`v2.3.4`):** Remoção da coluna redundante "ROTA / CARRINHA" da grelha B2B, com indicação clara de distribuição exclusiva e integral pela Carrinha 5.
+- **Edição Total de Clientes e Artigos B2B:**
+  1. **Criação e Edição de Clientes:** Botão **«+ Novo Cliente Empresarial»** e botão **«Editar»** para ajustar nome, morada e telefone.
+  2. **Edição Direta de Quantidades:** Inputs numéricos em cada célula de produto com atualização em tempo real.
+  3. **Eliminação Segura de Clientes:** Eliminação de clientes empresariais tanto pelo botão de ação na linha (`🗑️`) como pelo botão no rodapé do modal de edição, sempre com confirmação do utilizador.
+  4. **Replicação Semanal por Cliente:** Botão **«Replicar dia p/ toda a semana»** no modal e na tabela para propagar quantidades de um dia para todos os dias úteis e fins de semana.
+  5. **Exportação e Importação Excel:** Template Excel dedicado e upload em lote para atualização rápida.
 
 ---
 
 ## 4. Aba 3: Base de Dados, Catálogo de Produtos & Importação Massiva (`database`)
 
-1. **Tabela Réplica de Produtos (Sincronizada com Supabase):**
+1. **Catálogo de Artigos com Gestão Integrada (`v2.3.4`):**
+   - Eliminação do cabeçalho avulso "+ Inserir Registo na Base de Dados" para um design mais limpo e ergonómico.
+   - Botão **«+ Novo Artigo»** posicionado diretamente no cabeçalho do Catálogo de Artigos.
    - Pesquisa em tempo real por nome, filtro por Categoria (`Padaria` / `Pastelaria`), Unidade (`unidade` / `kg`) e Estado (`Ativo` / `Inativo`).
-   - **Normalização Automática Title Case (`formatarNomeEntidade`):** Qualquer produto inserido ou importado em maiúsculas (ex.: `"PAO SALOIO"`, `"MINI BROA C/CHOURISSO"`) é automaticamente formatado com acentuação e ortografia canónica portuguesa (*"Pão Saloio"*, *"Mini Broa c/ Chouriço"*).
-   - Criação avulsa de novos produtos ou clientes através do botão **`+ Novo Registo na BD`**.
+   - **Normalização Automática Title Case (`formatarNomeEntidade`):** Qualquer produto inserido ou importado em maiúsculas é automaticamente formatado com ortografia portuguesa e acentuação correta.
 2. **Importação e Exportação Massiva em Excel/CSV:**
-   - Suporte a ficheiros `.xlsx`, `.xls` e `.csv` para atualização em lote de **Produtos** ou **Clientes**, com pré-visualização das primeiras linhas antes de confirmar a gravação na base de dados.
+   - Suporte a ficheiros `.xlsx`, `.xls` e `.csv` para atualização em lote de **Produtos** ou **Clientes**, com pré-visualização antes da confirmação.
 3. **Studio CMS Visual Nativo (`/cms`):**
    - Editor visual integrado da solução (`/cms`) para gestão de conteúdos institucionais e textos de interface sincronizados com o GitHub.
 
@@ -165,17 +170,19 @@ Garante **rastreabilidade total (Accountability)** de todas as operações reali
 ## 6. Aba 5: Configurador do Talão Térmico (`talao`)
 
 Permite personalizar o layout do talão impresso nas lojas sem necessidade de intervenção técnica:
+- **Configuração Individual por Loja Física (`v2.3.4`):** Seletor de loja física (`Geral (Todas as Lojas)` ou loja específica), permitindo que cada loja tenha o seu próprio cabeçalho comercial, telefone, morada, NIF e mensagem de rodapé, com fallback transparente para a configuração global.
 - **Largura do Papel:** Configurado por defeito para **80mm (72mm de largura útil — Calibrado para Epson M249A TM-T20)**, com suporte alternativo para bobinas de **58mm**.
 - **Campos Editáveis:** Nome da Empresa, Slogan / Subtítulo, Morada, Telefone, NIF, Mensagem de Rodapé, Tamanho de Letra (`Compacto`, `Médio`, `Grande`) e interruptores para mostrar/ocultar NIF, Morada, Telefone, Separação Padaria/Pastelaria, Destaque de Notas de Bolo e **QR Code no rodapé (`showQrCode`)**.
-- **Suporte Automático a Produção Parcelar (`v2.1.1`):** O talão assinala automaticamente artigos recusados com `[NÃO PROD.]`, exclui-os do somatório de unidades entregues e imprime as `Observações da Produção`.
-- **Pré-visualização ao Vivo:** Mostra em tempo real no ecrã como ficará o talão térmico calibrado.
+- **Suporte Automático a Produção Parcelar:** O talão assinala automaticamente artigos recusados com `[NÃO PROD.]`, exclui-os do somatório de unidades entregues e imprime as `Observações da Produção`.
+- **Pré-visualização ao Vivo & Teste de Impressão:** Mostra em tempo real no ecrã como ficará o talão térmico calibrado e permite emitir um talão de teste instantâneo.
 
 ---
 
 ## 7. Aba 6: Gestão de Acessos & Permissões RBAC (`acessos`)
 
 Permite ao Administrador gerir toda a equipa e controlar o que cada colaborador pode ver ou editar:
-- **Gestão de Utilizadores:** Criar novo colaborador, definir Nome, Email/Username, Palavra-passe, Função (`admin`, `gerente_loja`, `atendente`, `operador_padaria`, `operador_pastelaria`, `motorista`) e estado (`Ativo` / `Inativo`).
+- **Gestão Total de Utilizadores (`v2.3.4`):** Desbloqueio integral dos botões **«+ Novo Utilizador»**, **«Editar»** e **«Eliminar»** (`🗑️`), permitindo gerir a lista de colaboradores sem restrições.
+- **Campos de Utilizador:** Nome, Email/Username, Palavra-passe, Função (`admin`, `gerente_loja`, `atendente`, `operador_padaria`, `operador_pastelaria`, `motorista`) e estado (`Ativo` / `Inativo`).
 - **Matriz de Permissões Granulares por Painel & Route Guard por Cockpit:** Para cada utilizador, define-se individualmente o nível de acesso aos 5 módulos (`Encomendas`, `Produção`, `Loja`, `Entregas`, `Gestão`):
   - **`🚫 Sem Acesso` (`sem_acesso`):** O menu não aparece na barra de navegação e a rota está bloqueada por *Route Guard* automático.
   - **`👁️ Apenas Leitura` (`leitura`):** O utilizador pode consultar o ecrã, mas todos os botões de ação/gravação ficam desativados.

@@ -26,9 +26,15 @@ export const DEFAULT_RECEIPT_CONFIG: ReceiptConfig = {
   footerMessage: 'Pão é saúde! Obrigado pela sua preferência.',
 };
 
-export function getReceiptConfig(): ReceiptConfig {
+export function getReceiptConfig(lojaId?: string): ReceiptConfig {
   if (typeof window === 'undefined') return DEFAULT_RECEIPT_CONFIG;
   try {
+    if (lojaId && lojaId !== 'todas') {
+      const savedLoja = localStorage.getItem(`app_receipt_config_${lojaId}`);
+      if (savedLoja) {
+        return { ...DEFAULT_RECEIPT_CONFIG, ...JSON.parse(savedLoja) };
+      }
+    }
     const saved = localStorage.getItem('app_receipt_config');
     if (saved) {
       return { ...DEFAULT_RECEIPT_CONFIG, ...JSON.parse(saved) };
@@ -39,10 +45,14 @@ export function getReceiptConfig(): ReceiptConfig {
   return DEFAULT_RECEIPT_CONFIG;
 }
 
-export function saveReceiptConfig(config: ReceiptConfig): void {
+export function saveReceiptConfig(config: ReceiptConfig, lojaId?: string): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem('app_receipt_config', JSON.stringify(config));
+    if (lojaId && lojaId !== 'todas') {
+      localStorage.setItem(`app_receipt_config_${lojaId}`, JSON.stringify(config));
+    } else {
+      localStorage.setItem('app_receipt_config', JSON.stringify(config));
+    }
   } catch (e) {
     console.error('Erro ao guardar configuração do talão:', e);
   }

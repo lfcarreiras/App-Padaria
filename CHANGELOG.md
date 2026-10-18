@@ -42,6 +42,28 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.3.4] - 2026-10-18
+
+### Added & Enhanced (Edição Total de Lojas/Carrinhas/B2B, Configuração de Talão por Loja e Gestão de Acessos)
+- **Edição e Criação Completa de Lojas e Carrinhas**:
+  - Desbloqueio dos botões "+ Nova Loja" e "+ Nova Carrinha", permitindo criar e editar dados operacionais (nome, contacto, morada, matrícula, capacidade e estado) diretamente a partir dos cartões em `/gestao`.
+- **Edição Total da Base Diária por Carrinha (Carrinhas 1 a 4)**:
+  - Desbloqueio dos inputs de quantidades para edição direta em grelha sem restrições.
+  - Adição de artigos a partir do catálogo oficial ou personalizados, alteração de nomes e eliminação de artigos da base fixa.
+  - Suporte a gravação imediata e replicação das quantidades do dia selecionado para toda a semana.
+  - Exclusão da Carrinha 5 da Base Diária comum, alinhando a grelha com a realidade logística da frota.
+- **Edição Total de Clientes Empresariais B2B (Rota Dedicada 5º Carro)**:
+  - Remoção da coluna redundante "ROTA / CARRINHA" da grelha de clientes empresariais, uma vez que todas as entregas B2B são efetuadas exclusivamente pela Carrinha 5.
+  - Suporte completo a criação (+ Novo Cliente Empresarial), edição modal, edição direta de quantidades por artigo/dia e eliminação (com confirmação na tabela e no rodapé do modal).
+  - Replicação de quantidades de um dia para todos os dias da semana para cada cliente empresarial.
+- **Configuração de Talão Térmico por Loja**:
+  - Seletor de loja física implementado no configurador de talão de `/gestao`, permitindo que cada loja tenha os seus próprios cabeçalhos comerciais, moradas, telefones, NIFs e rodapés.
+  - Atualização do componente `ThermalReceipt.tsx` para carregar automaticamente a configuração específica da loja da encomenda, mantendo fallback na configuração global.
+- **Gestão de Acessos Sem Restrições**:
+  - Desbloqueio dos controlos de criação (+ Novo Utilizador), edição e eliminação de perfis de utilizador diretamente no painel de controlo de acessos.
+- **Otimização Visual de Base de Dados & Excel**:
+  - Remoção do banner redundante "+ Inserir Registo na Base de Dados", integrando o botão "+ Novo Artigo" diretamente no cabeçalho do Catálogo de Artigos.
+
 ## [v2.3.3] - 2026-10-18
 
 ### Fixed & Enhanced (Error Boundaries Ativos em /gestao e Root + Blindagem de Ordenação e useEffect)
