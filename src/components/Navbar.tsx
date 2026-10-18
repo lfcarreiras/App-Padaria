@@ -84,7 +84,7 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId = 'todas', onSele
             <img
               src="/logo-padaria.jpg"
               alt={configMarca.nomeEmpresa || 'Padaria da Vila'}
-              className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl object-cover shadow-xs border border-amber-200 shrink-0"
+              className="h-11 w-11 sm:h-13 sm:w-13 rounded-full object-cover shrink-0"
             />
             <div>
               <span className="text-xs sm:text-sm font-black text-gray-900 tracking-tight whitespace-nowrap block leading-tight">

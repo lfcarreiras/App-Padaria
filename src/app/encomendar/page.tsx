@@ -57,7 +57,10 @@ import {
   KeyRound,
   X,
   Flame,
-  Layers
+  Layers,
+  Edit3,
+  AlertTriangle,
+  XCircle
 } from 'lucide-react';
 import { StatusBadge } from '../../components/StatusBadge';
 import { OriginBadge, SectorBadge } from '../../components/InproovalBadges';
@@ -141,6 +144,7 @@ export default function EncomendarClientePage() {
   // Encomendas do Cliente (para tracking em tempo real)
   const [minhasEncomendas, setMinhasEncomendas] = useState<Encomenda[]>([]);
   const [carregandoMinhasEnc, setCarregandoMinhasEnc] = useState(false);
+  const [encomendaEmEdicao, setEncomendaEmEdicao] = useState<Encomenda | null>(null);
 
   // Carregar Catálogo, Lojas e escutar Retorno de Link de Recuperação por E-mail do Supabase
   useEffect(() => {
@@ -987,6 +991,127 @@ export default function EncomendarClientePage() {
       alert(`Ocorreu um erro ao registar a sua encomenda: ${err.message || 'Tente novamente.'}`);
     } finally {
       setASubmeter(false);
+    }
+  };
+
+  const handleSalvarEdicaoEncomendaCliente = async () => {
+    if (!encomendaEmEdicao) return;
+    try {
+      if (supabase) {
+        await supabase
+          .from('encomendas')
+          .update({
+            tipo: encomendaEmEdicao.tipo,
+            loja_id: encomendaEmEdicao.loja_id,
+            hora_agendamento: encomendaEmEdicao.hora_agendamento,
+            notas_cliente: encomendaEmEdicao.notas_cliente,
+            atualizado_em: new Date().toISOString(),
+          })
+          .eq('id', encomendaEmEdicao.id);
+
+        for (const it of encomendaEmEdicao.itens) {
+          try {
+            await supabase
+              .from('itens_encomenda')
+              .update({ quantidade: it.quantidade })
+              .eq('id', it.id);
+          } catch {}
+        }
+      }
+
+      if (typeof window !== 'undefined') {
+        try {
+          const raw = localStorage.getItem('padaria_encomendas_v1');
+          if (raw) {
+            const lista = JSON.parse(raw);
+            const idx = lista.findIndex((e: any) => e.id === encomendaEmEdicao.id || e.codigo === encomendaEmEdicao.codigo);
+            if (idx >= 0) {
+              lista[idx] = { ...encomendaEmEdicao, atualizado_em: new Date().toISOString() };
+              localStorage.setItem('padaria_encomendas_v1', JSON.stringify(lista));
+            }
+          }
+        } catch {}
+      }
+
+      setMinhasEncomendas((prev) =>
+        prev.map((e) => (e.id === encomendaEmEdicao.id ? encomendaEmEdicao : e))
+      );
+
+      await registarLogAuditoria({
+        encomenda_id: encomendaEmEdicao.id,
+        codigo_encomenda: encomendaEmEdicao.codigo,
+        cliente_nome: clienteLogado?.nome || encomendaEmEdicao.cliente.nome,
+        utilizador_id: clienteLogado?.id || 'cliente-portal',
+        utilizador_nome: clienteLogado?.nome || 'Cliente Portal',
+        utilizador_role: 'cliente',
+        loja_id: encomendaEmEdicao.loja_id,
+        loja_nome: encomendaEmEdicao.loja_nome,
+        painel: 'encomendas',
+        acao: 'Edição de Encomenda pelo Cliente',
+        detalhes: `Cliente alterou dados/quantidades da encomenda ${encomendaEmEdicao.codigo}.`,
+      });
+
+      alert('Alterações guardadas com sucesso!');
+      setEncomendaEmEdicao(null);
+    } catch (err: any) {
+      alert(`Erro ao guardar alterações: ${err.message}`);
+    }
+  };
+
+  const handleCancelarEncomendaCliente = async (encomendaId: string) => {
+    if (!window.confirm('Tem a certeza que deseja cancelar esta encomenda? Esta ação não pode ser revertida.')) {
+      return;
+    }
+    try {
+      if (supabase) {
+        await supabase
+          .from('encomendas')
+          .update({
+            estado: 'cancelado',
+            atualizado_em: new Date().toISOString(),
+          })
+          .eq('id', encomendaId);
+      }
+
+      if (typeof window !== 'undefined') {
+        try {
+          const raw = localStorage.getItem('padaria_encomendas_v1');
+          if (raw) {
+            const lista = JSON.parse(raw);
+            const idx = lista.findIndex((e: any) => e.id === encomendaId);
+            if (idx >= 0) {
+              lista[idx].estado = 'cancelado';
+              localStorage.setItem('padaria_encomendas_v1', JSON.stringify(lista));
+            }
+          }
+        } catch {}
+      }
+
+      setMinhasEncomendas((prev) =>
+        prev.map((e) => (e.id === encomendaId ? { ...e, estado: 'cancelado' } : e))
+      );
+
+      const enc = minhasEncomendas.find((e) => e.id === encomendaId);
+      if (enc) {
+        await registarLogAuditoria({
+          encomenda_id: enc.id,
+          codigo_encomenda: enc.codigo,
+          cliente_nome: clienteLogado?.nome || enc.cliente.nome,
+          utilizador_id: clienteLogado?.id || 'cliente-portal',
+          utilizador_nome: clienteLogado?.nome || 'Cliente Portal',
+          utilizador_role: 'cliente',
+          loja_id: enc.loja_id,
+          loja_nome: enc.loja_nome,
+          painel: 'encomendas',
+          acao: 'Cancelamento de Encomenda pelo Cliente',
+          detalhes: `Cliente cancelou a encomenda ${enc.codigo} através da App de Pedidos Diretos.`,
+        });
+      }
+
+      alert('Encomenda cancelada com sucesso.');
+      setEncomendaEmEdicao(null);
+    } catch (err: any) {
+      alert(`Erro ao cancelar encomenda: ${err.message}`);
     }
   };
 
@@ -1844,34 +1969,56 @@ export default function EncomendarClientePage() {
                   )}
 
                   {/* Agendamento de Data e Hora */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-stone-700 mb-1 flex items-center gap-1">
-                        <Calendar className="h-3.5 w-3.5 text-stone-500" />
-                        <span>Data Prevista *</span>
-                      </label>
-                      <input
-                        type="date"
-                        required
-                        value={dataAgendamento}
-                        onChange={(e) => setDataAgendamento(e.target.value)}
-                        className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-stone-200 focus:outline-hidden"
-                      />
+                  {tipoEntrega === 'levantamento_loja' ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-stone-700 mb-1 flex items-center gap-1">
+                          <Calendar className="h-3.5 w-3.5 text-stone-500" />
+                          <span>Data Prevista *</span>
+                        </label>
+                        <input
+                          type="date"
+                          required
+                          value={dataAgendamento}
+                          onChange={(e) => setDataAgendamento(e.target.value)}
+                          className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-stone-200 focus:outline-hidden"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-stone-700 mb-1 flex items-center gap-1">
+                          <Clock className="h-3.5 w-3.5 text-stone-500" />
+                          <span>Hora de Levantamento *</span>
+                        </label>
+                        <input
+                          type="time"
+                          required
+                          value={horaAgendamento}
+                          onChange={(e) => setHoraAgendamento(e.target.value)}
+                          className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-stone-200 focus:outline-hidden"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-bold text-stone-700 mb-1 flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5 text-stone-500" />
-                        <span>Hora Prevista *</span>
-                      </label>
-                      <input
-                        type="time"
-                        required
-                        value={horaAgendamento}
-                        onChange={(e) => setHoraAgendamento(e.target.value)}
-                        className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-stone-200 focus:outline-hidden"
-                      />
+                  ) : (
+                    <div className="space-y-2">
+                      <div>
+                        <label className="block text-xs font-bold text-stone-700 mb-1 flex items-center gap-1">
+                          <Calendar className="h-3.5 w-3.5 text-stone-500" />
+                          <span>Data Prevista de Entrega *</span>
+                        </label>
+                        <input
+                          type="date"
+                          required
+                          value={dataAgendamento}
+                          onChange={(e) => setDataAgendamento(e.target.value)}
+                          className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-stone-200 focus:outline-hidden"
+                        />
+                      </div>
+                      <p className="text-[11px] text-blue-900 bg-blue-50/80 p-2.5 rounded-xl border border-blue-200 flex items-center gap-2">
+                        <Truck className="h-4 w-4 text-blue-600 shrink-0" />
+                        <span>A hora de entrega segue a rota habitual da carrinha de distribuição da sua zona.</span>
+                      </p>
                     </div>
-                  </div>
+                  )}
 
                   {/* Observações Gerais */}
                   <div>
@@ -2059,31 +2206,19 @@ export default function EncomendarClientePage() {
             ) : (
               <div className="space-y-4">
                 {minhasEncomendas.map((enc) => {
-                  // 4 Estados Oficiais: 1. Encomendado | 2. Em Produção | 3. Em Distribuição | 4. Entregue
                   const estStr = String(enc.estado);
-                  const qtdAceites = enc.itens.filter((i) => i.estado_producao === 'em_preparo' || i.estado_producao === 'pronto').length;
-                  const qtdRecusados = enc.itens.filter((i) => i.estado_producao === 'recusado').length;
-                  const isCanceladoOuTudoRecusado =
-                    estStr === 'cancelado' || (enc.itens.length > 0 && qtdRecusados === enc.itens.length);
-                  const isProducaoParcelar = qtdAceites > 0 && qtdRecusados > 0;
-
-                  const etapa =
-                    estStr === 'pendente' && qtdAceites === 0
-                      ? 1
-                      : estStr === 'em_preparacao' || estStr === 'em_producao' || (estStr === 'pendente' && qtdAceites > 0)
-                      ? 2
-                      : estStr === 'pronto' || estStr === 'pronto_loja' || estStr === 'em_rota'
-                      ? 3
-                      : 4;
+                  const isCancelado = estStr === 'cancelado';
+                  const isEntregue = estStr === 'entregue';
+                  const isPronto = estStr === 'pronto' || estStr === 'pronto_loja';
 
                   return (
                     <div
                       key={enc.id}
                       className={`bg-white p-5 rounded-3xl border shadow-xs space-y-4 ${
-                        isCanceladoOuTudoRecusado
-                          ? 'border-red-300 bg-red-50/20'
-                          : isProducaoParcelar
-                          ? 'border-amber-300'
+                        isCancelado
+                          ? 'border-red-200 bg-red-50/20'
+                          : isEntregue
+                          ? 'border-emerald-200 bg-emerald-50/10'
                           : 'border-stone-200'
                       }`}
                     >
@@ -2098,14 +2233,14 @@ export default function EncomendarClientePage() {
                                 ? 'bg-amber-50 text-amber-800 border-amber-200'
                                 : 'bg-blue-50 text-blue-800 border-blue-200'
                             }`}>
-                              <span className="inline-flex items-center gap-1">{enc.tipo === 'levantamento_loja' ? <Store className="h-3.5 w-3.5 text-amber-700 shrink-0" /> : <Truck className="h-3.5 w-3.5 text-cyan-700 shrink-0" />}<span>{enc.tipo === 'levantamento_loja' ? `Levantamento em ${enc.loja_nome}` : 'Entrega ao Domicílio'}</span></span>
+                              <span className="inline-flex items-center gap-1">
+                                {enc.tipo === 'levantamento_loja' ? <Store className="h-3.5 w-3.5 text-amber-700 shrink-0" /> : <Truck className="h-3.5 w-3.5 text-cyan-700 shrink-0" />}
+                                <span>{enc.tipo === 'levantamento_loja' ? `Levantamento em ${enc.loja_nome}` : 'Entrega ao Domicílio'}</span>
+                              </span>
                             </span>
-                            {isProducaoParcelar && (
-                              <StatusBadge variant="alerta" label={`Pedido Parcelar (${qtdAceites}/${enc.itens.length} artigos aceites)`} />
-                            )}
                           </div>
                           <p className="text-xs text-stone-500 mt-1">
-                            Agendado para <strong>{enc.data_agendamento} às {enc.hora_agendamento}</strong>
+                            Agendado para <strong>{enc.data_agendamento}{enc.tipo === 'levantamento_loja' ? ` às ${enc.hora_agendamento}` : ''}</strong>
                             {enc.hora_entrega_real && (
                               <span className="ml-2 text-emerald-700 font-bold">
                                 • Entregue em {enc.data_entrega_real || enc.data_agendamento} às {enc.hora_entrega_real}
@@ -2114,116 +2249,44 @@ export default function EncomendarClientePage() {
                           </p>
                         </div>
 
-                        {isCanceladoOuTudoRecusado ? (
-                          <StatusBadge variant="alerta" label="Não Produzido" />
-                        ) : (
+                        {isCancelado ? (
+                          <StatusBadge variant="alerta" label="Cancelada" />
+                        ) : isEntregue ? (
+                          <StatusBadge variant="concluido" label="Entregue" />
+                        ) : isPronto ? (
                           <StatusBadge
-                            variant={etapa === 4 ? 'concluido' : etapa === 3 ? 'concluido' : etapa === 2 ? 'em_curso' : 'aguardar'}
-                            label={
-                              etapa === 4
-                                ? 'Entregue'
-                                : etapa === 3
-                                ? 'Pronta / Em Distribuição'
-                                : etapa === 2
-                                ? isProducaoParcelar
-                                  ? 'Em Produção (Parcelar)'
-                                  : 'Em Produção'
-                                : 'Encomendado'
-                            }
-                            pulse={etapa === 2 || etapa === 3}
+                            variant="concluido"
+                            label={enc.tipo === 'levantamento_loja' ? 'Pronta para Levantamento' : 'Pronta'}
                           />
+                        ) : (
+                          <StatusBadge variant="aguardar" label="Encomendado" />
                         )}
                       </div>
 
-                      {/* Barra de Progresso Visual de 4 Etapas Oficiais */}
-                      {!isCanceladoOuTudoRecusado && (
-                        <div className="bg-stone-50 p-3.5 rounded-2xl border border-stone-200">
-                          <div className="grid grid-cols-4 gap-2 text-center">
-                            <div className={`space-y-1 ${etapa >= 1 ? 'text-amber-700 font-bold' : 'text-stone-400'}`}>
-                              <div className={`h-2 rounded-full ${etapa >= 1 ? 'bg-amber-600' : 'bg-stone-200'}`} />
-                              <span className="text-[10px] block">1. Encomendado</span>
-                            </div>
-                            <div className={`space-y-1 ${etapa >= 2 ? 'text-amber-700 font-bold' : 'text-stone-400'}`}>
-                              <div className={`h-2 rounded-full ${etapa >= 2 ? 'bg-amber-600' : 'bg-stone-200'}`} />
-                              <span className="text-[10px] block">2. Em Produção</span>
-                            </div>
-                            <div className={`space-y-1 ${etapa >= 3 ? 'text-blue-700 font-bold' : 'text-stone-400'}`}>
-                              <div className={`h-2 rounded-full ${etapa >= 3 ? 'bg-blue-600' : 'bg-stone-200'}`} />
-                              <span className="text-[10px] block">3. Em Distribuição</span>
-                            </div>
-                            <div className={`space-y-1 ${etapa >= 4 ? 'text-emerald-700 font-bold' : 'text-stone-400'}`}>
-                              <div className={`h-2 rounded-full ${etapa >= 4 ? 'bg-emerald-600' : 'bg-stone-200'}`} />
-                              <span className="text-[10px] block">4. Entregue</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Alerta informativo de Produção Parcelar ou Recusa */}
-                      {isCanceladoOuTudoRecusado && (
-                        <div className="p-3 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-900 font-medium">
-                          <span className="font-bold flex items-center gap-1"><AlertCircle className="h-4 w-4 text-red-600 shrink-0 inline" /> Informação da Produção:</span> Não foi possível aceitar a produção dos artigos desta encomenda para o horário solicitado.
-                        </div>
-                      )}
-                      {isProducaoParcelar && (
-                        <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 font-medium">
-                          <span className="font-bold flex items-center gap-1"><AlertCircle className="h-4 w-4 text-amber-600 shrink-0 inline" /> Produção Parcelar:</span> A nossa produção conseguiu aceitar <strong>{qtdAceites} de {enc.itens.length} artigos</strong> do seu pedido, mas <strong>{qtdRecusados} artigo(s)</strong> não poderão ser produzidos a tempo. Verifique o estado individual de cada artigo abaixo.
-                        </div>
-                      )}
-
-                      {/* Artigos e Estado Parcelar por Artigo (Sem Preços) */}
+                      {/* Artigos da Encomenda */}
                       <div className="space-y-1.5 text-xs">
                         <span className="font-bold text-stone-700 uppercase text-[10px] tracking-wider block">
-                          Artigos da Encomenda & Estado de Produção:
+                          Artigos da Encomenda:
                         </span>
                         <div className="grid grid-cols-1 gap-2">
-                          {enc.itens.map((it) => {
-                            const isRecusado = it.estado_producao === 'recusado';
-                            const isPronto = it.estado_producao === 'pronto' || etapa >= 3;
-                            const isEmPreparo = it.estado_producao === 'em_preparo' || (etapa === 2 && !isRecusado);
-
-                            return (
-                              <div
-                                key={it.id}
-                                className={`p-2.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
-                                  isRecusado
-                                    ? 'bg-red-50/70 border-red-200 text-red-900'
-                                    : isPronto
-                                    ? 'bg-emerald-50/60 border-emerald-200 text-stone-900'
-                                    : isEmPreparo
-                                    ? 'bg-amber-50/60 border-amber-200 text-stone-900'
-                                    : 'bg-stone-50 border-stone-200 text-stone-800'
-                                }`}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <span className={`font-mono font-black px-2 py-0.5 rounded text-xs ${
-                                    isRecusado
-                                      ? 'bg-red-100 text-red-800 line-through'
-                                      : 'bg-white border border-stone-200 text-amber-900'
-                                  }`}>
-                                    {it.quantidade} un.
-                                  </span>
-                                  <span className={`font-bold ${isRecusado ? 'line-through text-red-800/80' : 'text-stone-900'}`}>
-                                    {it.produto_nome}
-                                  </span>
-                                </div>
-
-                                <StatusBadge
-                                  variant={isRecusado ? 'alerta' : isPronto ? 'concluido' : isEmPreparo ? 'em_curso' : 'aguardar'}
-                                  label={
-                                    isRecusado
-                                      ? 'Não Produzido / Indisponível'
-                                      : isPronto
-                                      ? 'Pronto'
-                                      : isEmPreparo
-                                      ? 'Aceite (Em Produção)'
-                                      : 'A aguardar confirmação'
-                                  }
-                                  pulse={isEmPreparo}
-                                />
+                          {enc.itens.map((it) => (
+                            <div
+                              key={it.id}
+                              className="p-2.5 rounded-xl border bg-stone-50/80 border-stone-200 text-stone-800 flex items-center justify-between gap-2"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-black px-2 py-0.5 rounded text-xs bg-white border border-stone-200 text-amber-900">
+                                  {it.quantidade} un.
+                                </span>
+                                <span className="font-bold text-stone-900">
+                                  {it.produto_nome}
+                                </span>
                               </div>
-                            );
-                          })}
+                              <span className="text-[11px] font-bold text-stone-500">
+                                {isCancelado ? 'Cancelado' : isEntregue ? 'Entregue' : isPronto ? 'Pronto' : 'Encomendado'}
+                              </span>
+                            </div>
+                          ))}
                         </div>
                       </div>
 
@@ -2232,11 +2295,25 @@ export default function EncomendarClientePage() {
                         <div className="p-3.5 rounded-2xl bg-stone-900 text-amber-50 border border-stone-700 text-xs space-y-1">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5 mb-0.5">
                             <MessageSquare className="h-3 w-3 text-amber-400 shrink-0" />
-                            <span>Observações da Padaria / Produção:</span>
+                            <span>Observações da Padaria:</span>
                           </span>
                           <p className="text-stone-100 font-medium leading-relaxed">
                             {enc.observacoes_producao}
                           </p>
+                        </div>
+                      )}
+
+                      {/* Ações: Editar ou Cancelar Encomenda */}
+                      {!isEntregue && !isCancelado && (
+                        <div className="pt-2 border-t border-stone-100 flex items-center justify-end">
+                          <button
+                            type="button"
+                            onClick={() => setEncomendaEmEdicao(JSON.parse(JSON.stringify(enc)))}
+                            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 font-bold text-xs transition shadow-2xs cursor-pointer"
+                          >
+                            <Edit3 className="h-3.5 w-3.5 text-stone-600" />
+                            <span>Editar / Cancelar Encomenda</span>
+                          </button>
                         </div>
                       )}
                     </div>
@@ -2380,6 +2457,159 @@ export default function EncomendarClientePage() {
                 Guardar Dados
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ---------------- MODAL DE EDIÇÃO / CANCELAMENTO DA ENCOMENDA PELO CLIENTE ---------------- */}
+      {encomendaEmEdicao && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-stone-200 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <h3 className="text-base font-black text-stone-900 flex items-center gap-2">
+                  <Edit3 className="h-4 w-4 text-amber-600" />
+                  <span>Gerir Encomenda {encomendaEmEdicao.codigo}</span>
+                </h3>
+                <p className="text-xs text-stone-500">
+                  Agendada para <strong>{encomendaEmEdicao.data_agendamento}</strong> ({encomendaEmEdicao.tipo === 'levantamento_loja' ? `Levantamento em ${encomendaEmEdicao.loja_nome}` : 'Entrega ao Domicílio'})
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEncomendaEmEdicao(null)}
+                className="text-stone-400 hover:text-stone-700 text-sm font-bold p-1 cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {(() => {
+              const hojeStr = new Date().toISOString().split('T')[0];
+              const isHoje = encomendaEmEdicao.data_agendamento === hojeStr;
+
+              return (
+                <div className="space-y-4">
+                  {isHoje ? (
+                    <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 text-xs space-y-2">
+                      <div className="flex items-center gap-2 font-black text-amber-950">
+                        <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                        <span>Encomenda agendada para hoje!</span>
+                      </div>
+                      <p className="leading-relaxed">
+                        Como a sua encomenda tem entrega prevista para hoje, a produção já está em andamento. Para alterar quantidades ou artigos, por favor <strong>confirme telefonicamente</strong> com a padaria através do <strong>256 944 330</strong>.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-stone-600">
+                      Como a entrega está agendada a partir de amanhã, pode ajustar livremente as quantidades dos artigos pretendidos.
+                    </p>
+                  )}
+
+                  {/* Lista de Artigos da Encomenda */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider">
+                      Quantidades por Artigo:
+                    </label>
+                    <div className="space-y-2">
+                      {encomendaEmEdicao.itens.map((it, idx) => (
+                        <div
+                          key={it.id || idx}
+                          className="flex items-center justify-between p-3 rounded-xl border border-stone-200 bg-stone-50/70 text-xs"
+                        >
+                          <span className="font-bold text-stone-900">{it.produto_nome}</span>
+                          <div className="flex items-center gap-2">
+                            {isHoje ? (
+                              <span className="font-mono font-black text-xs px-2.5 py-1 bg-white border border-stone-200 rounded-lg text-stone-700">
+                                {it.quantidade} un.
+                              </span>
+                            ) : (
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const novosItens = [...encomendaEmEdicao.itens];
+                                    if (novosItens[idx].quantidade > 1) {
+                                      novosItens[idx].quantidade -= 1;
+                                      setEncomendaEmEdicao({ ...encomendaEmEdicao, itens: novosItens });
+                                    }
+                                  }}
+                                  className="w-7 h-7 rounded-lg bg-white border border-stone-300 text-stone-700 font-bold hover:bg-stone-100 flex items-center justify-center cursor-pointer"
+                                >
+                                  -
+                                </button>
+                                <span className="font-mono font-black text-xs w-8 text-center text-stone-900">
+                                  {it.quantidade}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const novosItens = [...encomendaEmEdicao.itens];
+                                    novosItens[idx].quantidade += 1;
+                                    setEncomendaEmEdicao({ ...encomendaEmEdicao, itens: novosItens });
+                                  }}
+                                  className="w-7 h-7 rounded-lg bg-white border border-stone-300 text-stone-700 font-bold hover:bg-stone-100 flex items-center justify-center cursor-pointer"
+                                >
+                                  +
+                                </button>
+                                <span className="text-[11px] text-stone-500 font-medium ml-1">un.</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Notas Adicionais */}
+                  {!isHoje && (
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">
+                        Notas ou Instruções Adicionais:
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={encomendaEmEdicao.notas_cliente || ''}
+                        onChange={(e) => setEncomendaEmEdicao({ ...encomendaEmEdicao, notas_cliente: e.target.value })}
+                        className="w-full px-3 py-2 text-xs rounded-xl border border-stone-200 focus:outline-hidden"
+                      />
+                    </div>
+                  )}
+
+                  {/* Botões de Ação: Cancelar e Guardar */}
+                  <div className="pt-3 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleCancelarEncomendaCliente(encomendaEmEdicao.id)}
+                      className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+                    >
+                      <XCircle className="h-4 w-4" />
+                      <span>Cancelar Encomenda</span>
+                    </button>
+
+                    <div className="w-full sm:w-auto flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEncomendaEmEdicao(null)}
+                        className="px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs transition cursor-pointer"
+                      >
+                        Fechar
+                      </button>
+                      {!isHoje && (
+                        <button
+                          type="button"
+                          onClick={handleSalvarEdicaoEncomendaCliente}
+                          className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs transition cursor-pointer flex items-center gap-1.5"
+                        >
+                          <Check className="h-4 w-4" />
+                          <span>Guardar Alterações</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

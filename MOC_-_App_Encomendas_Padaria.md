@@ -55,13 +55,13 @@ updated: 2026-09-14
 
 Todos os documentos abaixo são mantidos automaticamente sincronizados em Markdown (`docs/*.md`) e dispõem de geração direta em **PDF Institucional Inprooval®** (com sanitização automática de notas internas):
 
-1. [[docs/01_Dossier_Tecnico_e_Evolucao_Arquitetural|🛠️ 01 - Dossier Técnico & Passo-a-Passo do Desenvolvimento da Solução]]
-2. [[docs/02_Manual_Utilizador_Jornadas_e_Fluxos_de_Pedidos|📘 02 - Manual de Utilização, Jornadas por Perfil & Fluxos End-to-End de Pedidos]]
-3. [[docs/03_Manual_Administrador_Configuracoes_e_KPIs_Gestao|📊 03 - Manual do Administrador: Configurações & Fórmulas de Indicadores do Cockpit de Gestão]]
-4. [[docs/04_Dossier_Projeto_Cliente_Backlog_Horas_e_Oportunidades|📋 04 - Dossier Mestre do Projeto: Cliente, Backlog, Orçamento, Bolsa de Horas, Sprints & Oportunidades]]
-5. [[docs/05_Proposta_Comercial_e_Demonstracao_de_Valor|💼 05 - Proposta Comercial Executiva & Demonstração de Valor]]
-6. [[docs/06_Relatorio_Auditoria_Bulletproof_Swarm|🛡️ 06 - Relatório de Auditoria & Certificação de Qualidade — Bulletproof Agent Swarm]]
-7. [[docs/assets/processo_as_is/Processo_As_Is_Mapa_Diario_Padaria_da_Vila|📄 Evidência do Processo As-Is — Mapa Diário Manual em Papel e Excel (10/10/2026)]]
+1. [[01_Dossier_Tecnico_e_Evolucao_Arquitetural|🛠️ 01 - Dossier Técnico & Passo-a-Passo do Desenvolvimento da Solução]]
+2. [[02_Manual_Utilizador_Jornadas_e_Fluxos_de_Pedidos|📘 02 - Manual de Utilização, Jornadas por Perfil & Fluxos End-to-End de Pedidos]]
+3. [[03_Manual_Administrador_Configuracoes_e_KPIs_Gestao|📊 03 - Manual do Administrador: Configurações & Fórmulas de Indicadores do Cockpit de Gestão]]
+4. [[04_Dossier_Projeto_Cliente_Backlog_Horas_e_Oportunidades|📋 04 - Dossier Mestre do Projeto: Cliente, Backlog, Orçamento, Bolsa de Horas, Sprints & Oportunidades]]
+5. [[05_Proposta_Comercial_e_Demonstracao_de_Valor|💼 05 - Proposta Comercial Executiva & Demonstração de Valor]]
+6. [[06_Relatorio_Auditoria_Bulletproof_Swarm|🛡️ 06 - Relatório de Auditoria & Certificação de Qualidade — Bulletproof Agent Swarm]]
+7. [[Processo_As_Is_Mapa_Diario_Padaria_da_Vila|📄 Evidência do Processo As-Is — Mapa Diário Manual em Papel e Excel (10/10/2026)]]
 
 ---
 
@@ -72,6 +72,7 @@ Consulte o histórico detalhado em `[[CHANGELOG]]`.
 
 | Versão | Tag Git | Commit | Data | Marco Funcional Principal |
 | :--- | :--- | :--- | :--- | :--- |
+| **v2.3.0** | `v2.3.0` | `HEAD` | 2026-10-18 | Simplificação KDS Produção (ação única tátil, filtro rigoroso levantamento loja), Matriz Semanal de Base Fixa Diária por Carrinha com exportações Excel consolidadas/individuais, neutralidade da frota (Carrinhas 1 a 5 sem duplicados nem afetações rígidas), Auditoria transversal com histórico de todos os utilizadores da última semana, simplificação de estados na App Cliente com regras de edição/cancelamento e foco exclusivo das entregas em encomendas ao domicílio |
 | **v2.2.0** | `v2.2.0` | `80d2d7a` | 2026-10-16 | Adoção integral da Norma Técnica de Iconografia, Estados e Design de Interação Inprooval® (Zero Emojis, `StatusBadge` com micro-ponto semafórico 6px, `OriginBadge`, `SectorBadge` e higienização vetorial de todos os cockpits) |
 | **v2.1.3** | `v2.1.3` | `e99f6aa` | 2026-10-12 | Autenticação no Portal Direto de Clientes (`/encomendar`) com Password definida pelo utilizador, E-mail obrigatório e Recuperação por E-mail via Supabase Auth + Hardening RLS Supabase + Remoção do pacote externo TinaCMS |
 | **v2.1.2** | `v2.1.2` | `a36c995` | 2026-10-12 | Edição/correção e eliminação de artigos na Base Fixa Diária de Clientes Particulares (1.º ao 4.º Carro) + Extração e Importação Excel (`.xlsx`) tal como no B2B |

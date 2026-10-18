@@ -163,10 +163,11 @@ export type CockpitSelecionado = 'loja' | 'producao' | 'carrinhas' | 'gestao';
 export type DiaSemana = 'seg' | 'ter' | 'qua' | 'qui' | 'sex' | 'sab' | 'dom';
 
 export interface BaseFixaCarrinha {
-  carrinha_id: string; // ex: '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75' (1º ao 4º Carro)
+  carrinha_id: string; // ex: '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75'
   carrinha_nome?: string;
-  quantidades_por_produto: Record<string, number>; // nome do produto -> quantidade base diária
+  quantidades_por_produto: Record<string, number>; // fallback / base diária geral
   quantidades?: Record<string, number>; // alias compatível
+  quantidades_semanais?: Record<DiaSemana, Record<string, number>>; // dia da semana -> produto -> quantidade
 }
 
 export interface ClienteEmpresarialB2B {

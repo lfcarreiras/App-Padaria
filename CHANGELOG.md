@@ -42,6 +42,40 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.3.0] - 2026-10-18
+
+### Added & Refactored (Simplificação Operacional, Base Diária Semanal por Carrinha, Auditoria Transversal e Rastreabilidade Total)
+
+- **Padronização e Neutralidade da Frota de Viaturas**:
+  - Nomenclatura normalizada para `Carrinha 1`, `Carrinha 2`, `Carrinha 3`, `Carrinha 4` e `Carrinha 5` em todos os cockpits (`/gestao`, `/entregas`, `/producao`, `/encomendas`), sem prefixos duplicados (ex: removido `1º Carro (Carrinha 1 - Particulares)`).
+  - Remoção de atribuição fixa/definitiva de viaturas a particulares ou empresas nos cartões e modais de edição.
+  - Eliminação de campos obsoletos como "Loja Afeta" na edição de carrinhas, com fallback seguro para integridade referencial.
+- **Base Diária Semanal por Carrinha e Exportações Excel Flexíveis**:
+  - Matriz diária de quantidades por artigo e por carrinha para cada dia da semana (`Segunda` a `Domingo`).
+  - Seletor rápido de dias da semana e botão de replicação imediata ("Replicar para Toda a Semana").
+  - Exportação Excel Consolidada (todas as carrinhas nos 7 dias da semana) e Exportação Excel Individual (7 dias da semana para a carrinha selecionada).
+  - Limpeza dos títulos de secção no cockpit de gestão, removendo contagens estáticas de entidades e viaturas (ex: `Base Diária por Carrinha` e `Clientes Empresariais (B2B)` sem textos rígidos como "14 entidades" ou "1º ao 4º Carro").
+- **Neutralidade da Base de Dados e Ocultação de Detalhes Técnicos**:
+  - Eliminação de todas as referências ao fornecedor `Supabase` em interfaces públicas e de gestão (substituído por `Base de Dados Central`).
+  - Ocultação e remoção visual das colunas técnicas `ID (Supabase)` e `UUID` nas tabelas de dados.
+- **Auditoria Transversal e Rastreabilidade Total de Operações**:
+  - Sincronização centralizada de registos de auditoria partilhados entre todos os postos de trabalho e utilizadores.
+  - Filtro predefinido para a última semana (`Últimos 7 dias`), permitindo acompanhar a taxa de adoção, quem realizou cada ação, quando e em que cockpit.
+- **App do Cliente (`/encomendar`) — Fluxo de Estados e Políticas de Edição/Cancelamento**:
+  - Estados simplificados: apenas `Encomendado`, `Pronto`, `Entregue` e `Cancelado` (removidos os estados "Em Produção" e "Em Distribuição" e barra de progresso em 4 etapas).
+  - Campo de hora de entrega: exibido exclusivamente para `Levantamento em Loja`; para `Entrega ao Domicílio`, o campo de hora é omitido com nota informativa sobre as rondas habituais das carrinhas.
+  - Política de Edição e Cancelamento:
+    - Se a entrega for no próprio dia (`hoje`): bloqueio de alteração de quantidades com aviso para contacto telefónico (256 944 330).
+    - Se a entrega for agendada para data futura (`amanhã ou posterior`): edição livre de quantidades e botão proeminente de **"Cancelar Encomenda"**.
+- **Cockpit de Entregas (`/entregas`) & KPIs de Gestão**:
+  - Foco exclusivo dos motoristas na sinalização e entrega de encomendas ao domicílio (removido acordeão de carga base consolidada da página de entregas).
+  - Dashboard de gestão alinhado para contabilizar estritamente entregas reais de encomendas.
+- **Cockpit de Produção (`/producao`)**:
+  - Foco estrito em encomendas de levantamento em loja (`tipo === 'levantamento_loja'`).
+  - Ação tátil unificada: "Marcar como Pronta" (`pronto_loja`).
+  - Alerta sonoro/visual para encomendas com entrega em menos de 3 horas.
+  - Ordenação estrita ascendente por data e hora de levantamento.
+
 ## [v2.2.0] - 2026-10-16
 
 ### Added & Refactored (Alinhamento com a Norma Técnica de Iconografia, Estados e Design de Interação — Inprooval®)

@@ -1,7 +1,26 @@
 'use client';
 
 import React from 'react';
-import { Globe, MessageCircle, Phone, Store, Flame, Layers, Truck } from 'lucide-react';
+import { Globe, MessageCircle, Phone, Store, CakeSlice, Truck } from 'lucide-react';
+
+export const BreadIcon: React.FC<{ className?: string }> = ({ className = 'w-3.5 h-3.5' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.75"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M4.5 13C4.5 8 8 5 12 5s7.5 3 7.5 8c0 3.5-1.5 6-4.5 6h-6c-3 0-4.5-2.5-4.5-6z" />
+    <path d="M8.5 9c.5 1.5 1 2.5 1.5 3.5" />
+    <path d="M12 8c.2 1.8.3 2.7 0 4.5" />
+    <path d="M15.5 9c-.5 1.5-1 2.5-1.5 3.5" />
+  </svg>
+);
+
+export { CakeSlice };
 
 interface OriginBadgeProps {
   origem: 'site_online' | 'whatsapp' | 'telefone' | 'presencial' | string;
@@ -57,16 +76,16 @@ export const SectorBadge: React.FC<SectorBadgeProps> = ({ setor, className = '' 
 
   if (isPadaria) {
     return (
-      <span className={`inline-flex items-center gap-1 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md ${className}`}>
-        <Flame className="w-3 h-3 text-amber-600 shrink-0" />
+      <span className={`inline-flex items-center gap-1.5 text-xs font-medium text-amber-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md ${className}`}>
+        <BreadIcon className="w-3.5 h-3.5 text-amber-700 shrink-0" />
         <span>Padaria</span>
       </span>
     );
   }
 
   return (
-    <span className={`inline-flex items-center gap-1 text-xs font-medium text-purple-800 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-md ${className}`}>
-      <Layers className="w-3 h-3 text-purple-600 shrink-0" />
+    <span className={`inline-flex items-center gap-1.5 text-xs font-medium text-purple-900 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-md ${className}`}>
+      <CakeSlice className="w-3.5 h-3.5 text-purple-600 shrink-0" />
       <span>Pastelaria</span>
     </span>
   );

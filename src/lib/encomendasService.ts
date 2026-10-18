@@ -704,7 +704,9 @@ export async function carregarClientesSupabase(): Promise<Cliente[]> {
     console.error('Erro ao carregar clientes:', error);
     return [];
   }
-  return (data || []).map(mapearLinhaClienteDb);
+  return (data || [])
+    .filter((c: any) => !String(c.telefone || '').startsWith('00000000'))
+    .map(mapearLinhaClienteDb);
 }
 
 /**
@@ -943,39 +945,32 @@ export async function carregarCarrinhasSupabase(): Promise<Carrinha[]> {
     return CARRINHAS_MOCK;
   }
 
-  // Garantir que as 5 carrinhas oficiais existem e têm a nomenclatura atualizada (1º Carro a 5º Carro)
+  // Garantir identificadores limpos (apenas Carrinha 1 a Carrinha 5 sem duplicação de títulos)
+  const padronizarNome = (id: string, nomeRaw: string, idx: number): string => {
+    const raw = String(nomeRaw || '');
+    const numMatch = raw.match(/(\d+)/);
+    const num = numMatch ? numMatch[1] : String(idx + 1);
+    return `Carrinha ${num}`;
+  };
+
   const merged: Carrinha[] = [...CARRINHAS_MOCK];
   for (const row of data) {
     const idx = merged.findIndex((m) => m.id === row.id);
+    const nomeLimpo = padronizarNome(row.id, row.identificador, idx >= 0 ? idx : merged.length);
     if (idx !== -1) {
-      // Manter identificador oficial se ainda estiver com o nome antigo
-      const iden = row.identificador?.includes('º Carro') ? row.identificador : merged[idx].identificador;
-      merged[idx] = { ...row, identificador: iden };
+      merged[idx] = { ...row, identificador: nomeLimpo };
     } else {
-      merged.push(row);
+      merged.push({ ...row, identificador: nomeLimpo });
     }
-  }
-
-  // Tentar sincronizar silenciosamente a 5ª carrinha caso ainda não exista no Supabase
-  const quintaExiste = data.some((d: any) => d.id === 'b555db95-c427-4ed5-83fc-01403bd24cf5' || d.identificador?.includes('5º Carro') || d.identificador?.includes('Carrinha 5'));
-  if (!quintaExiste) {
-    const car5 = CARRINHAS_MOCK[4];
-    supabase.from('carrinhas').upsert({
-      id: car5.id,
-      loja_id: car5.loja_id,
-      identificador: car5.identificador,
-      matricula: car5.matricula,
-      ativo: true,
-    }).then(() => {});
   }
 
   return merged;
 }
 
-export async function salvarCarrinhaDb(carrinha: Partial<Carrinha> & { loja_id: string; identificador: string; matricula: string }) {
+export async function salvarCarrinhaDb(carrinha: Partial<Carrinha> & { identificador: string; matricula: string; loja_id?: string }) {
   if (!supabase) return null;
   const payload = {
-    loja_id: carrinha.loja_id,
+    loja_id: carrinha.loja_id || 'a9982e9f-7899-4a7c-8ce3-bc30f16c99a2',
     identificador: carrinha.identificador.trim(),
     matricula: carrinha.matricula.trim(),
     ativo: carrinha.ativo !== undefined ? carrinha.ativo : true,
@@ -1332,48 +1327,90 @@ export async function eliminarPerfilAcessoDb(perfilId: string): Promise<PerfilUt
 // ---------------- LOGS DE AUDITORIA & HISTÓRICO DE UTILIZADORES ---------------- //
 
 const AUDIT_LOGS_STORAGE_KEY = 'app_logs_auditoria';
+const AUDIT_LOGS_PHONE_KEY = '000000001';
 
 export async function carregarLogsAuditoriaSupabase(): Promise<LogAuditoria[]> {
-  // 1. Tentar ler do Supabase se a tabela existir
+  const agora = new Date();
+  const seteDiasAtras = new Date(agora.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const seteDiasAtrasStr = seteDiasAtras.toISOString().split('T')[0];
+  const seteDiasAtrasISO = seteDiasAtras.toISOString();
+
+  let todosLogs: LogAuditoria[] = [];
+
+  // 1. Tentar ler da base de dados central (tabela dedicada ou registo compartilhado multi-utilizador)
   if (supabase) {
     try {
       const { data, error } = await supabase
         .from('logs_auditoria')
         .select('*')
+        .gte('criado_em', seteDiasAtrasISO)
         .order('criado_em', { ascending: false });
 
       if (!error && data && data.length > 0) {
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(AUDIT_LOGS_STORAGE_KEY, JSON.stringify(data));
-        }
-        return data as LogAuditoria[];
+        todosLogs = data as LogAuditoria[];
       }
-    } catch (e) {
-      console.warn('Tabela logs_auditoria não acessível no Supabase, a utilizar fallback local:', e);
+    } catch {}
+
+    if (todosLogs.length === 0) {
+      try {
+        const { data } = await supabase
+          .from('clientes')
+          .select('notas_entrega')
+          .eq('telefone', AUDIT_LOGS_PHONE_KEY)
+          .maybeSingle();
+
+        if (data && data.notas_entrega) {
+          const parsed = JSON.parse(data.notas_entrega);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            todosLogs = parsed;
+          }
+        }
+      } catch (err) {
+        console.warn('Erro ao ler logs centrais:', err);
+      }
     }
   }
 
-  // 2. Fallback para localStorage
+  // 2. Mesclar com cache local para não perder logs efetuados offline
   if (typeof window !== 'undefined') {
     const cached = localStorage.getItem(AUDIT_LOGS_STORAGE_KEY);
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+        if (Array.isArray(parsed)) {
+          todosLogs = [...todosLogs, ...parsed];
         }
-      } catch (e) {}
+      } catch {}
     }
   }
 
-  // 3. Fallback para Mock inicial estruturado
-  if (typeof window !== 'undefined' && LOGS_AUDITORIA_MOCK && LOGS_AUDITORIA_MOCK.length > 0) {
-    try {
-      localStorage.setItem(AUDIT_LOGS_STORAGE_KEY, JSON.stringify(LOGS_AUDITORIA_MOCK));
-    } catch (e) {}
+  // 3. Fallback estruturado se a base de dados for inicializada pela primeira vez
+  if (todosLogs.length === 0 && LOGS_AUDITORIA_MOCK && LOGS_AUDITORIA_MOCK.length > 0) {
+    todosLogs = [...LOGS_AUDITORIA_MOCK];
   }
 
-  return LOGS_AUDITORIA_MOCK || [];
+  // 4. Deduplicar por ID e filtrar estritamente pelos últimos 7 dias para rastreabilidade de utilização
+  const idsVistos = new Set<string>();
+  const logsUltimaSemana = todosLogs.filter((log) => {
+    if (!log || !log.id || idsVistos.has(log.id)) return false;
+    idsVistos.add(log.id);
+
+    const logData = log.data || (log.criado_em ? log.criado_em.split('T')[0] : '');
+    const logIso = log.criado_em || (logData ? `${logData}T${log.hora || '00:00'}:00` : '');
+    return logData >= seteDiasAtrasStr || logIso >= seteDiasAtrasISO;
+  }).sort((a, b) => {
+    const dtA = a.criado_em || `${a.data} ${a.hora}`;
+    const dtB = b.criado_em || `${b.data} ${b.hora}`;
+    return dtB.localeCompare(dtA);
+  });
+
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(AUDIT_LOGS_STORAGE_KEY, JSON.stringify(logsUltimaSemana));
+    } catch {}
+  }
+
+  return logsUltimaSemana;
 }
 
 export async function registarLogAuditoria(
@@ -1401,12 +1438,49 @@ export async function registarLogAuditoria(
     criado_em: dados.criado_em || agora.toISOString(),
   };
 
-  // 1. Gravar em Supabase se disponível
+  // 1. Gravar na Base de Dados Central para visibilidade multi-utilizador
   if (supabase) {
     try {
       await supabase.from('logs_auditoria').insert([novoLog]);
+    } catch {}
+
+    try {
+      const { data: existente } = await supabase
+        .from('clientes')
+        .select('id, notas_entrega')
+        .eq('telefone', AUDIT_LOGS_PHONE_KEY)
+        .maybeSingle();
+
+      let listaRemota: LogAuditoria[] = [];
+      if (existente && existente.notas_entrega) {
+        try {
+          const parsed = JSON.parse(existente.notas_entrega);
+          if (Array.isArray(parsed)) listaRemota = parsed;
+        } catch {}
+      }
+
+      listaRemota = [novoLog, ...listaRemota.filter((l) => l.id !== novoLog.id)].slice(0, 800);
+      const jsonStr = JSON.stringify(listaRemota);
+
+      if (existente) {
+        await supabase
+          .from('clientes')
+          .update({
+            nome: '[SISTEMA_LOGS_AUDITORIA]',
+            notas_entrega: jsonStr,
+          })
+          .eq('id', existente.id);
+      } else {
+        await supabase
+          .from('clientes')
+          .insert({
+            nome: '[SISTEMA_LOGS_AUDITORIA]',
+            telefone: AUDIT_LOGS_PHONE_KEY,
+            notas_entrega: jsonStr,
+          });
+      }
     } catch (err) {
-      console.warn('Erro ao inserir log em Supabase (persistindo em local):', err);
+      console.warn('Erro ao sincronizar log central no servidor:', err);
     }
   }
 
@@ -1443,29 +1517,54 @@ const BASE_FIXA_CARRINHAS_STORAGE_KEY = 'padaria_base_fixa_carrinhas_v2';
 const CLIENTES_B2B_STORAGE_KEY = 'padaria_clientes_empresariais_b2b_v2';
 
 const MAPA_CARRINHA_IDS_LEGADOS: Record<string, { id: string; nome: string }> = {
-  'e908db95-c427-4ed5-83fc-01403bd24cf1': { id: '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75', nome: '1º Carro' },
-  'a712db95-c427-4ed5-83fc-01403bd24cf2': { id: '5ebae97d-593f-4f54-81c5-b200dd04258b', nome: '2º Carro' },
-  'b823db95-c427-4ed5-83fc-01403bd24cf3': { id: 'e062fea7-97da-4b2a-8607-da6a9ea8e668', nome: '3º Carro' },
-  'c934db95-c427-4ed5-83fc-01403bd24cf4': { id: 'a282db95-c427-4ed5-83fc-01403bd24cfc', nome: '4º Carro' },
-  '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75': { id: '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75', nome: '1º Carro' },
-  '5ebae97d-593f-4f54-81c5-b200dd04258b': { id: '5ebae97d-593f-4f54-81c5-b200dd04258b', nome: '2º Carro' },
-  'e062fea7-97da-4b2a-8607-da6a9ea8e668': { id: 'e062fea7-97da-4b2a-8607-da6a9ea8e668', nome: '3º Carro' },
-  'a282db95-c427-4ed5-83fc-01403bd24cfc': { id: 'a282db95-c427-4ed5-83fc-01403bd24cfc', nome: '4º Carro' },
+  'e908db95-c427-4ed5-83fc-01403bd24cf1': { id: '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75', nome: 'Carrinha 1' },
+  'a712db95-c427-4ed5-83fc-01403bd24cf2': { id: '5ebae97d-593f-4f54-81c5-b200dd04258b', nome: 'Carrinha 2' },
+  'b823db95-c427-4ed5-83fc-01403bd24cf3': { id: 'e062fea7-97da-4b2a-8607-da6a9ea8e668', nome: 'Carrinha 3' },
+  'c934db95-c427-4ed5-83fc-01403bd24cf4': { id: 'a282db95-c427-4ed5-83fc-01403bd24cfc', nome: 'Carrinha 4' },
+  '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75': { id: '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75', nome: 'Carrinha 1' },
+  '5ebae97d-593f-4f54-81c5-b200dd04258b': { id: '5ebae97d-593f-4f54-81c5-b200dd04258b', nome: 'Carrinha 2' },
+  'e062fea7-97da-4b2a-8607-da6a9ea8e668': { id: 'e062fea7-97da-4b2a-8607-da6a9ea8e668', nome: 'Carrinha 3' },
+  'a282db95-c427-4ed5-83fc-01403bd24cfc': { id: 'a282db95-c427-4ed5-83fc-01403bd24cfc', nome: 'Carrinha 4' },
 };
 
 export function normalizarBaseFixaItem(b: any): BaseFixaCarrinha {
   const infoId = MAPA_CARRINHA_IDS_LEGADOS[b?.carrinha_id] || {
     id: b?.carrinha_id || '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75',
-    nome: b?.carrinha_nome || '1º Carro',
+    nome: b?.carrinha_nome || 'Carrinha 1',
   };
+  const nomeLimpo = String(b?.carrinha_nome || infoId.nome).replace(/1º Carro/i, 'Carrinha 1')
+    .replace(/2º Carro/i, 'Carrinha 2')
+    .replace(/3º Carro/i, 'Carrinha 3')
+    .replace(/4º Carro/i, 'Carrinha 4')
+    .replace(/5º Carro/i, 'Carrinha 5');
+
   const mapaQtds: Record<string, number> = {
     ...(b?.quantidades_por_produto || b?.quantidades || b?.quantidadesPorProduto || {}),
   };
+
+  const todosDias: DiaSemana[] = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
+  const origemSemana = b?.quantidades_semanais || {};
+  const semanaNormalizada: Record<DiaSemana, Record<string, number>> = {
+    seg: { ...(origemSemana.seg || mapaQtds) },
+    ter: { ...(origemSemana.ter || mapaQtds) },
+    qua: { ...(origemSemana.qua || mapaQtds) },
+    qui: { ...(origemSemana.qui || mapaQtds) },
+    sex: { ...(origemSemana.sex || mapaQtds) },
+    sab: { ...(origemSemana.sab || mapaQtds) },
+    dom: { ...(origemSemana.dom || mapaQtds) },
+  };
+  todosDias.forEach((d) => {
+    if (!semanaNormalizada[d] || typeof semanaNormalizada[d] !== 'object') {
+      semanaNormalizada[d] = { ...mapaQtds };
+    }
+  });
+
   return {
     carrinha_id: infoId.id,
-    carrinha_nome: b?.carrinha_nome || infoId.nome,
+    carrinha_nome: nomeLimpo,
     quantidades_por_produto: mapaQtds,
     quantidades: mapaQtds,
+    quantidades_semanais: semanaNormalizada,
   };
 }
 

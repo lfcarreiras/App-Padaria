@@ -37,7 +37,7 @@ export const CARRINHAS_MOCK: Carrinha[] = [
   {
     "id": "1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75",
     "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
-    "identificador": "1º Carro (Carrinha 1 - Particulares)",
+    "identificador": "Carrinha 1",
     "matricula": "42-AB-89",
     "motorista_id": null,
     "ativo": true,
@@ -46,7 +46,7 @@ export const CARRINHAS_MOCK: Carrinha[] = [
   {
     "id": "5ebae97d-593f-4f54-81c5-b200dd04258b",
     "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
-    "identificador": "2º Carro (Carrinha 2 - Particulares)",
+    "identificador": "Carrinha 2",
     "matricula": "77-ZX-12",
     "motorista_id": null,
     "ativo": true,
@@ -55,7 +55,7 @@ export const CARRINHAS_MOCK: Carrinha[] = [
   {
     "id": "e062fea7-97da-4b2a-8607-da6a9ea8e668",
     "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
-    "identificador": "3º Carro (Carrinha 3 - Particulares)",
+    "identificador": "Carrinha 3",
     "matricula": "15-TR-33",
     "motorista_id": null,
     "ativo": true,
@@ -64,7 +64,7 @@ export const CARRINHAS_MOCK: Carrinha[] = [
   {
     "id": "a282db95-c427-4ed5-83fc-01403bd24cfc",
     "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
-    "identificador": "4º Carro (Carrinha 4 - Particulares)",
+    "identificador": "Carrinha 4",
     "matricula": "90-KL-55",
     "motorista_id": null,
     "ativo": true,
@@ -73,7 +73,7 @@ export const CARRINHAS_MOCK: Carrinha[] = [
   {
     "id": "b555db95-c427-4ed5-83fc-01403bd24cf5",
     "loja_id": "a9982e9f-7899-4a7c-8ce3-bc30f16c99a2",
-    "identificador": "5º Carro (Carrinha 5 - Clientes Empresariais)",
+    "identificador": "Carrinha 5",
     "matricula": "55-EM-26",
     "motorista_id": null,
     "ativo": true,

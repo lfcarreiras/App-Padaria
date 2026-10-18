@@ -99,11 +99,11 @@ export default function LoginPage() {
       <div className="relative z-10 w-full max-w-md my-auto bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-white/40 overflow-hidden">
         {/* Cabeçalho do Card com Logo Oficial */}
         <div className="bg-stone-900 text-white py-3.5 px-5 text-center relative overflow-hidden border-b border-stone-800">
-          <div className="inline-flex items-center justify-center rounded-2xl bg-white p-0.5 shadow-lg mb-1.5">
+          <div className="inline-flex items-center justify-center mb-2">
             <img
               src="/logo-padaria.jpg"
               alt="Padaria da Vila"
-              className="h-11 w-11 rounded-xl object-cover"
+              className="h-16 w-16 rounded-full object-cover shadow-md"
             />
           </div>
           <h1 className="text-lg font-black tracking-tight leading-tight">{t.appTitle}</h1>
