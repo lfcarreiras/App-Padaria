@@ -204,49 +204,55 @@ export default function AdminPage() {
   // Carregamento Inicial
   useEffect(() => {
     async function carregar() {
-      const [encs, clis, prods, ljs, cars, pfs, logs] = await Promise.all([
-        carregarEncomendasSupabase(),
-        carregarClientesSupabase(),
-        carregarProdutosSupabase(),
-        carregarLojasSupabase(),
-        carregarCarrinhasSupabase(),
-        carregarPerfisAcessoSupabase(),
-        carregarLogsAuditoriaSupabase(),
-      ]);
-      setEncomendas(encs);
-      if (clis.length) setClientes(clis);
-      if (prods.length) setProdutos(prods);
-      if (ljs.length) setLojas(ljs);
-      if (cars.length) {
-        setCarrinhas(cars);
-        setCarrinhaExportacaoId(cars[0]?.id || '');
-      }
-      if (pfs.length) setPerfis(pfs);
-      if (logs.length) setLogsAuditoria(logs);
-      setReceiptConfig(getReceiptConfig());
-      const bfCarregada = carregarBaseFixaCarrinhas();
-      setBaseFixaCarrinhas(bfCarregada);
-      const artsGuardados = carregarArtigosBaseFixa();
-      const setCombinado = new Set<string>(artsGuardados);
-      bfCarregada.forEach((bf) => {
-        const mapa = bf?.quantidades_por_produto || bf?.quantidades || {};
-        Object.keys(mapa).forEach((prod) => setCombinado.add(prod));
-        if (bf?.quantidades_semanais) {
-          Object.values(bf.quantidades_semanais).forEach((m) => {
-            Object.keys(m || {}).forEach((prod) => setCombinado.add(prod));
-          });
+      try {
+        const [encs, clis, prods, ljs, cars, pfs, logs] = await Promise.all([
+          carregarEncomendasSupabase(),
+          carregarClientesSupabase(),
+          carregarProdutosSupabase(),
+          carregarLojasSupabase(),
+          carregarCarrinhasSupabase(),
+          carregarPerfisAcessoSupabase(),
+          carregarLogsAuditoriaSupabase(),
+        ]);
+        if (Array.isArray(encs)) setEncomendas(encs);
+        if (Array.isArray(clis) && clis.length) setClientes(clis);
+        if (Array.isArray(prods) && prods.length) setProdutos(prods);
+        if (Array.isArray(ljs) && ljs.length) setLojas(ljs);
+        if (Array.isArray(cars) && cars.length) {
+          setCarrinhas(cars);
+          setCarrinhaExportacaoId(cars[0]?.id || '');
         }
-      });
-      setArtigosBaseFixa(Array.from(setCombinado));
-      setClientesB2B(carregarClientesEmpresariaisB2B());
+        if (Array.isArray(pfs) && pfs.length) setPerfis(pfs);
+        if (Array.isArray(logs) && logs.length) setLogsAuditoria(logs);
+        setReceiptConfig(getReceiptConfig());
+        const bfCarregada = carregarBaseFixaCarrinhas();
+        if (Array.isArray(bfCarregada)) setBaseFixaCarrinhas(bfCarregada);
+        const artsGuardados = carregarArtigosBaseFixa();
+        const setCombinado = new Set<string>(Array.isArray(artsGuardados) ? artsGuardados : []);
+        (bfCarregada || []).forEach((bf) => {
+          if (!bf) return;
+          const mapa = bf?.quantidades_por_produto || bf?.quantidades || {};
+          Object.keys(mapa).forEach((prod) => setCombinado.add(prod));
+          if (bf?.quantidades_semanais) {
+            Object.values(bf.quantidades_semanais).forEach((m) => {
+              Object.keys(m || {}).forEach((prod) => setCombinado.add(prod));
+            });
+          }
+        });
+        setArtigosBaseFixa(Array.from(setCombinado));
+        const b2b = carregarClientesEmpresariaisB2B();
+        if (Array.isArray(b2b)) setClientesB2B(b2b);
+      } catch (err) {
+        console.error('Erro no carregamento inicial de dados em gestao:', err);
+      }
     }
     carregar();
   }, []);
 
   // Artigos visíveis na grelha de Base Fixa (Editáveis e elimináveis pelo Administrador)
   const artigosGrelhaBaseFixa = useMemo(() => {
-    if (artigosBaseFixa.length > 0) return artigosBaseFixa;
-    return COLUNAS_MAPA_DIARIO_OFICIAL;
+    if (artigosBaseFixa && artigosBaseFixa.length > 0) return artigosBaseFixa;
+    return COLUNAS_MAPA_DIARIO_OFICIAL || [];
   }, [artigosBaseFixa]);
 
   const obterQtdBaseCarrinha = (carrinhaId: string, dia: DiaSemana, prodNome: string): number => {
@@ -788,6 +794,7 @@ export default function AdminPage() {
     const anoInicioStr = `${hoje.getFullYear()}-01-01`;
 
     return encomendas.filter((e) => {
+      if (!e) return false;
       // 1. Filtro de Loja
       const matchLoja = selectedLojaId === 'todas' || e.loja_id === selectedLojaId;
 
@@ -796,7 +803,7 @@ export default function AdminPage() {
 
       // 3. Filtro Temporal
       let matchTempo = true;
-      const dataEnc = e.data_agendamento;
+      const dataEnc = e.data_agendamento || '';
 
       if (periodoSelecionado === 'dia') {
         matchTempo = dataEnc === hojeStr;
@@ -815,11 +822,11 @@ export default function AdminPage() {
   // Cálculos de Indicadores Operacionais (Foco em cumprimento e volume)
   const totalVolumeEncomendas = encomendasFiltradas.length;
   const totalArtigos = encomendasFiltradas.reduce(
-    (acc, curr) => acc + (curr.itens || []).reduce((iAcc, item) => iAcc + (Number(item.quantidade) || 0), 0),
+    (acc, curr) => acc + (curr?.itens || []).reduce((iAcc, item) => iAcc + (Number(item?.quantidade) || 0), 0),
     0
   );
-  const totalEntregas = encomendasFiltradas.filter((e) => e.tipo === 'entrega_domicilio').length;
-  const totalLevantamentos = encomendasFiltradas.filter((e) => e.tipo === 'levantamento_loja').length;
+  const totalEntregas = encomendasFiltradas.filter((e) => e?.tipo === 'entrega_domicilio').length;
+  const totalLevantamentos = encomendasFiltradas.filter((e) => e?.tipo === 'levantamento_loja').length;
 
   // Necessidades Consolidadas de Produção com o filtro ativo
   const mapaProducao: { [nome: string]: { quantidade: number; setor: string; unidade: string } } = {};
@@ -841,21 +848,26 @@ export default function AdminPage() {
 
   // Função auxiliar de cálculo de desvio em minutos entre hora planeada e real
   const calcularDesvioMinutos = (horaAgendada?: string, horaReal?: string): number | null => {
-    if (!horaAgendada || !horaReal) return null;
-    const [hA, mA] = horaAgendada.split(':').map(Number);
-    const [hR, mR] = horaReal.split(':').map(Number);
+    if (!horaAgendada || !horaReal || typeof horaAgendada !== 'string' || typeof horaReal !== 'string') return null;
+    const partesA = horaAgendada.split(':');
+    const partesR = horaReal.split(':');
+    if (partesA.length < 2 || partesR.length < 2) return null;
+    const hA = Number(partesA[0]);
+    const mA = Number(partesA[1]);
+    const hR = Number(partesR[0]);
+    const mR = Number(partesR[1]);
     if (isNaN(hA) || isNaN(mA) || isNaN(hR) || isNaN(mR)) return null;
     return (hR * 60 + mR) - (hA * 60 + mA);
   };
 
   // Cálculo de % On-Time (Pontualidade das Entregas) com tolerância de 10 min
   const entregasFinalizadas = useMemo(() => {
-    return encomendasFiltradas.filter((e) => e.estado === 'entregue' && (e.hora_entrega_real || e.hora_agendamento));
+    return encomendasFiltradas.filter((e) => e?.estado === 'entregue' && (e?.hora_entrega_real || e?.hora_agendamento));
   }, [encomendasFiltradas]);
 
   const entregasNoPrazo = useMemo(() => {
     return entregasFinalizadas.filter((e) => {
-      const desvio = calcularDesvioMinutos(e.hora_agendamento, e.hora_entrega_real || e.hora_agendamento);
+      const desvio = calcularDesvioMinutos(e?.hora_agendamento, e?.hora_entrega_real || e?.hora_agendamento);
       return desvio === null || desvio <= 10;
     });
   }, [entregasFinalizadas]);
@@ -941,10 +953,10 @@ export default function AdminPage() {
       base = base.filter(e => e.tipo === filtroConsolidada.formato);
     }
     if (filtroConsolidada.data.trim()) {
-      base = base.filter(e => e.data_agendamento.includes(filtroConsolidada.data.trim()));
+      base = base.filter(e => (e.data_agendamento || '').includes(filtroConsolidada.data.trim()));
     }
     if (filtroConsolidada.horaPlaneada.trim()) {
-      base = base.filter(e => e.hora_agendamento.includes(filtroConsolidada.horaPlaneada.trim()));
+      base = base.filter(e => (e.hora_agendamento || '').includes(filtroConsolidada.horaPlaneada.trim()));
     }
     if (filtroConsolidada.horaReal.trim()) {
       base = base.filter(e => (e.hora_entrega_real || '').includes(filtroConsolidada.horaReal.trim()));
@@ -972,14 +984,14 @@ export default function AdminPage() {
           res = (a.cliente?.nome || '').localeCompare(b.cliente?.nome || '');
           break;
         case 'formato':
-          res = a.tipo.localeCompare(b.tipo);
+          res = (a.tipo || '').localeCompare(b.tipo || '');
           break;
         case 'data_agendamento':
-          res = a.data_agendamento.localeCompare(b.data_agendamento);
-          if (res === 0) res = a.hora_agendamento.localeCompare(b.hora_agendamento);
+          res = (a.data_agendamento || '').localeCompare(b.data_agendamento || '');
+          if (res === 0) res = (a.hora_agendamento || '').localeCompare(b.hora_agendamento || '');
           break;
         case 'hora_agendamento':
-          res = a.hora_agendamento.localeCompare(b.hora_agendamento);
+          res = (a.hora_agendamento || '').localeCompare(b.hora_agendamento || '');
           break;
         case 'hora_entrega_real':
           res = (a.hora_entrega_real || '').localeCompare(b.hora_entrega_real || '');
@@ -1875,17 +1887,17 @@ export default function AdminPage() {
                 </h3>
 
                 <div className="space-y-3">
-                  {lojas.map((l) => {
-                    const encsLoja = encomendasFiltradas.filter((e) => e.loja_id === l.id);
+                  {(lojas || []).map((l) => {
+                    const encsLoja = encomendasFiltradas.filter((e) => e?.loja_id === l?.id);
                     const itensLoja = encsLoja.reduce((acc, curr) => 
-                      acc + (curr.itens || []).reduce((iAcc, item) => iAcc + (Number(item.quantidade) || 0), 0), 0
+                      acc + (curr?.itens || []).reduce((iAcc, item) => iAcc + (Number(item?.quantidade) || 0), 0), 0
                     );
                     const pct = totalVolumeEncomendas > 0 ? (encsLoja.length / totalVolumeEncomendas) * 100 : 0;
 
                     return (
-                      <div key={l.id} className="space-y-1">
+                      <div key={l?.id || Math.random()} className="space-y-1">
                         <div className="flex justify-between text-xs font-bold">
-                          <span className="text-gray-800">{l.nome}</span>
+                          <span className="text-gray-800">{l?.nome || 'Loja'}</span>
                           <span className="text-bakery-700">{encsLoja.length} enc. ({itensLoja} un.)</span>
                         </div>
                         <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">

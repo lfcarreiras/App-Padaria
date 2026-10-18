@@ -42,6 +42,18 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.3.3] - 2026-10-18
+
+### Fixed & Enhanced (Error Boundaries Ativos em /gestao e Root + Blindagem de Ordenação e useEffect)
+- **Implementação de Error Boundaries Nativos do Next.js (`src/app/gestao/error.tsx` e `src/app/error.tsx`)**:
+  - Eliminação da página de erro genérica em branco da Vercel. Qualquer exceção de cliente agora renderiza um painel informativo com diagnóstico exato, nome do erro, stack trace e botão tátil **"Limpar Cache & Recarregar"** (`localStorage.clear()` + reload limpo).
+- **Blindagem de `sortConsolidada` em `/gestao`**:
+  - Prevenção de falhas no carregamento inicial da grelha consolidada: ordenações por `data_agendamento`, `hora_agendamento` e `formato` blindadas com fallbacks para string vazia (`(a.data_agendamento || '').localeCompare(...)`), eliminando erros se registos na base de dados tiverem datas nulas.
+- **Proteção Completa no `useEffect` de Inicialização**:
+  - Inclusão de bloco `try / catch` e validações `Array.isArray(...)` em todos os setters de encomendas, lojas, carrinhas, produtos e clientes B2B.
+- **Blindagem do Cálculo de Desvios de Tempo (`calcularDesvioMinutos`)**:
+  - Validação estrita de tipo string e partes horárias antes de divisões com `.split(':')`.
+
 ## [v2.3.2] - 2026-10-18
 
 ### Fixed (Eliminação Definitiva da Exceção de Cliente em /gestao - Blindagem Total de Itens e Cliente)
