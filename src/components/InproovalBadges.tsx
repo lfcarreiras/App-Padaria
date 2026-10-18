@@ -29,7 +29,7 @@ interface OriginBadgeProps {
 }
 
 export const OriginBadge: React.FC<OriginBadgeProps> = ({ origem, className = '', compact = false }) => {
-  const o = origem.toLowerCase();
+  const o = String(origem || '').toLowerCase();
 
   if (o === 'site_online' || o.includes('site') || o.includes('online')) {
     return (
@@ -67,12 +67,12 @@ export const OriginBadge: React.FC<OriginBadgeProps> = ({ origem, className = ''
 };
 
 interface SectorBadgeProps {
-  setor: 'padaria' | 'pastelaria' | string;
+  setor?: 'padaria' | 'pastelaria' | string | null;
   className?: string;
 }
 
 export const SectorBadge: React.FC<SectorBadgeProps> = ({ setor, className = '' }) => {
-  const isPadaria = setor.toLowerCase() === 'padaria';
+  const isPadaria = String(setor || '').toLowerCase() === 'padaria';
 
   if (isPadaria) {
     return (

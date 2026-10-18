@@ -33,7 +33,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   let defaultLabel = label || status || '';
 
   if (!variant && status) {
-    const s = status.toLowerCase();
+    const s = String(status || '').toLowerCase();
     if (
       s === 'concluido' ||
       s === 'entregue' ||

@@ -42,6 +42,15 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.3.1] - 2026-10-18
+
+### Fixed (Hotfix de Robustez e Tolerância a Valores Nulos na Hidratação do Cockpit de Gestão)
+- **Blindagem Defensiva contra Null/Undefined em Badges Vetoriais (`OriginBadge`, `SectorBadge` e `StatusBadge`)**:
+  - Resolução da exceção de cliente (*"Application error: a client-side exception has occurred"*) causada por tentativas de invocação de `.toLowerCase()` sobre valores nulos ou indefinidos de `setor`, `categoria`, `origem` e `status` provenientes da base de dados.
+- **Harden de Ordenação e Agregações em `/gestao`**:
+  - Aplicação de `String(...) || ''` e verificações defensivas em ordenações por nome, categoria, unidade e datas.
+  - Salvaguarda nas agregações de clientes, artigos e `obterQtdBaseCarrinha` com navegação segura `?.`.
+
 ## [v2.3.0] - 2026-10-18
 
 ### Added & Refactored (Simplificação Operacional, Base Diária Semanal por Carrinha, Auditoria Transversal e Rastreabilidade Total)

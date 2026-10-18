@@ -250,7 +250,7 @@ export default function AdminPage() {
   }, [artigosBaseFixa]);
 
   const obterQtdBaseCarrinha = (carrinhaId: string, dia: DiaSemana, prodNome: string): number => {
-    const reg = baseFixaCarrinhas.find((b) => b.carrinha_id === carrinhaId);
+    const reg = (baseFixaCarrinhas || []).find((b) => b?.carrinha_id === carrinhaId);
     if (!reg) return 0;
     if (reg.quantidades_semanais && reg.quantidades_semanais[dia]) {
       return Number(reg.quantidades_semanais[dia][prodNome] || 0);
@@ -262,7 +262,7 @@ export default function AdminPage() {
   const handleAlterarQtdBaseFixa = (carrinhaId: string, carrinhaNome: string, dia: DiaSemana, produtoNome: string, valor: number) => {
     const qtdLimpa = Math.max(0, Math.floor(Number(valor) || 0));
     const novaLista = [...baseFixaCarrinhas];
-    const idx = novaLista.findIndex((b) => b.carrinha_id === carrinhaId || b.carrinha_nome === carrinhaNome);
+    const idx = novaLista.findIndex((b) => b?.carrinha_id === carrinhaId || b?.carrinha_nome === carrinhaNome);
     if (idx >= 0) {
       const regAtual = novaLista[idx];
       const mapaGeral = { ...(regAtual.quantidades_por_produto || regAtual.quantidades || {}) };
@@ -815,7 +815,7 @@ export default function AdminPage() {
   // Cálculos de Indicadores Operacionais (Foco em cumprimento e volume)
   const totalVolumeEncomendas = encomendasFiltradas.length;
   const totalArtigos = encomendasFiltradas.reduce(
-    (acc, curr) => acc + curr.itens.reduce((iAcc, item) => iAcc + item.quantidade, 0),
+    (acc, curr) => acc + (curr.itens || []).reduce((iAcc, item) => iAcc + (Number(item.quantidade) || 0), 0),
     0
   );
   const totalEntregas = encomendasFiltradas.filter((e) => e.tipo === 'entrega_domicilio').length;
@@ -824,16 +824,17 @@ export default function AdminPage() {
   // Necessidades Consolidadas de Produção com o filtro ativo
   const mapaProducao: { [nome: string]: { quantidade: number; setor: string; unidade: string } } = {};
   encomendasFiltradas.forEach((enc) => {
-    enc.itens.forEach((item) => {
+    (enc.itens || []).forEach((item) => {
+      if (!item || !item.produto_nome) return;
       const prod = produtos.find((p) => p.id === item.produto_id) || PRODUTOS_MOCK.find((p) => p.id === item.produto_id);
       if (!mapaProducao[item.produto_nome]) {
         mapaProducao[item.produto_nome] = {
           quantidade: 0,
-          setor: item.setor,
+          setor: item.setor || prod?.categoria || 'padaria',
           unidade: prod?.unidade || 'unidade',
         };
       }
-      mapaProducao[item.produto_nome].quantidade += item.quantidade;
+      mapaProducao[item.produto_nome].quantidade += Number(item.quantidade) || 0;
     });
   });
   const itensProducaoConsolidados = Object.entries(mapaProducao).sort((a, b) => b[1].quantidade - a[1].quantidade);
@@ -867,9 +868,9 @@ export default function AdminPage() {
   const topClientes = useMemo(() => {
     const contagem: Record<string, { nome: string; telefone: string; morada?: string; total: number }> = {};
     encomendasFiltradas.forEach((e) => {
-      const chave = e.cliente.telefone || e.cliente.nome;
+      const chave = e.cliente?.telefone || e.cliente?.nome || e.id;
       if (!contagem[chave]) {
-        contagem[chave] = { nome: e.cliente.nome, telefone: e.cliente.telefone, morada: e.cliente.morada, total: 0 };
+        contagem[chave] = { nome: e.cliente?.nome || 'Cliente', telefone: e.cliente?.telefone || '', morada: e.cliente?.morada, total: 0 };
       }
       contagem[chave].total += 1;
     });
@@ -880,11 +881,12 @@ export default function AdminPage() {
   const topArtigos = useMemo(() => {
     const contagem: Record<string, { nome: string; setor: string; quantidade: number }> = {};
     encomendasFiltradas.forEach((e) => {
-      e.itens.forEach((item) => {
+      (e.itens || []).forEach((item) => {
+        if (!item || !item.produto_nome) return;
         if (!contagem[item.produto_nome]) {
-          contagem[item.produto_nome] = { nome: item.produto_nome, setor: item.setor, quantidade: 0 };
+          contagem[item.produto_nome] = { nome: item.produto_nome, setor: item.setor || 'padaria', quantidade: 0 };
         }
-        contagem[item.produto_nome].quantidade += item.quantidade;
+        contagem[item.produto_nome].quantidade += Number(item.quantidade) || 0;
       });
     });
     return Object.values(contagem).sort((a, b) => b.quantidade - a.quantidade).slice(0, 5);
@@ -986,10 +988,10 @@ export default function AdminPage() {
           break;
         }
         case 'estado':
-          res = a.estado.localeCompare(b.estado);
+          res = (a.estado || '').localeCompare(b.estado || '');
           break;
         default:
-          res = a.data_agendamento.localeCompare(b.data_agendamento);
+          res = (a.data_agendamento || '').localeCompare(b.data_agendamento || '');
       }
       return sortConsolidada.dir === 'asc' ? res : -res;
     });
@@ -1006,29 +1008,29 @@ export default function AdminPage() {
   };
 
   const produtosFiltradosTabela = useMemo(() => {
-    let list = [...produtos];
+    let list = [...(produtos || [])];
 
     if (filtroProdutos.busca.trim()) {
       const q = filtroProdutos.busca.toLowerCase().trim();
-      list = list.filter(p => p.nome.toLowerCase().includes(q) || p.id.toLowerCase().includes(q));
+      list = list.filter(p => (p.nome || '').toLowerCase().includes(q) || (p.id || '').toLowerCase().includes(q));
     }
     if (filtroProdutos.categoria !== 'todas') {
-      list = list.filter(p => p.categoria === filtroProdutos.categoria);
+      list = list.filter(p => (p.categoria || '') === filtroProdutos.categoria);
     }
     if (filtroProdutos.unidade !== 'todas') {
-      list = list.filter(p => p.unidade === filtroProdutos.unidade);
+      list = list.filter(p => (p.unidade || '') === filtroProdutos.unidade);
     }
     if (filtroProdutos.ativo !== 'todos') {
       const isAtivo = filtroProdutos.ativo === 'ativo';
-      list = list.filter(p => p.ativo === isAtivo);
+      list = list.filter(p => Boolean(p.ativo) === isAtivo);
     }
 
     list.sort((a, b) => {
       let res = 0;
       if (sortProdutos.col === 'nome') {
-        res = a.nome.localeCompare(b.nome);
+        res = (a.nome || '').localeCompare(b.nome || '');
       } else if (sortProdutos.col === 'categoria') {
-        res = a.categoria.localeCompare(b.categoria);
+        res = (a.categoria || '').localeCompare(b.categoria || '');
       } else if (sortProdutos.col === 'unidade') {
         res = (a.unidade || '').localeCompare(b.unidade || '');
       } else if (sortProdutos.col === 'ativo') {
@@ -1125,7 +1127,7 @@ export default function AdminPage() {
       let res = 0;
       switch (sortLogs.col) {
         case 'data_hora':
-          res = `${a.data} ${a.hora}`.localeCompare(`${b.data} ${b.hora}`);
+          res = `${a.data || ''} ${a.hora || ''}`.localeCompare(`${b.data || ''} ${b.hora || ''}`);
           break;
         case 'codigo':
           res = (a.codigo_encomenda || '').localeCompare(b.codigo_encomenda || '');
@@ -1137,10 +1139,10 @@ export default function AdminPage() {
           res = (a.utilizador_nome || '').localeCompare(b.utilizador_nome || '');
           break;
         case 'role':
-          res = (String(a.utilizador_role) || '').localeCompare(String(b.utilizador_role) || '');
+          res = String(a.utilizador_role || '').localeCompare(String(b.utilizador_role || ''));
           break;
         case 'painel':
-          res = (String(a.painel) || '').localeCompare(String(b.painel) || '');
+          res = String(a.painel || '').localeCompare(String(b.painel || ''));
           break;
         case 'acao':
           res = (a.acao || '').localeCompare(b.acao || '');
@@ -1149,7 +1151,7 @@ export default function AdminPage() {
           res = (a.detalhes || '').localeCompare(b.detalhes || '');
           break;
         default:
-          res = `${a.data} ${a.hora}`.localeCompare(`${b.data} ${b.hora}`);
+          res = `${a.data || ''} ${a.hora || ''}`.localeCompare(`${b.data || ''} ${b.hora || ''}`);
       }
       return sortLogs.dir === 'asc' ? res : -res;
     });
