@@ -225,7 +225,13 @@ function lerCacheEncomendasOffline(): Encomenda[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(OFFLINE_ENCOMENDAS_CACHE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const list = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(list)) return [];
+    return list.map((enc: any) => ({
+      ...enc,
+      itens: Array.isArray(enc?.itens) ? enc.itens : [],
+      cliente: enc?.cliente || { id: '', nome: 'Cliente', telefone: '' },
+    }));
   } catch {
     return [];
   }

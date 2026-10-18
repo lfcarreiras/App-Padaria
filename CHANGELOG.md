@@ -42,6 +42,20 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.3.2] - 2026-10-18
+
+### Fixed (Eliminação Definitiva da Exceção de Cliente em /gestao - Blindagem Total de Itens e Cliente)
+- **Blindagem do Cálculo de Volume de Artigos por Loja (`itensLoja`)**:
+  - Resolução da falha crítica `TypeError: Cannot read properties of undefined (reading 'reduce')` na redução de artigos de cada loja no separador predefinido de Métricas (`curr.itens.reduce` alterado para `(curr.itens || []).reduce`).
+- **Navegação Segura em Dados de Clientes na Tabela Consolidada e Filtros**:
+  - Aplicação de encadeamento opcional `enc.cliente?.nome || 'Cliente'` e `enc.cliente?.telefone || '—'` na tabela de detalhe consolidado, eliminando qualquer risco de `Cannot read properties of undefined (reading 'nome')`.
+  - Proteção nas pesquisas textuais de clientes em `filtroConsolidada` e na ordenação alfabética por cliente em `sortConsolidada`.
+  - Salvaguarda defensiva na exportação de encomendas para Excel (`exportarEncomendas`).
+- **Sanitização da Cache Offline de Encomendas (`lerCacheEncomendasOffline`)**:
+  - Garantia de que registos antigos ou corrompidos em `localStorage` são normalizados com `itens: []` e objeto `cliente` preenchido por omissão antes de serem injetados no estado da aplicação.
+- **Blindagem do Componente de Impressão Térmica (`ThermalReceipt.tsx`)**:
+  - Salvaguardas defensivas com optional chaining em `encomenda.cliente?.nome`, `telefone`, `morada` e `notas_entrega`.
+
 ## [v2.3.1] - 2026-10-18
 
 ### Fixed (Hotfix de Robustez e Tolerância a Valores Nulos na Hidratação do Cockpit de Gestão)

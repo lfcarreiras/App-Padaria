@@ -932,7 +932,10 @@ export default function AdminPage() {
     }
     if (filtroConsolidada.cliente.trim()) {
       const q = filtroConsolidada.cliente.toLowerCase().trim();
-      base = base.filter(e => e.cliente.nome.toLowerCase().includes(q) || e.cliente.telefone.includes(q));
+      base = base.filter(e => 
+        (e.cliente?.nome || '').toLowerCase().includes(q) || 
+        (e.cliente?.telefone || '').includes(q)
+      );
     }
     if (filtroConsolidada.formato !== 'todos') {
       base = base.filter(e => e.tipo === filtroConsolidada.formato);
@@ -963,10 +966,10 @@ export default function AdminPage() {
       let res = 0;
       switch (sortConsolidada.col) {
         case 'codigo':
-          res = a.codigo.localeCompare(b.codigo);
+          res = (a.codigo || '').localeCompare(b.codigo || '');
           break;
         case 'cliente':
-          res = a.cliente.nome.localeCompare(b.cliente.nome);
+          res = (a.cliente?.nome || '').localeCompare(b.cliente?.nome || '');
           break;
         case 'formato':
           res = a.tipo.localeCompare(b.tipo);
@@ -1426,7 +1429,7 @@ export default function AdminPage() {
 
   const exportarEncomendas = () => {
     exportarExcel('encomendas_padaria', 'Encomendas', ['Codigo', 'Loja', 'Cliente', 'Telefone', 'Tipo', 'Data', 'Hora', 'Total', 'Estado', 'Pagamento'], encomendas.map((e) => [
-      e.codigo, e.loja_nome || '', e.cliente.nome, e.cliente.telefone, e.tipo, e.data_agendamento, e.hora_agendamento, e.total, e.estado, e.estado_pagamento
+      e.codigo, e.loja_nome || '', e.cliente?.nome || 'Cliente', e.cliente?.telefone || '', e.tipo, e.data_agendamento, e.hora_agendamento, e.total, e.estado, e.estado_pagamento
     ]));
   };
 
@@ -1875,7 +1878,7 @@ export default function AdminPage() {
                   {lojas.map((l) => {
                     const encsLoja = encomendasFiltradas.filter((e) => e.loja_id === l.id);
                     const itensLoja = encsLoja.reduce((acc, curr) => 
-                      acc + curr.itens.reduce((iAcc, item) => iAcc + item.quantidade, 0), 0
+                      acc + (curr.itens || []).reduce((iAcc, item) => iAcc + (Number(item.quantidade) || 0), 0), 0
                     );
                     const pct = totalVolumeEncomendas > 0 ? (encsLoja.length / totalVolumeEncomendas) * 100 : 0;
 
@@ -2203,8 +2206,8 @@ export default function AdminPage() {
                               </div>
                             </td>
                             <td className="py-2.5 px-3">
-                              <p className="font-bold text-gray-900">{enc.cliente.nome}</p>
-                              <p className="text-[10px] text-gray-500">{enc.cliente.telefone}</p>
+                              <p className="font-bold text-gray-900">{enc.cliente?.nome || 'Cliente'}</p>
+                              <p className="text-[10px] text-gray-500">{enc.cliente?.telefone || '—'}</p>
                             </td>
                             <td className="py-2.5 px-3">
                               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${

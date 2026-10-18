@@ -126,16 +126,16 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
                 <span>{t.date.toUpperCase()}: <b>{encomenda.data_agendamento}</b></span>
                 <span>{t.time.toUpperCase()}: <b>{encomenda.hora_agendamento}</b></span>
               </div>
-              <p>{t.receiptCustomer}: <b>{encomenda.cliente.nome}</b></p>
-              <p>{t.receiptPhone}: <b>{encomenda.cliente.telefone}</b></p>
+              <p>{t.receiptCustomer}: <b>{encomenda.cliente?.nome || 'Cliente'}</b></p>
+              <p>{t.receiptPhone}: <b>{encomenda.cliente?.telefone || '—'}</b></p>
 
               {encomenda.tipo === 'entrega_domicilio' && (
                 <div className="mt-1 pt-1 border-t border-dotted border-gray-400">
                   <p className="font-bold">{t.receiptDeliveryAddress}:</p>
-                  <p>{encomenda.cliente.morada || 'Morada a confirmar'}</p>
-                  {encomenda.cliente.codigo_postal && <p>{encomenda.cliente.codigo_postal}</p>}
+                  <p>{encomenda.cliente?.morada || 'Morada a confirmar'}</p>
+                  {encomenda.cliente?.codigo_postal && <p>{encomenda.cliente.codigo_postal}</p>}
                   {encomenda.carrinha_nome && <p className="font-bold mt-0.5">{t.receiptRoute}: {encomenda.carrinha_nome}</p>}
-                  {encomenda.cliente.notas_entrega && (
+                  {encomenda.cliente?.notas_entrega && (
                     <p className="italic text-[11px] mt-0.5">{t.receiptObs}: {encomenda.cliente.notas_entrega}</p>
                   )}
                 </div>
