@@ -81,6 +81,7 @@ import {
   MessageSquare,
   Globe,
   Flame,
+  Copy,
 } from 'lucide-react';
 import { StatusBadge } from '../../components/StatusBadge';
 import { OriginBadge, SectorBadge } from '../../components/InproovalBadges';
