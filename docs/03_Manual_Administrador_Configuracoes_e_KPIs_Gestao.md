@@ -171,7 +171,7 @@ Garante **rastreabilidade total (Accountability)** de todas as operações reali
 
 Permite personalizar o layout do talão impresso nas lojas sem necessidade de intervenção técnica:
 - **Configuração Individual por Loja Física (`v2.3.4`):** Seletor de loja física (`Geral (Todas as Lojas)` ou loja específica), permitindo que cada loja tenha o seu próprio cabeçalho comercial, telefone, morada, NIF e mensagem de rodapé, com fallback transparente para a configuração global.
-- **Largura do Papel:** Configurado por defeito para **80mm (72mm de largura útil — Calibrado para Epson M249A TM-T20)**, com suporte alternativo para bobinas de **58mm**.
+- **Largura do Papel & Calibração Epson TM-T20 (`v2.3.5`):** Configurado por defeito para **bobinas de 80mm com 68mm de largura útil calibrada** (`max-width: 68mm` e `padding: 1.5mm 3.5mm 8mm 2mm`), eliminando qualquer risco de corte mecânico do cabeçalho, hora, badges ou rodapé na margem direita de impressoras térmicas ESC/POS (Epson M249A TM-T20). Suporte alternativo perfeitamente integrado para bobinas de **58mm (48mm úteis)**.
 - **Campos Editáveis:** Nome da Empresa, Slogan / Subtítulo, Morada, Telefone, NIF, Mensagem de Rodapé, Tamanho de Letra (`Compacto`, `Médio`, `Grande`) e interruptores para mostrar/ocultar NIF, Morada, Telefone, Separação Padaria/Pastelaria, Destaque de Notas de Bolo e **QR Code no rodapé (`showQrCode`)**.
 - **Suporte Automático a Produção Parcelar:** O talão assinala automaticamente artigos recusados com `[NÃO PROD.]`, exclui-os do somatório de unidades entregues e imprime as `Observações da Produção`.
 - **Pré-visualização ao Vivo & Teste de Impressão:** Mostra em tempo real no ecrã como ficará o talão térmico calibrado e permite emitir um talão de teste instantâneo.

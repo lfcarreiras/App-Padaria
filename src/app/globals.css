@@ -80,14 +80,14 @@ body {
   #thermal-print-area {
     display: block !important;
     position: relative !important;
-    width: 72mm !important;
-    max-width: 72mm !important;
+    width: 68mm !important;
+    max-width: 68mm !important;
     margin: 0 auto !important;
-    padding: 1.5mm 1mm 8mm 1mm !important;
+    padding: 1.5mm 3.5mm 8mm 2mm !important;
     font-family: 'Courier New', Courier, monospace !important;
     color: #000000 !important;
     background: #ffffff !important;
-    font-size: 11.5px !important;
+    font-size: 11px !important;
     line-height: 1.25 !important;
     font-weight: 600 !important;
     box-sizing: border-box !important;
@@ -96,11 +96,28 @@ body {
     page-break-before: avoid !important;
     border: none !important;
     box-shadow: none !important;
+    overflow: hidden !important;
+    word-break: break-word !important;
+  }
+
+  #thermal-print-area[data-paper-width="58mm"] {
+    width: 48mm !important;
+    max-width: 48mm !important;
+    padding: 1.5mm 2.5mm 8mm 2mm !important;
+  }
+
+  #thermal-print-area[data-font-size="compact"] {
+    font-size: 10px !important;
+  }
+
+  #thermal-print-area[data-font-size="large"] {
+    font-size: 12px !important;
   }
 
   #thermal-print-area * {
     visibility: visible !important;
     color: #000000 !important;
+    box-sizing: border-box !important;
   }
 
   @page {

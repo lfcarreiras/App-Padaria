@@ -42,6 +42,19 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.3.5] - 2026-10-19
+
+### Fixed & Calibrated (Calibração Geométrica do Talão Térmico 80mm e Eliminação de Cortes de Impressão)
+- **Calibração de Largura Útil para Impressoras Térmicas Epson TM-T20 (80mm)**:
+  - Redução da largura máxima do contentor de impressão `#thermal-print-area` de `72mm` para `68mm` (`max-width: 68mm`), compensando a margem mecânica não imprimível e o offset físico da cabeça térmica da Epson TM-T20.
+  - Aumento da margem de segurança lateral (`padding: 1.5mm 3.5mm 8mm 2mm !important`), garantindo 3.5mm de margem livre à direita para evitar colisões com o corte mecânico do papel.
+- **Prevenção de Quebra e Colisão de Texto na Margem Direita**:
+  - Aplicação de `overflow: hidden !important`, `word-break: break-word !important` e `box-sizing: border-box !important` a todos os blocos do talão.
+  - Ajuste do espaçamento do rodapé técnico de `tracking-widest` para `tracking-wider text-[8.5px]`, eliminando a perda do último asterisco em `*** SISTEMA DE ENCOMENDAS ***`.
+  - Inclusão de `pr-1` e `px-1` nas linhas de cabeçalho (DATA / HORA), badge de formato (`[ PRESENCIAL ]`), lista de artigos e totais, garantindo folga visual bilateral simétrica.
+- **Ajuste da Pré-visualização no Ecrã**:
+  - Largura da janela modal de pré-visualização reduzida de `300px` para `280px` para replicar com precisão de 1:1 o aspeto do talão impresso no papel de 80mm.
+
 ## [v2.3.4] - 2026-10-18
 
 ### Added & Enhanced (Edição Total de Lojas/Carrinhas/B2B, Configuração de Talão por Loja e Gestão de Acessos)

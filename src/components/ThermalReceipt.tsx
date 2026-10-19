@@ -37,10 +37,10 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
     : [];
   const todosItens = !cfg.showSectionSeparation ? encomenda.itens : [];
 
-  const widthClass = cfg.paperWidth === '58mm' ? 'w-[230px]' : 'w-[300px]';
+  const widthClass = cfg.paperWidth === '58mm' ? 'w-[230px]' : 'w-[280px]';
   const fontSizeClass = 
-    cfg.fontSize === 'compact' ? 'text-[11px]' :
-    cfg.fontSize === 'large' ? 'text-sm' : 'text-xs';
+    cfg.fontSize === 'compact' ? 'text-[10px]' :
+    cfg.fontSize === 'large' ? 'text-xs' : 'text-[11px]';
 
   if (!montado) return null;
 
@@ -57,7 +57,7 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
               <h3 className="text-sm font-bold text-gray-900 leading-tight">
                 {t.receiptTitle} ({cfg.paperWidth} — Epson TM-T20 M249A)
               </h3>
-              <p className="text-[10px] text-gray-500">Formato térmico calibrado: rolo 80mm (72mm área útil)</p>
+              <p className="text-[10px] text-gray-500">Formato térmico calibrado: rolo 80mm (68mm área segura útil)</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -79,22 +79,24 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
           </div>
         </div>
 
-        {/* ÁREA DE IMPRESSÃO TÉRMICA (Epson M249A TM-T20 - 80mm / 72mm útil) */}
+        {/* ÁREA DE IMPRESSÃO TÉRMICA (Epson M249A TM-T20 - 80mm / 68mm útil calibrada) */}
         <div className="overflow-y-auto flex-1 p-4 sm:p-6 pb-20 bg-gray-100">
           <div
             id="thermal-print-area"
-            className={`${widthClass} ${fontSizeClass} mx-auto block h-auto border border-dashed border-gray-400 bg-white p-4 pb-10 font-mono text-black shadow-md my-2`}
+            data-paper-width={cfg.paperWidth}
+            data-font-size={cfg.fontSize}
+            className={`${widthClass} ${fontSizeClass} mx-auto block h-auto border border-dashed border-gray-400 bg-white p-3 sm:p-4 pb-10 font-mono text-black shadow-md my-2 box-border`}
           >
             {/* Cabeçalho da Loja */}
-            <div className="text-center">
-              <p className="font-bold text-sm uppercase">
+            <div className="text-center px-1">
+              <p className="font-bold text-sm uppercase break-words">
                 {cfg.storeNameOverride || loja?.nome || encomenda.loja_nome || tinaMarca.nomeEmpresa || 'Padaria & Pastelaria'}
               </p>
               {(cfg.slogan || tinaMarca.slogan) && (
-                <p className="text-[10px] text-black italic">{cfg.slogan || tinaMarca.slogan}</p>
+                <p className="text-[10px] text-black italic break-words">{cfg.slogan || tinaMarca.slogan}</p>
               )}
-              {cfg.showAddress && <p className="text-[11px]">{loja?.morada || 'Arouca, Portugal'}</p>}
-              {cfg.showPhone && <p className="text-[11px]">{t.phone}: {loja?.telefone || tinaMarca.telefoneGeral || '256 940 000'}</p>}
+              {cfg.showAddress && <p className="text-[10.5px] break-words">{loja?.morada || 'Arouca, Portugal'}</p>}
+              {cfg.showPhone && <p className="text-[10.5px]">{t.phone}: {loja?.telefone || tinaMarca.telefoneGeral || '256 940 000'}</p>}
               {cfg.showNif && (loja?.nif || tinaMarca.nif || '500100201') && (
                 <p className="text-[10px]">{t.nif}: {loja?.nif || tinaMarca.nif || '500100201'}</p>
               )}
@@ -103,14 +105,14 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
             <div className="my-2 border-b border-dashed border-black" />
 
             {/* Número da Encomenda em Grande Destaque */}
-            <div className="text-center my-1">
+            <div className="text-center my-1 px-1">
               <p className="text-[10px] uppercase tracking-wider">{t.receiptOrderNumber}</p>
               <p className="text-base font-black tracking-tight my-0.5">{encomenda.codigo}</p>
               <div className="flex justify-center gap-1 mt-1 flex-wrap">
-                <span className="px-2 py-0.5 text-[10px] font-black uppercase rounded border border-black">
+                <span className="px-1.5 py-0.5 text-[9.5px] font-black uppercase rounded border border-black whitespace-nowrap">
                   {encomenda.tipo === 'entrega_domicilio' ? t.receiptHomeDelivery : t.receiptPickup}
                 </span>
-                <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded border border-black">
+                <span className="px-1.5 py-0.5 text-[9.5px] font-bold uppercase rounded border border-black whitespace-nowrap">
                   {encomenda.canal_origem === 'site_online' ? 'Site Online' :
                    encomenda.canal_origem === 'whatsapp' ? 'WhatsApp' :
                    encomenda.canal_origem === 'telefone' ? 'Telefone' : 'Presencial'}
@@ -121,22 +123,22 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
             <div className="my-2 border-b border-dashed border-black" />
 
             {/* Agendamento e Cliente */}
-            <div className="space-y-1">
-              <div className="flex justify-between">
+            <div className="space-y-1 px-1">
+              <div className="flex justify-between items-center text-[11px]">
                 <span>{t.date.toUpperCase()}: <b>{encomenda.data_agendamento}</b></span>
                 <span>{t.time.toUpperCase()}: <b>{encomenda.hora_agendamento}</b></span>
               </div>
-              <p>{t.receiptCustomer}: <b>{encomenda.cliente?.nome || 'Cliente'}</b></p>
-              <p>{t.receiptPhone}: <b>{encomenda.cliente?.telefone || '—'}</b></p>
+              <p className="text-[11px] break-words">{t.receiptCustomer}: <b>{encomenda.cliente?.nome || 'Cliente'}</b></p>
+              <p className="text-[11px]">{t.receiptPhone}: <b>{encomenda.cliente?.telefone || '—'}</b></p>
 
               {encomenda.tipo === 'entrega_domicilio' && (
-                <div className="mt-1 pt-1 border-t border-dotted border-gray-400">
+                <div className="mt-1 pt-1 border-t border-dotted border-gray-400 text-[10.5px]">
                   <p className="font-bold">{t.receiptDeliveryAddress}:</p>
-                  <p>{encomenda.cliente?.morada || 'Morada a confirmar'}</p>
+                  <p className="break-words">{encomenda.cliente?.morada || 'Morada a confirmar'}</p>
                   {encomenda.cliente?.codigo_postal && <p>{encomenda.cliente.codigo_postal}</p>}
                   {encomenda.carrinha_nome && <p className="font-bold mt-0.5">{t.receiptRoute}: {encomenda.carrinha_nome}</p>}
                   {encomenda.cliente?.notas_entrega && (
-                    <p className="italic text-[11px] mt-0.5">{t.receiptObs}: {encomenda.cliente.notas_entrega}</p>
+                    <p className="italic text-[10px] mt-0.5 break-words">{t.receiptObs}: {encomenda.cliente.notas_entrega}</p>
                   )}
                 </div>
               )}
@@ -148,13 +150,13 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
             {cfg.showSectionSeparation ? (
               <>
                 {itensPadaria.length > 0 && (
-                  <div className="mb-2">
-                    <p className="font-bold uppercase tracking-wider text-[11px] mb-1">{t.receiptBakerySection}</p>
+                  <div className="mb-2 px-1">
+                    <p className="font-bold uppercase tracking-wider text-[10.5px] mb-1">{t.receiptBakerySection}</p>
                     {itensPadaria.map((item) => {
                       const isRecusado = item.estado_producao === 'recusado';
                       return (
-                        <div key={item.id} className="mb-1">
-                          <div className="flex justify-between items-center gap-1">
+                        <div key={item.id} className="mb-1 text-[11px]">
+                          <div className="flex justify-between items-center gap-1 pr-1">
                             <span className={`font-bold ${isRecusado ? 'line-through opacity-70' : ''}`}>
                               {item.quantidade}x {item.produto_nome}
                             </span>
@@ -165,7 +167,7 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
                             )}
                           </div>
                           {item.notas_personalizacao && cfg.highlightCakeNotes && (
-                            <p className="text-[10px] italic pl-2">» {item.notas_personalizacao}</p>
+                            <p className="text-[10px] italic pl-2 break-words">» {item.notas_personalizacao}</p>
                           )}
                         </div>
                       );
@@ -174,13 +176,13 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
                 )}
 
                 {itensPastelaria.length > 0 && (
-                  <div className="mb-2">
-                    <p className="font-bold uppercase tracking-wider text-[11px] mb-1">{t.receiptPastrySection}</p>
+                  <div className="mb-2 px-1">
+                    <p className="font-bold uppercase tracking-wider text-[10.5px] mb-1">{t.receiptPastrySection}</p>
                     {itensPastelaria.map((item) => {
                       const isRecusado = item.estado_producao === 'recusado';
                       return (
-                        <div key={item.id} className="mb-1">
-                          <div className="flex justify-between items-center gap-1">
+                        <div key={item.id} className="mb-1 text-[11px]">
+                          <div className="flex justify-between items-center gap-1 pr-1">
                             <span className={`font-bold ${isRecusado ? 'line-through opacity-70' : ''}`}>
                               {item.quantidade}x {item.produto_nome}
                             </span>
@@ -193,7 +195,7 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
                           {item.notas_personalizacao && cfg.highlightCakeNotes && (
                             <div className="bg-gray-100 p-1 border border-black my-0.5">
                               <p className="text-[10px] font-bold">{t.customizationNotes}</p>
-                              <p className="text-[10px]">{item.notas_personalizacao}</p>
+                              <p className="text-[10px] break-words">{item.notas_personalizacao}</p>
                             </div>
                           )}
                         </div>
@@ -203,13 +205,13 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
                 )}
               </>
             ) : (
-              <div className="mb-2">
-                <p className="font-bold uppercase tracking-wider text-[11px] mb-1">{t.receiptAllItemsSection}</p>
+              <div className="mb-2 px-1">
+                <p className="font-bold uppercase tracking-wider text-[10.5px] mb-1">{t.receiptAllItemsSection}</p>
                 {todosItens.map((item) => {
                   const isRecusado = item.estado_producao === 'recusado';
                   return (
-                    <div key={item.id} className="mb-1">
-                      <div className="flex justify-between items-center gap-1">
+                    <div key={item.id} className="mb-1 text-[11px]">
+                      <div className="flex justify-between items-center gap-1 pr-1">
                         <span className={`font-bold ${isRecusado ? 'line-through opacity-70' : ''}`}>
                           {item.quantidade}x {item.produto_nome}
                         </span>
@@ -220,7 +222,7 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
                         )}
                       </div>
                       {item.notas_personalizacao && cfg.highlightCakeNotes && (
-                        <p className="text-[10px] italic pl-2">» {item.notas_personalizacao}</p>
+                        <p className="text-[10px] italic pl-2 break-words">» {item.notas_personalizacao}</p>
                       )}
                     </div>
                   );
@@ -231,8 +233,8 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
             <div className="my-2 border-b border-dashed border-black" />
 
             {/* Resumo de Artigos (excluindo artigos não produzidos/recusados) */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs font-bold uppercase border-t border-b border-black py-1">
+            <div className="space-y-1 px-1">
+              <div className="flex justify-between items-center text-xs font-bold uppercase border-t border-b border-black py-1 pr-1">
                 <span>{t.totalItems}:</span>
                 <span className="font-black">
                   {encomenda.itens
@@ -243,23 +245,23 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
             </div>
 
             {encomenda.observacoes_producao && (
-              <div className="mt-2 pt-1 border-t border-dotted border-black text-[10px]">
+              <div className="mt-2 pt-1 border-t border-dotted border-black text-[10px] px-1">
                 <p className="font-bold uppercase">Obs. Produção:</p>
-                <p>{encomenda.observacoes_producao}</p>
+                <p className="break-words">{encomenda.observacoes_producao}</p>
               </div>
             )}
 
             {encomenda.notas_cliente && (
-              <div className="mt-2 pt-1 border-t border-dotted border-gray-400 text-[10px]">
+              <div className="mt-2 pt-1 border-t border-dotted border-gray-400 text-[10px] px-1">
                 <p className="font-bold">{t.receiptGeneralNotes}:</p>
-                <p>{encomenda.notas_cliente}</p>
+                <p className="break-words">{encomenda.notas_cliente}</p>
               </div>
             )}
 
             <div className="my-3 border-b border-dashed border-black" />
 
             {/* Rodapé do Talão */}
-            <div className="text-center text-[10px] space-y-1 pt-1 pb-8">
+            <div className="text-center text-[10px] space-y-1 pt-1 pb-8 px-1">
               {cfg.showQrCode && (
                 <div className="flex justify-center my-1.5 opacity-80">
                   <div className="border border-black p-1 text-[8px] flex flex-col items-center">
@@ -268,9 +270,9 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
                   </div>
                 </div>
               )}
-              <p>{t.receiptIssuedAt}: {new Date().toLocaleString(language === 'en' ? 'en-GB' : 'pt-PT')}</p>
-              <p className="font-bold text-xs mt-1">{cfg.footerMessage || tinaMarca.rodapeTalao || t.receiptThankYou}</p>
-              <p className="text-[9px] tracking-widest text-gray-700 mt-1">{t.receiptSystemNotice}</p>
+              <p className="text-[9.5px]">{t.receiptIssuedAt}: {new Date().toLocaleString(language === 'en' ? 'en-GB' : 'pt-PT')}</p>
+              <p className="font-bold text-xs mt-1 break-words">{cfg.footerMessage || tinaMarca.rodapeTalao || t.receiptThankYou}</p>
+              <p className="text-[8.5px] tracking-wider text-gray-700 mt-1">{t.receiptSystemNotice}</p>
             </div>
           </div>
         </div>
