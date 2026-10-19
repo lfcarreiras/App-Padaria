@@ -42,6 +42,15 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.3.6] - 2026-10-19
+
+### Enhanced (Simplificação e Padronização dos Nomes dos Cockpits no Login)
+- **Otimização dos Separadores (`optgroup`) e Opções do Seletor de Cockpit**:
+  - `Lojas Físicas (Encomendas & Balcão)` simplificado para **`Lojas`**.
+  - `Fabrico & Fornos` simplificado para **`Fabrico`**.
+  - `Logística & Frota` simplificado para **`Carrinhas`**, com a opção atualizada para **`Carrinhas (Distribuição e Rotas)`** (ortografia sem ampersand).
+  - `Administração` ajustado para **`Gestão`**, com a respetiva opção renomeada de `Gestão (Administração & Controlo)` para **`Indicadores e parametrizações`**.
+
 ## [v2.3.5] - 2026-10-19
 
 ### Fixed & Calibrated (Calibração Geométrica do Talão Térmico 80mm e Eliminação de Cortes de Impressão)

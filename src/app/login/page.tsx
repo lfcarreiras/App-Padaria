@@ -134,21 +134,21 @@ export default function LoginPage() {
                   onChange={(e) => setLocalizacaoSelecionada(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 rounded-xl border border-amber-300 bg-amber-50/50 text-xs font-bold text-stone-900 focus:bg-white focus:border-amber-600 focus:outline-hidden transition cursor-pointer"
                 >
-                  <optgroup label="Lojas Físicas (Encomendas & Balcão)">
+                  <optgroup label="Lojas">
                     {lojas.map((l) => (
                       <option key={l.id} value={`loja:${l.id}`}>
                         {l.nome}
                       </option>
                     ))}
                   </optgroup>
-                  <optgroup label="Fabrico & Fornos">
+                  <optgroup label="Fabrico">
                     <option value="producao">Centro de Produção (Padaria & Pastelaria)</option>
                   </optgroup>
-                  <optgroup label="Logística & Frota">
-                    <option value="carrinhas">Carrinhas (Distribuição & Rotas)</option>
+                  <optgroup label="Carrinhas">
+                    <option value="carrinhas">Carrinhas (Distribuição e Rotas)</option>
                   </optgroup>
-                  <optgroup label="Administração">
-                    <option value="gestao">Gestão (Administração & Controlo)</option>
+                  <optgroup label="Gestão">
+                    <option value="gestao">Indicadores e parametrizações</option>
                   </optgroup>
                 </select>
               </div>
