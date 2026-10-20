@@ -108,7 +108,7 @@ export default function EntregasPage() {
   }, []);
 
   const lojaAtual = lojas.find((l) => l.id === selectedLojaId) || lojas[0] || LOJAS_MOCK[0];
-  // As 5 carrinhas servem toda a operação central de Arouca
+  // As 8 rotas e carros servem toda a operação central de Arouca
   const carrinhasDaLoja = carrinhas;
 
   // Data operacional de hoje (AAAA-MM-DD) e Dia da Semana
@@ -567,7 +567,7 @@ export default function EntregasPage() {
                   </span>
                 </div>
                 <p className="text-[11px] text-stone-500">
-                  Arraste ou atribua diretamente as encomendas deste dia para as carrinhas de distribuição
+                  Arraste ou atribua diretamente as encomendas deste dia para os carros e rotas de distribuição
                 </p>
               </div>
             </div>
@@ -586,7 +586,7 @@ export default function EntregasPage() {
             encomendasPool.length === 0 ? (
               <div className="rounded-xl border border-dashed border-emerald-300 bg-emerald-50/50 p-6 text-center text-xs text-emerald-800 font-medium flex items-center justify-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                <span>Todas as encomendas de entrega ao domicílio de hoje já estão atribuídas às carrinhas!</span>
+                <span>Todas as encomendas de entrega ao domicílio de hoje já estão atribuídas aos carros e rotas!</span>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -636,9 +636,9 @@ export default function EntregasPage() {
                               type="button"
                               onClick={() => handleAtribuirCarrinha(enc.id, car.id)}
                               className="px-2 py-0.5 rounded text-[10px] font-bold bg-white border border-stone-300 hover:border-blue-500 hover:bg-blue-50 text-stone-800 transition cursor-pointer"
-                              title={`Atribuir à ${car.identificador}`}
+                              title={`Atribuir à ${car.rota || car.identificador}`}
                             >
-                              {car.identificador.replace('Carrinha ', 'C')}
+                              {(car.rota || car.identificador).replace('Rota ', 'R').replace('Carrinha ', 'R')}
                             </button>
                           ))}
                         </div>
@@ -718,7 +718,7 @@ export default function EntregasPage() {
                   <option value="todas">{t.allVans}</option>
                   {carrinhasDaLoja.map((car) => (
                     <option key={car.id} value={car.id}>
-                      {car.identificador} ({car.matricula})
+                      {car.rota || car.identificador} — {car.nome_carro || car.matricula} ({car.matricula})
                     </option>
                   ))}
                 </select>
@@ -729,7 +729,7 @@ export default function EntregasPage() {
                 type="button"
                 onClick={exportarMapaDiarioExcel}
                 className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-xs transition cursor-pointer"
-                title="Extrair Excel com a compilação total de quantidades por artigo e por carrinha (1º ao 5º Carro + Clientes Empresariais)"
+                title="Extrair Excel com a compilação total de quantidades por artigo e por rota (Rotas 1 a 8 + Clientes Empresariais)"
               >
                 <FileSpreadsheet className="h-4 w-4 shrink-0" />
                 <span>Exportar Mapa Diário (Excel)</span>

@@ -106,7 +106,7 @@ const CONFIG_GERAL_DEFAULT: TinaConfiguracaoGeral = {
   tituloEntregas: "Gestão de Entregas & Rotas",
   subtituloEntregas: "Gestão e atribuição de rotas de distribuição porta a porta",
   avisoEntregas: "Carga na Unidade Central de Fabrico & Sede",
-  tituloGestao: "Painel de Gestão & Indicadores",
+  tituloGestao: "Gestão",
   subtituloGestao: "Métricas operacionais, análise de vendas e auditoria de sistema",
 };
 

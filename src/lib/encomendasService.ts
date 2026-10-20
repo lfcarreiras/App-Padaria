@@ -937,47 +937,84 @@ export async function eliminarLojaDb(lojaId: string) {
   return true;
 }
 
-// ---------------- CARRINHAS ---------------- //
+// ---------------- CARRINHAS & ROTAS ---------------- //
+
+const ROTAS_STORAGE_KEY = 'padaria_rotas_carros_v3';
 
 export async function carregarCarrinhasSupabase(): Promise<Carrinha[]> {
-  if (!supabase) return CARRINHAS_MOCK;
-  const { data, error } = await supabase
-    .from('carrinhas')
-    .select('*')
-    .order('identificador', { ascending: true });
-
-  if (error || !data) {
-    console.error('Erro ao carregar carrinhas:', error);
-    return CARRINHAS_MOCK;
+  let locaisRotas: Carrinha[] = [...CARRINHAS_MOCK];
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(ROTAS_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          locaisRotas = parsed;
+        }
+      }
+    } catch {}
   }
 
-  // Garantir identificadores limpos (apenas Carrinha 1 a Carrinha 5 sem duplicação de títulos)
-  const padronizarNome = (id: string, nomeRaw: string, idx: number): string => {
-    const raw = String(nomeRaw || '');
-    const numMatch = raw.match(/(\d+)/);
-    const num = numMatch ? numMatch[1] : String(idx + 1);
-    return `Carrinha ${num}`;
-  };
+  if (!supabase) return locaisRotas;
 
-  const merged: Carrinha[] = [...CARRINHAS_MOCK];
-  for (const row of data) {
-    const idx = merged.findIndex((m) => m.id === row.id);
-    const nomeLimpo = padronizarNome(row.id, row.identificador, idx >= 0 ? idx : merged.length);
-    if (idx !== -1) {
-      merged[idx] = { ...row, identificador: nomeLimpo };
-    } else {
-      merged.push({ ...row, identificador: nomeLimpo });
+  try {
+    const { data, error } = await supabase
+      .from('carrinhas')
+      .select('*')
+      .order('identificador', { ascending: true });
+
+    if (error || !data || data.length === 0) {
+      return locaisRotas;
     }
-  }
 
-  return merged;
+    const merged: Carrinha[] = [...locaisRotas];
+    for (const row of data) {
+      const idx = merged.findIndex((m) => m.id === row.id);
+      if (idx !== -1) {
+        merged[idx] = {
+          ...merged[idx],
+          ...row,
+          rota: merged[idx].rota || row.rota || `Rota ${merged[idx].numero || idx + 1}`,
+          nome_carro: merged[idx].nome_carro || row.nome_carro || `Carro ${merged[idx].numero || idx + 1}`,
+          nome_condutor: merged[idx].nome_condutor || row.nome_condutor || merged[idx].motorista_nome || '',
+          matricula: row.matricula || merged[idx].matricula,
+        };
+      } else {
+        merged.push({
+          ...row,
+          rota: row.rota || `Rota ${merged.length + 1}`,
+          nome_carro: row.nome_carro || `Carro ${merged.length + 1}`,
+          nome_condutor: row.nome_condutor || '',
+          numero: row.numero || merged.length + 1,
+        });
+      }
+    }
+
+    return merged.sort((a, b) => (a.numero || 0) - (b.numero || 0));
+  } catch {
+    return locaisRotas;
+  }
 }
 
 export async function salvarCarrinhaDb(carrinha: Partial<Carrinha> & { identificador: string; matricula: string; loja_id?: string }) {
-  if (!supabase) return null;
-  const payload = {
+  if (typeof window !== 'undefined') {
+    try {
+      const atuais = await carregarCarrinhasSupabase();
+      const idx = atuais.findIndex((c) => c.id === carrinha.id);
+      let novaLista: Carrinha[];
+      if (idx >= 0) {
+        novaLista = atuais.map((c) => (c.id === carrinha.id ? ({ ...c, ...carrinha } as Carrinha) : c));
+      } else {
+        novaLista = [...atuais, { ...carrinha, id: carrinha.id || `car-${Date.now()}` } as Carrinha];
+      }
+      localStorage.setItem(ROTAS_STORAGE_KEY, JSON.stringify(novaLista));
+    } catch {}
+  }
+
+  if (!supabase) return carrinha;
+  const payload: any = {
     loja_id: carrinha.loja_id || 'a9982e9f-7899-4a7c-8ce3-bc30f16c99a2',
-    identificador: carrinha.identificador.trim(),
+    identificador: (carrinha.identificador || carrinha.rota || '').trim(),
     matricula: carrinha.matricula.trim(),
     ativo: carrinha.ativo !== undefined ? carrinha.ativo : true,
   };
@@ -988,17 +1025,17 @@ export async function salvarCarrinhaDb(carrinha: Partial<Carrinha> & { identific
       .update(payload)
       .eq('id', carrinha.id)
       .select()
-      .single();
-    if (error) console.error('Erro ao atualizar carrinha:', error);
-    return data;
+      .maybeSingle();
+    if (error) console.warn('Erro ao atualizar carrinha:', error);
+    return data || carrinha;
   } else {
     const { data, error } = await supabase
       .from('carrinhas')
       .insert(payload)
       .select()
-      .single();
-    if (error) console.error('Erro ao criar carrinha:', error);
-    return data;
+      .maybeSingle();
+    if (error) console.warn('Erro ao criar carrinha:', error);
+    return data || carrinha;
   }
 }
 
@@ -1519,8 +1556,8 @@ export async function reiniciarLogsAuditoriaParaMock(): Promise<LogAuditoria[]> 
 
 // ---------------- BASE FIXA CARRINHAS 1-4 E CLIENTES EMPRESARIAIS B2B (CARRINHA 5) ---------------- //
 
-const BASE_FIXA_CARRINHAS_STORAGE_KEY = 'padaria_base_fixa_carrinhas_v2';
-const CLIENTES_B2B_STORAGE_KEY = 'padaria_clientes_empresariais_b2b_v2';
+const BASE_FIXA_CARRINHAS_STORAGE_KEY = 'padaria_base_fixa_carrinhas_v3';
+const CLIENTES_B2B_STORAGE_KEY = 'padaria_clientes_empresariais_b2b_v3';
 
 const MAPA_CARRINHA_IDS_LEGADOS: Record<string, { id: string; nome: string }> = {
   'e908db95-c427-4ed5-83fc-01403bd24cf1': { id: '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75', nome: 'Carrinha 1' },
@@ -1596,15 +1633,19 @@ export function normalizarClienteB2BItem(c: any): ClienteEmpresarialB2B {
     id: c?.id || `b2b-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
     nome: c?.nome || 'Cliente Empresarial',
     telefone: c?.telefone || '',
+    telemovel: c?.telemovel || c?.telefone || '',
+    email: c?.email || '',
+    nif: c?.nif || '',
+    password: c?.password || '',
     morada: c?.morada || 'Arouca',
-    carrinha_id: c?.carrinha_id || 'b555db95-c427-4ed5-83fc-01403bd24cf5',
+    carrinha_id: c?.carrinha_id || '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75',
     ativo: c?.ativo !== undefined ? Boolean(c?.ativo) : true,
     quantidades_semanais: semanaNormalizada,
     quantidades_semana: semanaNormalizada,
   };
 }
 
-const ARTIGOS_BASE_FIXA_STORAGE_KEY = 'padaria_artigos_base_fixa_v1';
+const ARTIGOS_BASE_FIXA_STORAGE_KEY = 'padaria_artigos_base_fixa_v3';
 
 export function carregarArtigosBaseFixa(): string[] {
   const baseDefault = [...COLUNAS_MAPA_DIARIO_OFICIAL];

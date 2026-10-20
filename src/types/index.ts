@@ -48,6 +48,10 @@ export interface Carrinha {
   motorista_id?: string | null;
   ativo: boolean;
   criado_em?: string;
+  rota?: string;
+  nome_carro?: string;
+  nome_condutor?: string;
+  numero?: number;
 }
 
 export interface ItemEncomenda {
@@ -174,8 +178,12 @@ export interface ClienteEmpresarialB2B {
   id: string;
   nome: string; // ex: 'Gamarão', 'Patronato', 'Hospital', etc.
   telefone?: string;
+  telemovel?: string;
+  email?: string;
+  password?: string;
   morada?: string;
-  carrinha_id: string; // predefinido 5º Carro ('b555db95-c427-4ed5-83fc-01403bd24cf5')
+  nif?: string;
+  carrinha_id: string; // Rota associada
   ativo: boolean;
   quantidades_semanais: Record<DiaSemana, Record<string, number>>; // dia da semana -> { [produto_nome]: quantidade }
   quantidades_semana?: Record<DiaSemana, Record<string, number>>; // alias compatível

@@ -42,6 +42,33 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.4.0] - 2026-10-20
+
+### Added & Unified (8 Rotas de Distribuição, Normalização de Artigos, Pesquisa/Filtros e Gestão B2B com Login)
+- **Unificação das 8 Rotas e Carros Operacionais**:
+  - Transição de nomenclatura global de «carrinhas» para «carros / rotas» ordenadas de 1 a 8 (`Rota 1` a `Rota 8`, `Carro 1` a `Carro 8`), com nome da rota, nome do carro, condutor atribuído e matrícula.
+  - Atribuição direta por **Rota de Entrega** (Rotas 1 a 8) no formulário e edição de encomendas (`/encomendas`).
+  - Salvaguarda comercial do modelo de pricing: restrição estrita contra adição descontrolada de lojas ou rotas na operação diária, fixando os limites licenciados em 3 Lojas Físicas e 8 Rotas Operacionais (expansão reservada ao Backoffice).
+- **Normalização Integral do Catálogo e Ingestão de Dados Semanais**:
+  - Normalização dos 86 artigos reais extraídos das folhas de distribuição (`Pão Normal`, `Lanche`, preservando gramagens e tipologias distintas como `Broa Amarela 1 kg`, `Broa 2 kg`, `Triga Milha 0,5 kg`, `Triga Milha 1 kg`, `Padas de Centeio`, etc.).
+  - Adição de 40 produtos em falta ao catálogo oficial (`PRODUTOS_MOCK`) com 100% de cobertura.
+  - Carregamento integral das quantidades semanais (Segunda a Domingo) para todas as 8 rotas operacionais e para os clientes contratuais B2B.
+- **Filtros em Tempo Real, Pesquisa e Ordenação na Base Diária e B2B**:
+  - Na Base Diária: filtro por artigo em tempo real e ordenação (A-Z, Z-A, maior quantidade e menor quantidade), com cabeçalhos a exibir o Nome da Rota.
+  - Na Matriz B2B: filtro por rota (Rotas 1 a 8), pesquisa combinada de clientes (nome, NIF, email, telemóvel), filtro por artigo contratual e ordenação (nome e volume total).
+- **Clientes Empresariais (B2B) com Login e Recuperação de Password no Portal**:
+  - Registo e edição no Cockpit de Gestão de: Nome da Entidade, NIF, Telemóvel, Email, Password, Morada e Rota Associada.
+  - Sincronização direta com a autenticação de clientes em `/encomendar`: qualquer cliente empresarial pode iniciar sessão com telemóvel/email ou efetuar recuperação/reset à sua password.
+- **Polimento Visual das Abas e Nomenclatura no Cockpit de Gestão (`/gestao`)**:
+  - Cabeçalho: **Gestão**.
+  - Aba 1: **Indicadores** (em vez de *Métricas & Relatórios*).
+  - Aba 2: **Lojas e Rotas** (em vez de *Lojas & Carrinhas*).
+  - Aba 3: **Base de Dados** (em vez de *Bases de Dados & Excel*).
+  - Aba 4: **Auditoria** (em vez de *Auditoria & Histórico*).
+- **Hierarquia do Seletor no Cockpit de Login (`/login`)**:
+  - 1.º Nível (`optgroup`): `Lojas`, `Fabrico`, `Distribuição`, `Backoffice`.
+  - 2.º Nível (`option`): `Centro de Produção` (sob Fabrico), `Distribuição e rotas` (sob Distribuição), `Gestão` (sob Backoffice).
+
 ## [v2.3.6] - 2026-10-19
 
 ### Enhanced (Simplificação e Padronização dos Nomes dos Cockpits no Login)

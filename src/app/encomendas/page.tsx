@@ -398,7 +398,7 @@ export default function EncomendasPage() {
         tipo: tipoEntrega,
         canal_origem: canalOrigem,
         carrinha_id: carrinhaObj?.id,
-        carrinha_nome: carrinhaObj?.identificador,
+        carrinha_nome: carrinhaObj ? (carrinhaObj.rota || carrinhaObj.identificador) : undefined,
         data_agendamento: dataAgendamento,
         hora_agendamento: horaAgendamento,
         estado: 'pendente',
@@ -422,7 +422,7 @@ export default function EncomendasPage() {
         loja_nome: lojaAtual.nome,
         painel: 'encomendas',
         acao: 'Registo de Encomenda',
-        detalhes: `Registado pedido com ${qtdTotalArtigos} artigo(s) (${resumoArtigos}). Modalidade: ${tipoEntrega === 'entrega_domicilio' ? `Entrega ao Domicílio (${carrinhaObj?.identificador || 'Carrinha'})` : 'Levantamento no Balcão'}. Agendado para ${dataAgendamento} às ${horaAgendamento}.`,
+        detalhes: `Registado pedido com ${qtdTotalArtigos} artigo(s) (${resumoArtigos}). Modalidade: ${tipoEntrega === 'entrega_domicilio' ? `Entrega ao Domicílio (${carrinhaObj?.rota || carrinhaObj?.identificador || 'Rota'})` : 'Levantamento no Balcão'}. Agendado para ${dataAgendamento} às ${horaAgendamento}.`,
       });
 
       setEncomendas((prev) => [novaEncomenda, ...prev]);
@@ -936,7 +936,7 @@ export default function EncomendasPage() {
                     <div>
                       <label className="block text-[11px] font-bold text-blue-950 mb-1 flex items-center gap-1">
                         <Truck className="h-3.5 w-3.5 text-blue-600" />
-                        Carrinha de Entrega *
+                        Rota de Entrega *
                       </label>
                       <select
                         value={carrinhaSelecionadaId}
@@ -945,7 +945,7 @@ export default function EncomendasPage() {
                       >
                         {carrinhas.map((c) => (
                           <option key={c.id} value={c.id}>
-                            {c.identificador} — {c.motorista_nome}
+                            {c.rota || c.identificador} — {c.nome_carro || c.matricula} ({c.nome_condutor || c.motorista_nome || 'Condutor'})
                           </option>
                         ))}
                       </select>
@@ -1804,7 +1804,7 @@ export default function EncomendasPage() {
               {encomendaEmEdicao.tipo === 'entrega_domicilio' && (
                 <div className="space-y-2 bg-blue-50/60 p-3 rounded-xl border border-blue-200">
                   <div>
-                    <label className="block font-bold text-blue-950 mb-1">Carrinha de Entrega *</label>
+                    <label className="block font-bold text-blue-950 mb-1">Rota de Entrega *</label>
                     <select
                       value={encomendaEmEdicao.carrinha_id || carrinhas[0]?.id || ''}
                       onChange={(e) => {
@@ -1812,14 +1812,14 @@ export default function EncomendasPage() {
                         setEncomendaEmEdicao({
                           ...encomendaEmEdicao,
                           carrinha_id: e.target.value,
-                          carrinha_nome: car ? car.identificador : encomendaEmEdicao.carrinha_nome,
+                          carrinha_nome: car ? (car.rota || car.identificador) : encomendaEmEdicao.carrinha_nome,
                         });
                       }}
                       className="w-full px-3 py-2 bg-white rounded-lg border border-blue-300 font-bold text-gray-900 focus:outline-hidden text-xs cursor-pointer"
                     >
                       {carrinhas.map((c) => (
                         <option key={c.id} value={c.id}>
-                          {c.identificador} — {c.motorista_nome}
+                          {c.rota || c.identificador} — {c.nome_carro || c.matricula} ({c.nome_condutor || c.motorista_nome || 'Condutor'})
                         </option>
                       ))}
                     </select>

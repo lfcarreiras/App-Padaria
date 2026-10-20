@@ -1,9 +1,9 @@
 ---
 title: "03 - Manual do Administrador, Parametrizações e Fórmulas de Indicadores do Cockpit de Gestão"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.3.4"
+version: "2.4.0"
 date_saved: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-20
 status: "Em Produção (Live)"
 tags:
   - #Inprooval/ManualAdmin
@@ -17,7 +17,7 @@ tags:
 **Entidade Tecnológica:** EyeQ Lda / Inprooval®  
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
 **Rota de Acesso:** `/gestao` (Exclusivo para Perfil **Administrador / Gerência**)  
-**Versão:** `v2.3.4` (18/10/2026)  
+**Versão:** `v2.4.0` (20/10/2026)  
 
 ---
 
@@ -27,11 +27,11 @@ O utilizador com perfil **Administrador** seleciona no login o Cockpit **`Gestã
 
 ```mermaid
 flowchart LR
-    Admin(["🔐 Administrador (/gestao)"]) --> T1["1. 📊 Métricas & KPIs\n(On-Time, Canais, Rankings,\nPlaneado vs Real)"]
-    Admin --> T2["2. 🏪 Lojas & 5 Carrinhas\n(Base Fixa 1º-4º Carro\n+ Matriz B2B 5º Carro)"]
-    Admin --> T3["3. 🗄️ Base de Dados\n(Catálogo Produtos, Clientes,\nImport Excel & Studio CMS)"]
-    Admin --> T4["4. 🛡️ Logs de Auditoria\n(Rastreabilidade Total\nde Operadores)"]
-    Admin --> T5["5. 🖨️ Talão Térmico\n(Calibração Epson TM-T20\n80mm / 72mm)"]
+    Admin(["🔐 Administrador (/gestao)"]) --> T1["1. 📊 Indicadores\n(On-Time, Canais, Rankings,\nPlaneado vs Real)"]
+    Admin --> T2["2. 🏪 Lojas e Rotas\n(8 Rotas Operacionais, Base Diária\n+ Matriz B2B com Login)"]
+    Admin --> T3["3. 🗄️ Base de Dados\n(Catálogo 86 Produtos, Clientes,\nImport Excel & Studio CMS)"]
+    Admin --> T4["4. 🛡️ Auditoria\n(Rastreabilidade Total\nde Operadores)"]
+    Admin --> T5["5. 🖨️ Talão Térmico\n(Calibração Epson TM-T20\n80mm / 68mm Úteis)"]
     Admin --> T6["6. 🔑 Acessos RBAC\n(Utilizadores, Senhas e\nPermissões por Painel)"]
 ```
 
@@ -109,34 +109,37 @@ Mede a tração de cada canal de entrada de encomendas no período filtrado:
 
 ---
 
-## 3. Aba 2: Configuração das Lojas, Frota de Carrinhas, Base Diária & Clientes Empresariais B2B (`lojas_carrinhas`)
+## 3. Aba 2: Lojas e Rotas — 8 Rotas Operacionais, Base Diária e Matriz B2B (`lojas_carrinhas`)
 
-Esta aba centraliza toda a parametrização logística da *Padaria da Vila*:
+Esta aba centraliza toda a parametrização operacional e logística da *Padaria da Vila*:
 
-### 3.1. Gestão das Lojas Físicas e Frota de Carrinhas
-- **Lojas Físicas:** Criação (`+ Nova Loja`) e Edição de Nome, Código, Morada, Telefone, NIF e estado Ativo/Inativo das lojas físicas (`Padaria da Vila`, `Padaria da Praça`, `Padaria do Liceu`, etc.).
-- **Frota de Carrinhas:** Criação (`+ Nova Carrinha`) e Edição do Identificador (`1.º Carro` a `5.º Carro`), Matrícula, Capacidade em Caixas/Kgs, Loja Base e estado Ativo/Inativo.
+### 3.1. Gestão das Lojas Físicas e Rotas de Distribuição (Carros 1 a 8)
+- **Salvaguarda Comercial do Modelo de Pricing (`v2.4.0`):** A adição livre de lojas físicas ou rotas está restrita na operação diária, travando as cotas contratadas em **3 Lojas Físicas** e **8 Rotas Operacionais**. A expansão de quota fica reservada exclusivamente ao Backoffice mestre de licenciamento.
+- **Lojas Físicas (3 Unidades Licenciadas):** Consulta e Edição de Nome, Código, Morada, Telefone e NIF das lojas (`Padaria da Vila I (Praça)`, `Padaria da Vila II (Av. 25 de Abril)` e `Padaria da Vila III (Loja Carocha)`).
+- **Rotas de Distribuição — Carros (8 Rotas Licenciadas):**
+  - Rotas ordenadas rigorosamente de **1 a 8** (`Rota 1` a `Rota 8`), cada qual associada ao respetivo carro (`Carro 1` a `Carro 8`), matrícula e condutor atribuído.
+  - Edição direta de: **Nome da Rota**, **Nome do Carro**, **Nome do Condutor** e **Matrícula**.
+  - Atribuição direta de encomendas por **Rota de Entrega** (1 a 8) no formulário e modal de encomendas (`/encomendas`).
 
-### 3.2. Grelha da Base Fixa Diária de Particulares (`1.º ao 4.º Carro`)
-- Permite definir e gerir tanto a **lista de artigos** como as **quantidades globais fixas diárias** que cada uma das carrinhas de rota particular leva diariamente para venda e distribuição porta-a-porta.
-- **Separação Logística Estrita da Carrinha 5 (`v2.3.4`):** A Carrinha 5 (`55-EM-26`) não surge na Base Diária comum de carrinhas, uma vez que está 100% alocada às entregas institucionais da matriz B2B (*5.º Carro*).
-- **Edição Total de Artigos e Quantidades:**
-  1. **Edição Direta de Quantidades:** Células numéricas interativas para digitação rápida de valores por carrinha e por dia da semana (`Seg` a `Dom`), com botão **«Guardar Quantidades»**.
-  2. **Replicação Instantânea de Dia:** Botão **«Replicar dia p/ toda a semana»** para replicar as quantidades do dia selecionado por toda a semana.
-  3. **Adicionar Artigos:** Botão **«+ Escolher artigo do catálogo»** (com seleção modal e pesquisa) e botão **«+ Adicionar novo artigo»** (com digitação manual).
-  4. **Editar e Eliminar Artigos:** Edição do nome do artigo com propagação automática e eliminação de artigos com ícone de caixote do lixo (`🗑️`).
-  5. **Extração e Importação Excel:** Extração com 1 clique da Base Fixa (`.xlsx`) consolidada (1.º ao 4.º Carro) ou individual por carrinha, e importação de folhas Excel atualizadas.
-  6. **Impacto Automático:** Todas as alterações refletem-se imediatamente na **Pool Consolidada do Dia** em `/producao` e no ficheiro Excel **«MAPA DIÁRIO»** em `/entregas`.
+### 3.2. Grelha da Base Diária Consolidada por Rota (Rotas 1 a 8)
+- **Todas as 8 Rotas com Base Diária:** Qualquer um dos 8 carros pode transportar tanto a Base Diária de particulares como encomendas B2B.
+- **Cabeçalhos Normalizados por Rota:** As colunas exibem claramente o **Nome da Rota** (`Rota 1` a `Rota 8`) e a viatura/matrícula associada.
+- **Pesquisa em Tempo Real e Ordenação (`v2.4.0`):**
+  - **Filtro em Tempo Real por Artigo:** Caixa de pesquisa para localizar instantaneamente qualquer artigo entre os 86 produtos catalogados (ex: `Pão Normal`, `Broa`, `Lanche`, `Centeio`).
+  - **Ordenação Dinâmica:** Permite ordenar a grelha por `Artigo (A → Z)`, `Artigo (Z → A)`, `Maior Quantidade` e `Menor Quantidade`.
+- **Edição Total e Normalização:** Edição direta de quantidades para os 7 dias (`Seg` a `Dom`), replicação semanal instantânea, adição/remoção de artigos e exportação/importação Excel (.xlsx).
 
-### 3.3. Matriz Semanal dos Clientes Empresariais B2B (`5.º Carro`)
-- Parametriza as quantidades fixas diárias entregues pelo **`5.º Carro`** às entidades empresariais/institucionais de Arouca (*Hospital, Patronato, Centros Sociais, Lares, Cafés e Mercearias*).
-- **Simplificação Operacional (`v2.3.4`):** Remoção da coluna redundante "ROTA / CARRINHA" da grelha B2B, com indicação clara de distribuição exclusiva e integral pela Carrinha 5.
-- **Edição Total de Clientes e Artigos B2B:**
-  1. **Criação e Edição de Clientes:** Botão **«+ Novo Cliente Empresarial»** e botão **«Editar»** para ajustar nome, morada e telefone.
-  2. **Edição Direta de Quantidades:** Inputs numéricos em cada célula de produto com atualização em tempo real.
-  3. **Eliminação Segura de Clientes:** Eliminação de clientes empresariais tanto pelo botão de ação na linha (`🗑️`) como pelo botão no rodapé do modal de edição, sempre com confirmação do utilizador.
-  4. **Replicação Semanal por Cliente:** Botão **«Replicar dia p/ toda a semana»** no modal e na tabela para propagar quantidades de um dia para todos os dias úteis e fins de semana.
-  5. **Exportação e Importação Excel:** Template Excel dedicado e upload em lote para atualização rápida.
+### 3.3. Matriz dos Clientes Empresariais (B2B) & Integração com Login de Clientes
+- **Matriz Semanal Multirota (`v2.4.0`):** Parametriza as quantidades fixas diárias contratadas com entidades empresariais/institucionais (*Hospital, Patronato, Centros Sociais, Escolas, Lares, Cafés e Mercearias*), com cada cliente associado à sua respetiva rota operacional (Rotas 1 a 8).
+- **Filtros e Pesquisa Integrada B2B:**
+  1. **Filtro por Rota:** Seleção de uma rota específica (ex: `Rota 1`, `Rota 5`) ou `Todas as Rotas`.
+  2. **Pesquisa por Cliente / NIF / Contacto:** Localização rápida por nome da entidade, NIF, telemóvel ou email.
+  3. **Filtro por Artigo Contratual:** Localiza os clientes que consomem determinado produto num dado dia.
+  4. **Ordenação de Clientes:** Por Nome (A-Z, Z-A) ou por Volume Total diário (Maior/Menor Volume).
+- **Base de Dados Unificada com Logins de Clientes (`v2.4.0`):**
+  - O Cockpit de Gestão permite registar o **Nome**, **NIF**, **Telemóvel**, **Email**, **Password**, **Morada** e **Rota**.
+  - Esta ficha alimenta diretamente a base de autenticação do portal de clientes (`/encomendar`).
+  - **Qualquer cliente empresarial pode iniciar sessão diretamente na app de clientes** ou **efetuar reset à password** de forma autónoma através do seu telemóvel ou email.
 
 ---
 

@@ -142,13 +142,13 @@ export default function LoginPage() {
                     ))}
                   </optgroup>
                   <optgroup label="Fabrico">
-                    <option value="producao">Centro de Produção (Padaria & Pastelaria)</option>
+                    <option value="producao">Centro de Produção</option>
                   </optgroup>
-                  <optgroup label="Carrinhas">
-                    <option value="carrinhas">Carrinhas (Distribuição e Rotas)</option>
+                  <optgroup label="Distribuição">
+                    <option value="carrinhas">Distribuição e rotas</option>
                   </optgroup>
-                  <optgroup label="Gestão">
-                    <option value="gestao">Indicadores e parametrizações</option>
+                  <optgroup label="Backoffice">
+                    <option value="gestao">Gestão</option>
                   </optgroup>
                 </select>
               </div>
@@ -158,8 +158,8 @@ export default function LoginPage() {
                   : localizacaoSelecionada === 'producao'
                   ? 'Acesso exclusivo ao ecrã tátil de Produção (Pool & Fornos).'
                   : localizacaoSelecionada === 'carrinhas'
-                  ? 'Acesso exclusivo ao painel de Entregas e Rotas das Carrinhas.'
-                  : 'Acesso exclusivo ao Cockpit Executivo de Gestão.'}
+                  ? 'Acesso exclusivo ao painel de Entregas e Rotas dos Carros.'
+                  : 'Acesso exclusivo ao Cockpit de Gestão.'}
               </p>
             </div>
 

@@ -128,16 +128,24 @@ export default function AdminPage() {
   const [carrinhas, setCarrinhas] = useState<Carrinha[]>(CARRINHAS_MOCK);
   const [perfis, setPerfis] = useState<PerfilUtilizador[]>([]);
 
-  // Carrinhas ativas na Base Diária regular (excluindo Carrinha 5 que é exclusiva da rota B2B)
+  // Todas as 8 rotas operacionais ativas (Rota 1 a Rota 8)
   const carrinhasBaseDiaria = useMemo(() => {
-    return carrinhas.filter(
-      (c) =>
-        c.id !== 'b555db95-c427-4ed5-83fc-01403bd24cf5' &&
-        !c.identificador?.includes('5') &&
-        !c.nome?.includes('5') &&
-        c.matricula !== '55-EM-26'
-    );
+    return [...carrinhas].sort((a, b) => {
+      const numA = a.numero || parseInt(String(a.rota || a.identificador || '').replace(/\D+/g, '') || '99', 10);
+      const numB = b.numero || parseInt(String(b.rota || b.identificador || '').replace(/\D+/g, '') || '99', 10);
+      return numA - numB;
+    });
   }, [carrinhas]);
+
+  // Filtros e Ordenação para a Base Diária de Rotas
+  const [filtroArtigoBaseFixa, setFiltroArtigoBaseFixa] = useState<string>('');
+  const [ordenacaoBaseFixa, setOrdenacaoBaseFixa] = useState<'nome_asc' | 'nome_desc' | 'qtd_desc' | 'qtd_asc'>('nome_asc');
+
+  // Filtros e Ordenação para os Clientes Empresariais (B2B)
+  const [filtroRotaB2B, setFiltroRotaB2B] = useState<string>('todas');
+  const [filtroClienteB2B, setFiltroClienteB2B] = useState<string>('');
+  const [filtroArtigoB2B, setFiltroArtigoB2B] = useState<string>('');
+  const [ordenacaoB2B, setOrdenacaoB2B] = useState<'nome_asc' | 'nome_desc' | 'total_desc' | 'total_asc'>('nome_asc');
 
   // Configuração do Talão
   const [receiptConfig, setReceiptConfig] = useState<ReceiptConfig>(DEFAULT_RECEIPT_CONFIG);
@@ -263,11 +271,76 @@ export default function AdminPage() {
     carregar();
   }, []);
 
-  // Artigos visíveis na grelha de Base Fixa (Editáveis e elimináveis pelo Administrador)
+  // Artigos visíveis na grelha de Base Fixa com pesquisa em tempo real e ordenação
   const artigosGrelhaBaseFixa = useMemo(() => {
-    if (artigosBaseFixa && artigosBaseFixa.length > 0) return artigosBaseFixa;
-    return COLUNAS_MAPA_DIARIO_OFICIAL || [];
-  }, [artigosBaseFixa]);
+    const todos = (artigosBaseFixa && artigosBaseFixa.length > 0) ? artigosBaseFixa : (COLUNAS_MAPA_DIARIO_OFICIAL || []);
+    let filtrados = todos.filter((nome) => {
+      if (!filtroArtigoBaseFixa.trim()) return true;
+      return nome.toLowerCase().includes(filtroArtigoBaseFixa.toLowerCase().trim());
+    });
+
+    return [...filtrados].sort((a, b) => {
+      if (ordenacaoBaseFixa === 'nome_asc') return a.localeCompare(b, 'pt');
+      if (ordenacaoBaseFixa === 'nome_desc') return b.localeCompare(a, 'pt');
+      const somaA = carrinhasBaseDiaria.reduce((acc, c) => acc + obterQtdBaseCarrinha(c.id, diaSemanaBaseFixa, a), 0);
+      const somaB = carrinhasBaseDiaria.reduce((acc, c) => acc + obterQtdBaseCarrinha(c.id, diaSemanaBaseFixa, b), 0);
+      if (ordenacaoBaseFixa === 'qtd_desc') return somaB - somaA;
+      if (ordenacaoBaseFixa === 'qtd_asc') return somaA - somaB;
+      return a.localeCompare(b, 'pt');
+    });
+  }, [artigosBaseFixa, filtroArtigoBaseFixa, ordenacaoBaseFixa, diaSemanaBaseFixa, carrinhasBaseDiaria]);
+
+  // Clientes Empresariais B2B filtrados e ordenados
+  const clientesB2BFiltrados = useMemo(() => {
+    let res = [...clientesB2B];
+
+    // Filtro por Rota
+    if (filtroRotaB2B !== 'todas') {
+      res = res.filter((cli) => {
+        const car = carrinhas.find((c) => c.id === cli.carrinha_id);
+        const rotaIdent = car?.rota || car?.identificador || '';
+        return cli.carrinha_id === filtroRotaB2B || rotaIdent.toLowerCase() === filtroRotaB2B.toLowerCase();
+      });
+    }
+
+    // Filtro por Cliente (nome, nif, email, telefone, morada)
+    if (filtroClienteB2B.trim()) {
+      const q = filtroClienteB2B.toLowerCase().trim();
+      res = res.filter((cli) =>
+        (cli.nome || '').toLowerCase().includes(q) ||
+        (cli.nif || '').toLowerCase().includes(q) ||
+        (cli.email || '').toLowerCase().includes(q) ||
+        (cli.telemovel || '').toLowerCase().includes(q) ||
+        (cli.telefone || '').toLowerCase().includes(q) ||
+        (cli.morada || '').toLowerCase().includes(q)
+      );
+    }
+
+    // Filtro por Artigo
+    if (filtroArtigoB2B.trim()) {
+      const art = filtroArtigoB2B.toLowerCase().trim();
+      res = res.filter((cli) => {
+        const semana = cli.quantidades_semanais || cli.quantidades_semana || ({} as Record<DiaSemana, Record<string, number>>);
+        const mapa = semana[diaSemanaB2B] || {};
+        return Object.entries(mapa).some(([prod, qtd]) => qtd > 0 && prod.toLowerCase().includes(art));
+      });
+    }
+
+    // Ordenação
+    return res.sort((a, b) => {
+      if (ordenacaoB2B === 'nome_asc') return (a.nome || '').localeCompare(b.nome || '', 'pt');
+      if (ordenacaoB2B === 'nome_desc') return (b.nome || '').localeCompare(a.nome || '', 'pt');
+
+      const semA = a.quantidades_semanais || a.quantidades_semana || ({} as Record<DiaSemana, Record<string, number>>);
+      const semB = b.quantidades_semanais || b.quantidades_semana || ({} as Record<DiaSemana, Record<string, number>>);
+      const totalA = Object.values(semA[diaSemanaB2B] || {}).reduce((acc, q) => acc + (Number(q) || 0), 0);
+      const totalB = Object.values(semB[diaSemanaB2B] || {}).reduce((acc, q) => acc + (Number(q) || 0), 0);
+
+      if (ordenacaoB2B === 'total_desc') return totalB - totalA;
+      if (ordenacaoB2B === 'total_asc') return totalA - totalB;
+      return (a.nome || '').localeCompare(b.nome || '', 'pt');
+    });
+  }, [clientesB2B, filtroRotaB2B, filtroClienteB2B, filtroArtigoB2B, ordenacaoB2B, diaSemanaB2B, carrinhas]);
 
   const obterQtdBaseCarrinha = (carrinhaId: string, dia: DiaSemana, prodNome: string): number => {
     const reg = (baseFixaCarrinhas || []).find((b) => b?.carrinha_id === carrinhaId);
@@ -680,6 +753,14 @@ export default function AdminPage() {
     };
     const itemNormalizado: ClienteEmpresarialB2B = {
       ...clienteB2BEmEdicao,
+      nome: clienteB2BEmEdicao.nome.trim(),
+      nif: (clienteB2BEmEdicao.nif || '').trim(),
+      telefone: (clienteB2BEmEdicao.telefone || clienteB2BEmEdicao.telemovel || '').trim(),
+      telemovel: (clienteB2BEmEdicao.telemovel || clienteB2BEmEdicao.telefone || '').trim(),
+      email: (clienteB2BEmEdicao.email || '').trim().toLowerCase(),
+      password: (clienteB2BEmEdicao.password || '').trim(),
+      morada: (clienteB2BEmEdicao.morada || 'Arouca').trim(),
+      carrinha_id: clienteB2BEmEdicao.carrinha_id || carrinhas[0]?.id || '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75',
       quantidades_semanais: semanaSync,
       quantidades_semana: semanaSync,
     };
@@ -1264,16 +1345,22 @@ export default function AdminPage() {
 
   const handleSalvarCarrinha = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!carrinhaEmEdicao || !carrinhaEmEdicao.identificador) return;
+    if (!carrinhaEmEdicao) return;
+    const rotaLimpa = carrinhaEmEdicao.rota || carrinhaEmEdicao.identificador || 'Rota';
     const salva = await salvarCarrinhaDb({
       ...carrinhaEmEdicao,
+      identificador: rotaLimpa,
+      rota: rotaLimpa,
+      nome_carro: carrinhaEmEdicao.nome_carro || `Carro ${carrinhaEmEdicao.numero || ''}`,
+      nome_condutor: carrinhaEmEdicao.nome_condutor || '',
+      matricula: (carrinhaEmEdicao.matricula || '').trim(),
       loja_id: carrinhaEmEdicao.loja_id || lojas[0]?.id || 'a9982e9f-7899-4a7c-8ce3-bc30f16c99a2',
     } as any);
     if (salva) {
       const cars = await carregarCarrinhasSupabase();
       setCarrinhas(cars);
       setCarrinhaEmEdicao(null);
-      alert(t.success);
+      alert('Dados da viatura e rota guardados com sucesso!');
     }
   };
 
@@ -1724,7 +1811,7 @@ export default function AdminPage() {
             }`}
           >
             <Clock className="h-4 w-4" />
-            Auditoria & Histórico ({logsAuditoria.length})
+            Auditoria ({logsAuditoria.length})
           </button>
 
           <button
@@ -2317,14 +2404,10 @@ export default function AdminPage() {
                   </h3>
                   <p className="text-xs text-gray-500">{t.storesSectionDesc}</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setLojaEmEdicao({ nome: '', codigo: '', morada: '', telefone: '', nif: '', ativo: true })}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-bakery-600 hover:bg-bakery-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Nova Loja
-                </button>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold">
+                  <Lock className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                  <span>3 Lojas Físicas — Quota Licenciada (Expansão no Backoffice)</span>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -2355,48 +2438,54 @@ export default function AdminPage() {
 
             {/* Secção das Carrinhas da Frota */}
             <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
-              <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3">
                 <div>
                   <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                     <Truck className="h-4 w-4 text-blue-600" />
-                    Frota de Distribuição — Carrinhas
+                    Frota de Distribuição — Rotas e Carros (1 a 8)
                   </h3>
                   <p className="text-xs text-gray-500">
-                    Gestão e configuração de viaturas da frota para distribuição de encomendas.
+                    Gestão operacional das 8 rotas e viaturas ativas da frota de distribuição porta a porta.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setCarrinhaEmEdicao({ identificador: '', matricula: '', loja_id: lojas[0]?.id || '', ativo: true })}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Nova Carrinha
-                </button>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-xs font-bold">
+                  <Lock className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+                  <span>8 Rotas Operacionais — Quota Licenciada (Expansão no Backoffice)</span>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                {carrinhas.map((c) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {carrinhasBaseDiaria.map((c) => (
                   <div
                     key={c.id}
-                    className="p-4 rounded-xl border border-gray-200 bg-gray-50/60 space-y-2 text-xs"
+                    className="p-4 rounded-xl border border-gray-200 bg-gray-50/60 space-y-2.5 text-xs hover:border-blue-300 transition"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-mono font-black text-gray-900 bg-white px-2 py-0.5 rounded border border-gray-300">
+                      <span className="font-mono font-black text-gray-900 bg-white px-2 py-0.5 rounded border border-gray-300 shadow-2xs">
                         {c.matricula}
                       </span>
                       <button
                         type="button"
                         onClick={() => setCarrinhaEmEdicao(c)}
                         className="flex items-center gap-1 font-bold text-blue-700 hover:text-blue-900 bg-white px-2 py-1 rounded-lg border border-blue-200 hover:bg-blue-50 transition cursor-pointer"
-                        title="Editar dados desta carrinha"
+                        title="Editar dados desta rota e viatura"
                       >
                         <Edit3 className="h-3 w-3" /> {t.edit}
                       </button>
                     </div>
 
-                    <div className="pt-1">
-                      <h4 className="font-black text-sm text-gray-900">{c.identificador || c.nome}</h4>
+                    <div className="space-y-1 pt-1">
+                      <div className="flex items-center justify-between">
+                        <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-900 font-black text-xs">
+                          {c.rota || c.identificador || `Rota ${c.numero || ''}`}
+                        </span>
+                        <span className="text-[11px] font-bold text-gray-700">
+                          {c.nome_carro || `Carro ${c.numero || ''}`}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-gray-600 truncate">
+                        <span className="font-bold text-gray-800">Condutor:</span> {c.nome_condutor || c.motorista_nome || 'A atribuir'}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -2409,10 +2498,10 @@ export default function AdminPage() {
                 <div>
                   <h3 className="text-sm font-black text-gray-900 flex items-center gap-2">
                     <Layers className="h-4 w-4 text-blue-600" />
-                    Base Diária por Carrinha
+                    Base Diária por Rota (Consolidado Rotas 1 a 8)
                   </h3>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Quantidades de cada produto por carrinha para cada dia de semana (somadas ao Mapa Diário e ao Centro de Produção).
+                    Quantidades diárias consolidadas de cada artigo por rota (Rotas 1 a 8), somadas ao Mapa Diário e ao Centro de Produção.
                   </p>
                 </div>
 
@@ -2468,7 +2557,7 @@ export default function AdminPage() {
                     type="button"
                     onClick={handleExportarExcelBaseFixaConsolidado}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 text-blue-900 text-xs font-bold hover:bg-blue-100 transition cursor-pointer"
-                    title="Exportar Excel consolidado das carrinhas de distribuição regular (1 a 4) para todos os dias da semana"
+                    title="Exportar Excel consolidado das rotas de distribuição de carros (1 a 8) para todos os dias da semana"
                   >
                     <Download className="h-3.5 w-3.5 text-blue-700" />
                     Excel Consolidado (.xlsx)
@@ -2568,23 +2657,68 @@ export default function AdminPage() {
                 ))}
               </datalist>
 
+              <!-- Barra de Pesquisa e Ordenação em Tempo Real -->
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-blue-200 shadow-2xs">
+                <div className="relative flex-1">
+                  <Search className="h-3.5 w-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={filtroArtigoBaseFixa}
+                    onChange={(e) => setFiltroArtigoBaseFixa(e.target.value)}
+                    placeholder="Pesquisar e filtrar artigo na base diária (ex: Pão Normal, Broa, Lanche, Centeio)..."
+                    className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg font-medium text-gray-900 focus:outline-hidden focus:border-blue-500 focus:bg-white"
+                  />
+                  {filtroArtigoBaseFixa && (
+                    <button
+                      type="button"
+                      onClick={() => setFiltroArtigoBaseFixa('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs font-bold"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-gray-600 flex items-center gap-1 shrink-0">
+                    <ArrowUpDown className="h-3 w-3 text-blue-600" />
+                    Ordenar:
+                  </span>
+                  <select
+                    value={ordenacaoBaseFixa}
+                    onChange={(e) => setOrdenacaoBaseFixa(e.target.value as any)}
+                    className="text-xs font-bold bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-800 focus:outline-hidden cursor-pointer"
+                  >
+                    <option value="nome_asc">Artigo (A → Z)</option>
+                    <option value="nome_desc">Artigo (Z → A)</option>
+                    <option value="qtd_desc">Maior Quantidade</option>
+                    <option value="qtd_asc">Menor Quantidade</option>
+                  </select>
+                </div>
+              </div>
+
               <div className="overflow-x-auto border border-gray-200 rounded-xl max-h-[460px]">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead className="bg-blue-50/80 text-gray-800 border-b border-blue-200 sticky top-0 z-10">
                     <tr>
                       <th className="py-2.5 px-3 font-black uppercase text-[11px]">Produto / Artigo (Mapa Diário)</th>
                       {carrinhasBaseDiaria.map((c) => (
-                        <th key={c.id} className="py-2.5 px-3 font-black text-center uppercase text-[11px] w-28">
-                          <span className="inline-flex items-center gap-1.5">
-                            <Truck className="h-3.5 w-3.5 text-cyan-600" />
-                            <span>{c.identificador || c.nome}</span>
+                        <th key={c.id} className="py-2.5 px-3 font-black text-center uppercase text-[11px] min-w-28">
+                          <span className="inline-flex flex-col items-center">
+                            <span className="inline-flex items-center gap-1 text-blue-900 font-black">
+                              <Truck className="h-3 w-3 text-cyan-600" />
+                              <span>{c.rota || c.identificador}</span>
+                            </span>
+                            <span className="text-[10px] font-medium text-gray-500 lowercase">
+                              {c.nome_carro || c.matricula}
+                            </span>
                           </span>
                         </th>
                       ))}
-                      <th className="py-2.5 px-3 font-black text-right uppercase text-[11px] w-32 bg-blue-100/70">
+                      <th className="py-2.5 px-3 font-black text-right uppercase text-[11px] w-28 bg-blue-100/70">
                         Total Diário
                       </th>
-                      <th className="py-2.5 px-3 font-black text-right uppercase text-[11px] w-28 bg-blue-50/90">
+                      <th className="py-2.5 px-3 font-black text-right uppercase text-[11px] w-24 bg-blue-50/90">
                         Ações
                       </th>
                     </tr>
@@ -2737,10 +2871,10 @@ export default function AdminPage() {
                 <div>
                   <h3 className="text-sm font-black text-gray-900 flex items-center gap-2">
                     <Truck className="h-4 w-4 text-indigo-600" />
-                    Clientes Empresariais (B2B) — Rota Exclusiva Carrinha 5 (55-EM-26)
+                    Clientes Empresariais (B2B) — Matriz Semanal por Rota e Cliente
                   </h3>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Quantidades fixas frequentes por dia da semana para cada cliente empresarial (distribuição assegurada pela Carrinha 5).
+                    Quantidades fixas semanais contratadas por cliente empresarial, atribuídas às respetivas rotas operacionais (Rotas 1 a 8).
                   </p>
                 </div>
 
@@ -2754,9 +2888,13 @@ export default function AdminPage() {
                       setClienteB2BEmEdicao({
                         id: `b2b-${Date.now()}`,
                         nome: '',
+                        nif: '',
                         telefone: '',
+                        telemovel: '',
+                        email: '',
+                        password: '',
                         morada: 'Arouca',
-                        carrinha_id: 'b555db95-c427-4ed5-83fc-01403bd24cf5',
+                        carrinha_id: carrinhas[0]?.id || '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75',
                         ativo: true,
                         quantidades_semanais: vazios,
                         quantidades_semana: vazios,
@@ -2796,6 +2934,64 @@ export default function AdminPage() {
                   <span>{feedbackB2B}</span>
                 </div>
               )}
+
+              {/* Barra de Filtros e Ordenação de Clientes B2B */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 bg-indigo-50/60 p-3 rounded-xl border border-indigo-100">
+                <div>
+                  <label className="block text-[10px] font-black text-indigo-950 uppercase mb-1">Filtrar por Rota</label>
+                  <select
+                    value={filtroRotaB2B}
+                    onChange={(e) => setFiltroRotaB2B(e.target.value)}
+                    className="w-full text-xs font-bold bg-white border border-indigo-200 rounded-lg px-2.5 py-1.5 text-gray-800 focus:outline-hidden cursor-pointer"
+                  >
+                    <option value="todas">Todas as Rotas (1 a 8)</option>
+                    {carrinhasBaseDiaria.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.rota || c.identificador} — {c.nome_carro || c.matricula}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-indigo-950 uppercase mb-1">Pesquisar Cliente / NIF / Contacto</label>
+                  <div className="relative">
+                    <Search className="h-3 w-3 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={filtroClienteB2B}
+                      onChange={(e) => setFiltroClienteB2B(e.target.value)}
+                      placeholder="Nome, NIF, telemóvel, email..."
+                      className="w-full pl-7 pr-2.5 py-1.5 text-xs bg-white border border-indigo-200 rounded-lg font-medium text-gray-900 focus:outline-hidden"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-indigo-950 uppercase mb-1">Filtrar por Artigo</label>
+                  <input
+                    type="text"
+                    value={filtroArtigoB2B}
+                    onChange={(e) => setFiltroArtigoB2B(e.target.value)}
+                    placeholder="Filtrar por artigo (ex: Broa, Pão Normal)..."
+                    className="w-full px-2.5 py-1.5 text-xs bg-white border border-indigo-200 rounded-lg font-medium text-gray-900 focus:outline-hidden"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-indigo-950 uppercase mb-1">Ordenação</label>
+                  <select
+                    value={ordenacaoB2B}
+                    onChange={(e) => setOrdenacaoB2B(e.target.value as any)}
+                    className="w-full text-xs font-bold bg-white border border-indigo-200 rounded-lg px-2.5 py-1.5 text-gray-800 focus:outline-hidden cursor-pointer"
+                  >
+                    <option value="nome_asc">Nome do Cliente (A → Z)</option>
+                    <option value="nome_desc">Nome do Cliente (Z → A)</option>
+                    <option value="total_desc">Maior Volume Total</option>
+                    <option value="total_asc">Menor Volume Total</option>
+                  </select>
+                </div>
+              </div>
 
               {/* Seletor de Dia da Semana para Edição Rápida B2B */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
@@ -2842,7 +3038,7 @@ export default function AdminPage() {
                 <table className="w-full text-left text-xs border-collapse">
                   <thead className="bg-gray-50 text-gray-700 border-b border-gray-200">
                     <tr>
-                      <th className="py-2.5 px-3 font-black uppercase text-[11px] w-56">Cliente Empresarial (B2B)</th>
+                      <th className="py-2.5 px-3 font-black uppercase text-[11px] w-64">Cliente Empresarial (B2B)</th>
                       <th className="py-2.5 px-3 font-black uppercase text-[11px]">
                         Quantidades Fixas no Dia ({diaSemanaB2B.toUpperCase()})
                       </th>
@@ -2851,74 +3047,91 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {clientesB2B.map((cli) => {
-                      const semanaCli = cli.quantidades_semanais || cli.quantidades_semana || ({} as Record<DiaSemana, Record<string, number>>);
-                      const mapaDia = semanaCli[diaSemanaB2B] || {};
-                      const entries = Object.entries(mapaDia).filter(([, q]) => q > 0);
-                      const totalCliDia = entries.reduce((acc, [, q]) => acc + q, 0);
+                    {clientesB2BFiltrados.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="py-8 text-center text-gray-400 italic text-xs">
+                          Nenhum cliente empresarial encontrado com os filtros atuais.
+                        </td>
+                      </tr>
+                    ) : (
+                      clientesB2BFiltrados.map((cli) => {
+                        const semanaCli = cli.quantidades_semanais || cli.quantidades_semana || ({} as Record<DiaSemana, Record<string, number>>);
+                        const mapaDia = semanaCli[diaSemanaB2B] || {};
+                        const entries = Object.entries(mapaDia).filter(([, q]) => q > 0);
+                        const totalCliDia = entries.reduce((acc, [, q]) => acc + q, 0);
+                        const carRota = carrinhas.find((c) => c.id === cli.carrinha_id);
+                        const rotaNome = carRota?.rota || carRota?.identificador || 'Rota 1';
 
-                      return (
-                        <tr key={cli.id} className="hover:bg-indigo-50/30 transition">
-                          <td className="py-2.5 px-3">
-                            <p className="font-black text-gray-900 text-xs">{cli.nome}</p>
-                            <p className="text-[10px] text-gray-500">
-                              {cli.morada || 'Arouca'} {cli.telefone ? `• ${cli.telefone}` : ''}
-                            </p>
-                          </td>
-                          <td className="py-2.5 px-3">
-                            {entries.length === 0 ? (
-                              <span className="text-gray-400 italic text-[11px]">
-                                Sem artigos fixos definidos neste dia
-                              </span>
-                            ) : (
-                              <div className="flex flex-wrap gap-1.5">
-                                {entries.map(([prodNome, qtd]) => (
-                                  <div
-                                    key={prodNome}
-                                    className="inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-0.5 text-[11px]"
-                                  >
-                                    <span className="font-bold text-indigo-950">{prodNome}:</span>
-                                    <input
-                                      type="number"
-                                      min={0}
-                                      value={qtd}
-                                      onChange={(e) =>
-                                        handleAlterarQtdClienteB2B(cli.id, diaSemanaB2B, prodNome, Number(e.target.value))
-                                      }
-                                      className="w-14 text-center bg-white border border-indigo-300 rounded font-mono font-black text-indigo-900 px-1 py-0.5 text-[11px]"
-                                    />
-                                  </div>
-                                ))}
+                        return (
+                          <tr key={cli.id} className="hover:bg-indigo-50/30 transition">
+                            <td className="py-2.5 px-3">
+                              <div className="flex items-center gap-1.5">
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-blue-100 text-blue-800">
+                                  {rotaNome}
+                                </span>
+                                <p className="font-black text-gray-900 text-xs">{cli.nome}</p>
                               </div>
-                            )}
-                          </td>
-                          <td className="py-2.5 px-3 text-right font-mono font-black text-indigo-900">
-                            {totalCliDia} un.
-                          </td>
-                          <td className="py-2.5 px-3 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                type="button"
-                                onClick={() => setClienteB2BEmEdicao(cli)}
-                                className="px-2 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[11px] flex items-center gap-1 cursor-pointer"
-                                title="Configurar artigos e quantidades do cliente empresarial"
-                              >
-                                <Edit3 className="h-3 w-3" />
-                                Editar
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleEliminarClienteB2B(cli.id, cli.nome)}
-                                className="p-1 rounded-lg text-red-600 hover:bg-red-50 transition cursor-pointer"
-                                title="Remover cliente empresarial"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                              <p className="text-[10px] text-gray-500 mt-0.5">
+                                {cli.morada || 'Arouca'}
+                                {cli.telemovel || cli.telefone ? ` • ${cli.telemovel || cli.telefone}` : ''}
+                                {cli.email ? ` • ${cli.email}` : ''}
+                              </p>
+                            </td>
+                            <td className="py-2.5 px-3">
+                              {entries.length === 0 ? (
+                                <span className="text-gray-400 italic text-[11px]">
+                                  Sem artigos fixos definidos neste dia
+                                </span>
+                              ) : (
+                                <div className="flex flex-wrap gap-1.5">
+                                  {entries.map(([prodNome, qtd]) => (
+                                    <div
+                                      key={prodNome}
+                                      className="inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-0.5 text-[11px]"
+                                    >
+                                      <span className="font-bold text-indigo-950">{prodNome}:</span>
+                                      <input
+                                        type="number"
+                                        min={0}
+                                        value={qtd}
+                                        onChange={(e) =>
+                                          handleAlterarQtdClienteB2B(cli.id, diaSemanaB2B, prodNome, Number(e.target.value))
+                                        }
+                                        className="w-14 text-center bg-white border border-indigo-300 rounded font-mono font-black text-indigo-900 px-1 py-0.5 text-[11px]"
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-mono font-black text-indigo-900">
+                              {totalCliDia} un.
+                            </td>
+                            <td className="py-2.5 px-3 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => setClienteB2BEmEdicao(cli)}
+                                  className="px-2 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[11px] flex items-center gap-1 cursor-pointer"
+                                  title="Configurar artigos, rota e contactos do cliente empresarial"
+                                >
+                                  <Edit3 className="h-3 w-3" />
+                                  Editar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleEliminarClienteB2B(cli.id, cli.nome)}
+                                  className="p-1 rounded-lg text-red-600 hover:bg-red-50 transition cursor-pointer"
+                                  title="Remover cliente empresarial"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -4337,617 +4550,7 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={perfilEmEdicao.email || ''}
-                    onChange={(e) => setPerfilEmEdicao({ ...perfilEmEdicao, email: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">{t.password} *</label>
-                  <input
-                    type="text"
-                    required
-                    value={perfilEmEdicao.password || ''}
-                    onChange={(e) => setPerfilEmEdicao({ ...perfilEmEdicao, password: e.target.value })}
-                    placeholder="••••"
-                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden font-mono text-gray-800"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">Loja Afeta</label>
-                  <select
-                    value={perfilEmEdicao.loja_id || 'todas'}
-                    onChange={(e) => setPerfilEmEdicao({ ...perfilEmEdicao, loja_id: e.target.value === 'todas' ? undefined : e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold"
-                  >
-                    <option value="todas">{t.allStores}</option>
-                    {lojas.map((l) => (
-                      <option key={l.id} value={l.id}>{l.nome}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-bold text-gray-700 mb-1">{t.role}</label>
-                <select
-                  value={perfilEmEdicao.role || 'atendente'}
-                  onChange={(e) => aplicarPredefinicoesCargo(e.target.value as Role)}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold text-gray-900"
-                >
-                  <option value="admin">{t.roleAdmin}</option>
-                  <option value="gerente_loja">{t.roleStoreManager}</option>
-                  <option value="atendente">{t.roleCounter}</option>
-                  <option value="operador_padaria">{t.roleBaker} (Padaria)</option>
-                  <option value="operador_pastelaria">{t.roleBaker} (Pastelaria)</option>
-                  <option value="motorista">{t.roleDriver}</option>
-                </select>
-              </div>
-
-              {/* Seletores Granulares de Acesso aos 5 Painéis (Sem Acesso / Leitura / Edição) */}
-              <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 space-y-2.5">
-                <div className="flex items-center justify-between border-b border-gray-200 pb-1.5">
-                  <span className="font-bold text-gray-900 block">{t.allowedPanels}:</span>
-                  <span className="text-[10px] text-gray-500 italic">Defina se tem acesso de Leitura ou Edição</span>
-                </div>
-
-                {[
-                  { key: 'acesso_encomendas', label: t.navEncomendas },
-                  { key: 'acesso_producao', label: t.navProducao },
-                  { key: 'acesso_loja', label: t.navLoja },
-                  { key: 'acesso_entregas', label: t.navEntregas },
-                  { key: 'acesso_gestao', label: `${t.navGestao} (Métricas, Lojas, Frota e Acessos)` },
-                ].map((item) => {
-                  const val = (perfilEmEdicao as any)?.[item.key] ?? (perfilEmEdicao as any)?.[item.key.replace('acesso_', 'painel_')];
-                  const nivelAtual: NivelAcesso = (val === 'sem_acesso' || val === 'leitura' || val === 'edicao') ? val : 'sem_acesso';
-
-                  return (
-                    <div key={item.key} className="p-2 rounded-xl bg-white border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <span className="font-bold text-gray-800">{item.label}</span>
-
-                      <div className="flex bg-gray-100 p-0.5 rounded-lg text-[10px] font-bold shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => setPerfilEmEdicao({ ...perfilEmEdicao, [item.key]: 'sem_acesso' })}
-                          className={`px-2 py-1 rounded-md transition ${
-                            nivelAtual === 'sem_acesso'
-                              ? 'bg-red-600 text-white shadow-2xs font-black'
-                              : 'text-gray-500 hover:text-gray-900'
-                          }`}
-                        >
-                          <span className="inline-flex items-center gap-1.5"><Lock className="h-3.5 w-3.5 text-red-600" /><span>{t.levelNoAccess}</span></span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPerfilEmEdicao({ ...perfilEmEdicao, [item.key]: 'leitura' })}
-                          className={`px-2 py-1 rounded-md transition ${
-                            nivelAtual === 'leitura'
-                              ? 'bg-blue-600 text-white shadow-2xs font-black'
-                              : 'text-gray-500 hover:text-gray-900'
-                          }`}
-                        >
-                          <span className="inline-flex items-center gap-1.5"><Eye className="h-3.5 w-3.5 text-blue-600" /><span>{t.levelReadOnly}</span></span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPerfilEmEdicao({ ...perfilEmEdicao, [item.key]: 'edicao' })}
-                          className={`px-2 py-1 rounded-md transition ${
-                            nivelAtual === 'edicao'
-                              ? 'bg-emerald-600 text-white shadow-2xs font-black'
-                              : 'text-gray-500 hover:text-gray-900'
-                          }`}
-                        >
-                          <span className="inline-flex items-center gap-1.5"><Edit3 className="h-3.5 w-3.5 text-emerald-600" /><span>{t.levelFullEdit}</span></span>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="flex items-center justify-between pt-2 border-t">
-                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-gray-700">
-                  <input
-                    type="checkbox"
-                    checked={perfilEmEdicao.ativo ?? true}
-                    onChange={(e) => setPerfilEmEdicao({ ...perfilEmEdicao, ativo: e.target.checked })}
-                    className="rounded text-emerald-600"
-                  />
-                  <span>{t.userActive}</span>
-                </label>
-
-                <div className="flex items-center gap-2">
-                  {perfilEmEdicao.id && perfilEmEdicao.role !== 'admin' && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (window.confirm(`Tem a certeza que deseja eliminar o colaborador ${perfilEmEdicao.nome}?`)) {
-                          handleEliminarPerfil(perfilEmEdicao.id!);
-                          setPerfilEmEdicao(null);
-                        }
-                      }}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs transition cursor-pointer"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Eliminar
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setPerfilEmEdicao(null)}
-                    className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
-                  >
-                    {t.cancel}
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-1.5 rounded-lg bg-bakery-600 font-bold text-white shadow-xs hover:bg-bakery-700 transition cursor-pointer"
-                  >
-                    {t.saveUser}
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL DE EDIÇÃO DE LOJA */}
-      {lojaEmEdicao && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-gray-200 space-y-4 text-xs">
-            <h3 className="text-sm font-bold text-gray-900 border-b pb-2">Editar Dados da Loja</h3>
-            <form onSubmit={handleSalvarLoja} className="space-y-3">
-              <div>
-                <label className="block font-bold text-gray-700 mb-1">{t.storeCode}</label>
-                <input
-                  type="text"
-                  required
-                  value={lojaEmEdicao.codigo || ''}
-                  onChange={(e) => setLojaEmEdicao({ ...lojaEmEdicao, codigo: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-gray-700 mb-1">{t.storeName}</label>
-                <input
-                  type="text"
-                  required
-                  value={lojaEmEdicao.nome || ''}
-                  onChange={(e) => setLojaEmEdicao({ ...lojaEmEdicao, nome: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-gray-700 mb-1">{t.address}</label>
-                <input
-                  type="text"
-                  required
-                  value={lojaEmEdicao.morada || ''}
-                  onChange={(e) => setLojaEmEdicao({ ...lojaEmEdicao, morada: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">{t.phone}</label>
-                  <input
-                    type="text"
-                    required
-                    value={lojaEmEdicao.telefone || ''}
-                    onChange={(e) => setLojaEmEdicao({ ...lojaEmEdicao, telefone: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">{t.nif}</label>
-                  <input
-                    type="text"
-                    value={lojaEmEdicao.nif || ''}
-                    onChange={(e) => setLojaEmEdicao({ ...lojaEmEdicao, nif: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-2 border-t">
-                {lojaEmEdicao.id ? (
-                  <button
-                    type="button"
-                    onClick={() => handleEliminarLoja(lojaEmEdicao.id!)}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs transition cursor-pointer"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Eliminar Loja
-                  </button>
-                ) : <div />}
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setLojaEmEdicao(null)}
-                    className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
-                  >
-                    {t.cancel}
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-1.5 rounded-lg bg-bakery-600 font-bold text-white shadow-xs hover:bg-bakery-700 transition cursor-pointer"
-                  >
-                    {t.save}
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL DE EDIÇÃO DE CARRINHA */}
-      {carrinhaEmEdicao && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-gray-200 space-y-4 text-xs">
-            <h3 className="text-sm font-bold text-gray-900 border-b pb-2">{t.vansSectionTitle}</h3>
-            <form onSubmit={handleSalvarCarrinha} className="space-y-3">
-              <div>
-                <label className="block font-bold text-gray-700 mb-1">{t.vanName}</label>
-                <input
-                  type="text"
-                  required
-                  value={carrinhaEmEdicao.identificador || ''}
-                  onChange={(e) => setCarrinhaEmEdicao({ ...carrinhaEmEdicao, identificador: e.target.value })}
-                  placeholder="Carrinha 1 - Matriz"
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-gray-700 mb-1">{t.licensePlate}</label>
-                <input
-                  type="text"
-                  required
-                  value={carrinhaEmEdicao.matricula || ''}
-                  onChange={(e) => setCarrinhaEmEdicao({ ...carrinhaEmEdicao, matricula: e.target.value })}
-                  placeholder="42-AB-89"
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
-                />
-              </div>
-
-
-
-              <div className="flex items-center justify-between pt-2 border-t">
-                {carrinhaEmEdicao.id ? (
-                  <button
-                    type="button"
-                    onClick={() => handleEliminarCarrinha(carrinhaEmEdicao.id!)}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs transition cursor-pointer"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Eliminar Carrinha
-                  </button>
-                ) : <div />}
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setCarrinhaEmEdicao(null)}
-                    className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
-                  >
-                    {t.cancel}
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-1.5 rounded-lg bg-blue-600 font-bold text-white shadow-xs hover:bg-blue-700 transition cursor-pointer"
-                  >
-                    {t.save}
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL DE INSERÇÃO DE REGISTO AVULSO NA BASE DE DADOS */}
-      {modalRegistoAvulsoAberto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl border border-gray-200 space-y-4 text-xs">
-            <div className="flex items-center justify-between border-b pb-2">
-              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                <Plus className="h-4 w-4 text-bakery-600" />
-                Inserir Registo na Base de Dados
-              </h3>
-              <button
-                type="button"
-                onClick={() => setModalRegistoAvulsoAberto(false)}
-                className="text-gray-400 hover:text-gray-600 text-sm font-bold cursor-pointer"
-              ><X className="h-4 w-4" /></button>
-            </div>
-
-            {/* Sub-abas do Modal */}
-            <div className="flex bg-gray-100 p-1 rounded-xl text-xs font-bold gap-1">
-              <button
-                type="button"
-                onClick={() => setSubAbaRegistoAvulso('cliente')}
-                className={`flex-1 py-1.5 rounded-lg transition cursor-pointer ${
-                  subAbaRegistoAvulso === 'cliente' ? 'bg-white text-bakery-900 shadow-2xs' : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <span className="inline-flex items-center gap-1.5"><User className="h-3.5 w-3.5" /><span>Cliente</span></span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setSubAbaRegistoAvulso('produto')}
-                className={`flex-1 py-1.5 rounded-lg transition cursor-pointer ${
-                  subAbaRegistoAvulso === 'produto' ? 'bg-white text-bakery-900 shadow-2xs' : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <span className="inline-flex items-center gap-1.5"><Flame className="h-3.5 w-3.5" /><span>Produto</span></span>
-              </button>
-            </div>
-
-            {/* Formulário de Novo Cliente */}
-            {subAbaRegistoAvulso === 'cliente' && (
-              <form onSubmit={handleSalvarClienteAvulso} className="space-y-3">
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">Nome do Cliente *</label>
-                  <input
-                    type="text"
-                    required
-                    value={novoCliente.nome}
-                    onChange={(e) => setNovoCliente({ ...novoCliente, nome: e.target.value })}
-                    placeholder="Ex: Maria Pereira"
-                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-bold text-gray-700 mb-1">Telefone *</label>
-                    <input
-                      type="tel"
-                      required
-                      value={novoCliente.telefone}
-                      onChange={(e) => setNovoCliente({ ...novoCliente, telefone: e.target.value })}
-                      placeholder="912 345 678"
-                      className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-bold text-gray-700 mb-1">Código Postal</label>
-                    <input
-                      type="text"
-                      value={novoCliente.codigo_postal}
-                      onChange={(e) => setNovoCliente({ ...novoCliente, codigo_postal: e.target.value })}
-                      placeholder="4540-102"
-                      className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">Morada de Entrega</label>
-                  <input
-                    type="text"
-                    value={novoCliente.morada}
-                    onChange={(e) => setNovoCliente({ ...novoCliente, morada: e.target.value })}
-                    placeholder="Rua / Lugar, Arouca"
-                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">Notas de Entrega / Referência</label>
-                  <textarea
-                    rows={2}
-                    value={novoCliente.notas_entrega}
-                    onChange={(e) => setNovoCliente({ ...novoCliente, notas_entrega: e.target.value })}
-                    placeholder="Ex: Deixar no portão lateral se não atender"
-                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
-                  />
-                </div>
-
-                <div className="flex items-center justify-end gap-2 pt-2 border-t">
-                  <button
-                    type="button"
-                    onClick={() => setModalRegistoAvulsoAberto(false)}
-                    className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
-                  >
-                    {t.cancel}
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-1.5 rounded-lg bg-bakery-600 hover:bg-bakery-700 font-bold text-white shadow-xs transition cursor-pointer"
-                  >
-                    Criar Cliente
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* Formulário de Novo Produto */}
-            {subAbaRegistoAvulso === 'produto' && (
-              <form onSubmit={handleSalvarProdutoAvulso} className="space-y-3">
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">Nome do Artigo *</label>
-                  <input
-                    type="text"
-                    required
-                    value={novoProduto.nome}
-                    onChange={(e) => setNovoProduto({ ...novoProduto, nome: e.target.value })}
-                    placeholder="Ex: Broa de Milho Tradicional"
-                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-bold text-gray-700 mb-1">Setor de Fabrico</label>
-                    <select
-                      value={novoProduto.categoria}
-                      onChange={(e) => setNovoProduto({ ...novoProduto, categoria: e.target.value as any })}
-                      className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold"
-                    >
-                      <option value="padaria">Padaria</option>
-                      <option value="pastelaria">Pastelaria</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block font-bold text-gray-700 mb-1">Unidade de Medida</label>
-                    <select
-                      value={novoProduto.unidade}
-                      onChange={(e) => setNovoProduto({ ...novoProduto, unidade: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold"
-                    >
-                      <option value="unidade">Unidade (un.)</option>
-                      <option value="kg">Quilograma (kg)</option>
-                      <option value="cento">Cento</option>
-                      <option value="dose">Dose</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-end gap-2 pt-2 border-t">
-                  <button
-                    type="button"
-                    onClick={() => setModalRegistoAvulsoAberto(false)}
-                    className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
-                  >
-                    {t.cancel}
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-1.5 rounded-lg bg-bakery-600 hover:bg-bakery-700 font-bold text-white shadow-xs transition cursor-pointer"
-                  >
-                    Criar Produto
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* MODAL DE EDIÇÃO DE ARTIGO / PRODUTO */}
-      {produtoEmEdicaoModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-gray-200 space-y-4 text-xs">
-            <div className="flex items-center justify-between border-b pb-2">
-              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                <Edit3 className="h-4 w-4 text-bakery-600" />
-                Editar Artigo no Catálogo Central
-              </h3>
-              <button
-                type="button"
-                onClick={() => setProdutoEmEdicaoModal(null)}
-                className="text-gray-400 hover:text-gray-600 text-sm font-bold cursor-pointer"
-              ><X className="h-4 w-4" /></button>
-            </div>
-
-            <form onSubmit={handleSalvarEdicaoProdutoModal} className="space-y-3">
-              <div>
-                <label className="block font-bold text-gray-700 mb-1">Nome do Artigo *</label>
-                <input
-                  type="text"
-                  required
-                  value={produtoEmEdicaoModal.nome || ''}
-                  onChange={(e) => setProdutoEmEdicaoModal({ ...produtoEmEdicaoModal, nome: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
-                />
-                <span className="text-[10px] text-gray-500 mt-0.5 block">Formatado automaticamente em Title Case (Ex: Pão de Forma Tradicional).</span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">Setor de Fabrico</label>
-                  <select
-                    value={produtoEmEdicaoModal.categoria || 'padaria'}
-                    onChange={(e) => setProdutoEmEdicaoModal({ ...produtoEmEdicaoModal, categoria: e.target.value as any })}
-                    className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold"
-                  >
-                    <option value="padaria">Padaria</option>
-                    <option value="pastelaria">Pastelaria</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">Unidade de Medida</label>
-                  <select
-                    value={produtoEmEdicaoModal.unidade || 'unidade'}
-                    onChange={(e) => setProdutoEmEdicaoModal({ ...produtoEmEdicaoModal, unidade: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold"
-                  >
-                    <option value="unidade">Unidade (un.)</option>
-                    <option value="kg">Quilograma (kg)</option>
-                    <option value="cento">Cento</option>
-                    <option value="dose">Dose</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <label className="flex items-center gap-2 cursor-pointer font-bold text-gray-700">
-                  <input
-                    type="checkbox"
-                    checked={produtoEmEdicaoModal.ativo ?? true}
-                    onChange={(e) => setProdutoEmEdicaoModal({ ...produtoEmEdicaoModal, ativo: e.target.checked })}
-                    className="rounded text-emerald-600"
-                  />
-                  <span>Artigo Ativo no Catálogo de Encomendas</span>
-                </label>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t">
-                <button
-                  type="button"
-                  onClick={() => setProdutoEmEdicaoModal(null)}
-                  className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
-                >
-                  {t.cancel}
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 rounded-lg bg-bakery-600 hover:bg-bakery-700 font-bold text-white shadow-xs transition cursor-pointer"
-                >
-                  Guardar Alterações
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL DE EDIÇÃO / CRIAÇÃO DE CLIENTE EMPRESARIAL B2B (5º CARRO) */}
-      {clienteB2BEmEdicao && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-5 shadow-2xl border border-indigo-200 space-y-4 text-xs max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between border-b pb-3">
-              <div>
-                <h3 className="text-sm font-black text-gray-900 flex items-center gap-2">
-                  <Truck className="h-4 w-4 text-indigo-600" />
-                  Configurar Cliente Empresarial B2B (5º Carro)
-                </h3>
-                <p className="text-[11px] text-gray-500 mt-0.5">
-                  Defina os dados da entidade e as quantidades fixas diárias de cada artigo para o Mapa Diário.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setClienteB2BEmEdicao(null)}
-                className="text-gray-400 hover:text-gray-600 text-sm font-bold cursor-pointer"
-              ><X className="h-4 w-4" /></button>
-            </div>
-
-            <form onSubmit={handleSalvarClienteB2BModal} className="space-y-4 overflow-y-auto pr-1 flex-1">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-gray-50/70 p-3 rounded-xl border border-gray-200">
                 <div>
                   <label className="block font-bold text-gray-700 mb-1">Nome da Entidade / Cliente *</label>
                   <input
@@ -4956,19 +4559,55 @@ export default function AdminPage() {
                     value={clienteB2BEmEdicao.nome}
                     onChange={(e) => setClienteB2BEmEdicao({ ...clienteB2BEmEdicao, nome: e.target.value })}
                     placeholder="Ex: Hospital de Arouca"
-                    className="w-full px-3 py-2 rounded-xl border border-gray-300 font-bold focus:outline-hidden"
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-300 font-bold focus:outline-hidden focus:border-indigo-500 bg-white"
                   />
                 </div>
+
                 <div>
-                  <label className="block font-bold text-gray-700 mb-1">Telefone</label>
+                  <label className="block font-bold text-gray-700 mb-1">NIF da Empresa</label>
                   <input
                     type="text"
-                    value={clienteB2BEmEdicao.telefone || ''}
-                    onChange={(e) => setClienteB2BEmEdicao({ ...clienteB2BEmEdicao, telefone: e.target.value })}
-                    placeholder="256 xxx xxx"
-                    className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:outline-hidden"
+                    value={clienteB2BEmEdicao.nif || ''}
+                    onChange={(e) => setClienteB2BEmEdicao({ ...clienteB2BEmEdicao, nif: e.target.value })}
+                    placeholder="500 xxx xxx"
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-300 font-mono font-bold focus:outline-hidden focus:border-indigo-500 bg-white"
                   />
                 </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Telemóvel (Login App) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={clienteB2BEmEdicao.telemovel || clienteB2BEmEdicao.telefone || ''}
+                    onChange={(e) => setClienteB2BEmEdicao({ ...clienteB2BEmEdicao, telemovel: e.target.value, telefone: e.target.value })}
+                    placeholder="910 xxx xxx"
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-300 font-bold focus:outline-hidden focus:border-indigo-500 bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Email (Login & Reset) *</label>
+                  <input
+                    type="email"
+                    value={clienteB2BEmEdicao.email || ''}
+                    onChange={(e) => setClienteB2BEmEdicao({ ...clienteB2BEmEdicao, email: e.target.value })}
+                    placeholder="empresa@email.pt"
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-300 font-bold focus:outline-hidden focus:border-indigo-500 bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Password de Acesso</label>
+                  <input
+                    type="text"
+                    value={clienteB2BEmEdicao.password || ''}
+                    onChange={(e) => setClienteB2BEmEdicao({ ...clienteB2BEmEdicao, password: e.target.value })}
+                    placeholder="Definir ou alterar password"
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-300 font-mono text-indigo-900 font-bold focus:outline-hidden focus:border-indigo-500 bg-white"
+                  />
+                </div>
+
                 <div>
                   <label className="block font-bold text-gray-700 mb-1">Localidade / Morada</label>
                   <input
@@ -4976,9 +4615,31 @@ export default function AdminPage() {
                     value={clienteB2BEmEdicao.morada || ''}
                     onChange={(e) => setClienteB2BEmEdicao({ ...clienteB2BEmEdicao, morada: e.target.value })}
                     placeholder="Arouca"
-                    className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:outline-hidden"
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-300 focus:outline-hidden focus:border-indigo-500 bg-white"
                   />
                 </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block font-bold text-gray-700 mb-1">Rota Operacional de Distribuição *</label>
+                  <select
+                    value={clienteB2BEmEdicao.carrinha_id || carrinhas[0]?.id || ''}
+                    onChange={(e) => setClienteB2BEmEdicao({ ...clienteB2BEmEdicao, carrinha_id: e.target.value })}
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-indigo-300 font-bold text-indigo-950 focus:outline-hidden bg-white cursor-pointer"
+                  >
+                    {carrinhasBaseDiaria.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.rota || c.identificador} — {c.nome_carro || c.matricula} ({c.nome_condutor || 'Condutor'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-blue-50/70 border border-blue-200 text-blue-900 text-[11px] flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-blue-600 shrink-0" />
+                <span>
+                  <strong>Acesso ao Portal de Clientes:</strong> Qualquer cliente empresarial registado aqui pode iniciar sessão ou redefinir a password diretamente no portal (/encomendar) usando o telemóvel ou e-mail configurado.
+                </span>
               </div>
 
               {/* Abas de Dia da Semana dentro do Modal */}

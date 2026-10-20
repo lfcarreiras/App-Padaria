@@ -16,14 +16,17 @@ import {
   lerCredenciaisClientesLocal,
   guardarCredencialClienteLocal,
   registarLogAuditoria,
-  guardarCanalOrigemLocal
+  guardarCanalOrigemLocal,
+  carregarClientesEmpresariaisB2B,
+  salvarClientesEmpresariaisB2B
 } from '../../lib/encomendasService';
 import { 
   Produto, 
   Loja, 
   Cliente, 
   Encomenda, 
-  TipoEntrega 
+  TipoEntrega, 
+  ClienteEmpresarialB2B 
 } from '../../types';
 import { obterConfiguracaoMarca } from '../../lib/tinaContent';
 import { 
@@ -83,6 +86,7 @@ export default function EncomendarClientePage() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [lojas, setLojas] = useState<Loja[]>(LOJAS_MOCK);
   const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [clientesB2B, setClientesB2B] = useState<ClienteEmpresarialB2B[]>([]);
   const [carregandoDados, setCarregandoDados] = useState(true);
 
   // Cliente Autenticado na Sessão do Portal (Ecrã de Login Dedicado ao Cliente)
@@ -168,6 +172,7 @@ export default function EncomendarClientePage() {
         if (clisDb && clisDb.length > 0) {
           setClientes(clisDb);
         }
+        setClientesB2B(carregarClientesEmpresariaisB2B());
       } catch (err) {
         console.error('Erro ao carregar dados do portal:', err);
         setProdutos(PRODUTOS_MOCK);
@@ -409,13 +414,34 @@ export default function EncomendarClientePage() {
       }
 
       const credsLocais = lerCredenciaisClientesLocal();
-      const clientePorEmailOuTel = clientes.find((c) => {
+      let clientePorEmailOuTel = clientes.find((c) => {
         const cTel = (c.telefone || '').replace(/\D/g, '');
         const cEmail = (c.email || credsLocais[cTel]?.email || '').toLowerCase().trim();
         const matchEmail = cEmail && cEmail === emailRec;
         const matchTel = telRecLimpo.length >= 9 && cTel === telRecLimpo;
         return telRecLimpo.length >= 9 ? (matchEmail && matchTel) : matchEmail;
       });
+
+      if (!clientePorEmailOuTel) {
+        const bMatch = clientesB2B.find((b) => {
+          const bTel = (b.telemovel || b.telefone || '').replace(/\D/g, '');
+          const bEmail = (b.email || '').toLowerCase().trim();
+          const matchEmail = bEmail && bEmail === emailRec;
+          const matchTel = telRecLimpo.length >= 9 && bTel === telRecLimpo;
+          return telRecLimpo.length >= 9 ? (matchEmail && matchTel) : matchEmail;
+        });
+        if (bMatch) {
+          clientePorEmailOuTel = {
+            id: bMatch.id,
+            nome: bMatch.nome,
+            telefone: bMatch.telemovel || bMatch.telefone,
+            email: bMatch.email,
+            morada: bMatch.morada,
+            ativo: true,
+            criado_em: new Date().toISOString(),
+          };
+        }
+      }
 
       // PASSO 1: Enviar E-mail de Recuperação através da Supabase
       if (!emailRecuperacaoEnviado && !recuperacaoValidada) {
@@ -553,6 +579,14 @@ export default function EncomendarClientePage() {
       }
 
       guardarCredencialClienteLocal(alvo.telefone, emailRec, authPassword);
+      const b2bIndex = clientesB2B.findIndex((b) => b.id === alvo?.id || (b.email || '').toLowerCase() === emailRec);
+      if (b2bIndex >= 0) {
+        const novaListaB2B = clientesB2B.map((b, i) =>
+          i === b2bIndex ? { ...b, password: authPassword, email: emailRec } : b
+        );
+        setClientesB2B(novaListaB2B);
+        salvarClientesEmpresariaisB2B(novaListaB2B);
+      }
       const atualizado = await salvarClienteDb({
         id: alvo.id,
         nome: alvo.nome,
@@ -650,6 +684,31 @@ export default function EncomendarClientePage() {
         return cTel === telLimpo;
       });
 
+      // Se não for encontrado no cadastro geral, verificar se é um Cliente Empresarial (B2B)
+      const matchB2B = clientesB2B.find((b) => {
+        const bTel = (b.telemovel || b.telefone || '').replace(/\D/g, '');
+        const bEmail = (b.email || '').toLowerCase().trim();
+        if (isInputEmail) return bEmail === inputTrim.toLowerCase();
+        return bTel === telLimpo;
+      });
+
+      if (!clienteEncontrado && matchB2B) {
+        const bTel = (matchB2B.telemovel || matchB2B.telefone || '').replace(/\D/g, '');
+        const pwdGuardada = matchB2B.password || credsLocais[bTel]?.password || '';
+        const emailGuardado = matchB2B.email || credsLocais[bTel]?.email || '';
+
+        clienteEncontrado = {
+          id: matchB2B.id,
+          nome: matchB2B.nome,
+          telefone: matchB2B.telemovel || matchB2B.telefone,
+          email: emailGuardado,
+          password: pwdGuardada,
+          morada: matchB2B.morada,
+          ativo: true,
+          criado_em: new Date().toISOString(),
+        };
+      }
+
       if (authModo === 'login') {
         if (!clienteEncontrado) {
           setAuthModo('registo');
@@ -717,6 +776,18 @@ export default function EncomendarClientePage() {
         }
 
         guardarCredencialClienteLocal(authTelefone.trim(), emailLimpo, pwdFinal);
+        const b2bRegIdx = clientesB2B.findIndex((b) => {
+          const bTel = (b.telemovel || b.telefone || '').replace(/\D/g, '');
+          const bEmail = (b.email || '').toLowerCase().trim();
+          return (telLimpo.length >= 9 && bTel === telLimpo) || (bEmail && bEmail === emailLimpo);
+        });
+        if (b2bRegIdx >= 0) {
+          const novaListaB2B = clientesB2B.map((b, i) =>
+            i === b2bRegIdx ? { ...b, password: pwdFinal, email: emailLimpo, telemovel: authTelefone.trim() } : b
+          );
+          setClientesB2B(novaListaB2B);
+          salvarClientesEmpresariaisB2B(novaListaB2B);
+        }
 
         if (supabase) {
           const pwdSupabaseAuth = pwdFinal.length >= 6 ? pwdFinal : `${pwdFinal}#pv`;
