@@ -2657,7 +2657,7 @@ export default function AdminPage() {
                 ))}
               </datalist>
 
-              <!-- Barra de Pesquisa e Ordenação em Tempo Real -->
+              {/* Barra de Pesquisa e Ordenação em Tempo Real */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-blue-200 shadow-2xs">
                 <div className="relative flex-1">
                   <Search className="h-3.5 w-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
