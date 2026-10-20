@@ -945,7 +945,7 @@ export default function EncomendasPage() {
                       >
                         {carrinhas.map((c) => (
                           <option key={c.id} value={c.id}>
-                            {c.rota || c.identificador} — {c.nome_carro || c.matricula} ({c.nome_condutor || c.motorista_nome || 'Condutor'})
+                            {c.rota || `Rota ${c.numero || ''}`}
                           </option>
                         ))}
                       </select>
@@ -1819,7 +1819,7 @@ export default function EncomendasPage() {
                     >
                       {carrinhas.map((c) => (
                         <option key={c.id} value={c.id}>
-                          {c.rota || c.identificador} — {c.nome_carro || c.matricula} ({c.nome_condutor || c.motorista_nome || 'Condutor'})
+                          {c.rota || `Rota ${c.numero || ''}`}
                         </option>
                       ))}
                     </select>

@@ -939,7 +939,7 @@ export async function eliminarLojaDb(lojaId: string) {
 
 // ---------------- CARRINHAS & ROTAS ---------------- //
 
-const ROTAS_STORAGE_KEY = 'padaria_rotas_carros_v3';
+const ROTAS_STORAGE_KEY = 'padaria_rotas_carros_v5';
 
 export async function carregarCarrinhasSupabase(): Promise<Carrinha[]> {
   let locaisRotas: Carrinha[] = [...CARRINHAS_MOCK];
@@ -949,13 +949,23 @@ export async function carregarCarrinhasSupabase(): Promise<Carrinha[]> {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          locaisRotas = parsed;
+          locaisRotas = parsed.filter((c: Carrinha) => {
+            const num = c.numero || parseInt(String(c.rota || c.identificador || '').replace(/\D+/g, '') || '99', 10);
+            return num >= 1 && num <= 8 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9';
+          });
         }
       }
     } catch {}
   }
 
-  if (!supabase) return locaisRotas;
+  if (!supabase) {
+    return locaisRotas
+      .filter((c) => {
+        const num = c.numero || parseInt(String(c.rota || c.identificador || '').replace(/\D+/g, '') || '99', 10);
+        return num >= 1 && num <= 8 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9';
+      })
+      .sort((a, b) => (a.numero || 0) - (b.numero || 0));
+  }
 
   try {
     const { data, error } = await supabase
@@ -964,7 +974,12 @@ export async function carregarCarrinhasSupabase(): Promise<Carrinha[]> {
       .order('identificador', { ascending: true });
 
     if (error || !data || data.length === 0) {
-      return locaisRotas;
+      return locaisRotas
+        .filter((c) => {
+          const num = c.numero || parseInt(String(c.rota || c.identificador || '').replace(/\D+/g, '') || '99', 10);
+          return num >= 1 && num <= 8 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9';
+        })
+        .sort((a, b) => (a.numero || 0) - (b.numero || 0));
     }
 
     const merged: Carrinha[] = [...locaisRotas];
@@ -990,9 +1005,37 @@ export async function carregarCarrinhasSupabase(): Promise<Carrinha[]> {
       }
     }
 
-    return merged.sort((a, b) => (a.numero || 0) - (b.numero || 0));
+    const filtered = merged
+      .filter((c) => {
+        const num = c.numero || parseInt(String(c.rota || c.identificador || '').replace(/\D+/g, '') || '99', 10);
+        return num >= 1 && num <= 8 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9' && c.identificador !== 'Carocha';
+      })
+      .map((c, i) => {
+        const num = c.numero && c.numero >= 1 && c.numero <= 8 ? c.numero : (parseInt(String(c.rota || c.identificador || '').replace(/\D+/g, '') || '0', 10) || i + 1);
+        const rotaPadrao = `Rota ${num}`;
+        return {
+          ...c,
+          numero: num,
+          rota: rotaPadrao,
+          identificador: rotaPadrao,
+        };
+      })
+      .sort((a, b) => (a.numero || 0) - (b.numero || 0));
+
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(ROTAS_STORAGE_KEY, JSON.stringify(filtered));
+      } catch {}
+    }
+
+    return filtered;
   } catch {
-    return locaisRotas;
+    return locaisRotas
+      .filter((c) => {
+        const num = c.numero || parseInt(String(c.rota || c.identificador || '').replace(/\D+/g, '') || '99', 10);
+        return num >= 1 && num <= 8 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9';
+      })
+      .sort((a, b) => (a.numero || 0) - (b.numero || 0));
   }
 }
 
@@ -1007,6 +1050,12 @@ export async function salvarCarrinhaDb(carrinha: Partial<Carrinha> & { identific
       } else {
         novaLista = [...atuais, { ...carrinha, id: carrinha.id || `car-${Date.now()}` } as Carrinha];
       }
+      novaLista = novaLista
+        .filter((c) => {
+          const num = c.numero || parseInt(String(c.rota || c.identificador || '').replace(/\D+/g, '') || '99', 10);
+          return num >= 1 && num <= 8 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9';
+        })
+        .sort((a, b) => (a.numero || 0) - (b.numero || 0));
       localStorage.setItem(ROTAS_STORAGE_KEY, JSON.stringify(novaLista));
     } catch {}
   }

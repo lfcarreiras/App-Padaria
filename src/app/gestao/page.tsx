@@ -130,11 +130,16 @@ export default function AdminPage() {
 
   // Todas as 8 rotas operacionais ativas (Rota 1 a Rota 8)
   const carrinhasBaseDiaria = useMemo(() => {
-    return [...carrinhas].sort((a, b) => {
-      const numA = a.numero || parseInt(String(a.rota || a.identificador || '').replace(/\D+/g, '') || '99', 10);
-      const numB = b.numero || parseInt(String(b.rota || b.identificador || '').replace(/\D+/g, '') || '99', 10);
-      return numA - numB;
-    });
+    return [...carrinhas]
+      .filter((c) => {
+        const num = c.numero || parseInt(String(c.rota || c.identificador || '').replace(/\D+/g, '') || '99', 10);
+        return num >= 1 && num <= 8 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9';
+      })
+      .sort((a, b) => {
+        const numA = a.numero || parseInt(String(a.rota || a.identificador || '').replace(/\D+/g, '') || '99', 10);
+        const numB = b.numero || parseInt(String(b.rota || b.identificador || '').replace(/\D+/g, '') || '99', 10);
+        return numA - numB;
+      });
   }, [carrinhas]);
 
   // Filtros e Ordenação para a Base Diária de Rotas
@@ -2404,10 +2409,7 @@ export default function AdminPage() {
                   </h3>
                   <p className="text-xs text-gray-500">{t.storesSectionDesc}</p>
                 </div>
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold">
-                  <Lock className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-                  <span>3 Lojas Físicas — Quota Licenciada (Expansão no Backoffice)</span>
-                </div>
+
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -2448,10 +2450,7 @@ export default function AdminPage() {
                     Gestão operacional das 8 rotas e viaturas ativas da frota de distribuição porta a porta.
                   </p>
                 </div>
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-xs font-bold">
-                  <Lock className="h-3.5 w-3.5 text-blue-600 shrink-0" />
-                  <span>8 Rotas Operacionais — Quota Licenciada (Expansão no Backoffice)</span>
-                </div>
+
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -2572,7 +2571,7 @@ export default function AdminPage() {
                     >
                       {carrinhasBaseDiaria.map((c) => (
                         <option key={c.id} value={c.id}>
-                          {c.identificador || c.nome}
+                          {c.rota || `Rota ${c.numero || ''}`}
                         </option>
                       ))}
                     </select>
@@ -2947,7 +2946,7 @@ export default function AdminPage() {
                     <option value="todas">Todas as Rotas (1 a 8)</option>
                     {carrinhasBaseDiaria.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.rota || c.identificador} — {c.nome_carro || c.matricula}
+                        {c.rota || `Rota ${c.numero || ''}`}
                       </option>
                     ))}
                   </select>
@@ -4550,6 +4549,630 @@ export default function AdminPage() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={perfilEmEdicao.email || ''}
+                    onChange={(e) => setPerfilEmEdicao({ ...perfilEmEdicao, email: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">{t.password} *</label>
+                  <input
+                    type="text"
+                    required
+                    value={perfilEmEdicao.password || ''}
+                    onChange={(e) => setPerfilEmEdicao({ ...perfilEmEdicao, password: e.target.value })}
+                    placeholder="••••"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden font-mono text-gray-800"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Loja Afeta</label>
+                  <select
+                    value={perfilEmEdicao.loja_id || 'todas'}
+                    onChange={(e) => setPerfilEmEdicao({ ...perfilEmEdicao, loja_id: e.target.value === 'todas' ? undefined : e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold"
+                  >
+                    <option value="todas">{t.allStores}</option>
+                    {lojas.map((l) => (
+                      <option key={l.id} value={l.id}>{l.nome}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">{t.role}</label>
+                <select
+                  value={perfilEmEdicao.role || 'atendente'}
+                  onChange={(e) => aplicarPredefinicoesCargo(e.target.value as Role)}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold text-gray-900"
+                >
+                  <option value="admin">{t.roleAdmin}</option>
+                  <option value="gerente_loja">{t.roleStoreManager}</option>
+                  <option value="atendente">{t.roleCounter}</option>
+                  <option value="operador_padaria">{t.roleBaker} (Padaria)</option>
+                  <option value="operador_pastelaria">{t.roleBaker} (Pastelaria)</option>
+                  <option value="motorista">{t.roleDriver}</option>
+                </select>
+              </div>
+
+              {/* Seletores Granulares de Acesso aos 5 Painéis (Sem Acesso / Leitura / Edição) */}
+              <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 space-y-2.5">
+                <div className="flex items-center justify-between border-b border-gray-200 pb-1.5">
+                  <span className="font-bold text-gray-900 block">{t.granularPermissions}</span>
+                  <span className="text-[10px] text-gray-600 italic">{t.roleAutoAdjust}</span>
+                </div>
+
+                {([
+                  { key: 'acesso_encomendas', label: t.roleCounter, desc: t.permDescOrders },
+                  { key: 'acesso_loja', label: t.roleStoreManager, desc: t.permDescStore },
+                  { key: 'acesso_producao', label: t.roleBaker, desc: t.permDescProduction },
+                  { key: 'acesso_entregas', label: t.roleDriver, desc: t.permDescDeliveries },
+                  { key: 'acesso_gestao', label: t.roleAdmin, desc: t.permDescManagement },
+                ] as const).map((item) => {
+                  const nivelAtual = perfilEmEdicao[item.key] || 'sem_acesso';
+                  return (
+                    <div key={item.key} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 py-1 border-b border-gray-100 last:border-0">
+                      <div>
+                        <span className="font-bold text-gray-800">{item.label}</span>
+                        <p className="text-[10px] text-gray-600">{item.desc}</p>
+                      </div>
+
+                      <div className="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-gray-200">
+                        <button
+                          type="button"
+                          onClick={() => setPerfilEmEdicao({ ...perfilEmEdicao, [item.key]: 'sem_acesso' })}
+                          className={`px-2 py-1 rounded-md transition ${
+                            nivelAtual === 'sem_acesso'
+                              ? 'bg-red-600 text-white shadow-2xs font-black'
+                              : 'text-gray-500 hover:text-gray-900'
+                          }`}
+                        >
+                          <span className="inline-flex items-center gap-1.5"><Lock className="h-3.5 w-3.5 text-red-600" /><span>{t.levelNoAccess}</span></span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPerfilEmEdicao({ ...perfilEmEdicao, [item.key]: 'leitura' })}
+                          className={`px-2 py-1 rounded-md transition ${
+                            nivelAtual === 'leitura'
+                              ? 'bg-blue-600 text-white shadow-2xs font-black'
+                              : 'text-gray-500 hover:text-gray-900'
+                          }`}
+                        >
+                          <span className="inline-flex items-center gap-1.5"><Eye className="h-3.5 w-3.5 text-blue-600" /><span>{t.levelReadOnly}</span></span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPerfilEmEdicao({ ...perfilEmEdicao, [item.key]: 'edicao' })}
+                          className={`px-2 py-1 rounded-md transition ${
+                            nivelAtual === 'edicao'
+                              ? 'bg-emerald-600 text-white shadow-2xs font-black'
+                              : 'text-gray-500 hover:text-gray-900'
+                          }`}
+                        >
+                          <span className="inline-flex items-center gap-1.5"><Edit3 className="h-3.5 w-3.5 text-emerald-600" /><span>{t.levelFullEdit}</span></span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={perfilEmEdicao.ativo ?? true}
+                    onChange={(e) => setPerfilEmEdicao({ ...perfilEmEdicao, ativo: e.target.checked })}
+                    className="rounded text-emerald-600"
+                  />
+                  <span>{t.userActive}</span>
+                </label>
+
+                <div className="flex items-center gap-2">
+                  {perfilEmEdicao.id && perfilEmEdicao.role !== 'admin' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm(`Tem a certeza que deseja eliminar o colaborador ${perfilEmEdicao.nome}?`)) {
+                          handleEliminarPerfil(perfilEmEdicao.id!);
+                          setPerfilEmEdicao(null);
+                        }
+                      }}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs transition cursor-pointer"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Eliminar
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setPerfilEmEdicao(null)}
+                    className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
+                  >
+                    {t.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded-lg bg-bakery-600 font-bold text-white shadow-xs hover:bg-bakery-700 transition cursor-pointer"
+                  >
+                    {t.saveUser}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE EDIÇÃO DE LOJA */}
+      {lojaEmEdicao && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-gray-200 space-y-4 text-xs">
+            <h3 className="text-sm font-bold text-gray-900 border-b pb-2">Editar Dados da Loja</h3>
+            <form onSubmit={handleSalvarLoja} className="space-y-3">
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">{t.storeCode}</label>
+                <input
+                  type="text"
+                  required
+                  value={lojaEmEdicao.codigo || ''}
+                  onChange={(e) => setLojaEmEdicao({ ...lojaEmEdicao, codigo: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">{t.storeName}</label>
+                <input
+                  type="text"
+                  required
+                  value={lojaEmEdicao.nome || ''}
+                  onChange={(e) => setLojaEmEdicao({ ...lojaEmEdicao, nome: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">{t.address}</label>
+                <input
+                  type="text"
+                  required
+                  value={lojaEmEdicao.morada || ''}
+                  onChange={(e) => setLojaEmEdicao({ ...lojaEmEdicao, morada: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">{t.phone}</label>
+                  <input
+                    type="text"
+                    required
+                    value={lojaEmEdicao.telefone || ''}
+                    onChange={(e) => setLojaEmEdicao({ ...lojaEmEdicao, telefone: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">{t.nif}</label>
+                  <input
+                    type="text"
+                    value={lojaEmEdicao.nif || ''}
+                    onChange={(e) => setLojaEmEdicao({ ...lojaEmEdicao, nif: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t">
+                {lojaEmEdicao.id ? (
+                  <button
+                    type="button"
+                    onClick={() => handleEliminarLoja(lojaEmEdicao.id!)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs transition cursor-pointer"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Eliminar Loja
+                  </button>
+                ) : <div />}
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setLojaEmEdicao(null)}
+                    className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
+                  >
+                    {t.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded-lg bg-bakery-600 font-bold text-white shadow-xs hover:bg-bakery-700 transition cursor-pointer"
+                  >
+                    {t.save}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE EDIÇÃO DE CARRINHA / ROTA */}
+      {carrinhaEmEdicao && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-gray-200 space-y-4 text-xs">
+            <h3 className="text-sm font-bold text-gray-900 border-b pb-2 flex items-center gap-2">
+              <Truck className="h-4 w-4 text-blue-600" />
+              Editar Dados da Viatura e Rota ({carrinhaEmEdicao.rota || `Rota ${carrinhaEmEdicao.numero || ''}`})
+            </h3>
+            <form onSubmit={handleSalvarCarrinha} className="space-y-3">
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Nome da Rota *</label>
+                <input
+                  type="text"
+                  required
+                  value={carrinhaEmEdicao.rota || carrinhaEmEdicao.identificador || ''}
+                  onChange={(e) => setCarrinhaEmEdicao({ ...carrinhaEmEdicao, rota: e.target.value, identificador: e.target.value })}
+                  placeholder="Ex: Rota 1"
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Viatura / Nome do Carro *</label>
+                <input
+                  type="text"
+                  required
+                  value={carrinhaEmEdicao.nome_carro || ''}
+                  onChange={(e) => setCarrinhaEmEdicao({ ...carrinhaEmEdicao, nome_carro: e.target.value })}
+                  placeholder="Ex: Carro 1"
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Nome do Condutor</label>
+                <input
+                  type="text"
+                  value={carrinhaEmEdicao.nome_condutor || ''}
+                  onChange={(e) => setCarrinhaEmEdicao({ ...carrinhaEmEdicao, nome_condutor: e.target.value })}
+                  placeholder="Ex: Manuel Silva"
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">{t.licensePlate} *</label>
+                <input
+                  type="text"
+                  required
+                  value={carrinhaEmEdicao.matricula || ''}
+                  onChange={(e) => setCarrinhaEmEdicao({ ...carrinhaEmEdicao, matricula: e.target.value.toUpperCase() })}
+                  placeholder="Ex: 42-AB-90"
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden font-mono uppercase font-bold"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t">
+                <button
+                  type="button"
+                  onClick={() => setCarrinhaEmEdicao(null)}
+                  className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 rounded-lg bg-blue-600 font-bold text-white shadow-xs hover:bg-blue-700 transition cursor-pointer"
+                >
+                  {t.save}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE INSERÇÃO DE REGISTO AVULSO NA BASE DE DADOS */}
+      {modalRegistoAvulsoAberto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl border border-gray-200 space-y-4 text-xs">
+            <div className="flex items-center justify-between border-b pb-2">
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <Plus className="h-4 w-4 text-bakery-600" />
+                Inserir Registo na Base de Dados
+              </h3>
+              <button
+                type="button"
+                onClick={() => setModalRegistoAvulsoAberto(false)}
+                className="text-gray-400 hover:text-gray-600 text-sm font-bold cursor-pointer"
+              ><X className="h-4 w-4" /></button>
+            </div>
+
+            {/* Sub-abas do Modal */}
+            <div className="flex bg-gray-100 p-1 rounded-xl text-xs font-bold gap-1">
+              <button
+                type="button"
+                onClick={() => setSubAbaRegistoAvulso('cliente')}
+                className={`flex-1 py-1.5 rounded-lg transition cursor-pointer ${
+                  subAbaRegistoAvulso === 'cliente' ? 'bg-white text-bakery-900 shadow-2xs' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <span className="inline-flex items-center gap-1.5"><User className="h-3.5 w-3.5" /><span>Cliente</span></span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSubAbaRegistoAvulso('produto')}
+                className={`flex-1 py-1.5 rounded-lg transition cursor-pointer ${
+                  subAbaRegistoAvulso === 'produto' ? 'bg-white text-bakery-900 shadow-2xs' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <span className="inline-flex items-center gap-1.5"><Flame className="h-3.5 w-3.5" /><span>Produto</span></span>
+              </button>
+            </div>
+
+            {/* Formulário de Novo Cliente */}
+            {subAbaRegistoAvulso === 'cliente' && (
+              <form onSubmit={handleSalvarClienteAvulso} className="space-y-3">
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Nome do Cliente *</label>
+                  <input
+                    type="text"
+                    required
+                    value={novoCliente.nome}
+                    onChange={(e) => setNovoCliente({ ...novoCliente, nome: e.target.value })}
+                    placeholder="Ex: Maria Pereira"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">Telefone *</label>
+                    <input
+                      type="tel"
+                      required
+                      value={novoCliente.telefone}
+                      onChange={(e) => setNovoCliente({ ...novoCliente, telefone: e.target.value })}
+                      placeholder="912 345 678"
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">Código Postal</label>
+                    <input
+                      type="text"
+                      value={novoCliente.codigo_postal}
+                      onChange={(e) => setNovoCliente({ ...novoCliente, codigo_postal: e.target.value })}
+                      placeholder="4540-102"
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Morada de Entrega</label>
+                  <input
+                    type="text"
+                    value={novoCliente.morada}
+                    onChange={(e) => setNovoCliente({ ...novoCliente, morada: e.target.value })}
+                    placeholder="Rua / Lugar, Arouca"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Notas de Entrega / Referência</label>
+                  <textarea
+                    rows={2}
+                    value={novoCliente.notas_entrega}
+                    onChange={(e) => setNovoCliente({ ...novoCliente, notas_entrega: e.target.value })}
+                    placeholder="Ex: Deixar no portão lateral se não atender"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t">
+                  <button
+                    type="button"
+                    onClick={() => setModalRegistoAvulsoAberto(false)}
+                    className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
+                  >
+                    {t.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded-lg bg-bakery-600 hover:bg-bakery-700 font-bold text-white shadow-xs transition cursor-pointer"
+                  >
+                    Criar Cliente
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Formulário de Novo Produto */}
+            {subAbaRegistoAvulso === 'produto' && (
+              <form onSubmit={handleSalvarProdutoAvulso} className="space-y-3">
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Nome do Artigo *</label>
+                  <input
+                    type="text"
+                    required
+                    value={novoProduto.nome}
+                    onChange={(e) => setNovoProduto({ ...novoProduto, nome: e.target.value })}
+                    placeholder="Ex: Broa de Milho Tradicional"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">Setor de Fabrico</label>
+                    <select
+                      value={novoProduto.categoria}
+                      onChange={(e) => setNovoProduto({ ...novoProduto, categoria: e.target.value as any })}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold"
+                    >
+                      <option value="padaria">Padaria</option>
+                      <option value="pastelaria">Pastelaria</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">Unidade de Medida</label>
+                    <select
+                      value={novoProduto.unidade}
+                      onChange={(e) => setNovoProduto({ ...novoProduto, unidade: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold"
+                    >
+                      <option value="unidade">Unidade (un.)</option>
+                      <option value="kg">Quilograma (kg)</option>
+                      <option value="cento">Cento</option>
+                      <option value="dose">Dose</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t">
+                  <button
+                    type="button"
+                    onClick={() => setModalRegistoAvulsoAberto(false)}
+                    className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
+                  >
+                    {t.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded-lg bg-bakery-600 hover:bg-bakery-700 font-bold text-white shadow-xs transition cursor-pointer"
+                  >
+                    Criar Produto
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE EDIÇÃO DE ARTIGO / PRODUTO */}
+      {produtoEmEdicaoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-gray-200 space-y-4 text-xs">
+            <div className="flex items-center justify-between border-b pb-2">
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <Edit3 className="h-4 w-4 text-bakery-600" />
+                Editar Artigo no Catálogo Central
+              </h3>
+              <button
+                type="button"
+                onClick={() => setProdutoEmEdicaoModal(null)}
+                className="text-gray-400 hover:text-gray-600 text-sm font-bold cursor-pointer"
+              ><X className="h-4 w-4" /></button>
+            </div>
+
+            <form onSubmit={handleSalvarEdicaoProdutoModal} className="space-y-3">
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Nome do Artigo *</label>
+                <input
+                  type="text"
+                  required
+                  value={produtoEmEdicaoModal.nome || ''}
+                  onChange={(e) => setProdutoEmEdicaoModal({ ...produtoEmEdicaoModal, nome: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                />
+                <span className="text-[10px] text-gray-500 mt-0.5 block">Formatado automaticamente em Title Case (Ex: Pão de Forma Tradicional).</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Setor de Fabrico</label>
+                  <select
+                    value={produtoEmEdicaoModal.categoria || 'padaria'}
+                    onChange={(e) => setProdutoEmEdicaoModal({ ...produtoEmEdicaoModal, categoria: e.target.value as any })}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold"
+                  >
+                    <option value="padaria">Padaria</option>
+                    <option value="pastelaria">Pastelaria</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Unidade de Medida</label>
+                  <select
+                    value={produtoEmEdicaoModal.unidade || 'unidade'}
+                    onChange={(e) => setProdutoEmEdicaoModal({ ...produtoEmEdicaoModal, unidade: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold"
+                  >
+                    <option value="unidade">Unidade (un.)</option>
+                    <option value="kg">Quilograma (kg)</option>
+                    <option value="cento">Cento</option>
+                    <option value="dose">Dose</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <label className="flex items-center gap-2 cursor-pointer font-bold text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={produtoEmEdicaoModal.ativo ?? true}
+                    onChange={(e) => setProdutoEmEdicaoModal({ ...produtoEmEdicaoModal, ativo: e.target.checked })}
+                    className="rounded text-emerald-600"
+                  />
+                  <span>Artigo Ativo no Catálogo de Encomendas</span>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => setProdutoEmEdicaoModal(null)}
+                  className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 rounded-lg bg-bakery-600 hover:bg-bakery-700 font-bold text-white shadow-xs transition cursor-pointer"
+                >
+                  Guardar Alterações
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE EDIÇÃO / CRIAÇÃO DE CLIENTE EMPRESARIAL B2B */}
+      {clienteB2BEmEdicao && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-5 shadow-2xl border border-indigo-200 space-y-4 text-xs max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <h3 className="text-sm font-black text-gray-900 flex items-center gap-2">
+                  <Truck className="h-4 w-4 text-indigo-600" />
+                  Configurar Cliente Empresarial B2B
+                </h3>
+                <p className="text-[11px] text-gray-500 mt-0.5">
+                  Defina os dados da entidade, credenciais de login e quantidades diárias para as rotas.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setClienteB2BEmEdicao(null)}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSalvarClienteB2BModal} className="space-y-4 overflow-y-auto pr-1 flex-1">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-gray-50/70 p-3 rounded-xl border border-gray-200">
                 <div>
                   <label className="block font-bold text-gray-700 mb-1">Nome da Entidade / Cliente *</label>
@@ -4628,7 +5251,7 @@ export default function AdminPage() {
                   >
                     {carrinhasBaseDiaria.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.rota || c.identificador} — {c.nome_carro || c.matricula} ({c.nome_condutor || 'Condutor'})
+                        {c.rota || `Rota ${c.numero || ''}`}
                       </option>
                     ))}
                   </select>
@@ -4645,58 +5268,60 @@ export default function AdminPage() {
               {/* Abas de Dia da Semana dentro do Modal */}
               <div className="bg-indigo-50/70 p-3 rounded-xl border border-indigo-200 space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-black text-indigo-950 uppercase text-[11px]">
-                    Quantidades para: {diaSemanaB2B.toUpperCase()}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const semanaModal = clienteB2BEmEdicao.quantidades_semanais || clienteB2BEmEdicao.quantidades_semana || ({} as Record<DiaSemana, Record<string, number>>);
-                      const atual = { ...(semanaModal[diaSemanaB2B] || {}) };
-                      const novaSemanaModal: Record<DiaSemana, Record<string, number>> = {
-                        seg: { ...atual },
-                        ter: { ...atual },
-                        qua: { ...atual },
-                        qui: { ...atual },
-                        sex: { ...atual },
-                        sab: { ...atual },
-                        dom: { ...atual },
-                      };
-                      setClienteB2BEmEdicao({
-                        ...clienteB2BEmEdicao,
-                        quantidades_semanais: novaSemanaModal,
-                        quantidades_semana: novaSemanaModal,
-                      });
-                    }}
-                    className="px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-bold text-[10px] hover:bg-indigo-700 transition cursor-pointer"
-                  >
-                    Aplicar estas quantidades a Todos os Dias (Seg–Dom)
-                  </button>
-                </div>
-
-                <div className="flex flex-wrap gap-1">
-                  {([
-                    { id: 'seg', label: 'Seg' },
-                    { id: 'ter', label: 'Ter' },
-                    { id: 'qua', label: 'Qua' },
-                    { id: 'qui', label: 'Qui' },
-                    { id: 'sex', label: 'Sex' },
-                    { id: 'sab', label: 'Sáb' },
-                    { id: 'dom', label: 'Dom' },
-                  ] as { id: DiaSemana; label: string }[]).map((d) => (
+                  <div className="flex items-center gap-2">
+                    <span className="font-black text-indigo-950 uppercase text-[11px]">
+                      Quantidades para: {diaSemanaB2B.toUpperCase()}
+                    </span>
                     <button
-                      key={d.id}
                       type="button"
-                      onClick={() => setDiaSemanaB2B(d.id)}
-                      className={`px-2.5 py-1 rounded-lg font-bold text-[11px] cursor-pointer ${
-                        diaSemanaB2B === d.id
-                          ? 'bg-indigo-700 text-white'
-                          : 'bg-white text-indigo-900 border border-indigo-200'
-                      }`}
+                      onClick={() => {
+                        const semanaModal = clienteB2BEmEdicao.quantidades_semanais || clienteB2BEmEdicao.quantidades_semana || ({} as Record<DiaSemana, Record<string, number>>);
+                        const atual = { ...(semanaModal[diaSemanaB2B] || {}) };
+                        const novaSemanaModal: Record<DiaSemana, Record<string, number>> = {
+                          seg: { ...atual },
+                          ter: { ...atual },
+                          qua: { ...atual },
+                          qui: { ...atual },
+                          sex: { ...atual },
+                          sab: { ...atual },
+                          dom: { ...atual },
+                        };
+                        setClienteB2BEmEdicao({
+                          ...clienteB2BEmEdicao,
+                          quantidades_semanais: novaSemanaModal,
+                          quantidades_semana: novaSemanaModal,
+                        });
+                      }}
+                      className="px-2 py-0.5 rounded-md bg-indigo-600 text-white font-bold text-[10px] hover:bg-indigo-700 transition cursor-pointer"
+                      title="Copiar as quantidades deste dia para todos os outros dias da semana"
                     >
-                      {d.label}
+                      Aplicar a Todos os Dias
                     </button>
-                  ))}
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {([
+                      { id: 'seg', label: 'Seg' },
+                      { id: 'ter', label: 'Ter' },
+                      { id: 'qua', label: 'Qua' },
+                      { id: 'qui', label: 'Qui' },
+                      { id: 'sex', label: 'Sex' },
+                      { id: 'sab', label: 'Sáb' },
+                      { id: 'dom', label: 'Dom' },
+                    ] as { id: DiaSemana; label: string }[]).map((d) => (
+                      <button
+                        key={d.id}
+                        type="button"
+                        onClick={() => setDiaSemanaB2B(d.id)}
+                        className={`px-2.5 py-1 rounded-lg font-bold text-[11px] cursor-pointer ${
+                          diaSemanaB2B === d.id
+                            ? 'bg-indigo-700 text-white'
+                            : 'bg-white text-indigo-900 border border-indigo-200'
+                        }`}
+                      >
+                        {d.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
