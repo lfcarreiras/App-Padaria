@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
@@ -85,6 +85,8 @@ import {
 } from 'lucide-react';
 import { StatusBadge } from '../../components/StatusBadge';
 import { OriginBadge, SectorBadge } from '../../components/InproovalBadges';
+import { PdfViewerModal, LinhaArtigoCarga } from '../../components/pdf/PdfViewerModal';
+import { FileText, Zap } from 'lucide-react';
 
 export default function AdminPage() {
   const { t, language } = useTranslation();
@@ -217,6 +219,13 @@ export default function AdminPage() {
   const [novoArtigoBaseFixa, setNovoArtigoBaseFixa] = useState<string>('');
   const [feedbackBaseFixa, setFeedbackBaseFixa] = useState<string | null>(null);
   const [feedbackB2B, setFeedbackB2B] = useState<string | null>(null);
+
+  // Estados do Modal de PDF (Folha de Carga & Comprovativo B2B)
+  const [pdfModalOpen, setPdfModalOpen] = useState<boolean>(false);
+  const [pdfModalTipo, setPdfModalTipo] = useState<'folha_carga' | 'comprovativo_b2b'>('folha_carga');
+  const [pdfCarrinhaSelecionada, setPdfCarrinhaSelecionada] = useState<Carrinha | undefined>(undefined);
+  const [pdfClienteB2B, setPdfClienteB2B] = useState<ClienteEmpresarialB2B | undefined>(undefined);
+  const [pdfItensCarga, setPdfItensCarga] = useState<LinhaArtigoCarga[]>([]);
 
   const DIAS_SEMANA_NOMES: { id: DiaSemana; label: string; abrev: string }[] = [
     { id: 'seg', label: 'Segunda-feira', abrev: 'Seg' },
@@ -544,6 +553,79 @@ export default function AdminPage() {
     const nomeDia = DIAS_SEMANA_NOMES.find((d) => d.id === diaOrigem)?.label || diaOrigem;
     setFeedbackBaseFixa(`Quantidades de ${nomeDia} replicadas para todos os dias da semana em todas as carrinhas!`);
     setTimeout(() => setFeedbackBaseFixa(null), 3500);
+  };
+
+  const abrirFolhaCargaPdfModal = (carId?: string) => {
+    const alvoId = carId || carrinhaExportacaoId || carrinhas[0]?.id;
+    const carAlvo = carrinhas.find((c) => c.id === alvoId) || carrinhas[0];
+    if (!carAlvo) return;
+
+    const mapaItens = new Map<string, { quantidade: number; categoria: 'padaria' | 'pastelaria'; unidade: string }>();
+
+    // 1. Base fixa da carrinha
+    const bf = baseFixaCarrinhas.find((b) => b.carrinha_id === carAlvo.id);
+    const sem = bf?.quantidades_semanais || bf?.quantidades_semana;
+    const mapaHoje = sem?.[diaSemanaBaseFixa] || bf?.quantidades_por_produto || {};
+
+    Object.entries(mapaHoje).forEach(([artigo, qtd]) => {
+      if (typeof qtd === 'number' && qtd > 0) {
+        const prod = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
+        mapaItens.set(artigo, {
+          quantidade: qtd,
+          categoria: prod?.categoria || 'padaria',
+          unidade: prod?.unidade || 'un',
+        });
+      }
+    });
+
+    // 2. Clientes B2B da carrinha
+    const b2bDaRota = clientesB2B.filter((cli) => cli.ativo && cli.carrinha_id === carAlvo.id);
+    b2bDaRota.forEach((cli) => {
+      const semCli = cli.quantidades_semanais || cli.quantidades_semana;
+      const mapaCli = semCli?.[diaSemanaBaseFixa] || {};
+      Object.entries(mapaCli).forEach(([artigo, qtd]) => {
+        if (typeof qtd === 'number' && qtd > 0) {
+          const prod = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
+          const atual = mapaItens.get(artigo);
+          if (atual) {
+            atual.quantidade += qtd;
+          } else {
+            mapaItens.set(artigo, {
+              quantidade: qtd,
+              categoria: prod?.categoria || 'padaria',
+              unidade: prod?.unidade || 'un',
+            });
+          }
+        }
+      });
+    });
+
+    const itens: LinhaArtigoCarga[] = [];
+    mapaItens.forEach((val, nome) => {
+      const fatorCaixa = val.categoria === 'pastelaria' ? 20 : 30;
+      itens.push({
+        nome,
+        categoria: val.categoria,
+        unidade: val.unidade,
+        quantidade: val.quantidade,
+        caixasEstimadas: Math.ceil(val.quantidade / fatorCaixa),
+      });
+    });
+
+    itens.sort((a, b) => a.nome.localeCompare(b.nome));
+
+    setPdfItensCarga(itens);
+    setPdfCarrinhaSelecionada(carAlvo);
+    setPdfModalTipo('folha_carga');
+    setPdfModalOpen(true);
+  };
+
+  const abrirComprovativoB2BPdfModal = (cliente: ClienteEmpresarialB2B) => {
+    const car = carrinhas.find((c) => c.id === cliente.carrinha_id) || carrinhas[0];
+    setPdfModalTipo('comprovativo_b2b');
+    setPdfClienteB2B(cliente);
+    setPdfCarrinhaSelecionada(car);
+    setPdfModalOpen(true);
   };
 
   const handleExportarExcelBaseFixaConsolidado = () => {
@@ -2485,6 +2567,15 @@ export default function AdminPage() {
                       <p className="text-[11px] text-gray-600 truncate">
                         <span className="font-bold text-gray-800">Condutor:</span> {c.nome_condutor || c.motorista_nome || 'A atribuir'}
                       </p>
+                      <button
+                        type="button"
+                        onClick={() => abrirFolhaCargaPdfModal(c.id)}
+                        className="w-full mt-1.5 py-1.5 px-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] shadow-2xs transition flex items-center justify-center gap-1 cursor-pointer"
+                        title="Gerar Folha de Carga em PDF para esta rota"
+                      >
+                        <FileText className="h-3 w-3" />
+                        Folha de Carga (PDF)
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -2560,6 +2651,16 @@ export default function AdminPage() {
                   >
                     <Download className="h-3.5 w-3.5 text-blue-700" />
                     Excel Consolidado (.xlsx)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => abrirFolhaCargaPdfModal(carrinhaExportacaoId)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black shadow-xs transition cursor-pointer"
+                    title="Gerar Folha de Carga em PDF oficial para conferência de carregamento das rotas 1 a 8"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    <span>Folha de Carga (PDF)</span>
                   </button>
 
                   <div className="flex items-center gap-1 bg-blue-50/70 p-1 rounded-xl border border-blue-200">
@@ -3108,6 +3209,15 @@ export default function AdminPage() {
                             </td>
                             <td className="py-2.5 px-3 text-right">
                               <div className="flex items-center justify-end gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => abrirComprovativoB2BPdfModal(cli)}
+                                  className="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-[11px] flex items-center gap-1 cursor-pointer"
+                                  title="Gerar Comprovativo de Entrega B2B em PDF"
+                                >
+                                  <FileText className="h-3 w-3" />
+                                  PDF
+                                </button>
                                 <button
                                   type="button"
                                   onClick={() => setClienteB2BEmEdicao(cli)}
@@ -5404,6 +5514,20 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+
+      {/* Modal de PDF (Folha de Carga das 8 Rotas e Comprovativos B2B) */}
+      <PdfViewerModal
+        isOpen={pdfModalOpen}
+        tipo={pdfModalTipo}
+        onClose={() => setPdfModalOpen(false)}
+        carrinha={pdfCarrinhaSelecionada}
+        diaSemana={diaSemanaBaseFixa}
+        dataReferencia={new Date().toLocaleDateString('pt-PT')}
+        itensCarga={pdfItensCarga}
+        clienteB2B={pdfClienteB2B}
+        nomeCondutor="Rui Oliveira"
+        matriculaCarro={pdfCarrinhaSelecionada?.matricula}
+      />
 
       {/* Modal de Teste do Talão Térmico */}
       {encomendaTesteTalão && (

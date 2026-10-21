@@ -57,6 +57,9 @@ import {
 import { StatusBadge } from '../../components/StatusBadge';
 import { OriginBadge } from '../../components/InproovalBadges';
 
+import { PdfViewerModal, LinhaArtigoCarga } from '../../components/pdf/PdfViewerModal';
+import { FileText, PenTool } from 'lucide-react';
+
 export default function EntregasPage() {
   const { t } = useTranslation();
   const { podeEditar, usuario } = useAuth();
@@ -78,6 +81,13 @@ export default function EntregasPage() {
   const [draggedStopIndex, setDraggedStopIndex] = useState<number | null>(null);
   const [isDragOverPool, setIsDragOverPool] = useState<boolean>(false);
   const [isDragOverVan, setIsDragOverVan] = useState<string | null>(null);
+
+  // Estados do Modal de PDF (Folhas de Carga & Comprovativos B2B)
+  const [pdfModalOpen, setPdfModalOpen] = useState<boolean>(false);
+  const [pdfModalTipo, setPdfModalTipo] = useState<'folha_carga' | 'comprovativo_b2b'>('folha_carga');
+  const [pdfCarrinhaSelecionada, setPdfCarrinhaSelecionada] = useState<Carrinha | undefined>(undefined);
+  const [pdfClienteB2B, setPdfClienteB2B] = useState<ClienteEmpresarialB2B | undefined>(undefined);
+  const [pdfItensCarga, setPdfItensCarga] = useState<LinhaArtigoCarga[]>([]);
 
   // Ordem personalizada de paragens por carrinha (carrinhaId -> lista de encomenda IDs)
   const [ordensCustomizadas, setOrdensCustomizadas] = useState<Record<string, string[]>>({});
@@ -370,6 +380,151 @@ export default function EntregasPage() {
       acao: 'Exportação Mapa Diário de Entregas (Excel)',
       detalhes: `Exportado Mapa Diário oficial de quantidades por artigo e por carrinha (1º ao 5º Carro + ${clientesB2B.length} Clientes Empresariais) para a data ${hoje} (${grandeTotal} unidades totais).`,
     });
+  };
+
+  // ---------------------------------------------------------------------------
+  // GERAÇÃO DE FOLHA DE CARGA (PDF) E COMPROVATIVOS B2B VIA @react-pdf/renderer
+  // ---------------------------------------------------------------------------
+  const prepararItensFolhaCarga = (car: Carrinha): LinhaArtigoCarga[] => {
+    const mapaItens = new Map<string, { quantidade: number; categoria: 'padaria' | 'pastelaria'; unidade: string }>();
+
+    // 1. Quantidades da Base Fixa da carrinha para hoje
+    const bf = baseFixaCarrinhas.find((b) => b.carrinha_id === car.id);
+    const semana = bf?.quantidades_semanais || bf?.quantidades_semana;
+    const mapaHoje = semana?.[diaSemanaHoje] || bf?.quantidades_por_produto || {};
+
+    Object.entries(mapaHoje).forEach(([artigo, qtd]) => {
+      if (typeof qtd === 'number' && qtd > 0) {
+        const prodRef = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
+        const cat: 'padaria' | 'pastelaria' = prodRef?.categoria || (artigo.toLowerCase().includes('bolo') || artigo.toLowerCase().includes('croissant') ? 'pastelaria' : 'padaria');
+        const unid = prodRef?.unidade || 'un';
+        mapaItens.set(artigo, {
+          quantidade: qtd,
+          categoria: cat,
+          unidade: unid,
+        });
+      }
+    });
+
+    // 2. Quantidades dos Clientes B2B desta rota
+    const b2bDaRota = clientesB2B.filter((cli) => cli.ativo && cli.carrinha_id === car.id);
+    b2bDaRota.forEach((cli) => {
+      const semCli = cli.quantidades_semanais || cli.quantidades_semana;
+      const mapaCli = semCli?.[diaSemanaHoje] || {};
+      Object.entries(mapaCli).forEach(([artigo, qtd]) => {
+        if (typeof qtd === 'number' && qtd > 0) {
+          const prodRef = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
+          const cat: 'padaria' | 'pastelaria' = prodRef?.categoria || 'padaria';
+          const unid = prodRef?.unidade || 'un';
+          const atual = mapaItens.get(artigo);
+          if (atual) {
+            atual.quantidade += qtd;
+          } else {
+            mapaItens.set(artigo, {
+              quantidade: qtd,
+              categoria: cat,
+              unidade: unid,
+            });
+          }
+        }
+      });
+    });
+
+    // 3. Encomendas avulsas atribuídas a esta carrinha para hoje
+    const encsDestaCarrinha = encomendas.filter(
+      (e) => e.data_agendamento === hoje && e.tipo === 'entrega_domicilio' && e.carrinha_id === car.id && e.estado !== 'cancelado'
+    );
+    encsDestaCarrinha.forEach((e) => {
+      e.itens.forEach((item) => {
+        if (item.estado_producao !== 'recusado') {
+          const prodRef = produtos.find((p) => p.id === item.produto_id || p.nome.toLowerCase() === item.produto_nome.toLowerCase());
+          const cat: 'padaria' | 'pastelaria' = prodRef?.categoria || 'padaria';
+          const unid = prodRef?.unidade || 'un';
+          const atual = mapaItens.get(item.produto_nome);
+          if (atual) {
+            atual.quantidade += item.quantidade;
+          } else {
+            mapaItens.set(item.produto_nome, {
+              quantidade: item.quantidade,
+              categoria: cat,
+              unidade: unid,
+            });
+          }
+        }
+      });
+    });
+
+    const resultado: LinhaArtigoCarga[] = [];
+    mapaItens.forEach((val, nome) => {
+      const fatorCaixa = val.categoria === 'pastelaria' ? 20 : 30;
+      resultado.push({
+        nome,
+        categoria: val.categoria,
+        unidade: val.unidade,
+        quantidade: val.quantidade,
+        caixasEstimadas: Math.ceil(val.quantidade / fatorCaixa),
+      });
+    });
+
+    return resultado.sort((a, b) => {
+      if (a.categoria !== b.categoria) return a.categoria.localeCompare(b.categoria);
+      return a.nome.localeCompare(b.nome);
+    });
+  };
+
+  const abrirFolhaCargaPdf = (carrinhaIdAlvo?: string) => {
+    let carAlvo: Carrinha | undefined;
+    if (carrinhaIdAlvo) {
+      carAlvo = carrinhasDaLoja.find((c) => c.id === carrinhaIdAlvo);
+    } else if (carrinhaSelecionadaId !== 'todas') {
+      carAlvo = carrinhasDaLoja.find((c) => c.id === carrinhaSelecionadaId);
+    } else {
+      carAlvo = carrinhasDaLoja[0];
+    }
+
+    if (!carAlvo) return;
+
+    const itens = prepararItensFolhaCarga(carAlvo);
+    setPdfItensCarga(itens);
+    setPdfCarrinhaSelecionada(carAlvo);
+    setPdfModalTipo('folha_carga');
+    setPdfModalOpen(true);
+  };
+
+  const abrirComprovativoB2BPdf = (cliente: ClienteEmpresarialB2B) => {
+    const car = carrinhas.find((c) => c.id === cliente.carrinha_id) || carrinhas[0];
+    setPdfModalTipo('comprovativo_b2b');
+    setPdfClienteB2B(cliente);
+    setPdfCarrinhaSelecionada(car);
+    setPdfModalOpen(true);
+  };
+
+  const abrirComprovativoEncomenda = (enc: Encomenda) => {
+    const car = carrinhas.find((c) => c.id === enc.carrinha_id) || carrinhas[0];
+    const mapaItens: Record<string, number> = {};
+    enc.itens.filter((i) => i.estado_producao !== 'recusado').forEach((i) => {
+      mapaItens[i.produto_nome] = i.quantidade;
+    });
+
+    const clienteAdapter: ClienteEmpresarialB2B = {
+      id: enc.id,
+      nome: enc.cliente.nome,
+      telefone: enc.cliente.telefone,
+      telemovel: enc.cliente.telefone,
+      email: enc.cliente.email || '',
+      morada: enc.cliente.morada || 'Arouca',
+      carrinha_id: enc.carrinha_id || car?.id || '',
+      ativo: true,
+      quantidades_semanais: {
+        [diaSemanaHoje]: mapaItens,
+        seg: {}, ter: {}, qua: {}, qui: {}, sex: {}, sab: {}, dom: {},
+      },
+    };
+
+    setPdfModalTipo('comprovativo_b2b');
+    setPdfClienteB2B(clienteAdapter);
+    setPdfCarrinhaSelecionada(car);
+    setPdfModalOpen(true);
   };
 
   // Otimizar rota automaticamente por horário e código postal
@@ -724,6 +879,17 @@ export default function EntregasPage() {
                 </select>
               </div>
 
+              {/* Botão de Folha de Carga em PDF (@react-pdf/renderer) */}
+              <button
+                type="button"
+                onClick={() => abrirFolhaCargaPdf()}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black shadow-xs transition cursor-pointer"
+                title="Gerar Folha de Carga em PDF oficial com totais de caixas e pão por carrinha (Rotas 1 a 8)"
+              >
+                <FileText className="h-4 w-4 shrink-0" />
+                <span>Folha de Carga (PDF)</span>
+              </button>
+
               {/* Botão de Exportar Mapa Diário Oficial (Excel) */}
               <button
                 type="button"
@@ -828,6 +994,100 @@ export default function EntregasPage() {
             </div>
           )}
         </div>
+
+        {/* CLIENTES EMPRESARIAIS B2B DA ROTA (HOSPITAL, LAR, PATRONATO, ESCOLAS) */}
+        {clientesB2B.filter((cli) => cli.ativo && (carrinhaSelecionadaId === 'todas' || cli.carrinha_id === carrinhaSelecionadaId)).length > 0 && (
+          <div className="rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-amber-500/10 border-2 border-amber-300 p-4 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-600 text-white font-black text-xs shadow-xs">
+                  <Building2 className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-stone-900">
+                    Clientes Empresariais B2B da Rota ({clientesB2B.filter((cli) => cli.ativo && (carrinhaSelecionadaId === 'todas' || cli.carrinha_id === carrinhaSelecionadaId)).length})
+                  </h3>
+                  <p className="text-[11px] text-stone-600">
+                    Paragens institucionais fixas com emissão de Comprovativo de Entrega em PDF e assinatura digital no telemóvel
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {clientesB2B
+                .filter((cli) => cli.ativo && (carrinhaSelecionadaId === 'todas' || cli.carrinha_id === carrinhaSelecionadaId))
+                .map((cli) => {
+                  const semCli = cli.quantidades_semanais || cli.quantidades_semana || {};
+                  const mapaHoje = semCli[diaSemanaHoje] || {};
+                  const totalQtd = Object.values(mapaHoje).reduce((acc: number, val) => acc + (typeof val === 'number' ? val : 0), 0);
+                  const carrinhaDoCli = carrinhas.find((c) => c.id === cli.carrinha_id);
+
+                  return (
+                    <div
+                      key={cli.id}
+                      className="rounded-xl bg-white border border-amber-200/90 p-3 shadow-2xs hover:shadow-sm transition flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-1 mb-1">
+                          <span className="text-xs font-black text-stone-900 truncate">{cli.nome}</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 shrink-0">
+                            {carrinhaDoCli?.rota || carrinhaDoCli?.identificador || 'Rota'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-stone-500 flex items-center gap-1 mb-2">
+                          <MapPin className="h-3 w-3 text-red-500 shrink-0" />
+                          <span className="truncate">{cli.morada || 'Arouca'}</span>
+                        </p>
+
+                        <div className="rounded-lg bg-stone-50 p-2 mb-3 text-[11px] space-y-1">
+                          <div className="font-bold text-stone-700 flex justify-between">
+                            <span>Total Hoje ({nomesDiaSemana[diaSemanaHoje]}):</span>
+                            <span className="font-black text-amber-800">{totalQtd} un.</span>
+                          </div>
+                          {Object.entries(mapaHoje)
+                            .filter(([, q]) => typeof q === 'number' && q > 0)
+                            .slice(0, 3)
+                            .map(([art, q]) => (
+                              <div key={art} className="text-stone-600 flex justify-between text-[10px]">
+                                <span className="truncate mr-1">{art}:</span>
+                                <span className="font-semibold">{q} un.</span>
+                              </div>
+                            ))}
+                          {Object.keys(mapaHoje).length > 3 && (
+                            <p className="text-[10px] text-stone-400 italic">
+                              +{Object.keys(mapaHoje).length - 3} outros artigos...
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-stone-100 flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => abrirComprovativoB2BPdf(cli)}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-black shadow-xs transition cursor-pointer"
+                          title="Abrir Comprovativo em PDF e recolher assinatura digital do cliente"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                          <span>Comprovativo B2B (PDF)</span>
+                        </button>
+                        {cli.telefone && (
+                          <a
+                            href={`tel:${cli.telefone.replace(/\s+/g, '')}`}
+                            className="flex items-center justify-center p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 transition"
+                            title="Ligar para o cliente"
+                          >
+                            <Phone className="h-3.5 w-3.5 text-emerald-600" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
 
         {/* LISTA SEQUENCIAL DE PARAGENS COM REORDENAÇÃO ARRASTAR & LARGAR */}
         {entregasOrdenadas.length === 0 ? (
@@ -1075,7 +1335,17 @@ export default function EntregasPage() {
                     )}
 
                     {/* Botões de Ação para o Motorista */}
-                    <div className="pt-2 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-bold">
+                    <div className="pt-2 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs font-bold">
+                      {/* Comprovativo de Entrega em PDF assinado */}
+                      <button
+                        type="button"
+                        onClick={() => abrirComprovativoEncomenda(enc)}
+                        className="flex items-center justify-center gap-1.5 rounded-xl py-2.5 px-2 text-[11px] bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition cursor-pointer font-bold"
+                        title="Gerar Comprovativo de Entrega em PDF com assinatura digital no telemóvel"
+                      >
+                        <FileText className="h-4 w-4 text-rose-600" />
+                        Comprovativo
+                      </button>
                       <a
                         href={`tel:${enc.cliente.telefone.replace(/\s+/g, '')}`}
                         className="flex items-center justify-center gap-1.5 rounded-xl bg-gray-100 py-2.5 px-2 text-gray-800 hover:bg-gray-200 transition"
@@ -1170,6 +1440,20 @@ export default function EntregasPage() {
           </div>
         )}
       </main>
+
+      {/* Modal de PDF (Folha de Carga ou Comprovativo B2B com Assinatura Digital Touchscreen) */}
+      <PdfViewerModal
+        isOpen={pdfModalOpen}
+        tipo={pdfModalTipo}
+        onClose={() => setPdfModalOpen(false)}
+        carrinha={pdfCarrinhaSelecionada}
+        diaSemana={diaSemanaHoje as any}
+        dataReferencia={hoje}
+        itensCarga={pdfItensCarga}
+        clienteB2B={pdfClienteB2B}
+        nomeCondutor={currentUser.nome}
+        matriculaCarro={pdfCarrinhaSelecionada?.matricula}
+      />
 
       {/* Modal do Talão */}
       {encomendaParaImprimir && (

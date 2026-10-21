@@ -3,21 +3,31 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Navbar } from '../../components/Navbar';
 import { ThermalReceipt } from '../../components/ThermalReceipt';
-import { LOJAS_MOCK, PRODUTOS_MOCK } from '../../lib/mockData';
+import { LOJAS_MOCK, PRODUTOS_MOCK, CARRINHAS_MOCK } from '../../lib/mockData';
 import { 
   carregarEncomendasSupabase, 
   carregarLojasSupabase,
   carregarProdutosSupabase,
+  carregarCarrinhasSupabase,
+  carregarBaseFixaCarrinhas,
+  carregarClientesEmpresariaisB2B,
+  obterDiaSemanaDeData,
   atualizarEstadoEncomendaDb,
   atualizarEstadoItemDb,
   salvarObservacoesProducaoDb,
+  concluirEntregaComTimestampDb,
+  gerarLinkWhatsAppEncomendaPronta,
   registarLogAuditoria 
 } from '../../lib/encomendasService';
 import { 
   Encomenda, 
   SetorProducao, 
   Loja, 
-  Produto 
+  Produto,
+  Carrinha,
+  BaseFixaCarrinha,
+  ClienteEmpresarialB2B,
+  DiaSemana
 } from '../../types';
 import { useTranslation } from '../../lib/i18n';
 import { useAuth } from '../../lib/authContext';
@@ -41,10 +51,32 @@ import {
   User,
   MessageSquare,
   Search,
-  Filter
+  Filter,
+  ShoppingBag,
+  Truck,
+  Phone,
+  MapPin,
+  FileText,
+  Sparkles,
+  Layers,
+  Zap,
+  RefreshCw,
+  CheckCheck,
+  Building2,
+  ExternalLink,
+  ArrowRight,
+  X
 } from 'lucide-react';
 import { StatusBadge } from '../../components/StatusBadge';
 import { BreadIcon, OriginBadge, SectorBadge } from '../../components/InproovalBadges';
+import { PdfViewerModal, LinhaArtigoCarga } from '../../components/pdf/PdfViewerModal';
+import { 
+  executarCompilacaoPoolNoturna, 
+  obterUltimoFechoNoturno, 
+  verificarAlertaKDSNoturno, 
+  silenciarAlertaKDSNoturno,
+  ResultadoFechoNoturno 
+} from '../../lib/poolNoturnaService';
 
 export default function ProducaoPage() {
   const { t } = useTranslation();
@@ -53,15 +85,22 @@ export default function ProducaoPage() {
   const temPermissaoEdicao = podeEditar('producao');
   const configMarca = obterConfiguracaoMarca();
 
+  // Navegação entre ecrãs no Cockpit de Produção
+  const [abaAtiva, setAbaAtiva] = useState<'kds' | 'encomendas' | 'balcao' | 'guias_carga'>('kds');
+
+  // Dados Globais
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
   const [lojas, setLojas] = useState<Loja[]>(LOJAS_MOCK);
   const [produtos, setProdutos] = useState<Produto[]>(PRODUTOS_MOCK);
-  const [setorAtivo, setSetorAtivo] = useState<SetorProducao | 'todos'>('todos');
-  const [filtroConclusao, setFiltroConclusao] = useState<'nao_concluidas' | 'concluidas' | 'todas'>('nao_concluidas');
+  const [carrinhas, setCarrinhas] = useState<Carrinha[]>(CARRINHAS_MOCK);
+  const [baseFixaCarrinhas, setBaseFixaCarrinhas] = useState<BaseFixaCarrinha[]>([]);
+  const [clientesB2B, setClientesB2B] = useState<ClienteEmpresarialB2B[]>([]);
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
   const [encomendaParaImprimir, setEncomendaParaImprimir] = useState<Encomenda | null>(null);
 
-  // Alarme Sonoro e Visual de Encomendas Urgentes (<= 3 horas para levantamento)
+  // Estados do Ecrã KDS Fabrico
+  const [setorAtivo, setSetorAtivo] = useState<SetorProducao | 'todos'>('todos');
+  const [filtroConclusao, setFiltroConclusao] = useState<'nao_concluidas' | 'concluidas' | 'todas'>('nao_concluidas');
   const [somAlertaAtivo, setSomAlertaAtivo] = useState<boolean>(true);
   const [obsProducaoPorEncomenda, setObsProducaoPorEncomenda] = useState<Record<string, string>>({});
   const [savingObsId, setSavingObsId] = useState<string | null>(null);
@@ -69,22 +108,48 @@ export default function ProducaoPage() {
   const [nowTick, setNowTick] = useState<number>(Date.now());
   const audioIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Filtro de Calendário
+  // Filtro de Calendário KDS
   const [filtroPeriodo, setFiltroPeriodo] = useState<'hoje' | 'amanha' | 'todos' | 'personalizado'>('hoje');
   const [dataInicioPersonalizada, setDataInicioPersonalizada] = useState('');
   const [dataFimPersonalizada, setDataFimPersonalizada] = useState('');
 
-  // Carregar encomendas da base de dados central
+  // Estados do Trigger.dev v3 Fecho Noturno (22h00)
+  const [ultimoFechoPool, setUltimoFechoPool] = useState<ResultadoFechoNoturno | null>(null);
+  const [executandoFecho, setExecutandoFecho] = useState<boolean>(false);
+  const [feedbackFecho, setFeedbackFecho] = useState<string | null>(null);
+
+  // Estados do Ecrã Encomendas
+  const [buscaEncomendas, setBuscaEncomendas] = useState<string>('');
+  const [filtroTipoEncomenda, setFiltroTipoEncomenda] = useState<'todos' | 'levantamento_loja' | 'entrega_domicilio'>('todos');
+  const [filtroEstadoEncomendas, setFiltroEstadoEncomendas] = useState<string>('todos');
+
+  // Estados do Ecrã Balcão (Levantamentos em Loja)
+  const [buscaBalcao, setBuscaBalcao] = useState<string>('');
+  const [filtroEstadoBalcao, setFiltroEstadoBalcao] = useState<'pendentes' | 'concluidos' | 'todos'>('pendentes');
+
+  // Estados do Modal de PDF (Folhas de Carga & Comprovativos B2B)
+  const [pdfModalOpen, setPdfModalOpen] = useState<boolean>(false);
+  const [pdfModalTipo, setPdfModalTipo] = useState<'folha_carga' | 'comprovativo_b2b'>('folha_carga');
+  const [pdfCarrinhaSelecionada, setPdfCarrinhaSelecionada] = useState<Carrinha | undefined>(undefined);
+  const [pdfClienteB2B, setPdfClienteB2B] = useState<ClienteEmpresarialB2B | undefined>(undefined);
+  const [pdfItensCarga, setPdfItensCarga] = useState<LinhaArtigoCarga[]>([]);
+
+  // Carregar dados iniciais
   useEffect(() => {
     async function carregar() {
-      const [dados, ljs, prods] = await Promise.all([
+      const [dados, ljs, cars, prods] = await Promise.all([
         carregarEncomendasSupabase(),
         carregarLojasSupabase(),
+        carregarCarrinhasSupabase(),
         carregarProdutosSupabase(),
       ]);
       setEncomendas(dados);
       if (ljs && ljs.length > 0) setLojas(ljs);
+      if (cars && cars.length > 0) setCarrinhas(cars);
       if (prods && prods.length > 0) setProdutos(prods);
+      setBaseFixaCarrinhas(carregarBaseFixaCarrinhas());
+      setClientesB2B(carregarClientesEmpresariaisB2B());
+      setUltimoFechoPool(obterUltimoFechoNoturno());
     }
     carregar();
   }, []);
@@ -105,8 +170,19 @@ export default function ProducaoPage() {
   const dAmanha = new Date(dHoje);
   dAmanha.setDate(dHoje.getDate() + 1);
   const amanha = dAmanha.toISOString().split('T')[0];
+  const diaSemanaHoje = obterDiaSemanaDeData(hoje);
 
-  // 1. Filtrar APENAS encomendas para Levantamento em Loja (excluindo entregas ao domicílio)
+  const nomesDiaSemana: Record<string, string> = {
+    seg: 'Segunda-feira',
+    ter: 'Terça-feira',
+    qua: 'Quarta-feira',
+    qui: 'Quinta-feira',
+    sex: 'Sexta-feira',
+    sab: 'Sábado',
+    dom: 'Domingo',
+  };
+
+  // 1. Filtrar encomendas para Levantamento em Loja (Fila KDS)
   const encomendasLevantamentoLoja = useMemo(() => {
     return encomendas.filter((e) => e.tipo === 'levantamento_loja');
   }, [encomendas]);
@@ -118,86 +194,133 @@ export default function ProducaoPage() {
       const dataHoraStr = `${e.data_agendamento}T${e.hora_agendamento || '10:00'}:00`;
       const tsAgendado = new Date(dataHoraStr).getTime();
       if (isNaN(tsAgendado)) return false;
-      const diffHoras = (tsAgendado - nowTick) / (1000 * 60 * 60);
-      return diffHoras <= 3 && (e.data_agendamento === hoje || diffHoras >= -4);
-    }).sort((a, b) => {
-      const dtA = `${a.data_agendamento} ${a.hora_agendamento}`;
-      const dtB = `${b.data_agendamento} ${b.hora_agendamento}`;
-      return dtA.localeCompare(dtB);
+      const diffMs = tsAgendado - nowTick;
+      const tresHorasMs = 3 * 60 * 60 * 1000;
+      return diffMs > 0 && diffMs <= tresHorasMs;
     });
-  }, [encomendasLevantamentoLoja, nowTick, hoje]);
+  }, [encomendasLevantamentoLoja, nowTick]);
 
-  // Gestão do sinal sonoro para encomendas urgentes
-  const tocarSinalSonoroUrgente = () => {
-    if (typeof window === 'undefined' || !somAlertaAtivo) return;
-    try {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
-      const playTone = (freq: number, startOffset: number, duration: number) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, ctx.currentTime + startOffset);
-        gain.gain.setValueAtTime(0.18, ctx.currentTime + startOffset);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startOffset + duration);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(ctx.currentTime + startOffset);
-        osc.stop(ctx.currentTime + startOffset + duration);
-      };
-      playTone(880, 0, 0.22);
-      playTone(1046.5, 0.28, 0.28);
-    } catch {
-      // Browser autoplay policy fallback
-    }
-  };
-
+  // Alarme Sonoro de Encomendas Urgentes
   useEffect(() => {
     if (audioIntervalRef.current) {
       clearInterval(audioIntervalRef.current);
       audioIntervalRef.current = null;
     }
-    if (encomendasUrgentes.length > 0 && somAlertaAtivo) {
-      tocarSinalSonoroUrgente();
-      audioIntervalRef.current = setInterval(() => {
-        tocarSinalSonoroUrgente();
-      }, 10000);
+
+    if (somAlertaAtivo && encomendasUrgentes.length > 0) {
+      const tocarBeep = () => {
+        try {
+          const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+          if (!AudioContext) return;
+          const ctx = new AudioContext();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(880, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.3);
+          gain.gain.setValueAtTime(0.15, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.3);
+        } catch {
+          // Audio autoplay bloqueado
+        }
+      };
+
+      tocarBeep();
+      audioIntervalRef.current = setInterval(tocarBeep, 10000);
     }
+
     return () => {
-      if (audioIntervalRef.current) clearInterval(audioIntervalRef.current);
+      if (audioIntervalRef.current) {
+        clearInterval(audioIntervalRef.current);
+        audioIntervalRef.current = null;
+      }
     };
-  }, [encomendasUrgentes.length, somAlertaAtivo]);
+  }, [somAlertaAtivo, encomendasUrgentes.length]);
 
-  // 3. Filtrar encomendas de acordo com Loja, Setor, Período, Conclusão e Pesquisa
-  const encomendasFiltradas = useMemo(() => {
+  // Pool Consolidada de Fabrico por Artigo para a Fila KDS
+  const poolArtigosConsolidada = useMemo(() => {
+    const mapa: Record<string, {
+      produto_nome: string;
+      setor: SetorProducao;
+      quantidade_total: number;
+      encomendas_count: number;
+      encomendas_codigos: string[];
+      personalizacoes: string[];
+    }> = {};
+
+    encomendasLevantamentoLoja.forEach((enc) => {
+      // Filtrar por loja se selecionada
+      if (selectedLojaId !== 'todas' && enc.loja_id !== selectedLojaId) return;
+
+      // Filtrar por data
+      if (filtroPeriodo === 'hoje' && enc.data_agendamento !== hoje) return;
+      if (filtroPeriodo === 'amanha' && enc.data_agendamento !== amanha) return;
+      if (filtroPeriodo === 'personalizado') {
+        if (dataInicioPersonalizada && enc.data_agendamento < dataInicioPersonalizada) return;
+        if (dataFimPersonalizada && enc.data_agendamento > dataFimPersonalizada) return;
+      }
+
+      // Não somar encomendas canceladas
+      if (enc.estado === 'cancelado') return;
+
+      enc.itens.forEach((item) => {
+        // Filtrar por setor
+        if (setorAtivo !== 'todos' && item.setor !== setorAtivo) return;
+
+        // Se o item foi recusado parcialmente pela produção, não entra na pool
+        if (item.estado_producao === 'recusado') return;
+
+        const chave = item.produto_nome.trim().toLowerCase();
+        if (!mapa[chave]) {
+          mapa[chave] = {
+            produto_nome: item.produto_nome,
+            setor: item.setor,
+            quantidade_total: 0,
+            encomendas_count: 0,
+            encomendas_codigos: [],
+            personalizacoes: [],
+          };
+        }
+
+        mapa[chave].quantidade_total += item.quantidade;
+        if (!mapa[chave].encomendas_codigos.includes(enc.codigo)) {
+          mapa[chave].encomendas_codigos.push(enc.codigo);
+          mapa[chave].encomendas_count += 1;
+        }
+
+        if (item.notas_personalizacao && !mapa[chave].personalizacoes.includes(item.notas_personalizacao)) {
+          mapa[chave].personalizacoes.push(item.notas_personalizacao);
+        }
+      });
+    });
+
+    return Object.values(mapa).sort((a, b) => {
+      if (a.setor !== b.setor) return a.setor.localeCompare(b.setor);
+      return b.quantidade_total - a.quantidade_total;
+    });
+  }, [encomendasLevantamentoLoja, selectedLojaId, filtroPeriodo, dataInicioPersonalizada, dataFimPersonalizada, hoje, amanha, setorAtivo]);
+
+  // Lista de Encomendas Filtradas para o ecrã KDS
+  const encomendasFiltradasKds = useMemo(() => {
     return encomendasLevantamentoLoja.filter((e) => {
-      // Filtro de Loja
       const matchLoja = selectedLojaId === 'todas' || e.loja_id === selectedLojaId;
+      const temItensDoSetor = setorAtivo === 'todos' || e.itens.some((i) => i.setor === setorAtivo);
 
-      // Filtro de Setor (Padaria vs Pastelaria)
-      const temItensDoSetor =
-        setorAtivo === 'todos'
-          ? true
-          : e.itens.some((item) => item.setor === setorAtivo);
-
-      // Filtro Temporal / Calendário
       let matchData = true;
       if (filtroPeriodo === 'hoje') {
         matchData = e.data_agendamento === hoje;
       } else if (filtroPeriodo === 'amanha') {
         matchData = e.data_agendamento === amanha;
       } else if (filtroPeriodo === 'personalizado') {
-        if (dataInicioPersonalizada && dataFimPersonalizada) {
-          matchData = e.data_agendamento >= dataInicioPersonalizada && e.data_agendamento <= dataFimPersonalizada;
-        } else if (dataInicioPersonalizada) {
-          matchData = e.data_agendamento >= dataInicioPersonalizada;
-        } else if (dataFimPersonalizada) {
-          matchData = e.data_agendamento <= dataFimPersonalizada;
-        }
+        const d = e.data_agendamento;
+        if (dataInicioPersonalizada && d < dataInicioPersonalizada) matchData = false;
+        if (dataFimPersonalizada && d > dataFimPersonalizada) matchData = false;
       }
 
-      // Filtro de Conclusão: Não Concluídas (A Produzir) vs Concluídas (Prontas)
       let matchConclusao = true;
       const isConcluida = e.estado === 'pronto_loja' || e.estado === 'entregue';
       if (filtroConclusao === 'nao_concluidas') {
@@ -206,7 +329,6 @@ export default function ProducaoPage() {
         matchConclusao = isConcluida;
       }
 
-      // Filtro de Pesquisa
       let matchPesquisa = true;
       if (pesquisaTexto.trim()) {
         const q = pesquisaTexto.toLowerCase();
@@ -219,7 +341,6 @@ export default function ProducaoPage() {
 
       return matchLoja && temItensDoSetor && matchData && matchConclusao && matchPesquisa;
     }).sort((a, b) => {
-      // Ordenação estritamente ascendente por data e hora de agendamento
       const dtA = `${a.data_agendamento} ${a.hora_agendamento || '00:00'}`;
       const dtB = `${b.data_agendamento} ${b.hora_agendamento || '00:00'}`;
       const comp = dtA.localeCompare(dtB);
@@ -239,7 +360,123 @@ export default function ProducaoPage() {
     amanha
   ]);
 
-  // Ação direta única: Marcar encomenda inteira como pronta
+  // Executar Fecho Noturno Manual das 22h00 (Trigger.dev v3 Engine)
+  const handleExecutarFechoNoturnoManual = async () => {
+    setExecutandoFecho(true);
+    setFeedbackFecho(null);
+    try {
+      // Compilar para o dia seguinte (amanha)
+      const res = await executarCompilacaoPoolNoturna(amanha, currentUser);
+      setUltimoFechoPool(res);
+      setFeedbackFecho(`Fecho noturno concluído com sucesso para ${res.dataAlvo}! ${res.totalUnidades} unidades compiladas (${res.totalPadaria} pão, ${res.totalPastelaria} pastelaria, ~${res.totalCaixasEstimadas} caixas).`);
+      
+      // Atualizar lista de encomendas
+      const dados = await carregarEncomendasSupabase();
+      setEncomendas(dados);
+    } catch (err: any) {
+      setFeedbackFecho(`Erro no fecho noturno: ${err.message || 'Falha na compilação'}`);
+    } finally {
+      setExecutandoFecho(false);
+    }
+  };
+
+  // Preparar Itens de Folha de Carga por Carrinha
+  const prepararItensFolhaCarga = (car: Carrinha): LinhaArtigoCarga[] => {
+    const mapaItens = new Map<string, { quantidade: number; categoria: 'padaria' | 'pastelaria'; unidade: string }>();
+
+    // 1. Quantidades da Base Fixa da carrinha para hoje
+    const bf = baseFixaCarrinhas.find((b) => b.carrinha_id === car.id);
+    const semana = bf?.quantidades_semanais || bf?.quantidades_semana;
+    const mapaHoje = semana?.[diaSemanaHoje] || bf?.quantidades_por_produto || {};
+
+    Object.entries(mapaHoje).forEach(([artigo, qtd]) => {
+      if (typeof qtd === 'number' && qtd > 0) {
+        const prodRef = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
+        const cat: 'padaria' | 'pastelaria' = prodRef?.categoria || (artigo.toLowerCase().includes('bolo') || artigo.toLowerCase().includes('croissant') ? 'pastelaria' : 'padaria');
+        const unid = prodRef?.unidade || 'un';
+        mapaItens.set(artigo, {
+          quantidade: qtd,
+          categoria: cat,
+          unidade: unid,
+        });
+      }
+    });
+
+    // 2. Quantidades dos Clientes B2B desta rota
+    const b2bDaRota = clientesB2B.filter((cli) => cli.ativo && cli.carrinha_id === car.id);
+    b2bDaRota.forEach((cli) => {
+      const semCli = cli.quantidades_semanais || cli.quantidades_semana;
+      const mapaCli = semCli?.[diaSemanaHoje] || {};
+      Object.entries(mapaCli).forEach(([artigo, qtd]) => {
+        if (typeof qtd === 'number' && qtd > 0) {
+          const prodRef = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
+          const cat: 'padaria' | 'pastelaria' = prodRef?.categoria || 'padaria';
+          const unid = prodRef?.unidade || 'un';
+          const atual = mapaItens.get(artigo);
+          if (atual) {
+            atual.quantidade += qtd;
+          } else {
+            mapaItens.set(artigo, {
+              quantidade: qtd,
+              categoria: cat,
+              unidade: unid,
+            });
+          }
+        }
+      });
+    });
+
+    // 3. Encomendas avulsas atribuídas a esta carrinha para hoje
+    const encsDestaCarrinha = encomendas.filter(
+      (e) => e.data_agendamento === hoje && e.tipo === 'entrega_domicilio' && e.carrinha_id === car.id && e.estado !== 'cancelado'
+    );
+    encsDestaCarrinha.forEach((e) => {
+      e.itens.forEach((item) => {
+        if (item.estado_producao !== 'recusado') {
+          const prodRef = produtos.find((p) => p.id === item.produto_id || p.nome.toLowerCase() === item.produto_nome.toLowerCase());
+          const cat: 'padaria' | 'pastelaria' = prodRef?.categoria || 'padaria';
+          const unid = prodRef?.unidade || 'un';
+          const atual = mapaItens.get(item.produto_nome);
+          if (atual) {
+            atual.quantidade += item.quantidade;
+          } else {
+            mapaItens.set(item.produto_nome, {
+              quantidade: item.quantidade,
+              categoria: cat,
+              unidade: unid,
+            });
+          }
+        }
+      });
+    });
+
+    const resultado: LinhaArtigoCarga[] = [];
+    mapaItens.forEach((val, nome) => {
+      const fatorCaixa = val.categoria === 'pastelaria' ? 20 : 30;
+      resultado.push({
+        nome,
+        categoria: val.categoria,
+        unidade: val.unidade,
+        quantidade: val.quantidade,
+        caixasEstimadas: Math.ceil(val.quantidade / fatorCaixa),
+      });
+    });
+
+    return resultado.sort((a, b) => {
+      if (a.categoria !== b.categoria) return a.categoria.localeCompare(b.categoria);
+      return a.nome.localeCompare(b.nome);
+    });
+  };
+
+  const abrirFolhaCargaPdf = (car: Carrinha) => {
+    const itens = prepararItensFolhaCarga(car);
+    setPdfItensCarga(itens);
+    setPdfCarrinhaSelecionada(car);
+    setPdfModalTipo('folha_carga');
+    setPdfModalOpen(true);
+  };
+
+  // Ação KDS: Marcar encomenda inteira como pronta
   const handleMarcarComoPronta = async (encomendaId: string) => {
     if (!temPermissaoEdicao) return;
     const encAlvo = encomendas.find((e) => e.id === encomendaId);
@@ -306,7 +543,7 @@ export default function ProducaoPage() {
     );
   };
 
-  // Guardar observações da produção para a loja/talão/recibo
+  // Guardar observações da produção
   const handleGuardarObsProducao = async (enc: Encomenda, obsTexto?: string) => {
     const textoFinal = (obsTexto !== undefined ? obsTexto : obsProducaoPorEncomenda[enc.id] ?? enc.observacoes_producao ?? '').trim();
     setSavingObsId(enc.id);
@@ -320,9 +557,43 @@ export default function ProducaoPage() {
     }
   };
 
-  // Exportação para Excel da Folha de Produção para Levantamentos em Loja
+  // Concluir Entrega no Balcão
+  const handleConcluirEntregaBalcao = async (encomendaId: string) => {
+    if (!temPermissaoEdicao) return;
+    const agora = new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+    const dataReal = new Date().toISOString().split('T')[0];
+
+    await concluirEntregaComTimestampDb(encomendaId, agora, dataReal);
+
+    const enc = encomendas.find((e) => e.id === encomendaId);
+    if (enc) {
+      await registarLogAuditoria({
+        encomenda_id: enc.id,
+        codigo_encomenda: enc.codigo,
+        cliente_nome: enc.cliente.nome,
+        utilizador_id: currentUser.id,
+        utilizador_nome: currentUser.nome,
+        utilizador_role: currentUser.role,
+        loja_id: enc.loja_id,
+        loja_nome: enc.loja_nome,
+        painel: 'producao',
+        acao: 'Conclusão de Levantamento ao Balcão',
+        detalhes: `Encomenda entregue ao cliente às ${agora} do dia ${dataReal}.`,
+      });
+    }
+
+    setEncomendas((prev) =>
+      prev.map((e) =>
+        e.id === encomendaId
+          ? { ...e, estado: 'entregue', hora_entrega_real: agora, data_entrega_real: dataReal }
+          : e
+      )
+    );
+  };
+
+  // Exportar Excel da Folha de Produção
   const exportarFolhaProducaoExcel = async () => {
-    if (encomendasFiltradas.length === 0) {
+    if (encomendasFiltradasKds.length === 0) {
       alert('Não existem encomendas para a data e loja selecionadas.');
       return;
     }
@@ -347,7 +618,7 @@ export default function ProducaoPage() {
     const linhasPastelaria: (string | number)[][] = [];
     const totaisMap: Record<string, { setor: string; produto: string; totalQtd: number; encs: Set<string> }> = {};
 
-    encomendasFiltradas.forEach((enc) => {
+    encomendasFiltradasKds.forEach((enc) => {
       enc.itens.forEach((item) => {
         const keyTotais = `${item.setor || 'padaria'}_${item.produto_nome}`;
         if (!totaisMap[keyTotais]) {
@@ -418,34 +689,63 @@ export default function ProducaoPage() {
     XLSX.writeFile(wb, nomeFicheiro);
 
     await registarLogAuditoria({
-      encomenda_id: 'fabrico-exportacao',
-      codigo_encomenda: 'EXP-PRODUCAO',
-      cliente_nome: 'Linha de Fabrico',
+      encomenda_id: 'folha-producao-excel',
+      codigo_encomenda: 'PROD-EXCEL',
+      cliente_nome: 'Balcão Lojas Central',
       utilizador_id: currentUser.id,
       utilizador_nome: currentUser.nome,
       utilizador_role: currentUser.role,
       loja_id: selectedLojaId === 'todas' ? 'todas' : lojaAtual.id,
       loja_nome: selectedLojaId === 'todas' ? 'Todas as Lojas' : lojaAtual.nome,
       painel: 'producao',
-      acao: 'Exportação Folha de Produção (Excel)',
-      detalhes: `Exportação de folha de produção para levantamentos em loja (${encomendasFiltradas.length} encomendas).`,
+      acao: 'Exportação Folha de Fabrico (Excel)',
+      detalhes: `Exportada folha de produção com ${encomendasFiltradasKds.length} encomendas e ${Object.keys(totaisMap).length} artigos consolidados.`,
     });
   };
 
-  // Contadores para os filtros de conclusão
-  const totalNaoConcluidas = useMemo(() => {
-    return encomendasLevantamentoLoja.filter((e) => {
+  // Encomendas Gerais Filtradas (para o ecrã "Encomendas")
+  const encomendasGeraisFiltradas = useMemo(() => {
+    return encomendas.filter((e) => {
       const matchLoja = selectedLojaId === 'todas' || e.loja_id === selectedLojaId;
-      return matchLoja && e.estado !== 'pronto_loja' && e.estado !== 'entregue' && e.estado !== 'cancelado';
-    }).length;
-  }, [encomendasLevantamentoLoja, selectedLojaId]);
+      const matchTipo = filtroTipoEncomenda === 'todos' || e.tipo === filtroTipoEncomenda;
+      const matchEstado = filtroEstadoEncomendas === 'todos' || e.estado === filtroEstadoEncomendas;
 
-  const totalConcluidas = useMemo(() => {
+      let matchBusca = true;
+      if (buscaEncomendas.trim()) {
+        const q = buscaEncomendas.toLowerCase().trim();
+        const noCod = e.codigo.toLowerCase().includes(q);
+        const noCli = e.cliente.nome.toLowerCase().includes(q);
+        const noTel = e.cliente.telefone.includes(q);
+        const nosItens = e.itens.some((it) => it.produto_nome.toLowerCase().includes(q));
+        matchBusca = noCod || noCli || noTel || nosItens;
+      }
+
+      return matchLoja && matchTipo && matchEstado && matchBusca;
+    }).sort((a, b) => `${b.data_agendamento} ${b.hora_agendamento}`.localeCompare(`${a.data_agendamento} ${a.hora_agendamento}`));
+  }, [encomendas, selectedLojaId, filtroTipoEncomenda, filtroEstadoEncomendas, buscaEncomendas]);
+
+  // Encomendas Balcão Filtradas (para o ecrã "Balcão")
+  const encomendasBalcaoFiltradas = useMemo(() => {
     return encomendasLevantamentoLoja.filter((e) => {
       const matchLoja = selectedLojaId === 'todas' || e.loja_id === selectedLojaId;
-      return matchLoja && (e.estado === 'pronto_loja' || e.estado === 'entregue');
-    }).length;
-  }, [encomendasLevantamentoLoja, selectedLojaId]);
+      const matchEstado = 
+        filtroEstadoBalcao === 'todos' ? true :
+        filtroEstadoBalcao === 'pendentes' ? e.estado !== 'entregue' && e.estado !== 'cancelado' :
+        e.estado === 'entregue';
+
+      let matchBusca = true;
+      if (buscaBalcao.trim()) {
+        const q = buscaBalcao.toLowerCase().trim();
+        const noCod = e.codigo.toLowerCase().includes(q);
+        const noCli = e.cliente.nome.toLowerCase().includes(q);
+        const noTel = e.cliente.telefone.includes(q);
+        const nosItens = e.itens.some((it) => it.produto_nome.toLowerCase().includes(q));
+        matchBusca = noCod || noCli || noTel || nosItens;
+      }
+
+      return matchLoja && matchEstado && matchBusca;
+    }).sort((a, b) => `${a.data_agendamento} ${a.hora_agendamento}`.localeCompare(`${b.data_agendamento} ${b.hora_agendamento}`));
+  }, [encomendasLevantamentoLoja, selectedLojaId, filtroEstadoBalcao, buscaBalcao]);
 
   return (
     <div className="min-h-screen flex flex-col bg-stone-100/70 font-sans selection:bg-amber-100 selection:text-amber-900">
@@ -460,457 +760,799 @@ export default function ProducaoPage() {
           </div>
         )}
 
-        {/* ALERTA SONORO E VISUAL DE ENCOMENDAS URGENTES (<= 3 HORAS) */}
-        {encomendasUrgentes.length > 0 && (
-          <div className="mb-6 rounded-3xl bg-red-600 text-white p-4 shadow-xl border-2 border-red-300 animate-pulse">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-red-400/60 pb-3 mb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-2xl bg-white text-red-600 shadow-xs">
-                  <AlertTriangle className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="text-sm sm:text-base font-black uppercase tracking-wide">
-                    Alerta de Encomendas Urgentes (&le; 3 Horas para Levantamento em Loja)
-                  </h3>
-                  <p className="text-xs text-red-100 font-medium">
-                    Existem {encomendasUrgentes.length} encomenda(s) de balcão a expirar dentro das próximas 3 horas. Conclua a produção e marque como pronta.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSomAlertaAtivo(!somAlertaAtivo)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-800 hover:bg-red-900 text-white text-xs font-bold border border-red-400 shrink-0 cursor-pointer"
-              >
-                {somAlertaAtivo ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-                <span>{somAlertaAtivo ? 'Som Ativo (10s)' : 'Som Silenciado'}</span>
-              </button>
-            </div>
+        {/* NAVEGAÇÃO DE ECRÃS DO COCKPIT DE PRODUÇÃO */}
+        <div className="flex items-center gap-2 p-1.5 bg-stone-200/90 rounded-2xl mb-6 shadow-inner overflow-x-auto">
+          <button
+            type="button"
+            onClick={() => setAbaAtiva('kds')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${
+              abaAtiva === 'kds'
+                ? 'bg-amber-600 text-white shadow-sm'
+                : 'text-stone-700 hover:bg-stone-300/60'
+            }`}
+          >
+            <ChefHat className="h-4 w-4" />
+            <span>Fabrico (KDS Produção)</span>
+          </button>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {encomendasUrgentes.map((enc) => (
-                <div
-                  key={enc.id}
-                  className="bg-white text-stone-900 p-3.5 rounded-2xl shadow-sm border border-red-200 flex flex-col justify-between space-y-3"
-                >
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono font-black text-xs text-red-700 bg-red-50 px-2 py-0.5 rounded border border-red-200">
-                        {enc.codigo}
-                      </span>
-                      <span className="font-black text-xs text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 inline-flex items-center gap-1">
-                        <Clock className="h-3 w-3 text-amber-700" />
-                        {enc.hora_agendamento} ({enc.data_agendamento})
+          <button
+            type="button"
+            onClick={() => setAbaAtiva('encomendas')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${
+              abaAtiva === 'encomendas'
+                ? 'bg-amber-600 text-white shadow-sm'
+                : 'text-stone-700 hover:bg-stone-300/60'
+            }`}
+          >
+            <ShoppingBag className="h-4 w-4" />
+            <span>Encomendas ({encomendas.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setAbaAtiva('balcao')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${
+              abaAtiva === 'balcao'
+                ? 'bg-amber-600 text-white shadow-sm'
+                : 'text-stone-700 hover:bg-stone-300/60'
+            }`}
+          >
+            <Store className="h-4 w-4" />
+            <span>Balcão (Levantamentos em Loja)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setAbaAtiva('guias_carga')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${
+              abaAtiva === 'guias_carga'
+                ? 'bg-amber-600 text-white shadow-sm'
+                : 'text-stone-700 hover:bg-stone-300/60'
+            }`}
+          >
+            <Truck className="h-4 w-4" />
+            <span>Guias de Carga (Rotas 1 a 8)</span>
+          </button>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* ECRÃ 1: FABRICO (KDS) + FECHO NOTURNO TRIGGER.DEV V3 (22H00)              */}
+        {/* ========================================================================= */}
+        {abaAtiva === 'kds' && (
+          <div className="space-y-6">
+            {/* CARD DE FECHO NOTURNO AUTOMÁTICO DAS 22H00 (TRIGGER.DEV V3) */}
+            <div className="rounded-3xl bg-gradient-to-r from-stone-900 via-stone-800 to-amber-950 text-white p-5 shadow-xl border border-amber-500/30">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-start gap-3.5">
+                  <div className="p-3 rounded-2xl bg-amber-500/20 border border-amber-400/40 text-amber-400 shadow-inner shrink-0">
+                    <Zap className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <h3 className="text-base font-black tracking-wide text-white">
+                        Fecho Noturno Automático das 22h00
+                      </h3>
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 inline-flex items-center gap-1">
+                        <Sparkles className="h-3 w-3" />
+                        Trigger.dev v3 Ativo (0 22 * * *)
                       </span>
                     </div>
-
-                    <p className="text-xs font-black text-stone-900">
-                      Cliente: {enc.cliente.nome}
+                    <p className="text-xs text-stone-300 max-w-2xl">
+                      Compila automaticamente encomendas aceites + Base Fixa das 8 rotas + Matriz dos 13 clientes B2B às 22h00 para a entrada do primeiro turno de madrugada (23h00-06h00).
                     </p>
-                    <p className="text-[11px] font-bold text-amber-800 flex items-center gap-1">
-                      <Store className="h-3 w-3 text-amber-600" />
-                      <span>{enc.loja_nome || 'Padaria da Vila'}</span>
-                    </p>
+                    {ultimoFechoPool && (
+                      <p className="text-[11px] text-amber-300 font-semibold mt-1.5 flex items-center gap-1.5">
+                        <CheckCheck className="h-3.5 w-3.5 text-emerald-400" />
+                        Última compilação: <b>{ultimoFechoPool.totalUnidades} un. totais</b> ({ultimoFechoPool.totalPadaria} pão, {ultimoFechoPool.totalPastelaria} pastelaria, ~{ultimoFechoPool.totalCaixasEstimadas} caixas) em {new Date(ultimoFechoPool.executadoEm).toLocaleTimeString('pt-PT')}.
+                      </p>
+                    )}
+                  </div>
+                </div>
 
-                    <div className="pt-1 border-t border-stone-100 text-xs space-y-1 max-h-24 overflow-y-auto">
-                      {enc.itens.map((it) => (
-                        <div key={it.id} className="flex items-center justify-between font-bold text-stone-800 text-[11px]">
-                          <span className="flex items-center gap-1">
-                            <SectorBadge setor={it.setor} />
-                            <span>{it.quantidade}x {it.produto_nome}</span>
-                          </span>
-                        </div>
-                      ))}
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleExecutarFechoNoturnoManual}
+                    disabled={executandoFecho}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-black shadow-md hover:shadow-lg transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Forçar cálculo e compilação da pool noturna agora"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${executandoFecho ? 'animate-spin' : ''}`} />
+                    <span>{executandoFecho ? 'A Compilar Pool...' : 'Executar Fecho Noturno Agora'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {feedbackFecho && (
+                <div className="mt-3 pt-3 border-t border-stone-700/60 text-xs font-bold text-amber-200 flex items-center gap-2">
+                  <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                  <span>{feedbackFecho}</span>
+                </div>
+              )}
+            </div>
+
+            {/* ALERTA SONORO E VISUAL DE ENCOMENDAS URGENTES (<= 3 HORAS) */}
+            {encomendasUrgentes.length > 0 && (
+              <div className="rounded-3xl bg-red-600 text-white p-4 shadow-xl border-2 border-red-300 animate-pulse">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-red-400/60 pb-3 mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-2xl bg-white text-red-600 shadow-xs">
+                      <AlertTriangle className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm sm:text-base font-black uppercase tracking-wide">
+                        Alerta de Encomendas Urgentes (&le; 3 Horas para Levantamento em Loja)
+                      </h3>
+                      <p className="text-xs text-red-100 font-medium">
+                        Existem {encomendasUrgentes.length} encomenda(s) de balcão a expirar dentro das próximas 3 horas. Conclua a produção e marque como pronta.
+                      </p>
                     </div>
                   </div>
-
-                  {temPermissaoEdicao && (
-                    <button
-                      type="button"
-                      onClick={() => handleMarcarComoPronta(enc.id)}
-                      className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-                    >
-                      <Check className="h-4 w-4" />
-                      <span>Marcar como Pronta</span>
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Barra Superior do Cockpit de Produção */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-amber-500 text-white shadow-xs">
-              <ChefHat className="h-6 w-6" />
-            </div>
-            <div>
-              <h2 className="text-xl font-black text-gray-900 leading-tight">
-                {configMarca.tituloProducao || 'Cockpit de Produção'} ({selectedLojaId === 'todas' ? t.allStores : lojaAtual.nome})
-              </h2>
-              <p className="text-xs text-gray-500">
-                Fila de fabrico exclusiva para levantamentos em loja, ordenada cronologicamente por hora de entrega
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Seletor de Loja */}
-            <div className="flex items-center gap-1.5 rounded-xl bg-stone-50 border border-gray-200 px-2.5 py-1.5 shadow-2xs">
-              <Store className="h-4 w-4 text-amber-600 shrink-0" />
-              <select
-                value={selectedLojaId}
-                onChange={(e) => setSelectedLojaId(e.target.value)}
-                className="bg-transparent text-xs font-bold text-gray-900 focus:outline-hidden cursor-pointer"
-              >
-                <option value="todas">{t.allStores}</option>
-                {lojas.map((l) => (
-                  <option key={l.id} value={l.id}>{l.nome}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Abas de Setor com BreadIcon e CakeSlice */}
-            <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl">
-              <button
-                type="button"
-                onClick={() => setSetorAtivo('todos')}
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
-                  setorAtivo === 'todos'
-                    ? 'bg-white text-gray-900 shadow-xs'
-                    : 'text-gray-500 hover:text-gray-800'
-                }`}
-              >
-                {t.allDepartments}
-              </button>
-              <button
-                type="button"
-                onClick={() => setSetorAtivo('padaria')}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
-                  setorAtivo === 'padaria'
-                    ? 'bg-amber-600 text-white shadow-xs'
-                    : 'text-gray-500 hover:text-gray-800'
-                }`}
-              >
-                <BreadIcon className="h-3.5 w-3.5" />
-                <span>{t.bakeryTab}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setSetorAtivo('pastelaria')}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
-                  setorAtivo === 'pastelaria'
-                    ? 'bg-pink-600 text-white shadow-xs'
-                    : 'text-gray-500 hover:text-gray-800'
-                }`}
-              >
-                <CakeSlice className="h-3.5 w-3.5" />
-                <span>{t.pastryTab}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Barra de Filtros: Conclusão, Calendário, Pesquisa e Excel */}
-        <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs mb-6 space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            {/* Toggle de Conclusão: Não Concluídas vs Concluídas vs Todas */}
-            <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-xl">
-              <button
-                type="button"
-                onClick={() => setFiltroConclusao('nao_concluidas')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                  filtroConclusao === 'nao_concluidas'
-                    ? 'bg-amber-600 text-white shadow-xs'
-                    : 'text-stone-600 hover:text-stone-900'
-                }`}
-              >
-                <Clock className="h-3.5 w-3.5" />
-                <span>A Produzir ({totalNaoConcluidas})</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setFiltroConclusao('concluidas')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                  filtroConclusao === 'concluidas'
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'text-stone-600 hover:text-stone-900'
-                }`}
-              >
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                <span>Prontas ({totalConcluidas})</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setFiltroConclusao('todas')}
-                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                  filtroConclusao === 'todas'
-                    ? 'bg-stone-800 text-white shadow-xs'
-                    : 'text-stone-600 hover:text-stone-900'
-                }`}
-              >
-                Todas
-              </button>
-            </div>
-
-            {/* Período de Fabrico */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-xs font-bold text-gray-500 mr-1 flex items-center gap-1">
-                <Calendar className="h-3.5 w-3.5 text-amber-600" />
-                Período:
-              </span>
-              {[
-                { id: 'hoje', label: 'Hoje' },
-                { id: 'amanha', label: 'Amanhã' },
-                { id: 'todos', label: 'Todas as Datas' },
-                { id: 'personalizado', label: 'Calendário' },
-              ].map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => setFiltroPeriodo(p.id as any)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                    filtroPeriodo === p.id
-                      ? 'bg-stone-900 text-white shadow-2xs'
-                      : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
-                  }`}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Exportar Excel */}
-            <button
-              type="button"
-              onClick={exportarFolhaProducaoExcel}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs transition active:scale-95 cursor-pointer ml-auto"
-              title="Exportar folha de produção para levantamentos em loja em Excel (.xlsx)"
-            >
-              <FileSpreadsheet className="h-4 w-4 shrink-0" />
-              <span>Exportar Folha de Fabrico (.xlsx)</span>
-            </button>
-          </div>
-
-          {/* Sub-barra: Intervalo de Datas Personalizado + Campo de Pesquisa */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2 border-t border-stone-100">
-            {filtroPeriodo === 'personalizado' ? (
-              <div className="flex flex-wrap items-center gap-2 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200">
-                <span className="text-xs font-bold text-amber-950">Intervalo:</span>
-                <div className="flex items-center gap-1">
-                  <span className="text-[11px] text-gray-600 font-medium">De:</span>
-                  <input
-                    type="date"
-                    value={dataInicioPersonalizada}
-                    onChange={(e) => setDataInicioPersonalizada(e.target.value)}
-                    className="text-xs px-2 py-1 rounded bg-white border border-amber-300 font-medium text-gray-900"
-                  />
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-[11px] text-gray-600 font-medium">Até:</span>
-                  <input
-                    type="date"
-                    value={dataFimPersonalizada}
-                    onChange={(e) => setDataFimPersonalizada(e.target.value)}
-                    className="text-xs px-2 py-1 rounded bg-white border border-amber-300 font-medium text-gray-900"
-                  />
-                </div>
-              </div>
-            ) : <div />}
-
-            <div className="relative max-w-sm w-full">
-              <Search className="h-3.5 w-3.5 text-stone-400 absolute left-3 top-2.5" />
-              <input
-                type="text"
-                value={pesquisaTexto}
-                onChange={(e) => setPesquisaTexto(e.target.value)}
-                placeholder="Pesquisar por cliente, código ou artigo..."
-                className="w-full pl-8 pr-3 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-amber-500"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* LISTA DE ENCOMENDAS ORDENADA ASCENDENTE POR DATA E HORA DE LEVANTAMENTO */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <span className="text-xs font-bold text-stone-500">
-              A apresentar <strong className="text-stone-900">{encomendasFiltradas.length}</strong> encomenda(s) de balcão • ordenadas estritamente por hora crescente
-            </span>
-          </div>
-
-          {encomendasFiltradas.length === 0 ? (
-            <div className="bg-white rounded-3xl p-12 text-center border border-stone-200 space-y-3">
-              <ChefHat className="h-10 w-10 text-stone-300 mx-auto" />
-              <h3 className="text-sm font-bold text-stone-800">
-                Nenhuma encomenda de balcão encontrada
-              </h3>
-              <p className="text-xs text-stone-500">
-                Não existem encomendas para os filtros de loja, período ou estado selecionados.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {encomendasFiltradas.map((enc) => {
-                const isPronta = enc.estado === 'pronto_loja' || enc.estado === 'entregue';
-                const obsAtual = obsProducaoPorEncomenda[enc.id] ?? enc.observacoes_producao ?? '';
-
-                return (
-                  <div
-                    key={enc.id}
-                    className={`rounded-3xl border-2 transition flex flex-col justify-between overflow-hidden shadow-xs ${
-                      isPronta
-                        ? 'bg-emerald-50/40 border-emerald-300'
-                        : 'bg-white border-stone-200 hover:border-amber-400'
-                    }`}
+                  <button
+                    type="button"
+                    onClick={() => setSomAlertaAtivo(!somAlertaAtivo)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-800 hover:bg-red-900 text-white text-xs font-bold border border-red-400 shrink-0 cursor-pointer"
                   >
-                    {/* Cabeçalho do Cartão */}
-                    <div className={`p-4 border-b flex items-start justify-between gap-2 ${
-                      isPronta ? 'bg-emerald-50/80 border-emerald-200' : 'bg-stone-50 border-stone-200'
-                    }`}>
-                      <div>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-mono font-black text-xs text-stone-900 bg-white px-2 py-0.5 rounded border border-stone-300">
+                    {somAlertaAtivo ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                    <span>{somAlertaAtivo ? 'Som Ativo (10s)' : 'Som Silenciado'}</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {encomendasUrgentes.map((enc) => (
+                    <div
+                      key={enc.id}
+                      className="bg-white text-stone-900 p-3.5 rounded-2xl shadow-sm border border-red-200 flex flex-col justify-between space-y-3"
+                    >
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono font-black text-xs text-red-700 bg-red-50 px-2 py-0.5 rounded border border-red-200">
                             {enc.codigo}
                           </span>
-                          <OriginBadge origem={enc.canal_origem} compact />
-                        </div>
-                        <h4 className="text-sm font-black text-stone-900 mt-1">
-                          {enc.cliente.nome}
-                        </h4>
-                        <p className="text-[11px] text-stone-500 font-mono">
-                          {enc.cliente.telefone}
-                        </p>
-                      </div>
-
-                      <div className="text-right flex flex-col items-end gap-1.5">
-                        <div className="bg-white px-2.5 py-1 rounded-xl border border-stone-200 shadow-2xs text-right">
-                          <div className="flex items-center gap-1 text-xs font-black text-amber-700">
-                            <Clock className="h-3.5 w-3.5" />
-                            <span>{enc.hora_agendamento}</span>
-                          </div>
-                          <span className="text-[10px] text-stone-400 font-medium block">
-                            {enc.data_agendamento}
+                          <span className="font-black text-xs text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 inline-flex items-center gap-1">
+                            <Clock className="h-3 w-3 text-amber-700" />
+                            {enc.hora_agendamento} ({enc.data_agendamento})
                           </span>
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() => setEncomendaParaImprimir(enc)}
-                          className="p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 transition cursor-pointer"
-                          title="Imprimir talão de fabrico"
-                        >
-                          <Printer className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Conteúdo: Loja de Levantamento e Lista de Artigos */}
-                    <div className="p-4 space-y-3 flex-1">
-                      <div className="flex items-center gap-1 text-xs font-bold text-amber-900 bg-amber-50 px-2.5 py-1 rounded-xl border border-amber-200">
-                        <Store className="h-3.5 w-3.5 text-amber-700 shrink-0" />
-                        <span>Levantamento: {enc.loja_nome || 'Padaria da Vila'}</span>
-                      </div>
-
-                      {enc.notas_cliente && (
-                        <p className="text-[11px] text-stone-600 bg-stone-50 p-2 rounded-xl border border-stone-200 italic">
-                          <span className="font-bold not-italic text-stone-700">Nota do Pedido:</span> {enc.notas_cliente}
+                        <p className="text-xs font-black text-stone-900">
+                          Cliente: {enc.cliente.nome}
                         </p>
-                      )}
+                        <p className="text-[11px] font-bold text-amber-800 flex items-center gap-1">
+                          <Store className="h-3 w-3 text-amber-600" />
+                          <span>{enc.loja_nome || 'Padaria da Vila'}</span>
+                        </p>
 
-                      {/* Artigos da Encomenda */}
-                      <div className="space-y-1.5">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-stone-400 block">
-                          Artigos a Confeccionar ({enc.itens.length}):
-                        </span>
-                        <div className="space-y-1.5">
-                          {enc.itens.map((item) => (
-                            <div
-                              key={item.id}
-                              className="p-2.5 rounded-xl bg-stone-50/70 border border-stone-200 text-xs flex items-center justify-between gap-2"
-                            >
-                              <div>
-                                <div className="flex items-center gap-1.5">
-                                  <SectorBadge setor={item.setor} />
-                                  <span className="font-black text-stone-900">
-                                    {item.quantidade}x {item.produto_nome}
-                                  </span>
-                                </div>
-                                {item.notas_personalizacao && (
-                                  <span className="block text-[11px] text-amber-800 italic mt-0.5 pl-5">
-                                    » {item.notas_personalizacao}
-                                  </span>
-                                )}
-                              </div>
-
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white border border-stone-200 text-stone-600">
-                                {item.setor === 'pastelaria' ? 'Pastelaria' : 'Padaria'}
+                        <div className="pt-1 border-t border-stone-100 text-xs space-y-1 max-h-24 overflow-y-auto">
+                          {enc.itens.map((it) => (
+                            <div key={it.id} className="flex items-center justify-between font-bold text-stone-800 text-[11px]">
+                              <span className="flex items-center gap-1">
+                                <SectorBadge setor={it.setor} />
+                                <span>{it.quantidade}x {it.produto_nome}</span>
                               </span>
                             </div>
                           ))}
                         </div>
                       </div>
 
-                      {/* Campo de Observações da Produção (p/ talão e registo) */}
-                      <div className="pt-2 border-t border-stone-100 space-y-1">
-                        <label className="block text-[10px] font-black uppercase tracking-wider text-stone-400">
-                          Observações da Produção (visível no talão/loja):
-                        </label>
-                        <div className="flex items-center gap-1.5">
-                          <input
-                            type="text"
-                            value={obsAtual}
-                            onChange={(e) =>
-                              setObsProducaoPorEncomenda((prev) => ({
-                                ...prev,
-                                [enc.id]: e.target.value,
-                              }))
-                            }
-                            onBlur={() => handleGuardarObsProducao(enc)}
-                            placeholder="Notas de fabrico, embalagem ou lote..."
-                            className="w-full px-2.5 py-1.5 rounded-xl border border-stone-200 bg-white text-xs text-stone-900 focus:outline-hidden focus:border-amber-500"
-                          />
-                          {savingObsId === enc.id && (
-                            <span className="text-[10px] text-emerald-600 font-bold shrink-0">
-                              Gravado!
+                      {temPermissaoEdicao && (
+                        <button
+                          type="button"
+                          onClick={() => handleMarcarComoPronta(enc.id)}
+                          className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                        >
+                          <Check className="h-4 w-4" />
+                          <span>Marcar como Pronta</span>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Barra de Filtros e Controlos do KDS */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-amber-500 text-white shadow-xs">
+                  <ChefHat className="h-6 w-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-gray-900 leading-tight">
+                    {configMarca.tituloProducao || 'Cockpit de Produção'} ({selectedLojaId === 'todas' ? t.allStores : lojaAtual.nome})
+                  </h2>
+                  <p className="text-xs text-gray-500">
+                    Fila de fabrico exclusiva para levantamentos em loja, ordenada cronologicamente por hora de entrega
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Seletor de Loja */}
+                <div className="flex items-center gap-1.5 rounded-xl bg-stone-50 border border-gray-200 px-2.5 py-1.5 shadow-2xs">
+                  <Store className="h-4 w-4 text-amber-600 shrink-0" />
+                  <select
+                    value={selectedLojaId}
+                    onChange={(e) => setSelectedLojaId(e.target.value)}
+                    className="bg-transparent text-xs font-bold text-gray-900 focus:outline-hidden cursor-pointer"
+                  >
+                    <option value="todas">{t.allStores}</option>
+                    {lojas.map((l) => (
+                      <option key={l.id} value={l.id}>{l.nome}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Abas de Setor */}
+                <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setSetorAtivo('todos')}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
+                      setorAtivo === 'todos'
+                        ? 'bg-white text-gray-900 shadow-xs'
+                        : 'text-gray-500 hover:text-gray-800'
+                    }`}
+                  >
+                    {t.allDepartments}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSetorAtivo('padaria')}
+                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
+                      setorAtivo === 'padaria'
+                        ? 'bg-amber-600 text-white shadow-xs'
+                        : 'text-gray-500 hover:text-gray-800'
+                    }`}
+                  >
+                    <BreadIcon className="h-3.5 w-3.5" />
+                    <span>{t.bakeryTab}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSetorAtivo('pastelaria')}
+                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
+                      setorAtivo === 'pastelaria'
+                        ? 'bg-rose-600 text-white shadow-xs'
+                        : 'text-gray-500 hover:text-gray-800'
+                    }`}
+                  >
+                    <CakeSlice className="h-3.5 w-3.5" />
+                    <span>{t.pastryTab}</span>
+                  </button>
+                </div>
+
+                {/* Exportar Excel */}
+                <button
+                  type="button"
+                  onClick={exportarFolhaProducaoExcel}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition cursor-pointer"
+                  title="Exportar Folha de Fabrico para Excel"
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  <span>{t.exportDailyMap}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Filtros de Data e Estado de Conclusão */}
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-gray-200">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-xl text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setFiltroPeriodo('hoje')}
+                    className={`px-3 py-1 rounded-lg transition cursor-pointer ${
+                      filtroPeriodo === 'hoje' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500'
+                    }`}
+                  >
+                    Hoje ({hoje})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFiltroPeriodo('amanha')}
+                    className={`px-3 py-1 rounded-lg transition cursor-pointer ${
+                      filtroPeriodo === 'amanha' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500'
+                    }`}
+                  >
+                    Amanhã ({amanha})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFiltroPeriodo('todos')}
+                    className={`px-3 py-1 rounded-lg transition cursor-pointer ${
+                      filtroPeriodo === 'todos' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500'
+                    }`}
+                  >
+                    Todas as Datas
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-xl text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setFiltroConclusao('nao_concluidas')}
+                    className={`px-3 py-1 rounded-lg transition cursor-pointer ${
+                      filtroConclusao === 'nao_concluidas' ? 'bg-amber-600 text-white shadow-xs' : 'text-stone-500'
+                    }`}
+                  >
+                    A Produzir ({encomendasFiltradasKds.filter(e => e.estado !== 'pronto_loja' && e.estado !== 'entregue').length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFiltroConclusao('concluidas')}
+                    className={`px-3 py-1 rounded-lg transition cursor-pointer ${
+                      filtroConclusao === 'concluidas' ? 'bg-emerald-600 text-white shadow-xs' : 'text-stone-500'
+                    }`}
+                  >
+                    Concluídas
+                  </button>
+                </div>
+              </div>
+
+              {/* Caixa de Pesquisa Instantânea */}
+              <div className="relative min-w-[240px]">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={pesquisaTexto}
+                  onChange={(e) => setPesquisaTexto(e.target.value)}
+                  placeholder="Pesquisar código, cliente ou artigo..."
+                  className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-gray-200 bg-stone-50 focus:outline-hidden focus:border-amber-500"
+                />
+              </div>
+            </div>
+
+            {/* POOL CONSOLIDADA DE QUANTIDADES POR ARTIGO */}
+            {poolArtigosConsolidada.length > 0 && (
+              <div className="rounded-2xl bg-white border border-gray-200 p-4 shadow-xs">
+                <div className="flex items-center justify-between mb-3 border-b pb-2">
+                  <div className="flex items-center gap-2">
+                    <Layers className="h-5 w-5 text-amber-600" />
+                    <h3 className="text-sm font-black text-gray-900">
+                      Pool Consolidada de Fabrico ({poolArtigosConsolidada.reduce((acc, p) => acc + p.quantidade_total, 0)} unidades totais)
+                    </h3>
+                  </div>
+                  <span className="text-xs text-gray-500 font-bold">
+                    {poolArtigosConsolidada.length} artigos diferentes
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
+                  {poolArtigosConsolidada.map((item) => (
+                    <div
+                      key={item.produto_nome}
+                      className={`p-2.5 rounded-xl border text-center transition ${
+                        item.setor === 'pastelaria'
+                          ? 'bg-rose-50/50 border-rose-200 text-rose-950'
+                          : 'bg-amber-50/50 border-amber-200 text-amber-950'
+                      }`}
+                    >
+                      <p className="text-xl font-black">{item.quantidade_total}</p>
+                      <p className="text-xs font-bold leading-tight truncate mt-0.5" title={item.produto_nome}>
+                        {item.produto_nome}
+                      </p>
+                      <p className="text-[10px] text-gray-500 font-medium mt-1">
+                        {item.encomendas_count} encomenda(s)
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* LISTA DE ENCOMENDAS KDS */}
+            {encomendasFiltradasKds.length === 0 ? (
+              <div className="rounded-2xl bg-white border border-gray-200 p-12 text-center">
+                <ChefHat className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                <h3 className="text-sm font-bold text-gray-800">Sem encomendas na fila de produção</h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  Não existem levantamentos em loja pendentes para os filtros selecionados.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {encomendasFiltradasKds.map((enc) => {
+                  const isPronta = enc.estado === 'pronto_loja' || enc.estado === 'entregue';
+                  const obsAtual = obsProducaoPorEncomenda[enc.id] ?? enc.observacoes_producao ?? '';
+
+                  return (
+                    <div
+                      key={enc.id}
+                      className={`rounded-2xl bg-white border-2 transition shadow-xs overflow-hidden flex flex-col justify-between ${
+                        isPronta
+                          ? 'border-emerald-300 bg-emerald-50/20'
+                          : 'border-stone-200 hover:border-amber-400'
+                      }`}
+                    >
+                      <div>
+                        {/* Cabeçalho do Card */}
+                        <div className={`p-3.5 border-b flex items-center justify-between ${
+                          isPronta ? 'bg-emerald-50 text-emerald-900 border-emerald-100' : 'bg-stone-50 text-stone-900 border-stone-200'
+                        }`}>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-black text-xs px-2 py-0.5 rounded bg-white border shadow-2xs">
+                              {enc.codigo}
                             </span>
-                          )}
+                            <OriginBadge origem={enc.canal_origem} compact />
+                          </div>
+                          <span className="font-black text-xs flex items-center gap-1">
+                            <Clock className="h-3.5 w-3.5 text-amber-700" />
+                            {enc.hora_agendamento}
+                          </span>
                         </div>
+
+                        {/* Dados do Cliente e Loja */}
+                        <div className="p-3.5 space-y-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <h4 className="font-black text-sm text-stone-900">{enc.cliente.nome}</h4>
+                              <p className="text-xs text-stone-500">{enc.cliente.telefone}</p>
+                              <p className="text-[11px] font-bold text-amber-800 flex items-center gap-1 mt-0.5">
+                                <Store className="h-3 w-3 text-amber-600" />
+                                <span>{enc.loja_nome || 'Padaria da Vila'}</span>
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setEncomendaParaImprimir(enc)}
+                              className="p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 transition"
+                              title="Imprimir Talão Térmico de Produção"
+                            >
+                              <Printer className="h-4 w-4" />
+                            </button>
+                          </div>
+
+                          {/* Itens a Fabricar */}
+                          <div className="rounded-xl bg-stone-50 p-2.5 space-y-1.5 border border-stone-200/80">
+                            {enc.itens.map((it) => {
+                              const isRecusado = it.estado_producao === 'recusado';
+                              return (
+                                <div
+                                  key={it.id}
+                                  className={`flex items-center justify-between text-xs font-semibold ${
+                                    isRecusado ? 'text-red-700 line-through opacity-75' : 'text-stone-800'
+                                  }`}
+                                >
+                                  <span className="flex items-center gap-1">
+                                    <b className={`${isRecusado ? 'text-red-700' : 'text-amber-800'} font-black`}>
+                                      {it.quantidade}x
+                                    </b>
+                                    <span>{it.produto_nome}</span>
+                                    {it.notas_personalizacao && (
+                                      <span className="text-[10px] text-amber-800 italic">
+                                        ({it.notas_personalizacao})
+                                      </span>
+                                    )}
+                                  </span>
+                                  <SectorBadge setor={it.setor} />
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Campo de Observações da Produção */}
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase text-stone-400">
+                              Notas de Produção (visível no talão/loja):
+                            </label>
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="text"
+                                value={obsAtual}
+                                onChange={(e) =>
+                                  setObsProducaoPorEncomenda((prev) => ({
+                                    ...prev,
+                                    [enc.id]: e.target.value,
+                                  }))
+                                }
+                                onBlur={() => handleGuardarObsProducao(enc)}
+                                placeholder="Notas de fabrico ou lote..."
+                                className="w-full px-2.5 py-1 text-xs rounded-lg border border-stone-200 bg-white"
+                              />
+                              {savingObsId === enc.id && (
+                                <span className="text-[10px] text-emerald-600 font-bold shrink-0">
+                                  Gravado!
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Botão de Conclusão de Fabrico */}
+                      <div className="p-3 bg-stone-50 border-t flex items-center justify-between gap-2">
+                        {isPronta ? (
+                          <div className="flex items-center justify-between w-full">
+                            <span className="inline-flex items-center gap-1.5 text-xs font-black text-emerald-700 bg-emerald-100 px-3 py-1.5 rounded-xl">
+                              <CheckCircle2 className="h-4 w-4" />
+                              <span>Pronta no Balcão</span>
+                            </span>
+                            {temPermissaoEdicao && (
+                              <button
+                                type="button"
+                                onClick={() => handleReverterParaProducao(enc.id)}
+                                className="text-[11px] font-bold text-stone-500 hover:text-stone-800 underline cursor-pointer"
+                              >
+                                Reverter
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          temPermissaoEdicao && (
+                            <button
+                              type="button"
+                              onClick={() => handleMarcarComoPronta(enc.id)}
+                              className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-black text-xs uppercase tracking-wider shadow-sm transition flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                              <Check className="h-4 w-4" />
+                              <span>Marcar como Pronta</span>
+                            </button>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* ECRÃ 2: GESTÃO COMPLETA DE ENCOMENDAS (TAL COMO AS LOJAS TÊM)             */}
+        {/* ========================================================================= */}
+        {abaAtiva === 'encomendas' && (
+          <div className="space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
+              <div>
+                <h3 className="text-base font-black text-stone-900 flex items-center gap-2">
+                  <ShoppingBag className="h-5 w-5 text-amber-600" />
+                  Registo & Histórico de Encomendas Central
+                </h3>
+                <p className="text-xs text-stone-500">
+                  Consulte, filtre e reimprima qualquer encomenda de balcão ou rota
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative min-w-[260px]">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={buscaEncomendas}
+                    onChange={(e) => setBuscaEncomendas(e.target.value)}
+                    placeholder="Pesquisar por código, cliente ou artigo..."
+                    className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-gray-200 bg-stone-50 focus:outline-hidden"
+                  />
+                </div>
+
+                <select
+                  value={filtroTipoEncomenda}
+                  onChange={(e) => setFiltroTipoEncomenda(e.target.value as any)}
+                  className="px-3 py-1.5 rounded-xl border border-gray-200 bg-stone-50 text-xs font-bold text-stone-800 cursor-pointer"
+                >
+                  <option value="todos">Todos os Tipos</option>
+                  <option value="levantamento_loja">Levantamento em Loja</option>
+                  <option value="entrega_domicilio">Entrega ao Domicílio</option>
+                </select>
+
+                <select
+                  value={filtroEstadoEncomendas}
+                  onChange={(e) => setFiltroEstadoEncomendas(e.target.value)}
+                  className="px-3 py-1.5 rounded-xl border border-gray-200 bg-stone-50 text-xs font-bold text-stone-800 cursor-pointer"
+                >
+                  <option value="todos">Todos os Estados</option>
+                  <option value="pendente">Pendente</option>
+                  <option value="aceite">Aceite</option>
+                  <option value="em_producao">Em Produção</option>
+                  <option value="pronto_loja">Pronto em Loja</option>
+                  <option value="entregue">Entregue</option>
+                  <option value="cancelado">Cancelado</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {encomendasGeraisFiltradas.map((enc) => (
+                <div key={enc.id} className="rounded-2xl bg-white border border-stone-200 p-4 shadow-xs flex flex-col justify-between space-y-3">
+                  <div>
+                    <div className="flex items-center justify-between border-b pb-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono font-black text-xs text-stone-900 bg-stone-100 px-2 py-0.5 rounded">
+                          {enc.codigo}
+                        </span>
+                        <OriginBadge origem={enc.canal_origem} compact />
+                      </div>
+                      <StatusBadge estado={enc.estado} />
+                    </div>
+
+                    <div className="mt-2.5">
+                      <h4 className="text-sm font-black text-stone-900">{enc.cliente.nome}</h4>
+                      <p className="text-xs text-stone-500">{enc.cliente.telefone}</p>
+                      <div className="flex items-center gap-2 text-[11px] font-bold text-stone-600 mt-1">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3 text-stone-400" />
+                          {enc.data_agendamento} {enc.hora_agendamento}
+                        </span>
+                        <span>•</span>
+                        <span className="text-amber-800">{enc.loja_nome || 'Padaria da Vila'}</span>
                       </div>
                     </div>
 
-                    {/* Rodapé Operacional com Ação Direta Única: Marcar como Pronta */}
-                    <div className="p-3.5 bg-stone-50 border-t border-stone-200 flex items-center justify-between gap-2">
-                      {isPronta ? (
-                        <div className="flex items-center justify-between w-full">
-                          <span className="inline-flex items-center gap-1.5 text-xs font-black text-emerald-700 bg-emerald-100 px-3 py-1.5 rounded-xl">
-                            <CheckCircle2 className="h-4 w-4" />
-                            <span>Pronta no Balcão</span>
-                          </span>
+                    <div className="mt-2.5 rounded-xl bg-stone-50 p-2 text-xs space-y-1">
+                      {enc.itens.map((it) => (
+                        <div key={it.id} className="flex justify-between font-medium text-stone-800 text-[11px]">
+                          <span><b>{it.quantidade}x</b> {it.produto_nome}</span>
+                          <span className="text-stone-500">{it.setor}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
 
-                          {temPermissaoEdicao && (
-                            <button
-                              type="button"
-                              onClick={() => handleReverterParaProducao(enc.id)}
-                              className="text-[11px] font-bold text-stone-500 hover:text-stone-800 underline cursor-pointer"
-                            >
-                              Reverter
-                            </button>
-                          )}
+                  <div className="pt-2 border-t flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEncomendaParaImprimir(enc)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold transition cursor-pointer"
+                    >
+                      <Printer className="h-3.5 w-3.5" />
+                      <span>Talão</span>
+                    </button>
+
+                    {temPermissaoEdicao && enc.estado !== 'entregue' && (
+                      <button
+                        type="button"
+                        onClick={() => handleMarcarComoPronta(enc.id)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-xs transition cursor-pointer"
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                        <span>Pronta</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* ECRÃ 3: BALCÃO DE LEVANTAMENTOS EM LOJA (TAL COMO AS LOJAS TÊM)           */}
+        {/* ========================================================================= */}
+        {abaAtiva === 'balcao' && (
+          <div className="space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
+              <div>
+                <h3 className="text-base font-black text-stone-900 flex items-center gap-2">
+                  <Store className="h-5 w-5 text-amber-600" />
+                  Balcão de Levantamentos ({selectedLojaId === 'todas' ? 'Todas as Lojas' : lojaAtual.nome})
+                </h3>
+                <p className="text-xs text-stone-500">
+                  Registe levantamentos presenciais e envie notificações instantâneas por WhatsApp
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative min-w-[240px]">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={buscaBalcao}
+                    onChange={(e) => setBuscaBalcao(e.target.value)}
+                    placeholder="Pesquisar cliente ou código..."
+                    className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-gray-200 bg-stone-50 focus:outline-hidden"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-xl text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setFiltroEstadoBalcao('pendentes')}
+                    className={`px-3 py-1 rounded-lg transition cursor-pointer ${
+                      filtroEstadoBalcao === 'pendentes' ? 'bg-amber-600 text-white shadow-xs' : 'text-stone-600'
+                    }`}
+                  >
+                    Pendentes ({encomendasBalcaoFiltradas.filter(e => e.estado !== 'entregue').length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFiltroEstadoBalcao('concluidos')}
+                    className={`px-3 py-1 rounded-lg transition cursor-pointer ${
+                      filtroEstadoBalcao === 'concluidos' ? 'bg-emerald-600 text-white shadow-xs' : 'text-stone-600'
+                    }`}
+                  >
+                    Concluídos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFiltroEstadoBalcao('todos')}
+                    className={`px-3 py-1 rounded-lg transition cursor-pointer ${
+                      filtroEstadoBalcao === 'todos' ? 'bg-stone-800 text-white shadow-xs' : 'text-stone-600'
+                    }`}
+                  >
+                    Todos
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {encomendasBalcaoFiltradas.map((enc) => {
+                const isEntregue = enc.estado === 'entregue';
+                const whatsappUrl = gerarLinkWhatsAppEncomendaPronta(enc);
+
+                return (
+                  <div
+                    key={enc.id}
+                    className={`rounded-2xl bg-white border-2 p-4 shadow-xs flex flex-col justify-between space-y-3 ${
+                      isEntregue ? 'border-emerald-200 bg-emerald-50/20' : 'border-amber-200'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <span className="font-mono font-black text-xs text-stone-900 bg-stone-100 px-2 py-0.5 rounded">
+                          {enc.codigo}
+                        </span>
+                        <span className="font-black text-xs text-amber-900 bg-amber-50 px-2 py-0.5 rounded flex items-center gap-1">
+                          <Clock className="h-3 w-3 text-amber-700" />
+                          {enc.hora_agendamento} ({enc.data_agendamento})
+                        </span>
+                      </div>
+
+                      <div className="mt-2.5">
+                        <h4 className="text-sm font-black text-stone-900">{enc.cliente.nome}</h4>
+                        <p className="text-xs text-stone-500">{enc.cliente.telefone}</p>
+                        <p className="text-[11px] font-bold text-amber-800 mt-0.5">{enc.loja_nome || 'Padaria da Vila'}</p>
+                      </div>
+
+                      <div className="mt-2.5 rounded-xl bg-stone-50 p-2.5 text-xs space-y-1">
+                        {enc.itens.map((it) => (
+                          <div key={it.id} className="flex justify-between font-medium text-stone-800 text-[11px]">
+                            <span><b>{it.quantidade}x</b> {it.produto_nome}</span>
+                            <SectorBadge setor={it.setor} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t flex items-center gap-2">
+                      {whatsappUrl && (
+                        <a
+                          href={whatsappUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-1 py-2 px-2.5 rounded-xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-xs font-bold border border-emerald-200 transition"
+                          title="Avisar cliente por WhatsApp que a encomenda está pronta"
+                        >
+                          <Phone className="h-3.5 w-3.5 text-emerald-600" />
+                          <span>WhatsApp</span>
+                        </a>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => setEncomendaParaImprimir(enc)}
+                        className="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 transition"
+                        title="Imprimir Talão"
+                      >
+                        <Printer className="h-4 w-4" />
+                      </button>
+
+                      {isEntregue ? (
+                        <div className="flex-1 py-2 rounded-xl bg-emerald-100 text-emerald-800 text-xs font-black text-center flex items-center justify-center gap-1">
+                          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                          <span>Entregue</span>
                         </div>
                       ) : (
                         temPermissaoEdicao && (
                           <button
                             type="button"
-                            onClick={() => handleMarcarComoPronta(enc.id)}
-                            className="w-full py-2.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-black text-xs uppercase tracking-wider shadow-sm transition flex items-center justify-center gap-2 cursor-pointer"
+                            onClick={() => handleConcluirEntregaBalcao(enc.id)}
+                            className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-xs transition flex items-center justify-center gap-1 cursor-pointer"
                           >
                             <Check className="h-4 w-4" />
-                            <span>Marcar como Pronta</span>
+                            <span>Entregar</span>
                           </button>
                         )
                       )}
@@ -919,11 +1561,105 @@ export default function ProducaoPage() {
                 );
               })}
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* ECRÃ 4: GUIAS DE CARGA DAS 8 ROTAS (PDF VIA @react-pdf/renderer)           */}
+        {/* ========================================================================= */}
+        {abaAtiva === 'guias_carga' && (
+          <div className="space-y-4">
+            <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base font-black text-stone-900 flex items-center gap-2">
+                  <Truck className="h-5 w-5 text-amber-600" />
+                  Guias de Carga das 8 Rotas de Distribuição
+                </h3>
+                <p className="text-xs text-stone-500">
+                  Emissão em tempo real das folhas de carga oficiais com conferência de caixas e quantidades para o turno da madrugada
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {carrinhas.map((car) => {
+                const itensCar = prepararItensFolhaCarga(car);
+                const totalPao = itensCar.filter(i => i.categoria === 'padaria').reduce((acc, i) => acc + i.quantidade, 0);
+                const totalPastelaria = itensCar.filter(i => i.categoria === 'pastelaria').reduce((acc, i) => acc + i.quantidade, 0);
+                const totalCaixas = itensCar.reduce((acc, i) => acc + i.caixasEstimadas, 0);
+                const b2bDaRota = clientesB2B.filter(cli => cli.ativo && cli.carrinha_id === car.id);
+
+                return (
+                  <div
+                    key={car.id}
+                    className="rounded-2xl bg-white border border-stone-200 p-4 shadow-xs flex flex-col justify-between space-y-4 hover:shadow-md transition"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <span className="text-sm font-black text-stone-900">
+                          {car.rota || car.identificador}
+                        </span>
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-stone-100 text-stone-700">
+                          {car.matricula}
+                        </span>
+                      </div>
+
+                      <div className="mt-2 text-xs text-stone-500 font-medium">
+                        <p><b>Viatura:</b> {car.nome_carro || car.modelo || 'Carrinha de Caixa'}</p>
+                        <p><b>Motorista:</b> {car.motorista_nome || 'Rui Oliveira'}</p>
+                      </div>
+
+                      {/* Métricas de Carga de Madrugada */}
+                      <div className="mt-3 grid grid-cols-3 gap-1.5 p-2 rounded-xl bg-stone-50 border border-stone-100 text-center">
+                        <div>
+                          <p className="text-[10px] text-stone-500 font-bold uppercase">Padaria</p>
+                          <p className="text-sm font-black text-amber-800">{totalPao}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-stone-500 font-bold uppercase">Pastelaria</p>
+                          <p className="text-sm font-black text-rose-800">{totalPastelaria}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-stone-500 font-bold uppercase">Caixas</p>
+                          <p className="text-sm font-black text-stone-900">~{totalCaixas}</p>
+                        </div>
+                      </div>
+
+                      {/* Clientes B2B da Rota */}
+                      {b2bDaRota.length > 0 && (
+                        <div className="mt-3 pt-2 border-t border-stone-100">
+                          <p className="text-[10px] font-bold text-stone-500 uppercase flex items-center gap-1 mb-1">
+                            <Building2 className="h-3 w-3 text-amber-700" />
+                            {b2bDaRota.length} Clientes B2B Integrados:
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            {b2bDaRota.map(cli => (
+                              <span key={cli.id} className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-900 border border-amber-200">
+                                {cli.nome}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => abrirFolhaCargaPdf(car)}
+                      className="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black shadow-xs transition cursor-pointer"
+                    >
+                      <FileText className="h-4 w-4" />
+                      <span>Gerar Folha de Carga (PDF)</span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </main>
 
-      {/* Modal de Impressão */}
+      {/* Modal de Impressão Térmica */}
       {encomendaParaImprimir && (
         <ThermalReceipt
           encomenda={encomendaParaImprimir}
@@ -931,6 +1667,20 @@ export default function ProducaoPage() {
           onClose={() => setEncomendaParaImprimir(null)}
         />
       )}
+
+      {/* Modal de PDF (Folha de Carga das Rotas 1 a 8) */}
+      <PdfViewerModal
+        isOpen={pdfModalOpen}
+        tipo={pdfModalTipo}
+        onClose={() => setPdfModalOpen(false)}
+        carrinha={pdfCarrinhaSelecionada}
+        diaSemana={diaSemanaHoje as any}
+        dataReferencia={hoje}
+        itensCarga={pdfItensCarga}
+        clienteB2B={pdfClienteB2B}
+        nomeCondutor={currentUser.nome}
+        matriculaCarro={pdfCarrinhaSelecionada?.matricula}
+      />
     </div>
   );
 }

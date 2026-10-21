@@ -35,6 +35,8 @@ import {
 } from 'lucide-react';
 import { StatusBadge } from '../../components/StatusBadge';
 import { OriginBadge } from '../../components/InproovalBadges';
+import { buscarEncomendasOramaSync } from '../../lib/oramaSearch';
+import { Zap } from 'lucide-react';
 
 export default function EntregaLojaPage() {
   const { t } = useTranslation();
@@ -79,6 +81,15 @@ export default function EntregaLojaPage() {
   dAmanha.setDate(dHoje.getDate() + 1);
   const amanha = dAmanha.toISOString().split('T')[0];
 
+  // Pesquisa Instantânea Orama com tolerância total a gralhas (< 2 ms)
+  const resultadoOramaEncomendas = useMemo(() => {
+    return buscarEncomendasOramaSync(encomendas, busca);
+  }, [encomendas, busca]);
+
+  const idsOramaValidos = useMemo(() => {
+    return new Set(resultadoOramaEncomendas.resultados.map((e) => e.id));
+  }, [resultadoOramaEncomendas]);
+
   // Encomendas filtradas de acordo com Loja, Estado, Calendário e Pesquisa
   const encomendasFiltradas = encomendas.filter((e) => {
     // 1. Loja
@@ -100,11 +111,8 @@ export default function EntregaLojaPage() {
       matchData = e.data_agendamento === dataPersonalizada;
     }
 
-    // 4. Pesquisa textual
-    const matchBusca = busca.trim() === '' || 
-      e.cliente.nome.toLowerCase().includes(busca.toLowerCase()) ||
-      e.codigo.toLowerCase().includes(busca.toLowerCase()) ||
-      e.cliente.telefone.includes(busca);
+    // 4. Pesquisa instantânea Orama (< 2 ms) com tolerância a gralhas
+    const matchBusca = busca.trim() === '' || idsOramaValidos.has(e.id);
 
     return matchLoja && matchStatus && matchData && matchBusca;
   });
@@ -339,6 +347,16 @@ export default function EntregaLojaPage() {
               ))}
             </div>
           </div>
+
+          {busca.trim() && (
+            <div className="flex items-center justify-between text-[11px] text-emerald-800 bg-emerald-50 px-3.5 py-1.5 rounded-xl border border-emerald-200">
+              <span className="font-bold flex items-center gap-1.5">
+                <Zap className="h-3.5 w-3.5 text-emerald-600" />
+                Orama &lt; 2 ms: {encomendasFiltradas.length} encomenda(s) encontrada(s) ({resultadoOramaEncomendas.tempoMs.toFixed(1)} ms)
+              </span>
+              <span className="text-[10px] text-emerald-600 font-semibold">Tolerância a gralhas e acentos ativa</span>
+            </div>
+          )}
 
           {filtroPeriodo === 'personalizado' && (
             <div className="flex items-center gap-2 pt-2 border-t border-gray-100 bg-amber-50/50 p-2.5 rounded-xl">

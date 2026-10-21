@@ -1,6 +1,6 @@
 {
   "name": "app-encomendas-padaria",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -17,7 +17,10 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tailwind-merge": "^2.5.4",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "@react-pdf/renderer": "^3.4.4",
+    "@orama/orama": "^3.1.18",
+    "@trigger.dev/sdk": "^3.3.17"
   },
   "devDependencies": {
     "@types/node": "^20.17.0",
