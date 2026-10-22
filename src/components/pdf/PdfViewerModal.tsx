@@ -165,9 +165,51 @@ export function PdfViewerModal({
     setModoAssinaturaAberto(false);
   };
 
-  // Impressão / Descarregar PDF Nativo
+  // Impressão / Descarregar PDF Nativo (A4 Calibrado sem páginas em branco)
   const handleImprimir = () => {
+    const existing = document.getElementById('dynamic-pdf-page-size');
+    if (existing) existing.remove();
+
+    const styleEl = document.createElement('style');
+    styleEl.id = 'dynamic-pdf-page-size';
+    styleEl.textContent = `
+      @page { 
+        size: A4 portrait !important; 
+        margin: 8mm !important; 
+      }
+      body > *:not(#pdf-print-root) {
+        display: none !important;
+      }
+      #receipt-print-root {
+        display: none !important;
+      }
+      #pdf-print-root {
+        display: block !important;
+        position: static !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        overflow: visible !important;
+      }
+      #pdf-print-root,
+      #pdf-print-root * {
+        overflow: visible !important;
+        max-height: none !important;
+        box-shadow: none !important;
+      }
+      #pdf-print-root .print\\:hidden {
+        display: none !important;
+      }
+    `;
+    document.head.appendChild(styleEl);
+
     window.print();
+
+    setTimeout(() => {
+      const el = document.getElementById('dynamic-pdf-page-size');
+      if (el) el.remove();
+    }, 2000);
   };
 
   // Partilha via WhatsApp para o responsável da instituição
@@ -202,9 +244,9 @@ export function PdfViewerModal({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 sm:p-4 backdrop-blur-xs overflow-y-auto print:p-0 print:bg-white print:static">
-      <div className="bg-white rounded-3xl max-w-4xl w-full shadow-2xl border border-gray-300 overflow-hidden flex flex-col max-h-[95vh] print:max-h-none print:shadow-none print:border-none print:w-full">
+  return createPortal(
+    <div id="pdf-print-root" className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 sm:p-4 backdrop-blur-xs overflow-y-auto print:p-0 print:bg-white print:static">
+      <div className="bg-white rounded-3xl max-w-4xl w-full shadow-2xl border border-gray-300 overflow-hidden flex flex-col max-h-[95vh] print:max-h-none print:shadow-none print:border-none print:w-full print:overflow-visible">
         {/* Barra Superior de Ações (Oculta na impressão física) */}
         <div className="p-4 bg-gray-900 text-white flex flex-wrap items-center justify-between gap-3 print:hidden">
           <div className="flex items-center gap-2">
@@ -318,7 +360,7 @@ export function PdfViewerModal({
         )}
 
         {/* ÁREA DO DOCUMENTO FORMATO A4 LIMPO */}
-        <div className="flex-1 overflow-y-auto p-6 sm:p-10 font-sans text-gray-900 bg-white print:p-0">
+        <div className="flex-1 overflow-y-auto p-6 sm:p-10 font-sans text-gray-900 bg-white print:p-0 print:overflow-visible print:h-auto">
           
           {/* ============================================================== */}
           {/* CASO 1: FOLHA DE CARGA POR ROTA (ROTAS 1 A 8)                */}
@@ -639,6 +681,7 @@ export function PdfViewerModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
