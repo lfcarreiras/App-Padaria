@@ -57,7 +57,6 @@ import {
   Phone,
   MapPin,
   FileText,
-  Sparkles,
   Layers,
   Zap,
   RefreshCw,
@@ -832,10 +831,6 @@ export default function ProducaoPage() {
                       <h3 className="text-base font-black tracking-wide text-white">
                         Fecho Noturno Automático das 22h00
                       </h3>
-                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 inline-flex items-center gap-1">
-                        <Sparkles className="h-3 w-3" />
-                        Trigger.dev v3 Ativo (0 22 * * *)
-                      </span>
                     </div>
                     <p className="text-xs text-stone-300 max-w-2xl">
                       Compila automaticamente encomendas aceites + Base Fixa das 8 rotas + Matriz dos 13 clientes B2B às 22h00 para a entrada do primeiro turno de madrugada (23h00-06h00).

@@ -52,7 +52,6 @@ import { StatusBadge } from '../../components/StatusBadge';
 import { OriginBadge, SectorBadge } from '../../components/InproovalBadges';
 import { buscarArtigosOramaSync } from '../../lib/oramaSearch';
 import { OramaQuickSearchModal } from '../../components/OramaQuickSearchModal';
-import { Zap } from 'lucide-react';
 
 export default function EncomendasPage() {
   const { t, language } = useTranslation();
@@ -765,15 +764,7 @@ export default function EncomendasPage() {
                   />
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setOramaModalOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black shadow-xs transition cursor-pointer shrink-0"
-                  title="Pesquisa Instantânea Orama (< 2 ms) com tolerância total a gralhas"
-                >
-                  <Zap className="h-3.5 w-3.5 text-amber-100 fill-amber-100" />
-                  <span>Orama &lt; 2 ms</span>
-                </button>
+
 
                 <div className="flex gap-1.5 overflow-x-auto">
                   {(['todas', 'padaria', 'pastelaria'] as const).map((cat) => (
@@ -793,16 +784,7 @@ export default function EncomendasPage() {
                 </div>
               </div>
 
-              {/* Indicador de Desempenho Orama */}
-              {buscaProduto.trim() && (
-                <div className="flex items-center justify-between text-[11px] text-emerald-800 bg-emerald-50 px-3.5 py-1.5 rounded-xl border border-emerald-200">
-                  <span className="font-bold flex items-center gap-1.5">
-                    <Zap className="h-3.5 w-3.5 text-emerald-600" />
-                    Orama Instantâneo: {produtosFiltrados.length} artigo(s) encontrados ({resultadoOramaProdutos.tempoMs.toFixed(1)} ms)
-                  </span>
-                  <span className="text-[10px] text-emerald-600 font-semibold">Tolerância a gralhas e acentos ativa</span>
-                </div>
-              )}
+
 
               {/* Grelha de Produtos (Sem preços - foco na quantidade e artigo) */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
