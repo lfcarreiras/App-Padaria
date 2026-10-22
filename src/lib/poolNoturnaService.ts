@@ -251,6 +251,16 @@ export async function compilarPoolNoturnaAutomatica(dataReferencia?: string): Pr
 }
 
 /**
+ * Executar compilação da pool noturna (alias para o Cockpit de Produção)
+ */
+export async function executarCompilacaoPoolNoturna(
+  dataReferencia?: string,
+  currentUser?: { id: string; nome: string; role: any }
+): Promise<ResultadoFechoNoturno> {
+  return compilarPoolNoturnaAutomatica(dataReferencia);
+}
+
+/**
  * Obter o último fecho noturno guardado em cache
  */
 export function obterUltimoFechoNoturno(): ResultadoFechoNoturno | null {
