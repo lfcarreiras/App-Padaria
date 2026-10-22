@@ -1,12 +1,29 @@
-# Robots.txt - Padaria da Vila
-# Cenário A: Aplicação operacional restrita à equipa interna da empresa
+# Padaria da Vila - Sistema Operacional Privado
+# Bloqueio Global e Irrevogável de Indexação para Todos os Motores de Busca
 
 User-agent: *
-Disallow: /producao
-Disallow: /loja
-Disallow: /entregas
-Disallow: /gestao
-Disallow: /cms
-Disallow: /login
-Allow: /encomendar
-Allow: /
+Disallow: /
+
+User-agent: Googlebot
+Disallow: /
+
+User-agent: Googlebot-Image
+Disallow: /
+
+User-agent: Bingbot
+Disallow: /
+
+User-agent: Slurp
+Disallow: /
+
+User-agent: DuckDuckBot
+Disallow: /
+
+User-agent: Baiduspider
+Disallow: /
+
+User-agent: YandexBot
+Disallow: /
+
+User-agent: Applebot
+Disallow: /

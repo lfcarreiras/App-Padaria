@@ -14,6 +14,11 @@ const nextConfig = {
       {
         source: '/(.*)',
         headers: [
+          // Blindagem de Segurança contra indexação em Motores de Busca
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex, nofollow, noarchive, nosnippet, noimageindex, notranslate',
+          },
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
@@ -32,4 +37,3 @@ const nextConfig = {
 };
 
 export default nextConfig;
-

@@ -8,6 +8,7 @@ import { LOJAS_MOCK } from '../lib/mockData';
 import { useTranslation } from '../lib/i18n';
 import { useAuth, PainelApp } from '../lib/authContext';
 import { obterConfiguracaoMarca } from '../lib/tinaContent';
+import { getSecretUrl } from '../lib/secretRoutes';
 
 interface NavbarProps {
   selectedLojaId?: string;
@@ -37,15 +38,15 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId = 'todas', onSele
 
   const handleLogout = () => {
     logout();
-    router.push('/login');
+    router.push(getSecretUrl('login'));
   };
 
   const allLinks: { href: string; label: string; icon: any; panel: PainelApp; aliases?: string[] }[] = [
-    { href: '/encomendas', label: t.navEncomendas, icon: ShoppingBag, panel: 'encomendas', aliases: ['/balcao'] },
-    { href: '/producao', label: t.navProducao, icon: ChefHat, panel: 'producao' },
-    { href: '/loja', label: language === 'pt' ? 'Balcão' : 'Counter', icon: Store, panel: 'loja' },
-    { href: '/entregas', label: language === 'pt' ? 'Entregas' : 'Deliveries', icon: Truck, panel: 'entregas' },
-    { href: '/gestao', label: t.navGestao, icon: BarChart3, panel: 'gestao' },
+    { href: getSecretUrl('encomendas'), label: t.navEncomendas, icon: ShoppingBag, panel: 'encomendas', aliases: ['/encomendas', '/balcao', getSecretUrl('loja')] },
+    { href: getSecretUrl('producao'), label: t.navProducao, icon: ChefHat, panel: 'producao', aliases: ['/producao'] },
+    { href: getSecretUrl('loja'), label: language === 'pt' ? 'Balcão' : 'Counter', icon: Store, panel: 'loja', aliases: ['/loja'] },
+    { href: getSecretUrl('entregas'), label: language === 'pt' ? 'Entregas' : 'Deliveries', icon: Truck, panel: 'entregas', aliases: ['/entregas'] },
+    { href: getSecretUrl('gestao'), label: t.navGestao, icon: BarChart3, panel: 'gestao', aliases: ['/gestao'] },
   ];
 
   // Filtrar estritamente pelo Cockpit escolhido no Login (ou pelas permissões do utilizador caso não haja cockpit explícito)
@@ -80,7 +81,7 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId = 'todas', onSele
       <div className="mx-auto flex max-w-7xl items-center justify-between px-3 py-2.5 sm:px-6">
         {/* Identidade e Cockpit Ativo */}
         <div className="flex items-center gap-2.5 shrink-0">
-          <Link href={links[0]?.href || '/login'} className="flex items-center gap-2">
+          <Link href={links[0]?.href || getSecretUrl('login')} className="flex items-center gap-2">
             <img
               src="/logo-padaria.jpg"
               alt={configMarca.nomeEmpresa || 'Padaria da Vila'}
@@ -203,7 +204,7 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId = 'todas', onSele
             </div>
           ) : (
             <Link
-              href="/login"
+              href={getSecretUrl('login')}
               className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-bakery-600 hover:bg-bakery-700 shadow-xs transition"
             >
               <UserCheck className="h-3.5 w-3.5 shrink-0" />

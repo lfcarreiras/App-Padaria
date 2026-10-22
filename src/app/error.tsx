@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import { AlertTriangle, RefreshCw, Trash2, Home } from 'lucide-react';
 import Link from 'next/link';
+import { getSecretUrl } from '../lib/secretRoutes';
 
 export default function GlobalErrorBoundary({
   error,
@@ -66,7 +67,7 @@ export default function GlobalErrorBoundary({
           </button>
 
           <Link
-            href="/login"
+            href={getSecretUrl('login')}
             className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-bold text-xs hover:bg-gray-100 transition"
           >
             <Home className="h-4 w-4" />

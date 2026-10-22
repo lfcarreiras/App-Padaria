@@ -4,8 +4,21 @@ import { LanguageProvider } from '../lib/i18n';
 import { AuthProvider } from '../lib/authContext';
 
 export const metadata: Metadata = {
-  title: 'Gestão de Encomendas & Produção | 4 Lojas',
-  description: 'Sistema integrado de gestão de encomendas, KDS de padaria/pastelaria e rotas de entrega ao domicílio.',
+  title: 'Painel Operacional | Padaria da Vila',
+  description: 'Sistema integrado de gestão de encomendas, KDS de padaria/pastelaria e rotas de entrega.',
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'none',
+      'max-snippet': -1,
+    },
+  },
 };
 
 export default function RootLayout({

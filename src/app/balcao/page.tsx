@@ -2,13 +2,14 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { getSecretUrl } from '../../lib/secretRoutes';
 import { Flame } from 'lucide-react';
 
 export default function BalcaoRedirectPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace('/encomendas');
+    router.replace(getSecretUrl('encomendas'));
   }, [router]);
 
   return (

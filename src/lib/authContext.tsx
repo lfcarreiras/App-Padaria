@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { PerfilUtilizador, NivelAcesso, CockpitSelecionado } from '../types';
 import { carregarPerfisAcessoSupabase } from './encomendasService';
 import { LOJAS_MOCK } from './mockData';
+import { getSecretUrl } from './secretRoutes';
 
 export type PainelApp = 'encomendas' | 'producao' | 'loja' | 'entregas' | 'gestao';
 
@@ -38,7 +39,7 @@ const AuthContext = createContext<AuthContextType>({
   getNivelAcesso: () => 'sem_acesso',
   podeEditar: () => false,
   podeLer: () => false,
-  obterRotaInicial: () => '/login',
+  obterRotaInicial: () => getSecretUrl('login'),
 });
 
 const SESSION_KEY = 'app_sessao_utilizador';
@@ -287,23 +288,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   ): string => {
     const u = user || usuario;
     const c = cockpit || cockpitAtivo;
-    if (!u) return '/login';
+    if (!u) return getSecretUrl('login');
 
-    if (c === 'loja') return '/encomendas';
-    if (c === 'producao') return '/producao';
-    if (c === 'carrinhas') return '/entregas';
-    if (c === 'gestao') return '/gestao';
+    if (c === 'loja') return getSecretUrl('encomendas');
+    if (c === 'producao') return getSecretUrl('producao');
+    if (c === 'carrinhas') return getSecretUrl('entregas');
+    if (c === 'gestao') return getSecretUrl('gestao');
 
     if (u.role === 'admin' && (u.acesso_gestao === 'edicao' || u.acesso_gestao === 'leitura')) {
-      return '/gestao';
+      return getSecretUrl('gestao');
     }
-    if (u.acesso_encomendas !== 'sem_acesso') return '/encomendas';
-    if (u.acesso_producao !== 'sem_acesso') return '/producao';
-    if (u.acesso_loja !== 'sem_acesso') return '/loja';
-    if (u.acesso_entregas !== 'sem_acesso') return '/entregas';
-    if (u.acesso_gestao !== 'sem_acesso') return '/gestao';
+    if (u.acesso_encomendas !== 'sem_acesso') return getSecretUrl('encomendas');
+    if (u.acesso_producao !== 'sem_acesso') return getSecretUrl('producao');
+    if (u.acesso_loja !== 'sem_acesso') return getSecretUrl('loja');
+    if (u.acesso_entregas !== 'sem_acesso') return getSecretUrl('entregas');
+    if (u.acesso_gestao !== 'sem_acesso') return getSecretUrl('gestao');
 
-    return '/login';
+    return getSecretUrl('login');
   };
 
   return (

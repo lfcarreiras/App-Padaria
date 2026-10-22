@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
@@ -43,6 +43,7 @@ import { Encomenda, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, Role, Ni
 import { useTranslation } from '../../lib/i18n';
 import { useAuth } from '../../lib/authContext';
 import { obterConfiguracaoMarca } from '../../lib/tinaContent';
+import { getAllSecretRouteMappings } from '../../lib/secretRoutes';
 import { 
   BarChart3, 
   Store, 
@@ -95,6 +96,7 @@ export default function AdminPage() {
   const configMarca = obterConfiguracaoMarca();
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
   const [activeTab, setActiveTab] = useState<'metricas' | 'lojas_carrinhas' | 'database' | 'logs' | 'talao' | 'acessos'>('metricas');
+  const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
 
   // Histórico & Logs de Auditoria de Utilizadores
   const [logsAuditoria, setLogsAuditoria] = useState<LogAuditoria[]>([]);
@@ -4515,6 +4517,79 @@ export default function AdminPage() {
                 <Plus className="h-4 w-4" />
                 {t.newUser}
               </button>
+            </div>
+
+            {/* Bloco de Segurança & URLs Ofuscadas (app.padariadavila.com) */}
+            <div className="rounded-2xl border border-amber-200 bg-amber-50/40 p-4 sm:p-5 shadow-xs space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200/60 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-amber-500/10 text-amber-700 border border-amber-300">
+                    <Lock className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-black text-gray-900 tracking-tight flex flex-wrap items-center gap-2">
+                      <span>Endereço Oficial da App: <strong className="text-bakery-700">app.padariadavila.com</strong></span>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        <ShieldCheck className="h-3 w-3" />
+                        Anti-Indexação Ativa (noindex)
+                      </span>
+                    </h4>
+                    <p className="text-[11px] text-gray-600 mt-0.5">
+                      Cada ecrã tem uma chave alfanumérica única não adivinhável. Tentativas de aceder a rotas comuns (/producao, /gestao) são intercetadas pelo servidor.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
+                {getAllSecretRouteMappings().map((item) => {
+                  const isCopied = copiedSlug === item.secretSlug;
+                  return (
+                    <div
+                      key={item.key}
+                      className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white border border-gray-200 shadow-2xs hover:border-amber-300 transition"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] font-black text-gray-900">{item.label}</span>
+                          <span className="text-[9px] font-mono text-gray-400">({item.internalPath})</span>
+                        </div>
+                        <div className="text-[10px] font-mono text-amber-800 truncate mt-0.5" title={item.fullAppUrl}>
+                          app.padariadavila.com/<span className="font-bold">{item.secretSlug.slice(0, 8)}...{item.secretSlug.slice(-6)}</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                            navigator.clipboard.writeText(item.fullAppUrl);
+                            setCopiedSlug(item.secretSlug);
+                            setTimeout(() => setCopiedSlug(null), 2500);
+                          }
+                        }}
+                        className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold transition shrink-0 cursor-pointer ${
+                          isCopied
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200'
+                        }`}
+                        title="Copiar endereço completo para a área de transferência"
+                      >
+                        {isCopied ? (
+                          <>
+                            <Check className="h-3 w-3" />
+                            <span>Copiado!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3 w-3" />
+                            <span>Copiar</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Tabela de Utilizadores & Permissões */}

@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../lib/authContext';
+import { getSecretUrl } from '../lib/secretRoutes';
 import { Flame } from 'lucide-react';
 
 export default function RootPage() {
@@ -14,7 +15,7 @@ export default function RootPage() {
       if (usuario && usuario.ativo) {
         router.replace(obterRotaInicial(usuario));
       } else {
-        router.replace('/login');
+        router.replace(getSecretUrl('login'));
       }
     }
   }, [usuario, loading, router, obterRotaInicial]);
