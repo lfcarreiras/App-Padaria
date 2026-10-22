@@ -466,21 +466,7 @@ export function PdfViewerModal({
                 </div>
               )}
 
-              {/* Bloco de Assinaturas de Expedição */}
-              <div className="grid grid-cols-2 gap-8 pt-8 border-t border-gray-200 text-xs">
-                <div>
-                  <span className="font-bold text-gray-600 block mb-12">Conferido por (Chefe de Fabrico / Expedição):</span>
-                  <div className="border-t border-gray-400 pt-1 text-center font-mono text-gray-700">
-                    Visto & Carimbo de Saída
-                  </div>
-                </div>
-                <div>
-                  <span className="font-bold text-gray-600 block mb-12">Recebido e Conferido (Motorista da Rota):</span>
-                  <div className="border-t border-gray-400 pt-1 text-center font-mono text-gray-700">
-                    Assinatura do Motorista
-                  </div>
-                </div>
-              </div>
+
             </div>
           )}
 

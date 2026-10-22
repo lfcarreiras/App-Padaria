@@ -169,14 +169,7 @@ export const FolhaDeCargaPdfDocument = ({
         </View>
       </View>
 
-      <View style={styles.signatureSection}>
-        <View style={styles.signBox}>
-          <Text style={{ fontSize: 8 }}>Visto do Chefe de Fabrico / Expedição</Text>
-        </View>
-        <View style={styles.signBox}>
-          <Text style={{ fontSize: 8 }}>Assinatura do Motorista da Rota</Text>
-        </View>
-      </View>
+
     </Page>
   </Document>
 );
