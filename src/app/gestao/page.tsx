@@ -573,7 +573,7 @@ export default function AdminPage() {
         mapaItens.set(artigo, {
           quantidade: qtd,
           categoria: prod?.categoria || 'padaria',
-          unidade: prod?.unidade || 'un',
+          unidade: prod?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.',
         });
       }
     });
@@ -593,7 +593,7 @@ export default function AdminPage() {
             mapaItens.set(artigo, {
               quantidade: qtd,
               categoria: prod?.categoria || 'padaria',
-              unidade: prod?.unidade || 'un',
+              unidade: prod?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.',
             });
           }
         }

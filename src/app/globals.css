@@ -32,12 +32,13 @@ body {
   }
 
   /* 2. Ocultar todos os nós principais da aplicação para não criarem espaço vertical nem páginas em branco */
-  body > *:not(#receipt-print-root) {
+  body > *:not(#receipt-print-root):not(#pdf-print-root) {
     display: none !important;
   }
 
   /* 3. Ocultar botões, fechos e barras */
-  .no-print {
+  .no-print,
+  .print\:hidden {
     display: none !important;
   }
 
@@ -76,7 +77,55 @@ body {
     margin: 0 !important;
   }
 
-  /* 5. Contentor térmico calibrado para Epson M249A TM-T20 (Rolo 80mm / Área útil térmica 72mm - 203 DPI) */
+  /* 5. Contentor raiz do modal de Folha de Carga / PDF (A4) */
+  #pdf-print-root {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+    inset: auto !important;
+  }
+
+  #pdf-print-root > div {
+    position: static !important;
+    background: #ffffff !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    max-height: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    overflow: visible !important;
+    inset: auto !important;
+  }
+
+  #pdf-print-root [class*="max-w-"],
+  #pdf-print-root [class*="max-h-"],
+  #pdf-print-root [class*="overflow-"] {
+    position: static !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  #pdf-print-root * {
+    visibility: visible !important;
+    color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  /* 6. Contentor térmico calibrado para Epson M249A TM-T20 (Rolo 80mm / Área útil térmica 72mm - 203 DPI) */
   #thermal-print-area {
     display: block !important;
     position: relative !important;
@@ -118,11 +167,6 @@ body {
     visibility: visible !important;
     color: #000000 !important;
     box-sizing: border-box !important;
-  }
-
-  @page {
-    size: 80mm auto;
-    margin: 0mm;
   }
 }
 

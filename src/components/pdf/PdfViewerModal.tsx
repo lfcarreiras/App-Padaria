@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Carrinha, ClienteEmpresarialB2B, DiaSemana } from '../../types';
 import { 
   X, 
@@ -62,9 +63,23 @@ export function PdfViewerModal({
   const [assinaturaDataUrl, setAssinaturaDataUrl] = useState<string | null>(null);
   const [modoAssinaturaAberto, setModoAssinaturaAberto] = useState<boolean>(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const normalizarUnidade = (unid?: string) => {
+    if (!unid) return 'un.';
+    const u = unid.toLowerCase().trim();
+    if (u === 'unidade' || u === 'un' || u === 'un.' || u === 'unidades') return 'un.';
+    if (u.includes('kg') || u.includes('quilo')) return 'kg';
+    if (u.includes('cento')) return 'cento';
+    return 'un.';
+  };
+
   const isDrawingRef = useRef<boolean>(false);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const dataFormatada = dataReferencia || new Date().toLocaleDateString('pt-PT');
   const horaAtual = horaEntrega || new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
@@ -410,7 +425,7 @@ export function PdfViewerModal({
                             {item.categoria}
                           </td>
                           <td className="py-2 px-3 text-right font-mono font-black text-blue-900">
-                            {item.quantidade} {item.unidade}
+                            {item.quantidade} {normalizarUnidade(item.unidade)}
                           </td>
                           <td className="py-2 px-3 text-right font-mono font-bold text-amber-900">
                             {item.caixasEstimadas} cx
@@ -576,7 +591,7 @@ export function PdfViewerModal({
                           return Object.values(mapa).reduce((a, b) => a + Number(b || 0), 0);
                         })()} un.
                       </td>
-                      <td className="py-2.5 px-3 text-center">unidades</td>
+                      <td className="py-2.5 px-3 text-center">un.</td>
                       <td className="py-2.5 px-3 text-center text-emerald-700 font-bold">100% Entregue</td>
                     </tr>
                   </tfoot>

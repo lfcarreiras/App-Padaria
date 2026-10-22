@@ -397,7 +397,7 @@ export default function EntregasPage() {
       if (typeof qtd === 'number' && qtd > 0) {
         const prodRef = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
         const cat: 'padaria' | 'pastelaria' = prodRef?.categoria || (artigo.toLowerCase().includes('bolo') || artigo.toLowerCase().includes('croissant') ? 'pastelaria' : 'padaria');
-        const unid = prodRef?.unidade || 'un';
+        const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
         mapaItens.set(artigo, {
           quantidade: qtd,
           categoria: cat,
@@ -415,7 +415,7 @@ export default function EntregasPage() {
         if (typeof qtd === 'number' && qtd > 0) {
           const prodRef = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
           const cat: 'padaria' | 'pastelaria' = prodRef?.categoria || 'padaria';
-          const unid = prodRef?.unidade || 'un';
+          const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
           const atual = mapaItens.get(artigo);
           if (atual) {
             atual.quantidade += qtd;
@@ -439,7 +439,7 @@ export default function EntregasPage() {
         if (item.estado_producao !== 'recusado') {
           const prodRef = produtos.find((p) => p.id === item.produto_id || p.nome.toLowerCase() === item.produto_nome.toLowerCase());
           const cat: 'padaria' | 'pastelaria' = prodRef?.categoria || 'padaria';
-          const unid = prodRef?.unidade || 'un';
+          const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
           const atual = mapaItens.get(item.produto_nome);
           if (atual) {
             atual.quantidade += item.quantidade;

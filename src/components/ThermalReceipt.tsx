@@ -26,7 +26,31 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
   }, []);
 
   const handlePrint = () => {
+    const existing = document.getElementById('dynamic-thermal-page-size');
+    if (existing) existing.remove();
+
+    const styleEl = document.createElement('style');
+    styleEl.id = 'dynamic-thermal-page-size';
+    styleEl.textContent = `
+      @page { 
+        size: ${cfg.paperWidth === '58mm' ? '58mm auto' : '80mm auto'} !important; 
+        margin: 0mm !important; 
+      }
+      body > *:not(#receipt-print-root) {
+        display: none !important;
+      }
+      #pdf-print-root {
+        display: none !important;
+      }
+    `;
+    document.head.appendChild(styleEl);
+
     window.print();
+
+    setTimeout(() => {
+      const el = document.getElementById('dynamic-thermal-page-size');
+      if (el) el.remove();
+    }, 2000);
   };
 
   const itensPadaria = cfg.showSectionSeparation 
