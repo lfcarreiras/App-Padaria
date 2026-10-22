@@ -69,6 +69,8 @@ import {
 import { StatusBadge } from '../../components/StatusBadge';
 import { BreadIcon, OriginBadge, SectorBadge } from '../../components/InproovalBadges';
 import { PdfViewerModal, LinhaArtigoCarga } from '../../components/pdf/PdfViewerModal';
+import EncomendasPage from '../encomendas/page';
+import EntregaLojaPage from '../loja/page';
 import { 
   executarCompilacaoPoolNoturna, 
   obterUltimoFechoNoturno, 
@@ -1295,271 +1297,23 @@ export default function ProducaoPage() {
         )}
 
         {/* ========================================================================= */}
-        {/* ECRÃ 2: GESTÃO COMPLETA DE ENCOMENDAS (TAL COMO AS LOJAS TÊM)             */}
+        {/* ECRÃ 2: GESTÃO COMPLETA DE ENCOMENDAS (EXATAMENTE IGUAL ÀS LOJAS)         */}
         {/* ========================================================================= */}
         {abaAtiva === 'encomendas' && (
-          <div className="space-y-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
-              <div>
-                <h3 className="text-base font-black text-stone-900 flex items-center gap-2">
-                  <ShoppingBag className="h-5 w-5 text-amber-600" />
-                  Registo & Histórico de Encomendas Central
-                </h3>
-                <p className="text-xs text-stone-500">
-                  Consulte, filtre e reimprima qualquer encomenda de balcão ou rota
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="relative min-w-[260px]">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    value={buscaEncomendas}
-                    onChange={(e) => setBuscaEncomendas(e.target.value)}
-                    placeholder="Pesquisar por código, cliente ou artigo..."
-                    className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-gray-200 bg-stone-50 focus:outline-hidden"
-                  />
-                </div>
-
-                <select
-                  value={filtroTipoEncomenda}
-                  onChange={(e) => setFiltroTipoEncomenda(e.target.value as any)}
-                  className="px-3 py-1.5 rounded-xl border border-gray-200 bg-stone-50 text-xs font-bold text-stone-800 cursor-pointer"
-                >
-                  <option value="todos">Todos os Tipos</option>
-                  <option value="levantamento_loja">Levantamento em Loja</option>
-                  <option value="entrega_domicilio">Entrega ao Domicílio</option>
-                </select>
-
-                <select
-                  value={filtroEstadoEncomendas}
-                  onChange={(e) => setFiltroEstadoEncomendas(e.target.value)}
-                  className="px-3 py-1.5 rounded-xl border border-gray-200 bg-stone-50 text-xs font-bold text-stone-800 cursor-pointer"
-                >
-                  <option value="todos">Todos os Estados</option>
-                  <option value="pendente">Pendente</option>
-                  <option value="aceite">Aceite</option>
-                  <option value="em_producao">Em Produção</option>
-                  <option value="pronto_loja">Pronto em Loja</option>
-                  <option value="entregue">Entregue</option>
-                  <option value="cancelado">Cancelado</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {encomendasGeraisFiltradas.map((enc) => (
-                <div key={enc.id} className="rounded-2xl bg-white border border-stone-200 p-4 shadow-xs flex flex-col justify-between space-y-3">
-                  <div>
-                    <div className="flex items-center justify-between border-b pb-2">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-mono font-black text-xs text-stone-900 bg-stone-100 px-2 py-0.5 rounded">
-                          {enc.codigo}
-                        </span>
-                        <OriginBadge origem={enc.canal_origem} compact />
-                      </div>
-                      <StatusBadge estado={enc.estado} />
-                    </div>
-
-                    <div className="mt-2.5">
-                      <h4 className="text-sm font-black text-stone-900">{enc.cliente.nome}</h4>
-                      <p className="text-xs text-stone-500">{enc.cliente.telefone}</p>
-                      <div className="flex items-center gap-2 text-[11px] font-bold text-stone-600 mt-1">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3 text-stone-400" />
-                          {enc.data_agendamento} {enc.hora_agendamento}
-                        </span>
-                        <span>•</span>
-                        <span className="text-amber-800">{enc.loja_nome || 'Padaria da Vila'}</span>
-                      </div>
-                    </div>
-
-                    <div className="mt-2.5 rounded-xl bg-stone-50 p-2 text-xs space-y-1">
-                      {enc.itens.map((it) => (
-                        <div key={it.id} className="flex justify-between font-medium text-stone-800 text-[11px]">
-                          <span><b>{it.quantidade}x</b> {it.produto_nome}</span>
-                          <span className="text-stone-500">{it.setor}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t flex items-center justify-between gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setEncomendaParaImprimir(enc)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold transition cursor-pointer"
-                    >
-                      <Printer className="h-3.5 w-3.5" />
-                      <span>Talão</span>
-                    </button>
-
-                    {temPermissaoEdicao && enc.estado !== 'entregue' && (
-                      <button
-                        type="button"
-                        onClick={() => handleMarcarComoPronta(enc.id)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-xs transition cursor-pointer"
-                      >
-                        <Check className="h-3.5 w-3.5" />
-                        <span>Pronta</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="pt-2">
+            <EncomendasPage embedded={true} />
           </div>
         )}
 
         {/* ========================================================================= */}
-        {/* ECRÃ 3: BALCÃO DE LEVANTAMENTOS EM LOJA (TAL COMO AS LOJAS TÊM)           */}
+        {/* ECRÃ 3: BALCÃO E LEVANTAMENTOS EM LOJA (EXATAMENTE IGUAL ÀS LOJAS)         */}
         {/* ========================================================================= */}
         {abaAtiva === 'balcao' && (
-          <div className="space-y-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
-              <div>
-                <h3 className="text-base font-black text-stone-900 flex items-center gap-2">
-                  <Store className="h-5 w-5 text-amber-600" />
-                  Balcão de Levantamentos ({selectedLojaId === 'todas' ? 'Todas as Lojas' : lojaAtual.nome})
-                </h3>
-                <p className="text-xs text-stone-500">
-                  Registe levantamentos presenciais e envie notificações instantâneas por WhatsApp
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="relative min-w-[240px]">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    value={buscaBalcao}
-                    onChange={(e) => setBuscaBalcao(e.target.value)}
-                    placeholder="Pesquisar cliente ou código..."
-                    className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-gray-200 bg-stone-50 focus:outline-hidden"
-                  />
-                </div>
-
-                <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-xl text-xs font-bold">
-                  <button
-                    type="button"
-                    onClick={() => setFiltroEstadoBalcao('pendentes')}
-                    className={`px-3 py-1 rounded-lg transition cursor-pointer ${
-                      filtroEstadoBalcao === 'pendentes' ? 'bg-amber-600 text-white shadow-xs' : 'text-stone-600'
-                    }`}
-                  >
-                    Pendentes ({encomendasBalcaoFiltradas.filter(e => e.estado !== 'entregue').length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFiltroEstadoBalcao('concluidos')}
-                    className={`px-3 py-1 rounded-lg transition cursor-pointer ${
-                      filtroEstadoBalcao === 'concluidos' ? 'bg-emerald-600 text-white shadow-xs' : 'text-stone-600'
-                    }`}
-                  >
-                    Concluídos
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFiltroEstadoBalcao('todos')}
-                    className={`px-3 py-1 rounded-lg transition cursor-pointer ${
-                      filtroEstadoBalcao === 'todos' ? 'bg-stone-800 text-white shadow-xs' : 'text-stone-600'
-                    }`}
-                  >
-                    Todos
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {encomendasBalcaoFiltradas.map((enc) => {
-                const isEntregue = enc.estado === 'entregue';
-                const whatsappUrl = gerarLinkWhatsAppEncomendaPronta(enc);
-
-                return (
-                  <div
-                    key={enc.id}
-                    className={`rounded-2xl bg-white border-2 p-4 shadow-xs flex flex-col justify-between space-y-3 ${
-                      isEntregue ? 'border-emerald-200 bg-emerald-50/20' : 'border-amber-200'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between border-b pb-2">
-                        <span className="font-mono font-black text-xs text-stone-900 bg-stone-100 px-2 py-0.5 rounded">
-                          {enc.codigo}
-                        </span>
-                        <span className="font-black text-xs text-amber-900 bg-amber-50 px-2 py-0.5 rounded flex items-center gap-1">
-                          <Clock className="h-3 w-3 text-amber-700" />
-                          {enc.hora_agendamento} ({enc.data_agendamento})
-                        </span>
-                      </div>
-
-                      <div className="mt-2.5">
-                        <h4 className="text-sm font-black text-stone-900">{enc.cliente.nome}</h4>
-                        <p className="text-xs text-stone-500">{enc.cliente.telefone}</p>
-                        <p className="text-[11px] font-bold text-amber-800 mt-0.5">{enc.loja_nome || 'Padaria da Vila'}</p>
-                      </div>
-
-                      <div className="mt-2.5 rounded-xl bg-stone-50 p-2.5 text-xs space-y-1">
-                        {enc.itens.map((it) => (
-                          <div key={it.id} className="flex justify-between font-medium text-stone-800 text-[11px]">
-                            <span><b>{it.quantidade}x</b> {it.produto_nome}</span>
-                            <SectorBadge setor={it.setor} />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="pt-2 border-t flex items-center gap-2">
-                      {whatsappUrl && (
-                        <a
-                          href={whatsappUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center justify-center gap-1 py-2 px-2.5 rounded-xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-xs font-bold border border-emerald-200 transition"
-                          title="Avisar cliente por WhatsApp que a encomenda está pronta"
-                        >
-                          <Phone className="h-3.5 w-3.5 text-emerald-600" />
-                          <span>WhatsApp</span>
-                        </a>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={() => setEncomendaParaImprimir(enc)}
-                        className="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 transition"
-                        title="Imprimir Talão"
-                      >
-                        <Printer className="h-4 w-4" />
-                      </button>
-
-                      {isEntregue ? (
-                        <div className="flex-1 py-2 rounded-xl bg-emerald-100 text-emerald-800 text-xs font-black text-center flex items-center justify-center gap-1">
-                          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                          <span>Entregue</span>
-                        </div>
-                      ) : (
-                        temPermissaoEdicao && (
-                          <button
-                            type="button"
-                            onClick={() => handleConcluirEntregaBalcao(enc.id)}
-                            className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-xs transition flex items-center justify-center gap-1 cursor-pointer"
-                          >
-                            <Check className="h-4 w-4" />
-                            <span>Entregar</span>
-                          </button>
-                        )
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+          <div className="pt-2">
+            <EntregaLojaPage embedded={true} />
           </div>
         )}
 
-        {/* ========================================================================= */}
         {/* ECRÃ 4: GUIAS DE CARGA DAS 8 ROTAS (PDF VIA @react-pdf/renderer)           */}
         {/* ========================================================================= */}
         {abaAtiva === 'guias_carga' && (

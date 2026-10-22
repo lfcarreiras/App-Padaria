@@ -37,7 +37,7 @@ import { StatusBadge } from '../../components/StatusBadge';
 import { OriginBadge } from '../../components/InproovalBadges';
 import { buscarEncomendasOramaSync } from '../../lib/oramaSearch';
 
-export default function EntregaLojaPage() {
+export default function EntregaLojaPage({ embedded = false }: { embedded?: boolean; [key: string]: any } = {}) {
   const { t } = useTranslation();
   const { podeEditar, usuario, lojaTrabalhoId } = useAuth();
   const currentUser = usuario || { id: 'user-balcao', nome: 'Marta Santos (Atendente Balcão)', role: 'atendente' };
@@ -217,10 +217,10 @@ export default function EntregaLojaPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50/70">
-      <Navbar selectedLojaId={selectedLojaId} onSelectLoja={setSelectedLojaId} />
+    <div className={embedded ? "flex flex-col bg-gray-50/70 rounded-2xl" : "min-h-screen flex flex-col bg-gray-50/70"}>
+      {!embedded && <Navbar selectedLojaId={selectedLojaId} onSelectLoja={setSelectedLojaId} />}
 
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6 sm:px-6">
+      <main className={`flex-1 max-w-6xl w-full mx-auto ${embedded ? 'px-0 py-2' : 'px-4 py-6 sm:px-6'}`}>
         {/* Aviso de Modo de Apenas Leitura */}
         {!temPermissaoEdicao && (
           <div className="mb-6 rounded-2xl bg-amber-50 border border-amber-300 p-4 flex items-center gap-3 text-amber-900 text-xs shadow-xs">
