@@ -1359,18 +1359,14 @@ export default function ProducaoPage() {
                       </div>
 
                       {/* Métricas de Carga de Madrugada */}
-                      <div className="mt-3 grid grid-cols-3 gap-1.5 p-2 rounded-xl bg-stone-50 border border-stone-100 text-center">
+                      <div className="mt-3 grid grid-cols-2 gap-1.5 p-2 rounded-xl bg-stone-50 border border-stone-100 text-center">
                         <div>
                           <p className="text-[10px] text-stone-500 font-bold uppercase">Padaria</p>
-                          <p className="text-sm font-black text-amber-800">{totalPao}</p>
+                          <p className="text-sm font-black text-amber-800">{totalPao} un.</p>
                         </div>
                         <div>
                           <p className="text-[10px] text-stone-500 font-bold uppercase">Pastelaria</p>
-                          <p className="text-sm font-black text-rose-800">{totalPastelaria}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-stone-500 font-bold uppercase">Caixas</p>
-                          <p className="text-sm font-black text-stone-900">~{totalCaixas}</p>
+                          <p className="text-sm font-black text-rose-800">{totalPastelaria} un.</p>
                         </div>
                       </div>
 

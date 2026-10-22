@@ -237,8 +237,7 @@ export function PdfViewerModal({
       const texto = encodeURIComponent(
         `📋 *PADARIA DA VILA — GUIA DE CARGA (${carrinha?.rota || 'Rota'})*\n` +
         `Data: ${dataFormatada}\n` +
-        `Total de Unidades: ${totalPaoUnidades} pães/peças\n` +
-        `Total de Caixas: ${totalCaixas} caixas carregadas.`
+        `Total de Unidades: ${totalPaoUnidades} pães/peças carregadas.`
       );
       window.open(`https://wa.me/?text=${texto}`, '_blank');
     }
@@ -418,18 +417,13 @@ export function PdfViewerModal({
               </div>
 
               {/* Resumo de Carga Total */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200">
                   <span className="text-[11px] font-bold text-blue-900 block">Total Pães & Peças</span>
-                  <span className="text-2xl font-black text-blue-950 font-mono">{totalPaoUnidades}</span>
+                  <span className="text-2xl font-black text-blue-950 font-mono">{totalPaoUnidades} un.</span>
                   <span className="text-[10px] text-blue-700 block mt-0.5">unidades a bordo</span>
                 </div>
-                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200">
-                  <span className="text-[11px] font-bold text-amber-900 block">Caixas / Cestas Estimadas</span>
-                  <span className="text-2xl font-black text-amber-950 font-mono">{totalCaixas}</span>
-                  <span className="text-[10px] text-amber-700 block mt-0.5">caixas empilhadas</span>
-                </div>
-                <div className="p-3.5 rounded-xl bg-purple-50 border border-purple-200 col-span-2 sm:col-span-1">
+                <div className="p-3.5 rounded-xl bg-purple-50 border border-purple-200">
                   <span className="text-[11px] font-bold text-purple-900 block">Clientes B2B na Rota</span>
                   <span className="text-2xl font-black text-purple-950 font-mono">{clientesB2BRota.length}</span>
                   <span className="text-[10px] text-purple-700 block mt-0.5">paragens institucionais</span>
@@ -445,34 +439,30 @@ export function PdfViewerModal({
                 <table className="w-full text-xs border border-gray-300 border-collapse">
                   <thead>
                     <tr className="bg-gray-100 text-gray-800 border-b border-gray-300">
-                      <th className="py-2 px-3 text-left font-black">Artigo / Produto</th>
-                      <th className="py-2 px-3 text-center font-black w-24">Setor</th>
-                      <th className="py-2 px-3 text-right font-black w-28">Quantidade</th>
-                      <th className="py-2 px-3 text-right font-black w-24">Caixas Est.</th>
-                      <th className="py-2 px-3 text-left font-black">Conferência / Notas</th>
+                      <th className="py-2.5 px-4 text-left font-black">Artigo / Produto</th>
+                      <th className="py-2.5 px-3 text-center font-black w-28">Setor</th>
+                      <th className="py-2.5 px-4 text-right font-black w-36">Quantidade</th>
+                      <th className="py-2.5 px-4 text-left font-black w-48">Conferência / Notas</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {itensCarga.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="py-4 text-center text-gray-400">
+                        <td colSpan={4} className="py-4 text-center text-gray-400">
                           Nenhum artigo registado para esta rota.
                         </td>
                       </tr>
                     ) : (
                       itensCarga.map((item, idx) => (
                         <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
-                          <td className="py-2 px-3 font-bold text-gray-900">{item.nome}</td>
-                          <td className="py-2 px-3 text-center capitalize text-gray-600 font-medium">
+                          <td className="py-2.5 px-4 font-bold text-gray-900">{item.nome}</td>
+                          <td className="py-2.5 px-3 text-center capitalize text-gray-600 font-medium">
                             {item.categoria}
                           </td>
-                          <td className="py-2 px-3 text-right font-mono font-black text-blue-900">
+                          <td className="py-2.5 px-4 text-right font-mono font-black text-blue-900">
                             {item.quantidade} {normalizarUnidade(item.unidade)}
                           </td>
-                          <td className="py-2 px-3 text-right font-mono font-bold text-amber-900">
-                            {item.caixasEstimadas} cx
-                          </td>
-                          <td className="py-2 px-3 text-gray-500">
+                          <td className="py-2.5 px-4 text-gray-500">
                             [ &nbsp; ] Conferido na saída
                           </td>
                         </tr>
@@ -481,15 +471,12 @@ export function PdfViewerModal({
                   </tbody>
                   <tfoot>
                     <tr className="bg-gray-100 font-black border-t-2 border-gray-400">
-                      <td className="py-2.5 px-3">TOTAL GERAL DE CARGA</td>
+                      <td className="py-2.5 px-4">TOTAL GERAL DE CARGA</td>
                       <td className="py-2.5 px-3 text-center">-</td>
-                      <td className="py-2.5 px-3 text-right font-mono text-sm text-blue-950">
+                      <td className="py-2.5 px-4 text-right font-mono text-sm text-blue-950">
                         {totalPaoUnidades} un.
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono text-sm text-amber-950">
-                        {totalCaixas} cx
-                      </td>
-                      <td className="py-2.5 px-3 text-gray-600">Conforme padrão de saída</td>
+                      <td className="py-2.5 px-4 text-gray-600">Conforme padrão de saída</td>
                     </tr>
                   </tfoot>
                 </table>

@@ -151,21 +151,18 @@ export const FolhaDeCargaPdfDocument = ({
 
       <View style={styles.table}>
         <View style={[styles.tableRow, styles.tableHeader]}>
-          <Text style={styles.col1}>Artigo / Produto</Text>
-          <Text style={styles.col3}>Quantidade</Text>
-          <Text style={styles.col4}>Caixas</Text>
+          <Text style={[styles.col1, { flex: 4 }]}>Artigo / Produto</Text>
+          <Text style={[styles.col3, { flex: 1 }]}>Quantidade</Text>
         </View>
         {itens.map((item, idx) => (
           <View key={idx} style={styles.tableRow}>
-            <Text style={styles.col1}>{item.nome}</Text>
-            <Text style={styles.col3}>{item.quantidade} un.</Text>
-            <Text style={styles.col4}>{item.caixasEstimadas} cx</Text>
+            <Text style={[styles.col1, { flex: 4 }]}>{item.nome}</Text>
+            <Text style={[styles.col3, { flex: 1 }]}>{item.quantidade} un.</Text>
           </View>
         ))}
         <View style={[styles.tableRow, { backgroundColor: '#f9fafb', fontWeight: 'bold' }]}>
-          <Text style={styles.col1}>TOTAL CARREGADO</Text>
-          <Text style={styles.col3}>{totalUnidades} un.</Text>
-          <Text style={styles.col4}>{totalCaixas} cx</Text>
+          <Text style={[styles.col1, { flex: 4 }]}>TOTAL CARREGADO</Text>
+          <Text style={[styles.col3, { flex: 1 }]}>{totalUnidades} un.</Text>
         </View>
       </View>
 
