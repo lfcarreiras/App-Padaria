@@ -115,31 +115,41 @@ flowchart TD
 > [!IMPORTANT]
 > **Secção Confidencial de Controlo Interno Inprooval®** — Automaticamente ocultada na geração de PDFs para o cliente.
 
-### 6.1. Resumo da Bolsa de Horas vs. Orçamento (Taxa de Referência: `80,00 €/hora`)
+### 6.1. Resumo da Bolsa de Horas vs. Orçamento (Taxa de Referência: `100,00 €/hora`)
 
 | Indicador da Bolsa de Horas | Cenário A: Apenas Orçamento Base (`2.500 €`) | Cenário B: Base + Extra App Cliente (`3.150 €`) |
 | :--- | :---: | :---: |
-| **Plafond Total de Horas Orçamentadas (@ 80 €/h)** | **31,25 horas** | **39,38 horas** |
-| **Horas Consumidas no Antigravity (Sprints 1 a 6.2)** | 21,50 horas (`1.720,00 €`) | 21,50 horas (`1.720,00 €`) |
-| **Horas Consumidas em Consultoria Externa (Reuniões)** | 2,75 horas (`220,00 €`) | 2,75 horas (`220,00 €`) |
-| **TOTAL DE HORAS JÁ CONSUMIDAS (até 12/10/2026 — `v2.1.3`)** | **24,25 horas (`1.940,00 €`)** | **24,25 horas (`1.940,00 €`)** |
-| **SALDO REMANESCENTE NA BOLSA DE HORAS (p/ Formação & Go-Live)** | **🟢 + 7,00 horas (`+ 560,00 €`)** | **🟢 + 15,13 horas (`+ 1.210,00 €`)** |
-| **Percentagem de Execução & Readiness Score (Bulletproof Swarm)** | **100% Concluído — Score 99,1% (`v2.1.3`)** | **100% Concluído — Score 99,1% (`v2.1.3`)** |
+| **Plafond Total de Horas Orçamentadas (@ 100 €/h)** | **25,00 horas** | **31,50 horas** |
+| **Horas Consumidas em Engenharia (Sprints 1 a 8 — `v2.6.0`)** | 23,50 horas (`2.350,00 €`) | 23,50 horas (`2.350,00 €`) |
+| **Horas Consumidas em Consultoria Externa (Reuniões)** | 2,75 horas (`275,00 €`) | 2,75 horas (`275,00 €`) |
+| **TOTAL DE HORAS CONSUMIDAS (até 23/10/2026 — `v2.6.0`)** | **26,25 horas (`2.625,00 €`)** | **26,25 horas (`2.625,00 €`)** |
+| **SALDO REMANESCENTE NA BOLSA DE HORAS (p/ Formação & Go-Live)** | **- 1,25 horas** *(Investimento Estrutural)* | **🟢 + 5,25 horas (`+ 525,00 €`)** |
+| **Percentagem de Execução & Readiness Score (Bulletproof Swarm)** | **100% Concluído — Score 99,1% (`v2.6.0`)** | **100% Concluído — Score 99,1% (`v2.6.0`)** |
 
 ### 6.2. Discriminação Cronológica de Horas Consumidas por Sprint
 
-| Sprint / Fase | Período | Tipo de Esforço | Entregáveis Principais | Horas | Valor (@ 80 €/h) |
+| Sprint / Fase | Período | Tipo de Esforço | Entregáveis Principais | Horas | Valor (@ 100 €/h) |
 | :--- | :---: | :---: | :--- | :---: | :---: |
-| **Kick-off Inicial** | 07/09/2026 | Consultoria Externa (Online) | Levantamento inicial de requisitos operacionais | 1,00 h | 80,00 € |
-| **Sprint 1** | 07/09 – 15/09 | Engenharia Antigravity | Arquitetura Next.js, Supabase PostgreSQL e RBAC (`v1.0`–`v1.3.1`) | 3,80 h | 304,00 € |
-| **Sprint 2** | 16/09 – 22/09 | Engenharia Antigravity | Balcão, KDS Fabrico, Rotas GPS, On-Time e Logs (`v1.4`–`v1.8`) | 4,25 h | 340,00 € |
-| **Sprint 3** | 23/09 – 02/10 | Engenharia Antigravity | Multi-Loja, Talão Térmico 80mm e Exportação Excel | 3,15 h | 252,00 € |
-| **Sprint 4** | 03/10 – 10/10 | Engenharia Antigravity | Studio CMS Nativo (`/cms`), Blindagem Cenário A, Portal Cliente v1 e Canais | 5,44 h | 435,20 € |
-| **Reunião Arouca** | 10/10/2026 | Consultoria Externa (Presencial) | Demonstração ao vivo à gerência, recolha de 22 requisitos e proposta | 1,75 h | 140,00 € |
-| **Sprint 5 (`v2.0.0`)** | 10/10 – 11/10 | Engenharia Antigravity | Implementação dos 22 requisitos de Arouca (5 Carrinhas, B2B, 3 Fornos, Mapa Diário) | 2,86 h | 228,80 € |
-| **Sprint 6.1 (`v2.1.0`)** | 11/10 – 12/10 | Engenharia Antigravity | Triagem parcelar artigo a artigo nos alertas urgentes, estado parcelar na App Cliente, WhatsApp automático na Loja e Dossier Documental | 1,25 h | 100,00 € |
-| **Sprint 6.2 (`v2.1.1`–`v2.1.3`)** | 12/10/2026 | Auditoria & Hardening Swarm | Ronda completa dos 7 Agentes do *Bulletproof Swarm* (OWASP Headers, Proteção de Dados, Base Fixa Excel, Password & Recuperação E-mail Supabase Auth, Cache Offline Carrinhas, Talão Térmico Parcelar — Score `99,1%`) | 0,75 h | 60,00 € |
-| **TOTAL ACUMULADO** | **07/09 – 12/10** | **Híbrido (AGY + Terreno)** | **Solução Integral `v2.1.3` Certificada (`99,1%`)** | **24,25 h** | **1.940,00 €** |
+| **Kick-off Inicial** | 07/09/2026 | Consultoria Externa (Online) | Levantamento inicial de requisitos operacionais | 1,00 h | 100,00 € |
+| **Sprint 1** | 07/09 – 15/09 | Engenharia Antigravity | Arquitetura Next.js, Supabase PostgreSQL e RBAC (`v1.0`–`v1.3.1`) | 3,80 h | 380,00 € |
+| **Sprint 2** | 16/09 – 22/09 | Engenharia Antigravity | Balcão, KDS Fabrico, Rotas GPS, On-Time e Logs (`v1.4`–`v1.8`) | 4,25 h | 425,00 € |
+| **Sprint 3** | 23/09 – 02/10 | Engenharia Antigravity | Multi-Loja, Talão Térmico 80mm e Exportação Excel | 3,15 h | 315,00 € |
+| **Sprint 4** | 03/10 – 10/10 | Engenharia Antigravity | Studio CMS Nativo (`/cms`), Blindagem Cenário A, Portal Cliente v1 e Canais | 5,44 h | 544,00 € |
+| **Reunião Arouca** | 10/10/2026 | Consultoria Externa (Presencial) | Demonstração ao vivo à gerência, recolha de 22 requisitos e proposta | 1,75 h | 175,00 € |
+| **Sprint 5 (`v2.0.0`)** | 10/10 – 11/10 | Engenharia Antigravity | Implementação dos 22 requisitos de Arouca (5 Carrinhas, B2B, 3 Fornos, Mapa Diário) | 2,86 h | 286,00 € |
+| **Sprint 6 (`v2.1.0`–`v2.1.3`)** | 11/10 – 12/10 | Engenharia & Swarm Hardening | Triagem parcelar artigo a artigo, estado parcelar na App Cliente, WhatsApp automático e certificação Bulletproof Swarm (`99,1%`) | 2,00 h | 200,00 € |
+| **Sprint 7 (`v2.5.5`–`v2.5.7`)** | 21/10 – 22/10 | Engenharia & Refinamento UI | Estabilização de impressão PDF/A4 via portal DOM, injeção CSS `@page` e remoção da coluna de caixas nas guias | 0,90 h | 90,00 € |
+| **Sprint 8 (`v2.6.0`)** | 22/10/2026 | Engenharia & Cibersegurança | Subdomínio `app.padariadavila.com`, chaves criptográficas alfanuméricas por ecrã, proteção middleware e bloqueio total anti-indexação | 1,10 h | 110,00 € |
+| **TOTAL ACUMULADO** | **07/09 – 23/10** | **Híbrido (AGY + Terreno)** | **Solução Integral `v2.6.0` em Produção no Subdomínio Oficial** | **26,25 h** | **2.625,00 €** |
+
+### 6.3. Cláusula de Sucesso & Escalação de Valor Hora para Novos Desenvolvimentos
+
+* **Valor Hora Atual do Projeto:** **100,00 € / hora + IVA** (válido para o âmbito de setup inicial e acompanhamento de Go-Live).
+* **Gatilho de Sucesso:** Entrada oficial em exploração operacional (Go-Live) na Padaria da Vila e validação das rotas e KDS no terreno.
+* **Escalação de Valor Hora Pós-Sucesso:** Em caso de sucesso, o valor hora de referência passa para **150,00 € / hora + IVA** para:
+  1. **Novos desenvolvimentos da Padaria da Vila:** Faturação Certificada AT via API (Fase 2), WhatsApp Business Cloud API silencioso, Pagamentos Online MB WAY e Fichas Técnicas/MRP (Fase 3), bem como pacotes adicionais de suporte/desenvolvimento fora do contrato mensal.
+  2. **Novos Projetos & Novos Clientes Inprooval®:** Adoção institucional de **150,00 € / hora + IVA** como taxa de referência para novas propostas comerciais e orçamentação de soluções digitais.
+<!-- INTERNAL_END -->
 
 ---
 

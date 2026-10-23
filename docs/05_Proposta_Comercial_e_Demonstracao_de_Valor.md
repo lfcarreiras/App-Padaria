@@ -253,7 +253,7 @@ flowchart TD
    * **Implementação Base:** 50% no ato da adjudicação da proposta (`1.250,00 € + IVA`) e 50% na data de Go-Live oficial (`1.250,00 € + IVA`).
    * **Manutenção Mensal:** Faturada mensalmente a partir do início da exploração operacional em produção.
 4. **Prazo de Entrega:** Entrada em exploração em 6 dias úteis após adjudicação formal e disponibilização dos postos de trabalho para parametrização.
-5. **Âmbito e Trabalhos Adicionais:** Quaisquer desenvolvimentos futuros que não constem do âmbito base descrito nesta proposta (tais como integrações de software de faturação certificado ou novos módulos à medida) serão previamente orçamentados com base na taxa horária de referência de **80,00 €/hora + IVA**.
+5. **Âmbito e Trabalhos Adicionais:** Quaisquer desenvolvimentos futuros que não constem do âmbito base descrito nesta proposta (tais como integrações de software de faturação certificado ou novos módulos à medida) serão previamente orçamentados com base na taxa horária de referência de **100,00 €/hora + IVA**, transitando para **150,00 €/hora + IVA** na fase de expansão e novos desenvolvimentos pós-Go-Live.
 
 ---
 
