@@ -68,7 +68,7 @@ import {
 } from 'lucide-react';
 import { StatusBadge } from '../../components/StatusBadge';
 import { BreadIcon, OriginBadge, SectorBadge } from '../../components/InproovalBadges';
-import { PdfViewerModal, LinhaArtigoCarga } from '../../components/pdf/PdfViewerModal';
+import { PdfViewerModal, LinhaArtigoCarga, LinhaArtigoFabrico } from '../../components/pdf/PdfViewerModal';
 import EncomendasPage from '../encomendas/page';
 import EntregaLojaPage from '../loja/page';
 import { 
@@ -128,12 +128,13 @@ export default function ProducaoPage() {
   const [buscaBalcao, setBuscaBalcao] = useState<string>('');
   const [filtroEstadoBalcao, setFiltroEstadoBalcao] = useState<'pendentes' | 'concluidos' | 'todos'>('pendentes');
 
-  // Estados do Modal de PDF (Folhas de Carga & Comprovativos B2B)
+  // Estados do Modal de PDF (Folhas de Carga, Comprovativos B2B & Folha de Fabrico)
   const [pdfModalOpen, setPdfModalOpen] = useState<boolean>(false);
-  const [pdfModalTipo, setPdfModalTipo] = useState<'folha_carga' | 'comprovativo_b2b'>('folha_carga');
+  const [pdfModalTipo, setPdfModalTipo] = useState<'folha_carga' | 'comprovativo_b2b' | 'folha_fabrico'>('folha_carga');
   const [pdfCarrinhaSelecionada, setPdfCarrinhaSelecionada] = useState<Carrinha | undefined>(undefined);
   const [pdfClienteB2B, setPdfClienteB2B] = useState<ClienteEmpresarialB2B | undefined>(undefined);
   const [pdfItensCarga, setPdfItensCarga] = useState<LinhaArtigoCarga[]>([]);
+  const [pdfItensFabrico, setPdfItensFabrico] = useState<LinhaArtigoFabrico[]>([]);
 
   // Carregar dados iniciais
   useEffect(() => {
@@ -592,6 +593,28 @@ export default function ProducaoPage() {
     );
   };
 
+  // Abrir Modal de Impressão PDF da Folha de Fabrico Diária Consolidada
+  const handleAbrirPdfFolhaFabrico = () => {
+    if (poolArtigosConsolidada.length === 0) {
+      alert('Não existem artigos na pool de produção para os filtros e data selecionados.');
+      return;
+    }
+
+    const itensParaPdf: LinhaArtigoFabrico[] = poolArtigosConsolidada.map((item) => ({
+      produto_nome: item.produto_nome,
+      setor: item.setor,
+      quantidade_total: item.quantidade_total,
+      unidade: 'un.',
+      encomendas_count: item.encomendas_count,
+      encomendas_codigos: item.encomendas_codigos,
+      personalizacoes: item.personalizacoes,
+    }));
+
+    setPdfItensFabrico(itensParaPdf);
+    setPdfModalTipo('folha_fabrico');
+    setPdfModalOpen(true);
+  };
+
   // Exportar Excel da Folha de Produção
   const exportarFolhaProducaoExcel = async () => {
     if (encomendasFiltradasKds.length === 0) {
@@ -812,62 +835,15 @@ export default function ProducaoPage() {
             }`}
           >
             <Truck className="h-4 w-4" />
-            <span>Guias de Carga (Rotas 1 a 8)</span>
+            <span>Guias de Carga (Rotas 1 a 7)</span>
           </button>
         </div>
 
         {/* ========================================================================= */}
-        {/* ECRÃ 1: FABRICO (KDS) + FECHO NOTURNO TRIGGER.DEV V3 (22H00)              */}
+        {/* ECRÃ 1: FABRICO (KDS)                                                     */}
         {/* ========================================================================= */}
         {abaAtiva === 'kds' && (
           <div className="space-y-6">
-            {/* CARD DE FECHO NOTURNO AUTOMÁTICO DAS 22H00 (TRIGGER.DEV V3) */}
-            <div className="rounded-3xl bg-gradient-to-r from-stone-900 via-stone-800 to-amber-950 text-white p-5 shadow-xl border border-amber-500/30">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-start gap-3.5">
-                  <div className="p-3 rounded-2xl bg-amber-500/20 border border-amber-400/40 text-amber-400 shadow-inner shrink-0">
-                    <Zap className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <h3 className="text-base font-black tracking-wide text-white">
-                        Fecho Noturno Automático das 22h00
-                      </h3>
-                    </div>
-                    <p className="text-xs text-stone-300 max-w-2xl">
-                      Compila automaticamente encomendas aceites + Base Fixa das 8 rotas + Matriz dos 13 clientes B2B às 22h00 para a entrada do primeiro turno de madrugada (23h00-06h00).
-                    </p>
-                    {ultimoFechoPool && (
-                      <p className="text-[11px] text-amber-300 font-semibold mt-1.5 flex items-center gap-1.5">
-                        <CheckCheck className="h-3.5 w-3.5 text-emerald-400" />
-                        Última compilação: <b>{ultimoFechoPool.totalUnidades} un. totais</b> ({ultimoFechoPool.totalPadaria} pão, {ultimoFechoPool.totalPastelaria} pastelaria, ~{ultimoFechoPool.totalCaixasEstimadas} caixas) em {new Date(ultimoFechoPool.executadoEm).toLocaleTimeString('pt-PT')}.
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={handleExecutarFechoNoturnoManual}
-                    disabled={executandoFecho}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-black shadow-md hover:shadow-lg transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Forçar cálculo e compilação da pool noturna agora"
-                  >
-                    <RefreshCw className={`h-4 w-4 ${executandoFecho ? 'animate-spin' : ''}`} />
-                    <span>{executandoFecho ? 'A Compilar Pool...' : 'Executar Fecho Noturno Agora'}</span>
-                  </button>
-                </div>
-              </div>
-
-              {feedbackFecho && (
-                <div className="mt-3 pt-3 border-t border-stone-700/60 text-xs font-bold text-amber-200 flex items-center gap-2">
-                  <Check className="h-4 w-4 text-emerald-400 shrink-0" />
-                  <span>{feedbackFecho}</span>
-                </div>
-              )}
-            </div>
-
             {/* ALERTA SONORO E VISUAL DE ENCOMENDAS URGENTES (<= 3 HORAS) */}
             {encomendasUrgentes.length > 0 && (
               <div className="rounded-3xl bg-red-600 text-white p-4 shadow-xl border-2 border-red-300 animate-pulse">
@@ -1019,15 +995,15 @@ export default function ProducaoPage() {
                   </button>
                 </div>
 
-                {/* Exportar Excel */}
+                {/* Imprimir Folha de Fabrico em PDF */}
                 <button
                   type="button"
-                  onClick={exportarFolhaProducaoExcel}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition cursor-pointer"
-                  title="Exportar Folha de Fabrico para Excel"
+                  onClick={handleAbrirPdfFolhaFabrico}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-stone-950 text-xs font-black shadow-xs transition cursor-pointer"
+                  title="Imprimir Folha Diária de Fabrico Consolidada em PDF"
                 >
-                  <FileSpreadsheet className="h-4 w-4" />
-                  <span>{t.exportDailyMap}</span>
+                  <Printer className="h-4 w-4" />
+                  <span>Imprimir Folha de Fabrico (PDF)</span>
                 </button>
               </div>
             </div>
@@ -1314,7 +1290,7 @@ export default function ProducaoPage() {
           </div>
         )}
 
-        {/* ECRÃ 4: GUIAS DE CARGA DAS 8 ROTAS (PDF VIA @react-pdf/renderer)           */}
+        {/* ECRÃ 4: GUIAS DE CARGA DAS 7 ROTAS (PDF)                                   */}
         {/* ========================================================================= */}
         {abaAtiva === 'guias_carga' && (
           <div className="space-y-4">
@@ -1322,7 +1298,7 @@ export default function ProducaoPage() {
               <div>
                 <h3 className="text-base font-black text-stone-900 flex items-center gap-2">
                   <Truck className="h-5 w-5 text-amber-600" />
-                  Guias de Carga das 8 Rotas de Distribuição
+                  Guias de Carga das 7 Rotas de Distribuição
                 </h3>
                 <p className="text-xs text-stone-500">
                   Emissão em tempo real das folhas de carga oficiais com conferência de caixas e quantidades para o turno da madrugada
@@ -1331,7 +1307,7 @@ export default function ProducaoPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {carrinhas.map((car) => {
+              {carrinhas.filter((c) => c.rota !== 'Rota 8' && c.numero !== 8).map((car) => {
                 const itensCar = prepararItensFolhaCarga(car);
                 const totalPao = itensCar.filter(i => i.categoria === 'padaria').reduce((acc, i) => acc + i.quantidade, 0);
                 const totalPastelaria = itensCar.filter(i => i.categoria === 'pastelaria').reduce((acc, i) => acc + i.quantidade, 0);
@@ -1413,16 +1389,20 @@ export default function ProducaoPage() {
         />
       )}
 
-      {/* Modal de PDF (Folha de Carga das Rotas 1 a 8) */}
+      {/* Modal de PDF (Folha de Carga das Rotas 1 a 7 & Folha de Fabrico) */}
       <PdfViewerModal
         isOpen={pdfModalOpen}
         tipo={pdfModalTipo}
         onClose={() => setPdfModalOpen(false)}
         carrinha={pdfCarrinhaSelecionada}
         diaSemana={diaSemanaHoje as any}
-        dataReferencia={hoje}
+        dataReferencia={filtroPeriodo === 'amanha' ? amanha : hoje}
         itensCarga={pdfItensCarga}
+        itensFabrico={pdfItensFabrico}
+        lojaNome={selectedLojaId === 'todas' ? 'Todas as Lojas' : (lojas.find((l) => l.id === selectedLojaId)?.nome || 'Loja')}
+        setorFiltro={setorAtivo}
         clienteB2B={pdfClienteB2B}
+        clientesB2BRota={clientesB2B.filter((cli) => cli.ativo && cli.carrinha_id === pdfCarrinhaSelecionada?.id)}
         nomeCondutor={currentUser.nome}
         matriculaCarro={pdfCarrinhaSelecionada?.matricula}
       />

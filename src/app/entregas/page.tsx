@@ -18,6 +18,8 @@ import {
   alternarTipoEntregaDb,
   atribuirCarrinhaDb,
   concluirEntregaComTimestampDb,
+  obterQuantidadeEfetivaBaseRota,
+  obterQuantidadeEfetivaClienteB2B,
   registarLogAuditoria 
 } from '../../lib/encomendasService';
 import { Encomenda, EstadoRota, Loja, Carrinha, Produto, BaseFixaCarrinha, ClienteEmpresarialB2B } from '../../types';
@@ -58,6 +60,7 @@ import { StatusBadge } from '../../components/StatusBadge';
 import { OriginBadge } from '../../components/InproovalBadges';
 
 import { PdfViewerModal, LinhaArtigoCarga } from '../../components/pdf/PdfViewerModal';
+import { MatrizAjustesAdhoc } from '../../components/MatrizAjustesAdhoc';
 import { FileText, PenTool } from 'lucide-react';
 
 export default function EntregasPage() {
@@ -88,6 +91,7 @@ export default function EntregasPage() {
   const [pdfCarrinhaSelecionada, setPdfCarrinhaSelecionada] = useState<Carrinha | undefined>(undefined);
   const [pdfClienteB2B, setPdfClienteB2B] = useState<ClienteEmpresarialB2B | undefined>(undefined);
   const [pdfItensCarga, setPdfItensCarga] = useState<LinhaArtigoCarga[]>([]);
+  const [mostrarAjustesAdhoc, setMostrarAjustesAdhoc] = useState<boolean>(true);
 
   // Ordem personalizada de paragens por carrinha (carrinhaId -> lista de encomenda IDs)
   const [ordensCustomizadas, setOrdensCustomizadas] = useState<Record<string, string[]>>({});
@@ -118,8 +122,8 @@ export default function EntregasPage() {
   }, []);
 
   const lojaAtual = lojas.find((l) => l.id === selectedLojaId) || lojas[0] || LOJAS_MOCK[0];
-  // As 8 rotas e carros servem toda a operação central de Arouca
-  const carrinhasDaLoja = carrinhas;
+  // As 7 rotas e carros servem toda a operação central de Arouca (Rota 8 desativada)
+  const carrinhasDaLoja = carrinhas.filter((c) => c.rota !== 'Rota 8' && c.identificador !== 'Rota 8' && c.numero !== 8);
 
   // Data operacional de hoje (AAAA-MM-DD) e Dia da Semana
   const hoje = new Date().toISOString().split('T')[0];
@@ -388,13 +392,15 @@ export default function EntregasPage() {
   const prepararItensFolhaCarga = (car: Carrinha): LinhaArtigoCarga[] => {
     const mapaItens = new Map<string, { quantidade: number; categoria: 'padaria' | 'pastelaria'; unidade: string }>();
 
-    // 1. Quantidades da Base Fixa da carrinha para hoje
+    // 1. Quantidades da Base Fixa da carrinha para hoje (com eventuais ajustes ad-hoc)
     const bf = baseFixaCarrinhas.find((b) => b.carrinha_id === car.id);
-    const semana = bf?.quantidades_semanais || bf?.quantidades_semana;
+    const semana = (bf?.quantidades_semanais || bf?.quantidades_semana || {}) as Record<string, Record<string, number>>;
     const mapaHoje = semana?.[diaSemanaHoje] || bf?.quantidades_por_produto || {};
 
-    Object.entries(mapaHoje).forEach(([artigo, qtd]) => {
-      if (typeof qtd === 'number' && qtd > 0) {
+    Object.entries(mapaHoje).forEach(([artigo, baselineQtd]) => {
+      const { quantidade } = obterQuantidadeEfetivaBaseRota(hoje, car.id, artigo, semana, diaSemanaHoje);
+      if (quantidade > 0) {
+        const qtd = quantidade;
         const prodRef = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
         const cat: 'padaria' | 'pastelaria' = prodRef?.categoria || (artigo.toLowerCase().includes('bolo') || artigo.toLowerCase().includes('croissant') ? 'pastelaria' : 'padaria');
         const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
@@ -406,13 +412,15 @@ export default function EntregasPage() {
       }
     });
 
-    // 2. Quantidades dos Clientes B2B desta rota
+    // 2. Quantidades dos Clientes B2B desta rota (com eventuais ajustes ad-hoc)
     const b2bDaRota = clientesB2B.filter((cli) => cli.ativo && cli.carrinha_id === car.id);
     b2bDaRota.forEach((cli) => {
-      const semCli = cli.quantidades_semanais || cli.quantidades_semana;
+      const semCli = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
       const mapaCli = semCli?.[diaSemanaHoje] || {};
-      Object.entries(mapaCli).forEach(([artigo, qtd]) => {
-        if (typeof qtd === 'number' && qtd > 0) {
+      Object.entries(mapaCli).forEach(([artigo, baselineQtd]) => {
+        const { quantidade } = obterQuantidadeEfetivaClienteB2B(hoje, cli.id, artigo, semCli, diaSemanaHoje);
+        if (quantidade > 0) {
+          const qtd = quantidade;
           const prodRef = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
           const cat: 'padaria' | 'pastelaria' = prodRef?.categoria || 'padaria';
           const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
@@ -806,6 +814,33 @@ export default function EntregasPage() {
           )}
         </div>
 
+        {/* SECÇÃO: MATRIZ DE AJUSTES AD-HOC CALENDARIZADOS (7 DIAS) */}
+        <div className="mb-6 space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setMostrarAjustesAdhoc(!mostrarAjustesAdhoc)}
+              className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs shadow-xs transition cursor-pointer"
+            >
+              <Calendar className="h-4 w-4" />
+              <span>{mostrarAjustesAdhoc ? 'Ocultar Matriz Ad-hoc (7 Dias)' : 'Abrir Matriz de Ajustes Ad-hoc Calendarizados (7 Dias)'}</span>
+              {mostrarAjustesAdhoc ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </button>
+            <span className="text-[11px] text-stone-500 font-semibold hidden sm:inline">
+              Ajustes pontuais por data sem alterar a baseline permanente
+            </span>
+          </div>
+
+          {mostrarAjustesAdhoc && (
+            <MatrizAjustesAdhoc
+              carrinhas={carrinhasDaLoja}
+              baseFixaCarrinhas={baseFixaCarrinhas}
+              clientesB2B={clientesB2B}
+              produtos={produtos}
+            />
+          )}
+        </div>
+
         {/* CABEÇALHO DA FROTA E GESTÃO DE ROTA */}
         <div className="rounded-2xl bg-white p-5 border border-blue-200 shadow-xs mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -884,21 +919,10 @@ export default function EntregasPage() {
                 type="button"
                 onClick={() => abrirFolhaCargaPdf()}
                 className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black shadow-xs transition cursor-pointer"
-                title="Gerar Folha de Carga em PDF oficial com totais de caixas e pão por carrinha (Rotas 1 a 8)"
+                title="Gerar Folha de Carga em PDF oficial com totais de caixas e pão por carrinha (Rotas 1 a 7)"
               >
                 <FileText className="h-4 w-4 shrink-0" />
                 <span>Folha de Carga (PDF)</span>
-              </button>
-
-              {/* Botão de Exportar Mapa Diário Oficial (Excel) */}
-              <button
-                type="button"
-                onClick={exportarMapaDiarioExcel}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-xs transition cursor-pointer"
-                title="Extrair Excel com a compilação total de quantidades por artigo e por rota (Rotas 1 a 8 + Clientes Empresariais)"
-              >
-                <FileSpreadsheet className="h-4 w-4 shrink-0" />
-                <span>Exportar Mapa Diário (Excel)</span>
               </button>
 
               {/* Botão de Otimizar Rota Automática */}
@@ -1062,26 +1086,18 @@ export default function EntregasPage() {
                         </div>
                       </div>
 
-                      <div className="pt-2 border-t border-stone-100 flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => abrirComprovativoB2BPdf(cli)}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-black shadow-xs transition cursor-pointer"
-                          title="Abrir Comprovativo em PDF e recolher assinatura digital do cliente"
-                        >
-                          <FileText className="h-3.5 w-3.5" />
-                          <span>Comprovativo B2B (PDF)</span>
-                        </button>
-                        {cli.telefone && (
+                      {cli.telefone && (
+                        <div className="pt-2 border-t border-stone-100 flex items-center justify-end">
                           <a
                             href={`tel:${cli.telefone.replace(/\s+/g, '')}`}
-                            className="flex items-center justify-center p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 transition"
+                            className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold transition"
                             title="Ligar para o cliente"
                           >
                             <Phone className="h-3.5 w-3.5 text-emerald-600" />
+                            <span>{cli.telefone}</span>
                           </a>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -1450,6 +1466,7 @@ export default function EntregasPage() {
         diaSemana={diaSemanaHoje as any}
         dataReferencia={hoje}
         itensCarga={pdfItensCarga}
+        clientesB2BRota={clientesB2B.filter((cli) => cli.ativo && cli.carrinha_id === pdfCarrinhaSelecionada?.id)}
         clienteB2B={pdfClienteB2B}
         nomeCondutor={currentUser.nome}
         matriculaCarro={pdfCarrinhaSelecionada?.matricula}

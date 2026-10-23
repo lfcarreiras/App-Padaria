@@ -951,7 +951,7 @@ export async function carregarCarrinhasSupabase(): Promise<Carrinha[]> {
         if (Array.isArray(parsed) && parsed.length > 0) {
           locaisRotas = parsed.filter((c: Carrinha) => {
             const num = c.numero || parseInt(String(c.rota || c.identificador || '').replace(/\D+/g, '') || '99', 10);
-            return num >= 1 && num <= 8 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9';
+            return num >= 1 && num <= 7 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9' && c.rota !== 'Rota 8' && c.identificador !== 'Rota 8';
           });
         }
       }
@@ -962,7 +962,7 @@ export async function carregarCarrinhasSupabase(): Promise<Carrinha[]> {
     return locaisRotas
       .filter((c) => {
         const num = c.numero || parseInt(String(c.rota || c.identificador || '').replace(/\D+/g, '') || '99', 10);
-        return num >= 1 && num <= 8 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9';
+        return num >= 1 && num <= 7 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9' && c.rota !== 'Rota 8' && c.identificador !== 'Rota 8';
       })
       .sort((a, b) => (a.numero || 0) - (b.numero || 0));
   }
@@ -977,7 +977,7 @@ export async function carregarCarrinhasSupabase(): Promise<Carrinha[]> {
       return locaisRotas
         .filter((c) => {
           const num = c.numero || parseInt(String(c.rota || c.identificador || '').replace(/\D+/g, '') || '99', 10);
-          return num >= 1 && num <= 8 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9';
+          return num >= 1 && num <= 7 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9' && c.rota !== 'Rota 8' && c.identificador !== 'Rota 8';
         })
         .sort((a, b) => (a.numero || 0) - (b.numero || 0));
     }
@@ -1008,10 +1008,10 @@ export async function carregarCarrinhasSupabase(): Promise<Carrinha[]> {
     const filtered = merged
       .filter((c) => {
         const num = c.numero || parseInt(String(c.rota || c.identificador || '').replace(/\D+/g, '') || '99', 10);
-        return num >= 1 && num <= 8 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9' && c.identificador !== 'Carocha';
+        return num >= 1 && num <= 7 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9' && c.rota !== 'Rota 8' && c.identificador !== 'Rota 8' && c.identificador !== 'Carocha';
       })
       .map((c, i) => {
-        const num = c.numero && c.numero >= 1 && c.numero <= 8 ? c.numero : (parseInt(String(c.rota || c.identificador || '').replace(/\D+/g, '') || '0', 10) || i + 1);
+        const num = c.numero && c.numero >= 1 && c.numero <= 7 ? c.numero : (parseInt(String(c.rota || c.identificador || '').replace(/\D+/g, '') || '0', 10) || i + 1);
         const rotaPadrao = `Rota ${num}`;
         return {
           ...c,
@@ -1033,7 +1033,7 @@ export async function carregarCarrinhasSupabase(): Promise<Carrinha[]> {
     return locaisRotas
       .filter((c) => {
         const num = c.numero || parseInt(String(c.rota || c.identificador || '').replace(/\D+/g, '') || '99', 10);
-        return num >= 1 && num <= 8 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9';
+        return num >= 1 && num <= 7 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9' && c.rota !== 'Rota 8' && c.identificador !== 'Rota 8';
       })
       .sort((a, b) => (a.numero || 0) - (b.numero || 0));
   }
@@ -1053,7 +1053,7 @@ export async function salvarCarrinhaDb(carrinha: Partial<Carrinha> & { identific
       novaLista = novaLista
         .filter((c) => {
           const num = c.numero || parseInt(String(c.rota || c.identificador || '').replace(/\D+/g, '') || '99', 10);
-          return num >= 1 && num <= 8 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9';
+          return num >= 1 && num <= 7 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9' && c.rota !== 'Rota 8' && c.identificador !== 'Rota 8';
         })
         .sort((a, b) => (a.numero || 0) - (b.numero || 0));
       localStorage.setItem(ROTAS_STORAGE_KEY, JSON.stringify(novaLista));
@@ -1729,13 +1729,13 @@ export function carregarBaseFixaCarrinhas(): BaseFixaCarrinha[] {
       try {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map(normalizarBaseFixaItem);
+          return parsed.map(normalizarBaseFixaItem).filter(b => b.carrinha_nome !== 'Rota 8' && b.carrinha_id !== 'e888db95-c427-4ed5-83fc-01403bd24cf8');
         }
       } catch (e) {}
     }
     localStorage.setItem(BASE_FIXA_CARRINHAS_STORAGE_KEY, JSON.stringify(inicialNormalizado));
   }
-  return inicialNormalizado;
+  return inicialNormalizado.filter(b => b.carrinha_nome !== 'Rota 8' && b.carrinha_id !== 'e888db95-c427-4ed5-83fc-01403bd24cf8');
 }
 
 export function salvarBaseFixaCarrinhas(dados: BaseFixaCarrinha[]): void {
@@ -1789,3 +1789,85 @@ export function obterDiaSemanaDeData(dataStr: string): DiaSemana {
 }
 
 
+
+
+// ---------------- AJUSTES AD-HOC DIÁRIOS (CALENDÁRIO 7 DIAS) ---------------- //
+
+export const AJUSTES_ADHOC_STORAGE_KEY = 'padaria_ajustes_adhoc_rotas_v1';
+
+export function carregarAjustesAdhoc(): Record<string, number> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(AJUSTES_ADHOC_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return parsed.valores || {};
+    }
+  } catch (e) {
+    console.error('Erro ao ler ajustes ad-hoc:', e);
+  }
+  return {};
+}
+
+export function salvarAjusteAdhoc(chave: string, quantidade: number | null): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const todos = carregarAjustesAdhoc();
+    if (quantidade === null || isNaN(quantidade)) {
+      delete todos[chave];
+    } else {
+      todos[chave] = Math.max(0, quantidade);
+    }
+    localStorage.setItem(AJUSTES_ADHOC_STORAGE_KEY, JSON.stringify({
+      valores: todos,
+      atualizado_em: new Date().toISOString()
+    }));
+    window.dispatchEvent(new Event('app_ajustes_adhoc_atualizados'));
+  } catch (e) {
+    console.error('Erro ao salvar ajuste ad-hoc:', e);
+  }
+}
+
+export function removerAjusteAdhoc(chave: string): void {
+  salvarAjusteAdhoc(chave, null);
+}
+
+export function getChaveAdhocBase(dataStr: string, carrinhaId: string, produtoNome: string): string {
+  return `base_${dataStr}_${carrinhaId}_${produtoNome}`;
+}
+
+export function getChaveAdhocB2B(dataStr: string, clienteB2BId: string, produtoNome: string): string {
+  return `b2b_${dataStr}_${clienteB2BId}_${produtoNome}`;
+}
+
+export function obterQuantidadeEfetivaBaseRota(
+  dataStr: string,
+  carrinhaId: string,
+  produtoNome: string,
+  baseFixaSemanal?: Record<string, Record<string, number>>,
+  diaSemana: string = 'seg'
+): { quantidade: number; isAdhoc: boolean } {
+  const ajustes = carregarAjustesAdhoc();
+  const chave = getChaveAdhocBase(dataStr, carrinhaId, produtoNome);
+  if (ajustes[chave] !== undefined) {
+    return { quantidade: Number(ajustes[chave]), isAdhoc: true };
+  }
+  const baseline = (baseFixaSemanal?.[diaSemana]?.[produtoNome]) ?? 0;
+  return { quantidade: Number(baseline), isAdhoc: false };
+}
+
+export function obterQuantidadeEfetivaClienteB2B(
+  dataStr: string,
+  clienteB2BId: string,
+  produtoNome: string,
+  quantidadesSemana?: Record<string, Record<string, number>>,
+  diaSemana: string = 'seg'
+): { quantidade: number; isAdhoc: boolean } {
+  const ajustes = carregarAjustesAdhoc();
+  const chave = getChaveAdhocB2B(dataStr, clienteB2BId, produtoNome);
+  if (ajustes[chave] !== undefined) {
+    return { quantidade: Number(ajustes[chave]), isAdhoc: true };
+  }
+  const baseline = (quantidadesSemana?.[diaSemana]?.[produtoNome]) ?? 0;
+  return { quantidade: Number(baseline), isAdhoc: false };
+}

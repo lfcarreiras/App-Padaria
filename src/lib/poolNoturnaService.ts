@@ -65,7 +65,7 @@ async function executarComRetry<T>(fn: () => Promise<T>, maxTentativas: number =
 
 /**
  * Compilação automática das 22h00:
- * Encomendas aceites + Base Fixa das 8 rotas + Matriz dos 13 clientes B2B.
+ * Encomendas aceites + Base Fixa das 7 rotas + Matriz dos 13 clientes B2B.
  */
 export async function compilarPoolNoturnaAutomatica(dataReferencia?: string): Promise<ResultadoFechoNoturno> {
   try {
@@ -121,7 +121,7 @@ export async function compilarPoolNoturnaAutomatica(dataReferencia?: string): Pr
       });
     });
 
-    // B) Somar Base Fixa das 8 Rotas
+    // B) Somar Base Fixa das 7 Rotas
     baseFixaCarrinhas.forEach((carrinha) => {
       const semana = carrinha.quantidades_semanais || carrinha.quantidades_por_produto || {};
       const mapaDia = (semana[diaSemana] || semana) as Record<string, number>;
@@ -224,7 +224,7 @@ export async function compilarPoolNoturnaAutomatica(dataReferencia?: string): Pr
       utilizador_role: 'admin',
       painel: 'producao',
       acao: 'Fecho Noturno 22h00 - Pool de Fabrico Gerada',
-      detalhes: `Pool de fabrico gerada para ${dataAlvo}: ${totalUnidadesGeral} unidades (${totalPadaria} padaria, ${totalPastelaria} pastelaria) a partir de ${encomendasDoDia.length} encomendas aceites, 8 rotas operacionais e ${clientesB2B.length} clientes B2B. Alerta KDS ativado para o turno das 23h00.`,
+      detalhes: `Pool de fabrico gerada para ${dataAlvo}: ${totalUnidadesGeral} unidades (${totalPadaria} padaria, ${totalPastelaria} pastelaria) a partir de ${encomendasDoDia.length} encomendas aceites, 7 rotas operacionais e ${clientesB2B.length} clientes B2B. Alerta KDS ativado para o turno das 23h00.`,
     });
 
     return resultado;

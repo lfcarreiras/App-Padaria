@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { Navbar } from '../../components/Navbar';
 import { ThermalReceipt } from '../../components/ThermalReceipt';
+import { MatrizAjustesAdhoc } from '../../components/MatrizAjustesAdhoc';
 import { LOJAS_MOCK, PRODUTOS_MOCK, CARRINHAS_MOCK, COLUNAS_MAPA_DIARIO_OFICIAL } from '../../lib/mockData';
 import { 
   carregarEncomendasSupabase, 
@@ -132,12 +133,12 @@ export default function AdminPage() {
   const [carrinhas, setCarrinhas] = useState<Carrinha[]>(CARRINHAS_MOCK);
   const [perfis, setPerfis] = useState<PerfilUtilizador[]>([]);
 
-  // Todas as 8 rotas operacionais ativas (Rota 1 a Rota 8)
+  // Todas as 7 rotas operacionais ativas (Rota 1 a Rota 7 - Rota 8 desativada)
   const carrinhasBaseDiaria = useMemo(() => {
     return [...carrinhas]
       .filter((c) => {
         const num = c.numero || parseInt(String(c.rota || c.identificador || '').replace(/\D+/g, '') || '99', 10);
-        return num >= 1 && num <= 8 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9';
+        return num >= 1 && num <= 7 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9' && c.rota !== 'Rota 8' && c.identificador !== 'Rota 8';
       })
       .sort((a, b) => {
         const numA = a.numero || parseInt(String(a.rota || a.identificador || '').replace(/\D+/g, '') || '99', 10);
@@ -2528,10 +2529,10 @@ export default function AdminPage() {
                 <div>
                   <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                     <Truck className="h-4 w-4 text-blue-600" />
-                    Frota de Distribuição — Rotas e Carros (1 a 8)
+                    Frota de Distribuição — Rotas e Carros (1 a 7)
                   </h3>
                   <p className="text-xs text-gray-500">
-                    Gestão operacional das 8 rotas e viaturas ativas da frota de distribuição porta a porta.
+                    Gestão operacional das 7 rotas e viaturas ativas da frota de distribuição porta a porta.
                   </p>
                 </div>
 
@@ -2590,10 +2591,10 @@ export default function AdminPage() {
                 <div>
                   <h3 className="text-sm font-black text-gray-900 flex items-center gap-2">
                     <Layers className="h-4 w-4 text-blue-600" />
-                    Base Diária por Rota (Consolidado Rotas 1 a 8)
+                    Base Diária por Rota (Consolidado Rotas 1 a 7)
                   </h3>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Quantidades diárias consolidadas de cada artigo por rota (Rotas 1 a 8), somadas ao Mapa Diário e ao Centro de Produção.
+                    Quantidades diárias consolidadas de cada artigo por rota (Rotas 1 a 7), somadas ao Mapa Diário e ao Centro de Produção.
                   </p>
                 </div>
 
@@ -2649,7 +2650,7 @@ export default function AdminPage() {
                     type="button"
                     onClick={handleExportarExcelBaseFixaConsolidado}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 text-blue-900 text-xs font-bold hover:bg-blue-100 transition cursor-pointer"
-                    title="Exportar Excel consolidado das rotas de distribuição de carros (1 a 8) para todos os dias da semana"
+                    title="Exportar Excel consolidado das rotas de distribuição de carros (1 a 7) para todos os dias da semana"
                   >
                     <Download className="h-3.5 w-3.5 text-blue-700" />
                     Excel Consolidado (.xlsx)
@@ -2659,7 +2660,7 @@ export default function AdminPage() {
                     type="button"
                     onClick={() => abrirFolhaCargaPdfModal(carrinhaExportacaoId)}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black shadow-xs transition cursor-pointer"
-                    title="Gerar Folha de Carga em PDF oficial para conferência de carregamento das rotas 1 a 8"
+                    title="Gerar Folha de Carga em PDF oficial para conferência de carregamento das rotas 1 a 7"
                   >
                     <FileText className="h-3.5 w-3.5" />
                     <span>Folha de Carga (PDF)</span>
@@ -2976,7 +2977,7 @@ export default function AdminPage() {
                     Clientes Empresariais (B2B) — Matriz Semanal por Rota e Cliente
                   </h3>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Quantidades fixas semanais contratadas por cliente empresarial, atribuídas às respetivas rotas operacionais (Rotas 1 a 8).
+                    Quantidades fixas semanais contratadas por cliente empresarial, atribuídas às respetivas rotas operacionais (Rotas 1 a 7).
                   </p>
                 </div>
 
@@ -3046,7 +3047,7 @@ export default function AdminPage() {
                     onChange={(e) => setFiltroRotaB2B(e.target.value)}
                     className="w-full text-xs font-bold bg-white border border-indigo-200 rounded-lg px-2.5 py-1.5 text-gray-800 focus:outline-hidden cursor-pointer"
                   >
-                    <option value="todas">Todas as Rotas (1 a 8)</option>
+                    <option value="todas">Todas as Rotas (1 a 7)</option>
                     {carrinhasBaseDiaria.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.rota || `Rota ${c.numero || ''}`}
@@ -3247,6 +3248,14 @@ export default function AdminPage() {
                 </table>
               </div>
             </div>
+
+            {/* MATRIZ DE AJUSTES AD-HOC CALENDARIZADOS (7 DIAS) */}
+            <MatrizAjustesAdhoc
+              carrinhas={carrinhasBaseDiaria}
+              baseFixaCarrinhas={baseFixaCarrinhas}
+              clientesB2B={clientesB2B}
+              produtos={produtos}
+            />
           </div>
         )}
 
@@ -5590,7 +5599,7 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Modal de PDF (Folha de Carga das 8 Rotas e Comprovativos B2B) */}
+      {/* Modal de PDF (Folha de Carga das 7 Rotas e Comprovativos B2B) */}
       <PdfViewerModal
         isOpen={pdfModalOpen}
         tipo={pdfModalTipo}
@@ -5599,6 +5608,7 @@ export default function AdminPage() {
         diaSemana={diaSemanaBaseFixa}
         dataReferencia={new Date().toLocaleDateString('pt-PT')}
         itensCarga={pdfItensCarga}
+        clientesB2BRota={clientesB2B.filter((cli) => cli.ativo && cli.carrinha_id === pdfCarrinhaSelecionada?.id)}
         clienteB2B={pdfClienteB2B}
         nomeCondutor="Rui Oliveira"
         matriculaCarro={pdfCarrinhaSelecionada?.matricula}

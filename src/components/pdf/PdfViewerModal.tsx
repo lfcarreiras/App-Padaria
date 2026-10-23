@@ -5,11 +5,9 @@ import { createPortal } from 'react-dom';
 import { Carrinha, ClienteEmpresarialB2B, DiaSemana } from '../../types';
 import { 
   X, 
-  Download, 
   Printer, 
   Share2, 
   PenTool, 
-  RotateCcw, 
   CheckCircle2, 
   Truck, 
   Building2, 
@@ -28,8 +26,18 @@ export interface LinhaArtigoCarga {
   observacoes?: string;
 }
 
+export interface LinhaArtigoFabrico {
+  produto_nome: string;
+  setor: 'padaria' | 'pastelaria' | string;
+  quantidade_total: number;
+  unidade?: string;
+  encomendas_count?: number;
+  encomendas_codigos?: string[];
+  personalizacoes?: string[];
+}
+
 export interface PdfViewerModalProps {
-  tipo: 'folha_carga' | 'comprovativo_b2b';
+  tipo: 'folha_carga' | 'comprovativo_b2b' | 'folha_fabrico';
   isOpen: boolean;
   onClose: () => void;
   // Dados para Folha de Carga
@@ -43,6 +51,10 @@ export interface PdfViewerModalProps {
   nomeCondutor?: string;
   matriculaCarro?: string;
   horaEntrega?: string;
+  // Dados para Folha de Fabrico
+  itensFabrico?: LinhaArtigoFabrico[];
+  lojaNome?: string;
+  setorFiltro?: string;
 }
 
 export function PdfViewerModal({
@@ -58,6 +70,9 @@ export function PdfViewerModal({
   nomeCondutor,
   matriculaCarro,
   horaEntrega,
+  itensFabrico = [],
+  lojaNome = 'Todas as Lojas',
+  setorFiltro = 'todos',
 }: PdfViewerModalProps) {
   const [nomeRecebedor, setNomeRecebedor] = useState<string>('');
   const [assinaturaDataUrl, setAssinaturaDataUrl] = useState<string | null>(null);
@@ -87,6 +102,15 @@ export function PdfViewerModal({
   // Totais de Carga
   const totalPaoUnidades = itensCarga.reduce((acc, it) => acc + it.quantidade, 0);
   const totalCaixas = itensCarga.reduce((acc, it) => acc + it.caixasEstimadas, 0);
+
+  // Totais de Fabrico
+  const totalFabricoUnidades = itensFabrico.reduce((acc, it) => acc + it.quantidade_total, 0);
+  const totalFabricoPadaria = itensFabrico.filter(it => it.setor === 'padaria').reduce((acc, it) => acc + it.quantidade_total, 0);
+  const totalFabricoPastelaria = itensFabrico.filter(it => it.setor === 'pastelaria' || it.setor !== 'padaria').reduce((acc, it) => acc + it.quantidade_total, 0);
+  const totalFabricoEncs = itensFabrico.reduce((acc, it) => acc + (it.encomendas_count || 0), 0);
+
+  const itensPadaria = itensFabrico.filter(it => it.setor === 'padaria');
+  const itensPastelaria = itensFabrico.filter(it => it.setor === 'pastelaria' || it.setor !== 'padaria');
 
   // Lógica do Canvas de Assinatura no Ecrã Touch do Telemóvel
   const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
@@ -212,8 +236,21 @@ export function PdfViewerModal({
     }, 2000);
   };
 
-  // Partilha via WhatsApp para o responsável da instituição
+  // Partilha via WhatsApp
   const handlePartilharWhatsApp = () => {
+    if (tipo === 'folha_fabrico') {
+      const texto = encodeURIComponent(
+        `📋 *PADARIA DA VILA — FOLHA DIÁRIA DE FABRICO*\n` +
+        `Data: ${dataFormatada}\n` +
+        `Total de Unidades a Produzir: ${totalFabricoUnidades} un.\n` +
+        `• Padaria: ${totalFabricoPadaria} un.\n` +
+        `• Pastelaria: ${totalFabricoPastelaria} un.\n` +
+        `Unidade Central de Produção • Arouca`
+      );
+      window.open(`https://wa.me/?text=${texto}`, '_blank');
+      return;
+    }
+
     if (tipo === 'comprovativo_b2b' && clienteB2B) {
       const telefone = (clienteB2B.telemovel || clienteB2B.telefone || '').replace(/\D+/g, '');
       const itensResumo = Object.entries(
@@ -253,6 +290,8 @@ export function PdfViewerModal({
             <span className="font-black text-sm">
               {tipo === 'folha_carga'
                 ? `Folha de Carga Oficial — ${carrinha?.rota || 'Rota'}`
+                : tipo === 'folha_fabrico'
+                ? `Folha de Fabrico Oficial — ${dataFormatada}`
                 : `Comprovativo de Entrega B2B — ${clienteB2B?.nome || 'Entidade'}`}
             </span>
           </div>
@@ -362,7 +401,7 @@ export function PdfViewerModal({
         <div className="flex-1 overflow-y-auto p-6 sm:p-10 font-sans text-gray-900 bg-white print:p-0 print:overflow-visible print:h-auto">
           
           {/* ============================================================== */}
-          {/* CASO 1: FOLHA DE CARGA POR ROTA (ROTAS 1 A 8)                */}
+          {/* CASO 1: FOLHA DE CARGA POR ROTA (ROTAS 1 A 7)                */}
           {/* ============================================================== */}
           {tipo === 'folha_carga' && (
             <div className="space-y-6">
@@ -430,19 +469,24 @@ export function PdfViewerModal({
                 </div>
               </div>
 
-              {/* Tabela de Artigos Carregados */}
+              {/* Tabela de Artigos Carregados (Quantidades Consolidadas da Base Diária) */}
               <div>
-                <h3 className="text-xs font-black uppercase text-gray-700 mb-2 flex items-center gap-1.5">
-                  <Package className="h-4 w-4 text-blue-600" />
-                  Discriminação de Artigos Carregados
-                </h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xs font-black uppercase text-gray-700 flex items-center gap-1.5">
+                    <Package className="h-4 w-4 text-blue-600" />
+                    Quantidades Consolidadas Carregadas na Viatura (Base Diária)
+                  </h3>
+                  <span className="text-[11px] text-gray-500 font-bold">
+                    {itensCarga.length} produtos
+                  </span>
+                </div>
                 <table className="w-full text-xs border border-gray-300 border-collapse">
                   <thead>
                     <tr className="bg-gray-100 text-gray-800 border-b border-gray-300">
                       <th className="py-2.5 px-4 text-left font-black">Artigo / Produto</th>
                       <th className="py-2.5 px-3 text-center font-black w-28">Setor</th>
-                      <th className="py-2.5 px-4 text-right font-black w-36">Quantidade</th>
-                      <th className="py-2.5 px-4 text-left font-black w-48">Conferência / Notas</th>
+                      <th className="py-2.5 px-4 text-right font-black w-36">Quantidade Consolidada</th>
+                      <th className="py-2.5 px-4 text-left font-black w-48">Conferência / Visto</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -482,35 +526,93 @@ export function PdfViewerModal({
                 </table>
               </div>
 
-              {/* Clientes B2B afetos a esta Rota */}
-              {clientesB2BRota.length > 0 && (
-                <div>
-                  <h3 className="text-xs font-black uppercase text-gray-700 mb-2 flex items-center gap-1.5">
-                    <Building2 className="h-4 w-4 text-purple-600" />
-                    Entregas Institucionais B2B nesta Rota
+              {/* NO FIM DA TABELA: DESDOBRAMENTO DAS QUANTIDADES DIVIDIDAS POR CLIENTE EMPRESARIAL */}
+              <div className="pt-4 border-t-2 border-gray-300 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black uppercase text-purple-950 flex items-center gap-1.5">
+                    <Building2 className="h-4 w-4 text-purple-700" />
+                    Desdobramento de Entregas por Cliente Empresarial (B2B)
                   </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <span className="text-[11px] font-bold text-gray-500">
+                    {clientesB2BRota.length} {clientesB2BRota.length === 1 ? 'cliente afeto' : 'clientes afetos'}
+                  </span>
+                </div>
+
+                {clientesB2BRota.length === 0 ? (
+                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-500 text-center">
+                    Esta rota não tem entregas de clientes empresariais (B2B) registadas para {diaSemana.toUpperCase()}. Distribuição porta-a-porta e particulares.
+                  </div>
+                ) : (
+                  <div className="space-y-4">
                     {clientesB2BRota.map((cli) => {
                       const semana = cli.quantidades_semanais || cli.quantidades_semana || {};
                       const mapa = semana[diaSemana] || {};
-                      const qtdTotalCli = Object.values(mapa).reduce((a, b) => a + Number(b || 0), 0);
+                      const itensDoCli = Object.entries(mapa).filter(([_, q]) => Number(q) > 0);
+                      const totalCli = itensDoCli.reduce((acc, [_, q]) => acc + Number(q), 0);
+
                       return (
-                        <div key={cli.id} className="p-2.5 rounded-xl border border-gray-200 bg-gray-50/70 flex items-center justify-between">
-                          <div>
-                            <span className="font-black text-gray-900 block">{cli.nome}</span>
-                            <span className="text-[10px] text-gray-500">{cli.morada} • Tel: {cli.telemovel || cli.telefone}</span>
+                        <div key={cli.id} className="border border-purple-200 rounded-xl overflow-hidden bg-white shadow-2xs">
+                          <div className="bg-purple-50/80 px-3 py-2 border-b border-purple-200 flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                              <span className="font-black text-xs text-purple-950">{cli.nome}</span>
+                              <span className="text-[10px] text-gray-600 block">
+                                {cli.morada || 'Arouca'} {cli.telefone ? `• Tel: ${cli.telefone}` : ''} {cli.nif ? `• NIF: ${cli.nif}` : ''}
+                              </span>
+                            </div>
+                            <span className="font-mono font-black text-xs bg-purple-600 text-white px-2.5 py-0.5 rounded-full">
+                              Total Cliente: {totalCli} un.
+                            </span>
                           </div>
-                          <span className="font-mono font-black text-purple-900 bg-purple-50 px-2 py-1 rounded border border-purple-200">
-                            {qtdTotalCli} un.
-                          </span>
+
+                          {itensDoCli.length === 0 ? (
+                            <p className="p-2.5 text-xs text-gray-400 italic">Sem artigos encomendados para este dia da semana.</p>
+                          ) : (
+                            <table className="w-full text-xs border-collapse">
+                              <thead>
+                                <tr className="bg-gray-50 text-gray-700 border-b border-gray-200 font-bold text-[11px]">
+                                  <th className="py-1.5 px-3 text-left">Artigo / Produto</th>
+                                  <th className="py-1.5 px-3 text-right w-28">Quantidade</th>
+                                  <th className="py-1.5 px-3 text-center w-36">Conferência de Entrega</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-100">
+                                {itensDoCli.map(([artigo, qtd], i) => (
+                                  <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}>
+                                    <td className="py-1.5 px-3 font-semibold text-gray-900">{artigo}</td>
+                                    <td className="py-1.5 px-3 text-right font-mono font-black text-purple-950">
+                                      {qtd} un.
+                                    </td>
+                                    <td className="py-1.5 px-3 text-center text-gray-400 text-[11px]">
+                                      [ &nbsp; ] Entregue Conforme
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
                         </div>
                       );
                     })}
                   </div>
+                )}
+              </div>
+
+              {/* Assinatura do Motorista na Folha de Carga */}
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200 text-xs">
+                <div>
+                  <span className="font-bold text-gray-600 block mb-1">Responsável pelo Carregamento:</span>
+                  <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-200">
+                    <p className="font-bold text-gray-900">{carrinha?.nome_condutor || 'Condutor Responsável'}</p>
+                    <p className="text-[10px] text-gray-500 font-mono mt-0.5">Viatura: {carrinha?.matricula || 'Frota'}</p>
+                  </div>
                 </div>
-              )}
-
-
+                <div>
+                  <span className="font-bold text-gray-600 block mb-1">Conferência da Expedição:</span>
+                  <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-200 text-center text-gray-400 py-3">
+                    Visto do Centro de Expedição [ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ]
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -663,6 +765,184 @@ export function PdfViewerModal({
               {/* Nota Legal */}
               <div className="pt-4 border-t border-gray-200 text-[10px] text-gray-400 text-center">
                 Documento de conferência de entrega emitido nos termos da faturação periódica e contrato de fornecimento institucional.
+              </div>
+            </div>
+          )}
+
+          {/* ============================================================== */}
+          {/* CASO 3: FOLHA DE FABRICO OFICIAL (COCKPIT DE PRODUÇÃO)          */}
+          {/* ============================================================== */}
+          {tipo === 'folha_fabrico' && (
+            <div className="space-y-6">
+              {/* Cabeçalho Oficial de Fabrico */}
+              <div className="border-b-2 border-stone-900 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-black tracking-tight text-stone-900 uppercase">
+                    Padaria da Vila
+                  </h1>
+                  <p className="text-xs text-stone-600">
+                    Fabrico Próprio de Pão Tradicional e Pastelaria Fina • Arouca
+                  </p>
+                  <p className="text-[11px] font-mono text-stone-500 mt-0.5">
+                    Centro de Produção & Unidade Fabril Central • KDS Fabrico Diário
+                  </p>
+                </div>
+                <div className="text-left sm:text-right">
+                  <span className="inline-block px-3 py-1 rounded-lg bg-amber-600 text-white font-black text-xs uppercase tracking-wider">
+                    Folha Diária de Fabrico
+                  </span>
+                  <p className="text-xs font-bold text-stone-900 mt-1">Data: {dataFormatada}</p>
+                  <p className="text-xs text-stone-600">Loja / Destino: {lojaNome}</p>
+                </div>
+              </div>
+
+              {/* Cartões Resumo Totais de Fabrico */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200">
+                  <span className="text-[10px] font-bold text-amber-900 uppercase block">Total a Produzir</span>
+                  <span className="text-2xl font-black text-amber-950 font-mono">{totalFabricoUnidades} un.</span>
+                  <span className="text-[10px] text-amber-700 block mt-0.5">unidades globais</span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-amber-100/60 border border-amber-300">
+                  <span className="text-[10px] font-bold text-amber-900 uppercase block">Setor Padaria</span>
+                  <span className="text-2xl font-black text-stone-950 font-mono">{totalFabricoPadaria} un.</span>
+                  <span className="text-[10px] text-amber-800 block mt-0.5">pães e broas</span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200">
+                  <span className="text-[10px] font-bold text-rose-900 uppercase block">Setor Pastelaria</span>
+                  <span className="text-2xl font-black text-rose-950 font-mono">{totalFabricoPastelaria} un.</span>
+                  <span className="text-[10px] text-rose-700 block mt-0.5">pastelaria e doçaria</span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-stone-100 border border-stone-200">
+                  <span className="text-[10px] font-bold text-stone-700 uppercase block">Linhas de Fabrico</span>
+                  <span className="text-2xl font-black text-stone-900 font-mono">{itensFabrico.length}</span>
+                  <span className="text-[10px] text-stone-600 block mt-0.5">artigos distintos</span>
+                </div>
+              </div>
+
+              {/* Tabela de Padaria */}
+              {itensPadaria.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-black uppercase text-amber-955 mb-2 flex items-center justify-between border-b-2 border-amber-500 pb-1.5">
+                    <span className="flex items-center gap-1.5">
+                      <span>🥖</span> Setor de Padaria & Pão Tradicional
+                    </span>
+                    <span className="font-mono font-bold text-amber-900">Subtotal: {totalFabricoPadaria} un.</span>
+                  </h3>
+                  <table className="w-full text-xs border border-stone-300 border-collapse mb-4">
+                    <thead>
+                      <tr className="bg-amber-100/80 text-amber-950 border-b border-stone-300 font-black">
+                        <th className="py-2 px-3 text-left">Artigo / Pão</th>
+                        <th className="py-2 px-3 text-right w-28">Quantidade</th>
+                        <th className="py-2 px-3 text-center w-28">Encomendas</th>
+                        <th className="py-2 px-3 text-left">Personalizações / Códigos</th>
+                        <th className="py-2 px-3 text-center w-32">Fornada [  ]</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-200">
+                      {itensPadaria.map((it, idx) => (
+                        <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-amber-50/30'}>
+                          <td className="py-2 px-3 font-bold text-stone-950">{it.produto_nome}</td>
+                          <td className="py-2 px-3 text-right font-mono font-black text-amber-900 text-sm">
+                            {it.quantidade_total} {normalizarUnidade(it.unidade)}
+                          </td>
+                          <td className="py-2 px-3 text-center font-mono font-bold text-stone-700">
+                            {it.encomendas_count ? `${it.encomendas_count} enc.` : '-'}
+                          </td>
+                          <td className="py-2 px-3 text-stone-600 text-[11px]">
+                            {it.personalizacoes && it.personalizacoes.length > 0
+                              ? it.personalizacoes.join(' • ')
+                              : it.encomendas_codigos && it.encomendas_codigos.length > 0
+                              ? it.encomendas_codigos.slice(0, 4).join(', ') + (it.encomendas_codigos.length > 4 ? '...' : '')
+                              : '-'}
+                          </td>
+                          <td className="py-2 px-3 text-center text-stone-400 font-medium">
+                            [ &nbsp; ] Cozido
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-amber-100 font-black border-t-2 border-stone-400">
+                        <td className="py-2 px-3">SUBTOTAL PADARIA</td>
+                        <td className="py-2 px-3 text-right font-mono text-stone-950">{totalFabricoPadaria} un.</td>
+                        <td colSpan={3} className="py-2 px-3"></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
+
+              {/* Tabela de Pastelaria */}
+              {itensPastelaria.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-black uppercase text-rose-950 mb-2 flex items-center justify-between border-b-2 border-rose-500 pb-1.5">
+                    <span className="flex items-center gap-1.5">
+                      <span>🧁</span> Setor de Pastelaria Fina & Confeitaria
+                    </span>
+                    <span className="font-mono font-bold text-rose-900">Subtotal: {totalFabricoPastelaria} un.</span>
+                  </h3>
+                  <table className="w-full text-xs border border-stone-300 border-collapse mb-4">
+                    <thead>
+                      <tr className="bg-rose-100/80 text-rose-950 border-b border-stone-300 font-black">
+                        <th className="py-2 px-3 text-left">Artigo / Doce</th>
+                        <th className="py-2 px-3 text-right w-28">Quantidade</th>
+                        <th className="py-2 px-3 text-center w-28">Encomendas</th>
+                        <th className="py-2 px-3 text-left">Personalizações / Códigos</th>
+                        <th className="py-2 px-3 text-center w-32">Confeção [  ]</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-200">
+                      {itensPastelaria.map((it, idx) => (
+                        <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-rose-50/30'}>
+                          <td className="py-2 px-3 font-bold text-stone-950">{it.produto_nome}</td>
+                          <td className="py-2 px-3 text-right font-mono font-black text-rose-900 text-sm">
+                            {it.quantidade_total} {normalizarUnidade(it.unidade)}
+                          </td>
+                          <td className="py-2 px-3 text-center font-mono font-bold text-stone-700">
+                            {it.encomendas_count ? `${it.encomendas_count} enc.` : '-'}
+                          </td>
+                          <td className="py-2 px-3 text-stone-600 text-[11px]">
+                            {it.personalizacoes && it.personalizacoes.length > 0
+                              ? it.personalizacoes.join(' • ')
+                              : it.encomendas_codigos && it.encomendas_codigos.length > 0
+                              ? it.encomendas_codigos.slice(0, 4).join(', ') + (it.encomendas_codigos.length > 4 ? '...' : '')
+                              : '-'}
+                          </td>
+                          <td className="py-2 px-3 text-center text-stone-400 font-medium">
+                            [ &nbsp; ] Pronto
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-rose-100 font-black border-t-2 border-stone-400">
+                        <td className="py-2 px-3">SUBTOTAL PASTELARIA</td>
+                        <td className="py-2 px-3 text-right font-mono text-stone-950">{totalFabricoPastelaria} un.</td>
+                        <td colSpan={3} className="py-2 px-3"></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
+
+              {/* Área de Validação e Assinatura do Chefe de Produção */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 border-t-2 border-stone-300 text-xs">
+                <div>
+                  <span className="font-bold text-stone-600 block mb-1">Chefe de Turno de Fabrico:</span>
+                  <div className="p-3 rounded-xl bg-stone-50 border border-stone-200">
+                    <p className="font-bold text-stone-900">Mestre Padeiro / Responsável da Produção</p>
+                    <p className="text-[11px] text-stone-500 mt-1">Turno de Madrugada e Matinal • Conforme Normas HACCP</p>
+                  </div>
+                </div>
+
+                <div className="border border-stone-300 rounded-xl p-3 bg-stone-50/70 text-center space-y-1">
+                  <span className="font-bold text-stone-700 block text-left">Validação de Saída das Fornadas:</span>
+                  <div className="py-3 border-b border-dashed border-stone-400 text-stone-400 text-xs">
+                    Assinatura / Visto do Chefe de Produção
+                  </div>
+                  <p className="text-[10px] text-stone-500 font-mono pt-1">Hora de Conclusão: _____ : _____</p>
+                </div>
               </div>
             </div>
           )}
