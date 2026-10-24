@@ -42,6 +42,14 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.16] - 2026-10-24
+
+### Fixed (Resolução de ReferenceError: normalizarNomeArtigoCanonico nos Ajustes Pontuais B2B)
+- **Correção da Matriz de Ajustes Adhoc (`MatrizAjustesAdhoc.tsx`)**:
+  - Adicionado o import em falta de `normalizarNomeArtigoCanonico` a partir de `../lib/encomendasService`, eliminando o crash em tempo de execução (`ReferenceError: normalizarNomeArtigoCanonico is not defined`) que ocorria ao clicar no botão de "Clientes Empresariais" no Cockpit de Fabrico e Entregas.
+  - Implementada resolução bidirecional resiliente de artigos na grelha B2B e na Base Diária de Rota: quando a quantidade semanal contratada está registada com denominação histórica (ex: *"Broa 1 kg"*), o valor baseline é mapeado automaticamente para a designação canónica (*"Broa Amarela 1 kg"*).
+  - Alinhamento de correspondência canónica em `obterQuantidadeEfetivaClienteB2B` e `obterQuantidadeEfetivaBaseRota` (`encomendasService.ts`), garantindo consistência total na persistência e consulta dos ajustes pontuais de calendário.
+
 ## [v2.7.15] - 2026-10-24
 
 ### Fixed (Resolução de ReferenceError: totalPaoUnidades na Folha de Carga)

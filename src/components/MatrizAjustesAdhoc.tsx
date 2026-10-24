@@ -14,7 +14,8 @@ import {
   salvarAjusteAdhoc, 
   removerAjusteAdhoc,
   getChaveAdhocBase, 
-  getChaveAdhocB2B 
+  getChaveAdhocB2B,
+  normalizarNomeArtigoCanonico
 } from '../lib/encomendasService';
 import { 
   Calendar, 
@@ -213,18 +214,18 @@ export function MatrizAjustesAdhoc({
     if (baseFixaAtiva?.quantidades_semanais) {
       Object.values(baseFixaAtiva.quantidades_semanais).forEach((mapa) => {
         if (mapa) {
-          Object.keys(mapa).forEach((p) => setProds.add(p));
+          Object.keys(mapa).forEach((p) => setProds.add(normalizarNomeArtigoCanonico(p)));
         }
       });
     }
     if (baseFixaAtiva?.quantidades_por_produto) {
-      Object.keys(baseFixaAtiva.quantidades_por_produto).forEach((p) => setProds.add(p));
+      Object.keys(baseFixaAtiva.quantidades_por_produto).forEach((p) => setProds.add(normalizarNomeArtigoCanonico(p)));
     }
     // Adicionar também quaisquer produtos que tenham ajustes adhoc registados para esta carrinha
     Object.keys(ajustesAdhoc).forEach((k) => {
       if (carrinhaAtiva && k.includes(`_${carrinhaAtiva.id}_`)) {
         const partes = k.split(`_${carrinhaAtiva.id}_`);
-        if (partes[1]) setProds.add(partes[1]);
+        if (partes[1]) setProds.add(normalizarNomeArtigoCanonico(partes[1]));
       }
     });
 
@@ -444,7 +445,15 @@ export function MatrizAjustesAdhoc({
                           // Baseline semanal
                           const semana = baseFixaAtiva?.quantidades_semanais || baseFixaAtiva?.quantidades_semana || {};
                           const mapaDia = semana[col.diaSemana] || baseFixaAtiva?.quantidades_por_produto || {};
-                          const baselineVal = Number(mapaDia[produtoNome] || 0);
+                          let baselineVal = Number(mapaDia[produtoNome] || 0);
+                          if (baselineVal === 0 && mapaDia) {
+                            for (const [k, v] of Object.entries(mapaDia)) {
+                              if (normalizarNomeArtigoCanonico(k) === produtoNome) {
+                                baselineVal = Number(v) || 0;
+                                break;
+                              }
+                            }
+                          }
 
                           const valorEfetivo = temAdhoc ? Number(ajustesAdhoc[chave]) : baselineVal;
                           totalLinha7Dias += valorEfetivo;
@@ -645,7 +654,15 @@ export function MatrizAjustesAdhoc({
                                     const temAdhoc = ajustesAdhoc[chave] !== undefined;
 
                                     const mapaDia = semana[col.diaSemana] || {};
-                                    const baselineVal = Number(mapaDia[artigo] || 0);
+                                    let baselineVal = Number(mapaDia[artigo] || 0);
+                                    if (baselineVal === 0 && mapaDia) {
+                                      for (const [k, v] of Object.entries(mapaDia)) {
+                                        if (normalizarNomeArtigoCanonico(k) === artigo) {
+                                          baselineVal = Number(v) || 0;
+                                          break;
+                                        }
+                                      }
+                                    }
 
                                     const valorEfetivo = temAdhoc ? Number(ajustesAdhoc[chave]) : baselineVal;
                                     totalArtigo7Dias += valorEfetivo;

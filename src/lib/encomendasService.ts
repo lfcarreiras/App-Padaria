@@ -2307,7 +2307,21 @@ export function obterQuantidadeEfetivaBaseRota(
   if (ajustes[chave] !== undefined) {
     return { quantidade: Number(ajustes[chave]), isAdhoc: true };
   }
-  const baseline = (baseFixaSemanal?.[diaSemana]?.[produtoNome]) ?? 0;
+  const chaveCanon = getChaveAdhocBase(dataStr, carrinhaId, normalizarNomeArtigoCanonico(produtoNome));
+  if (ajustes[chaveCanon] !== undefined) {
+    return { quantidade: Number(ajustes[chaveCanon]), isAdhoc: true };
+  }
+  let baseline = (baseFixaSemanal?.[diaSemana]?.[produtoNome]) ?? 0;
+  if (!baseline && baseFixaSemanal?.[diaSemana]) {
+    const mapa = baseFixaSemanal[diaSemana];
+    const canon = normalizarNomeArtigoCanonico(produtoNome);
+    for (const [k, v] of Object.entries(mapa)) {
+      if (normalizarNomeArtigoCanonico(k) === canon) {
+        baseline = Number(v) || 0;
+        break;
+      }
+    }
+  }
   return { quantidade: Number(baseline), isAdhoc: false };
 }
 
@@ -2323,6 +2337,20 @@ export function obterQuantidadeEfetivaClienteB2B(
   if (ajustes[chave] !== undefined) {
     return { quantidade: Number(ajustes[chave]), isAdhoc: true };
   }
-  const baseline = (quantidadesSemana?.[diaSemana]?.[produtoNome]) ?? 0;
+  const chaveCanon = getChaveAdhocB2B(dataStr, clienteB2BId, normalizarNomeArtigoCanonico(produtoNome));
+  if (ajustes[chaveCanon] !== undefined) {
+    return { quantidade: Number(ajustes[chaveCanon]), isAdhoc: true };
+  }
+  let baseline = (quantidadesSemana?.[diaSemana]?.[produtoNome]) ?? 0;
+  if (!baseline && quantidadesSemana?.[diaSemana]) {
+    const mapa = quantidadesSemana[diaSemana];
+    const canon = normalizarNomeArtigoCanonico(produtoNome);
+    for (const [k, v] of Object.entries(mapa)) {
+      if (normalizarNomeArtigoCanonico(k) === canon) {
+        baseline = Number(v) || 0;
+        break;
+      }
+    }
+  }
   return { quantidade: Number(baseline), isAdhoc: false };
 }
