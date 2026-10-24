@@ -580,7 +580,6 @@ export default function AdminPage() {
     salvarBaseFixaCarrinhas(novaBaseFixa);
 
     // 3. Migrar também nos clientes B2B caso usassem o nome antigo
-    const todosDias: DiaSemana[] = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
     const novosClientesB2B = clientesB2B.map((cli) => {
       const semanaAtual = cli.quantidades_semanais || cli.quantidades_semana || ({} as Record<DiaSemana, Record<string, number>>);
       const novaSemana: any = { ...semanaAtual };

@@ -42,6 +42,12 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.10] - 2026-10-24
+
+### Fixed (Resolução de Erro de Compilação SWC no Build de Produção Vercel)
+- **Eliminação de Declaração Duplicada em `gestao/page.tsx`**:
+  - Removida a redeclaração de `todosDias` na função `handleRenomearArtigoBaseFixa`, permitindo ao compilador Next.js / SWC da Vercel construir o bundle de produção sem erros de webpack (`the name todosDias is defined multiple times`).
+
 ## [v2.7.9] - 2026-10-24
 
 ### Fixed & Enhanced (Propagação Automática da Normalização Canónica nos Mapas Diários e Bases das Carrinhas)
