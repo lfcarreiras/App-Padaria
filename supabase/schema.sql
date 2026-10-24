@@ -104,10 +104,26 @@ create index if not exists idx_encomendas_estado on public.encomendas(estado);
 create index if not exists idx_itens_setor_estado on public.itens_encomenda(setor, estado_producao);
 create index if not exists idx_clientes_telefone on public.clientes(telefone);
 
--- ATIVAÇÃO DO SUPABASE REALTIME
+-- ATIVAÇÃO DO SUPABASE REALTIME (100% Idempotente)
 -- Permite que o balcão, a cozinha e os motoristas recebam atualizações sem recarregar a página
-alter publication supabase_realtime add table public.encomendas;
-alter publication supabase_realtime add table public.itens_encomenda;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'encomendas'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.encomendas;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'itens_encomenda'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.itens_encomenda;
+  END IF;
+EXCEPTION
+  WHEN others THEN NULL;
+END $$;
 
 -- ==============================================================================
 -- DADOS INICIAIS DE EXEMPLO (SEEDS)

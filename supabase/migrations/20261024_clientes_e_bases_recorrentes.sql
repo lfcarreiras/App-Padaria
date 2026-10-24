@@ -79,12 +79,29 @@ END $$;
 GRANT ALL ON public.clientes_empresariais TO anon, authenticated;
 GRANT ALL ON public.bases_diarias_recorrentes TO anon, authenticated;
 
--- 6. Adicionar à publicação Realtime do Supabase
+-- 6. Adicionar à publicação Realtime do Supabase (100% Idempotente com checagem pg_publication_tables)
 DO $$
 BEGIN
-  ALTER PUBLICATION supabase_realtime ADD TABLE public.clientes;
-  ALTER PUBLICATION supabase_realtime ADD TABLE public.clientes_empresariais;
-  ALTER PUBLICATION supabase_realtime ADD TABLE public.bases_diarias_recorrentes;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'clientes'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.clientes;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'clientes_empresariais'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.clientes_empresariais;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'bases_diarias_recorrentes'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.bases_diarias_recorrentes;
+  END IF;
 EXCEPTION
   WHEN others THEN NULL;
 END $$;
