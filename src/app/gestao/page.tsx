@@ -42,7 +42,8 @@ import {
   salvarBaseDiariaRecorrente,
   eliminarBaseDiariaRecorrente,
   clienteEmModoFerias,
-  subscreverAlteracoesBasesRecorrentes
+  subscreverAlteracoesBasesRecorrentes,
+  normalizarNomeArtigoCanonico
 } from '../../lib/encomendasService';
 import { 
   ReceiptConfig, 
@@ -307,14 +308,20 @@ export default function AdminPage() {
         const bfCarregada = carregarBaseFixaCarrinhas();
         if (Array.isArray(bfCarregada)) setBaseFixaCarrinhas(bfCarregada);
         const artsGuardados = carregarArtigosBaseFixa();
-        const setCombinado = new Set<string>(Array.isArray(artsGuardados) ? artsGuardados : []);
+        const setCombinado = new Set<string>((Array.isArray(artsGuardados) ? artsGuardados : []).map(normalizarNomeArtigoCanonico).filter(Boolean));
         (bfCarregada || []).forEach((bf) => {
           if (!bf) return;
           const mapa = bf?.quantidades_por_produto || bf?.quantidades || {};
-          Object.keys(mapa).forEach((prod) => setCombinado.add(prod));
+          Object.keys(mapa).forEach((prod) => {
+            const n = normalizarNomeArtigoCanonico(prod);
+            if (n) setCombinado.add(n);
+          });
           if (bf?.quantidades_semanais) {
             Object.values(bf.quantidades_semanais).forEach((m) => {
-              Object.keys(m || {}).forEach((prod) => setCombinado.add(prod));
+              Object.keys(m || {}).forEach((prod) => {
+                const n = normalizarNomeArtigoCanonico(prod);
+                if (n) setCombinado.add(n);
+              });
             });
           }
         });
@@ -537,7 +544,8 @@ export default function AdminPage() {
     setArtigosBaseFixa(novaListaArtigos);
     salvarArtigosBaseFixa(novaListaArtigos);
 
-    // 2. Migrar quantidades nas 4 carrinhas da Base Fixa
+    // 2. Migrar quantidades nas carrinhas da Base Fixa (quantidades_por_produto e semanais)
+    const todosDias: DiaSemana[] = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
     const novaBaseFixa = baseFixaCarrinhas.map((bf) => {
       const mapaAtual = { ...(bf.quantidades_por_produto || bf.quantidades || {}) };
       if (nomeAntigo in mapaAtual) {
@@ -548,10 +556,24 @@ export default function AdminPage() {
           mapaAtual[nomeNovo] = qtdAntiga + qtdExistente;
         }
       }
+      const semanaAtual = bf.quantidades_semanais || ({} as Record<DiaSemana, Record<string, number>>);
+      const novaSemana: any = { ...semanaAtual };
+      todosDias.forEach((d) => {
+        const mapaDia = { ...(novaSemana[d] || {}) };
+        if (nomeAntigo in mapaDia) {
+          const qOld = Number(mapaDia[nomeAntigo] || 0);
+          const qNew = Number(mapaDia[nomeNovo] || 0);
+          delete mapaDia[nomeAntigo];
+          if (qOld + qNew > 0) mapaDia[nomeNovo] = qOld + qNew;
+          novaSemana[d] = mapaDia;
+        }
+      });
       return {
         ...bf,
         quantidades_por_produto: mapaAtual,
         quantidades: mapaAtual,
+        quantidades_semanais: novaSemana,
+        quantidades_semana: novaSemana,
       };
     });
     setBaseFixaCarrinhas(novaBaseFixa);

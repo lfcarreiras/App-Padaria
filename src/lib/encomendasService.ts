@@ -1645,8 +1645,63 @@ export async function reiniciarLogsAuditoriaParaMock(): Promise<LogAuditoria[]> 
 
 // ---------------- BASE FIXA CARRINHAS 1-4 E CLIENTES EMPRESARIAIS B2B (CARRINHA 5) ---------------- //
 
-const BASE_FIXA_CARRINHAS_STORAGE_KEY = 'padaria_base_fixa_carrinhas_v3';
-const CLIENTES_B2B_STORAGE_KEY = 'padaria_clientes_empresariais_b2b_v3';
+export const BASE_FIXA_CARRINHAS_STORAGE_KEY = 'padaria_base_fixa_carrinhas_v4';
+export const CLIENTES_B2B_STORAGE_KEY = 'padaria_clientes_empresariais_b2b_v4';
+export const ARTIGOS_BASE_FIXA_STORAGE_KEY = 'padaria_artigos_base_fixa_v4';
+
+/**
+ * Normaliza qualquer variante histórica de nome de artigo para o nome canónico oficial aprovado pela gerência.
+ */
+export function normalizarNomeArtigoCanonico(nome: string): string {
+  if (!nome) return '';
+  const limpo = nome.trim();
+  const lower = limpo.toLowerCase();
+
+  // Broas
+  if (lower === 'broa 1 kg' || lower === 'broa 1kg') return 'Broa Amarela 1 kg';
+  if (lower === 'broa 2 kg' || lower === 'broa 2kg') return 'Broa Amarela 2 kg';
+  if (lower === 'broa 0,5 kg' || lower === 'broa 0.5 kg' || lower === 'broa 0.5kg') return 'Broa Amarela 0,5 kg';
+
+  // Pão da Avó fundido em Pão Saloio
+  if (lower === 'pão da avó' || lower === 'pao da avo') return 'Pão Saloio';
+  if (lower === 'mini pão da avó' || lower === 'mini pao da avo') return 'Mini Pão Saloio';
+
+  // Centeio e Sementes
+  if (lower === 'mini pão centeio' || lower === 'mini pao centeio') return 'Mini Pão de Centeio';
+  if (lower === 'pão c/ sementes' || lower === 'pão c/  sementes') return 'Pão de Sementes';
+
+  // Regueifas
+  if (lower === 'regueifa de coco' || lower === 'regueifa côco' || lower === 'regueifa coco') return 'Regueifa de Côco';
+  if (lower === 'regueifa canela') return 'Regueifa de Canela';
+
+  // Tostas e Pães
+  if (lower === 'saco mini tostas' || lower === 'tostas' || lower === 'tosta teste') return 'Tosta';
+  if (lower === 'pão' || lower === 'pao') return 'Pão Normal';
+  if (lower === 'padas') return 'Padas Normais';
+
+  // Salgados / Pastelaria
+  if (lower === 'lanche') return 'Lanche Misto';
+  if (lower === 'mini broa c/ chouriço' || lower === 'mini broa c/ chourico') return 'Mini Broa com Chouriço';
+
+  return limpo;
+}
+
+/**
+ * Normaliza um mapa de quantidades por produto, agregando quantidades se duas chaves antigas convergirem.
+ */
+export function normalizarMapaQuantidades(mapa?: Record<string, number>): Record<string, number> {
+  if (!mapa || typeof mapa !== 'object') return {};
+  const res: Record<string, number> = {};
+  for (const [k, v] of Object.entries(mapa)) {
+    const nomeNorm = normalizarNomeArtigoCanonico(k);
+    if (!nomeNorm) continue;
+    const qtd = Number(v) || 0;
+    if (qtd > 0) {
+      res[nomeNorm] = (res[nomeNorm] || 0) + qtd;
+    }
+  }
+  return res;
+}
 
 const MAPA_CARRINHA_IDS_LEGADOS: Record<string, { id: string; nome: string }> = {
   'e908db95-c427-4ed5-83fc-01403bd24cf1': { id: '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75', nome: 'Carrinha 1' },
@@ -1670,20 +1725,20 @@ export function normalizarBaseFixaItem(b: any): BaseFixaCarrinha {
     .replace(/4º Carro/i, 'Carrinha 4')
     .replace(/5º Carro/i, 'Carrinha 5');
 
-  const mapaQtds: Record<string, number> = {
-    ...(b?.quantidades_por_produto || b?.quantidades || b?.quantidadesPorProduto || {}),
-  };
+  const mapaQtds = normalizarMapaQuantidades(
+    b?.quantidades_por_produto || b?.quantidades || b?.quantidadesPorProduto
+  );
 
   const todosDias: DiaSemana[] = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
   const origemSemana = b?.quantidades_semanais || {};
   const semanaNormalizada: Record<DiaSemana, Record<string, number>> = {
-    seg: { ...(origemSemana.seg || mapaQtds) },
-    ter: { ...(origemSemana.ter || mapaQtds) },
-    qua: { ...(origemSemana.qua || mapaQtds) },
-    qui: { ...(origemSemana.qui || mapaQtds) },
-    sex: { ...(origemSemana.sex || mapaQtds) },
-    sab: { ...(origemSemana.sab || mapaQtds) },
-    dom: { ...(origemSemana.dom || mapaQtds) },
+    seg: normalizarMapaQuantidades(origemSemana.seg || mapaQtds),
+    ter: normalizarMapaQuantidades(origemSemana.ter || mapaQtds),
+    qua: normalizarMapaQuantidades(origemSemana.qua || mapaQtds),
+    qui: normalizarMapaQuantidades(origemSemana.qui || mapaQtds),
+    sex: normalizarMapaQuantidades(origemSemana.sex || mapaQtds),
+    sab: normalizarMapaQuantidades(origemSemana.sab || mapaQtds),
+    dom: normalizarMapaQuantidades(origemSemana.dom || mapaQtds),
   };
   todosDias.forEach((d) => {
     if (!semanaNormalizada[d] || typeof semanaNormalizada[d] !== 'object') {
@@ -1703,14 +1758,15 @@ export function normalizarBaseFixaItem(b: any): BaseFixaCarrinha {
 export function normalizarClienteB2BItem(c: any): ClienteEmpresarialB2B {
   const todosDias: DiaSemana[] = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
   const origemSemana = c?.quantidades_semanais || c?.quantidades_semana || {};
+  const prodsPredefinidos = normalizarMapaQuantidades(c?.produtos_predefinidos);
   const semanaNormalizada: Record<DiaSemana, Record<string, number>> = {
-    seg: { ...(origemSemana.seg || {}) },
-    ter: { ...(origemSemana.ter || {}) },
-    qua: { ...(origemSemana.qua || {}) },
-    qui: { ...(origemSemana.qui || {}) },
-    sex: { ...(origemSemana.sex || {}) },
-    sab: { ...(origemSemana.sab || {}) },
-    dom: { ...(origemSemana.dom || {}) },
+    seg: normalizarMapaQuantidades(origemSemana.seg),
+    ter: normalizarMapaQuantidades(origemSemana.ter),
+    qua: normalizarMapaQuantidades(origemSemana.qua),
+    qui: normalizarMapaQuantidades(origemSemana.qui),
+    sex: normalizarMapaQuantidades(origemSemana.sex),
+    sab: normalizarMapaQuantidades(origemSemana.sab),
+    dom: normalizarMapaQuantidades(origemSemana.dom),
   };
   todosDias.forEach((d) => {
     if (!semanaNormalizada[d] || typeof semanaNormalizada[d] !== 'object') {
@@ -1731,20 +1787,34 @@ export function normalizarClienteB2BItem(c: any): ClienteEmpresarialB2B {
     ativo: c?.ativo !== undefined ? Boolean(c?.ativo) : true,
     quantidades_semanais: semanaNormalizada,
     quantidades_semana: semanaNormalizada,
+    produtos_predefinidos: prodsPredefinidos,
   };
 }
-
-const ARTIGOS_BASE_FIXA_STORAGE_KEY = 'padaria_artigos_base_fixa_v3';
 
 export function carregarArtigosBaseFixa(): string[] {
   const baseDefault = [...COLUNAS_MAPA_DIARIO_OFICIAL];
   if (typeof window !== 'undefined') {
-    const raw = localStorage.getItem(ARTIGOS_BASE_FIXA_STORAGE_KEY);
-    if (raw) {
+    let raw = localStorage.getItem(ARTIGOS_BASE_FIXA_STORAGE_KEY);
+    if (!raw) {
+      // Tentar migrar de v3
+      const rawV3 = localStorage.getItem('padaria_artigos_base_fixa_v3');
+      if (rawV3) {
+        try {
+          const parsedV3 = JSON.parse(rawV3);
+          if (Array.isArray(parsedV3)) {
+            const migradas = Array.from(new Set(parsedV3.map(normalizarNomeArtigoCanonico).filter(Boolean)));
+            localStorage.setItem(ARTIGOS_BASE_FIXA_STORAGE_KEY, JSON.stringify(migradas));
+            localStorage.removeItem('padaria_artigos_base_fixa_v3');
+            return migradas;
+          }
+        } catch (e) {}
+      }
+    } else {
       try {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map((s) => String(s).trim()).filter(Boolean);
+          const normalizados = Array.from(new Set(parsed.map(normalizarNomeArtigoCanonico).filter(Boolean)));
+          return normalizados;
         }
       } catch (e) {}
     }
@@ -1754,7 +1824,7 @@ export function carregarArtigosBaseFixa(): string[] {
 }
 
 export function salvarArtigosBaseFixa(artigos: string[]): void {
-  const limpos = Array.from(new Set((artigos || []).map((s) => String(s).trim()).filter(Boolean)));
+  const limpos = Array.from(new Set((artigos || []).map(normalizarNomeArtigoCanonico).filter(Boolean)));
   if (typeof window !== 'undefined') {
     localStorage.setItem(ARTIGOS_BASE_FIXA_STORAGE_KEY, JSON.stringify(limpos));
     window.dispatchEvent(new Event('app_base_fixa_atualizada'));
@@ -1764,12 +1834,30 @@ export function salvarArtigosBaseFixa(artigos: string[]): void {
 export function carregarBaseFixaCarrinhas(): BaseFixaCarrinha[] {
   const inicialNormalizado = BASE_FIXA_CARRINHAS_INICIAL.map(normalizarBaseFixaItem);
   if (typeof window !== 'undefined') {
-    const raw = localStorage.getItem(BASE_FIXA_CARRINHAS_STORAGE_KEY);
-    if (raw) {
+    let raw = localStorage.getItem(BASE_FIXA_CARRINHAS_STORAGE_KEY);
+    if (!raw) {
+      // Migração de v3 para v4
+      const rawV3 = localStorage.getItem('padaria_base_fixa_carrinhas_v3');
+      if (rawV3) {
+        try {
+          const parsedV3 = JSON.parse(rawV3);
+          if (Array.isArray(parsedV3) && parsedV3.length > 0) {
+            const migradas = parsedV3
+              .map(normalizarBaseFixaItem)
+              .filter(b => b.carrinha_nome !== 'Rota 8' && b.carrinha_id !== 'e888db95-c427-4ed5-83fc-01403bd24cf8');
+            localStorage.setItem(BASE_FIXA_CARRINHAS_STORAGE_KEY, JSON.stringify(migradas));
+            localStorage.removeItem('padaria_base_fixa_carrinhas_v3');
+            return migradas;
+          }
+        } catch (e) {}
+      }
+    } else {
       try {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map(normalizarBaseFixaItem).filter(b => b.carrinha_nome !== 'Rota 8' && b.carrinha_id !== 'e888db95-c427-4ed5-83fc-01403bd24cf8');
+          return parsed
+            .map(normalizarBaseFixaItem)
+            .filter(b => b.carrinha_nome !== 'Rota 8' && b.carrinha_id !== 'e888db95-c427-4ed5-83fc-01403bd24cf8');
         }
       } catch (e) {}
     }
@@ -1789,8 +1877,21 @@ export function salvarBaseFixaCarrinhas(dados: BaseFixaCarrinha[]): void {
 export function carregarClientesEmpresariaisB2B(): ClienteEmpresarialB2B[] {
   const inicialNormalizado = CLIENTES_EMPRESARIAIS_B2B_INICIAIS.map(normalizarClienteB2BItem);
   if (typeof window !== 'undefined') {
-    const raw = localStorage.getItem(CLIENTES_B2B_STORAGE_KEY);
-    if (raw) {
+    let raw = localStorage.getItem(CLIENTES_B2B_STORAGE_KEY);
+    if (!raw) {
+      const rawV3 = localStorage.getItem('padaria_clientes_empresariais_b2b_v3');
+      if (rawV3) {
+        try {
+          const parsedV3 = JSON.parse(rawV3);
+          if (Array.isArray(parsedV3) && parsedV3.length > 0) {
+            const migradas = parsedV3.map(normalizarClienteB2BItem);
+            localStorage.setItem(CLIENTES_B2B_STORAGE_KEY, JSON.stringify(migradas));
+            localStorage.removeItem('padaria_clientes_empresariais_b2b_v3');
+            return migradas;
+          }
+        } catch (e) {}
+      }
+    } else {
       try {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -1891,6 +1992,23 @@ export function clienteEmModoFerias(base: BaseDiariaRecorrente, dataStr: string)
 }
 
 export function normalizarBaseRecorrenteItem(item: any): BaseDiariaRecorrente {
+  const todosDias: DiaSemana[] = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
+  const origemSemana = item?.quantidades_semanais || item?.quantidades_semana || {};
+  const semanaNormalizada: Record<DiaSemana, Record<string, number>> = {
+    seg: normalizarMapaQuantidades(origemSemana.seg),
+    ter: normalizarMapaQuantidades(origemSemana.ter),
+    qua: normalizarMapaQuantidades(origemSemana.qua),
+    qui: normalizarMapaQuantidades(origemSemana.qui),
+    sex: normalizarMapaQuantidades(origemSemana.sex),
+    sab: normalizarMapaQuantidades(origemSemana.sab),
+    dom: normalizarMapaQuantidades(origemSemana.dom),
+  };
+  todosDias.forEach((d) => {
+    if (!semanaNormalizada[d] || typeof semanaNormalizada[d] !== 'object') {
+      semanaNormalizada[d] = {};
+    }
+  });
+
   return {
     id: String(item.id || ''),
     cliente_id: String(item.cliente_id || ''),
@@ -1902,7 +2020,7 @@ export function normalizarBaseRecorrenteItem(item: any): BaseDiariaRecorrente {
     ativo: item.ativo !== undefined ? Boolean(item.ativo) : true,
     pausa_inicio: item.pausa_inicio || null,
     pausa_fim: item.pausa_fim || null,
-    quantidades_semanais: item.quantidades_semanais || { seg: {}, ter: {}, qua: {}, qui: {}, sex: {}, sab: {}, dom: {} },
+    quantidades_semanais: semanaNormalizada,
     notas_motorista: item.notas_motorista || null,
     metodo_pagamento: item.metodo_pagamento || 'dinheiro_ao_motorista',
     criado_em: item.criado_em || undefined,

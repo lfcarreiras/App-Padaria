@@ -559,14 +559,14 @@ export function MatrizAjustesAdhoc({
                 const setProdsCli = new Set<string>();
                 Object.values(semana).forEach((m) => {
                   if (m) {
-                    Object.keys(m).forEach((p) => setProdsCli.add(p));
+                    Object.keys(m).forEach((p) => setProdsCli.add(normalizarNomeArtigoCanonico(p)));
                   }
                 });
                 // Adicionar artigos que tenham adhoc para este cliente
                 Object.keys(ajustesAdhoc).forEach((k) => {
                   if (k.includes(`_${cli.id}_`)) {
                     const partes = k.split(`_${cli.id}_`);
-                    if (partes[1]) setProdsCli.add(partes[1]);
+                    if (partes[1]) setProdsCli.add(normalizarNomeArtigoCanonico(partes[1]));
                   }
                 });
 

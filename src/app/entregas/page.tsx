@@ -26,6 +26,7 @@ import {
   carregarBasesDiariasRecorrentes,
   salvarBaseDiariaRecorrente,
   clienteEmModoFerias,
+  normalizarNomeArtigoCanonico,
   subscreverAlteracoesBasesRecorrentes
 } from '../../lib/encomendasService';
 import { Encomenda, EstadoRota, Loja, Carrinha, Produto, BaseFixaCarrinha, ClienteEmpresarialB2B } from '../../types';
@@ -380,7 +381,8 @@ export default function EntregasPage() {
         const prodRef = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
         const cat: 'padaria' | 'pastelaria' = prodRef?.categoria || (artigo.toLowerCase().includes('bolo') || artigo.toLowerCase().includes('croissant') ? 'pastelaria' : 'padaria');
         const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
-        mapaItens.set(artigo, {
+        const artigoCanonico = normalizarNomeArtigoCanonico(artigo);
+        mapaItens.set(artigoCanonico, {
           quantidade: qtd,
           categoria: cat,
           unidade: unid,

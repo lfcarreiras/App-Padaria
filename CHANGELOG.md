@@ -42,6 +42,27 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.9] - 2026-10-24
+
+### Fixed & Enhanced (Propagação Automática da Normalização Canónica nos Mapas Diários e Bases das Carrinhas)
+- **Normalização e Migração Automática em Tempo Real (`normalizarNomeArtigoCanonico`)**:
+  - Implementada função de normalização canónica resiliente em `encomendasService.ts`, cobrindo todas as variantes (`Broa 1 kg` $\rightarrow$ `Broa Amarela 1 kg`, `Broa 2 kg` $\rightarrow$ `Broa Amarela 2 kg`, `Broa 0,5 kg` $\rightarrow$ `Broa Amarela 0,5 kg`, `Pão da Avó` $\rightarrow$ `Pão Saloio`, `Mini Pão da Avó` $\rightarrow$ `Mini Pão Saloio`, `Mini Pão Centeio` $\rightarrow$ `Mini Pão de Centeio`, `Regueifa de Coco` / `Regueifa Côco` $\rightarrow$ `Regueifa de Côco`, `Saco Mini Tostas` $\rightarrow$ `Tosta`, `Lanche` $\rightarrow$ `Lanche Misto`, etc.).
+  - Migração transparente da cache do navegador para chaves `_v4` (`padaria_artigos_base_fixa_v4`, `padaria_base_fixa_carrinhas_v4`, `padaria_clientes_empresariais_b2b_v4`), eliminando artigos residuais em cache sem exigir limpeza manual ao utilizador.
+  - Saneamento e desduplicação integral de `PRODUTOS_MOCK` e `ENCOMENDAS_MOCK`.
+- **Reflexo nos Mapas Diários das Carrinhas e Centro de Produção**:
+  - Tabela «Produto / Artigo (Mapa Diário)» no Cockpit de Gestão (`/gestao`) agora sincroniza 100% com os 57 artigos canónicos.
+  - Folha de Carga por Carrinha e Folha de Fabrico Oficial do Forno (`/producao` e `/entregas`) agregam e somam automaticamente as quantidades convertidas (fusão de Pão da Avó em Pão Saloio e discriminação de Broas Amarelas 1 kg e 2 kg).
+  - Matriz de Ajustes Ad-hoc (`MatrizAjustesAdhoc.tsx`) alinhada com as chaves normalizadas.
+
+## [v2.7.8] - 2026-10-24
+
+### Fixed (Normalização Canónica em Supabase e Desativação do Excel Legado)
+- **Normalização na Cloud Supabase**:
+  - 21 clientes empresariais normalizados em `public.clientes_empresariais`.
+  - Catálogo central atualizado em `public.produtos` com 57 artigos canónicos e eliminação de artigos obsoletos/testes.
+- **Inativação do Excel Legado**:
+  - Remoção da exportação em `.xlsx` do Mapa Diário em `/entregas`, concentrando 100% da operação nos PDFs oficiais (Folha de Carga, Folha de Fabrico e Comprovativo B2B).
+
 ## [v2.4.0] - 2026-10-20
 
 ### Added & Unified (8 Rotas de Distribuição, Normalização de Artigos, Pesquisa/Filtros e Gestão B2B com Login)
