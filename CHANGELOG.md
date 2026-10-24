@@ -42,6 +42,17 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.15] - 2026-10-24
+
+### Fixed (Resolução de ReferenceError: totalPaoUnidades na Folha de Carga)
+- **Correção da Folha de Carga das Carrinhas (`PdfViewerModal.tsx`)**:
+  - Eliminadas as referências residuais à variável obsoleta `totalPaoUnidades` no resumo superior e no rodapé da tabela de carga, substituindo-as por `totalBaseDiaria` e `totalGeralCarga`.
+  - **Desdobramento Completo e Fiel da Carga**:
+    - Secção 1: Quantidades da Base Diária (abastecimento de rota e entregas recorrentes porta-a-porta).
+    - Secção 2: Desdobramento de Clientes Empresariais (B2B) ativos com carga hoje (`clientesB2BComCarga`), suprimindo clientes a 0 un. e incluindo visto individual `[ ] Entregue Conforme`.
+    - Secção 3: Desdobramento de Encomendas Adicionais ao Domicílio afetas à rota com detalhe de cliente, telefone, horário, morada e artigos.
+    - Secção 4: Bloco de Resumo Geral Consolidado (Base Diária + B2B + Encomendas = Total Geral a Bordo com estimativa de caixas).
+
 ## [v2.7.14] - 2026-10-24
 
 ### Added & Improved (Folha de Fabrico de Encomendas Discriminada por Loja no Cockpit de Produção)

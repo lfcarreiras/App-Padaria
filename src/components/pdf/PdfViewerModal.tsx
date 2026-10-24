@@ -730,17 +730,27 @@ export function PdfViewerModal({
                 </div>
               </div>
 
-              {/* Resumo de Carga Total */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Resumo de Carga Total da Viatura */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200">
-                  <span className="text-[11px] font-bold text-blue-900 block">Total Pães & Peças</span>
-                  <span className="text-2xl font-black text-blue-950 font-mono">{totalPaoUnidades} un.</span>
-                  <span className="text-[10px] text-blue-700 block mt-0.5">unidades a bordo</span>
+                  <span className="text-[10px] font-bold text-blue-900 uppercase block">1. Base Diária Rota</span>
+                  <span className="text-2xl font-black text-blue-950 font-mono">{totalBaseDiaria} un.</span>
+                  <span className="text-[10px] text-blue-700 block mt-0.5">~ {totalBaseCaixas} caixas est.</span>
                 </div>
                 <div className="p-3.5 rounded-xl bg-purple-50 border border-purple-200">
-                  <span className="text-[11px] font-bold text-purple-900 block">Clientes B2B na Rota</span>
-                  <span className="text-2xl font-black text-purple-950 font-mono">{clientesB2BRota.length}</span>
-                  <span className="text-[10px] text-purple-700 block mt-0.5">paragens institucionais</span>
+                  <span className="text-[10px] font-bold text-purple-900 uppercase block">2. Clientes B2B</span>
+                  <span className="text-2xl font-black text-purple-950 font-mono">{totalB2B} un.</span>
+                  <span className="text-[10px] text-purple-700 block mt-0.5">{clientesB2BComCarga.length} paragens com carga</span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200">
+                  <span className="text-[10px] font-bold text-amber-900 uppercase block">3. Encomendas</span>
+                  <span className="text-2xl font-black text-amber-950 font-mono">{totalEncomendas} un.</span>
+                  <span className="text-[10px] text-amber-700 block mt-0.5">{encomendasComCarga.length} entregas domicílio</span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-gray-900 text-white border border-gray-800">
+                  <span className="text-[10px] font-bold text-amber-400 uppercase block">Total Geral a Bordo</span>
+                  <span className="text-2xl font-black text-white font-mono">{totalGeralCarga} un.</span>
+                  <span className="text-[10px] text-gray-300 block mt-0.5">~ {totalGeralCaixasEstimadas} caixas total</span>
                 </div>
               </div>
 
@@ -749,19 +759,19 @@ export function PdfViewerModal({
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-xs font-black uppercase text-gray-700 flex items-center gap-1.5">
                     <Package className="h-4 w-4 text-blue-600" />
-                    Quantidades Consolidadas Carregadas na Viatura (Base Diária)
+                    1. Quantidades da Base Diária Carregadas na Viatura (Abastecimento Rota + Particulares)
                   </h3>
                   <span className="text-[11px] text-gray-500 font-bold">
-                    {itensCarga.length} produtos
+                    {itensCarga.length} artigos na rota
                   </span>
                 </div>
                 <table className="w-full text-xs border border-gray-300 border-collapse">
                   <thead>
-                    <tr className="bg-gray-100 text-gray-800 border-b border-gray-300">
-                      <th className="py-2.5 px-4 text-left font-black">Artigo / Produto</th>
-                      <th className="py-2.5 px-3 text-center font-black w-28">Setor</th>
-                      <th className="py-2.5 px-4 text-right font-black w-36">Quantidade Consolidada</th>
-                      <th className="py-2.5 px-4 text-left font-black w-48">Conferência / Visto</th>
+                    <tr className="bg-gray-100 text-gray-800 border-b border-gray-300 font-black">
+                      <th className="py-2.5 px-4 text-left">Artigo / Produto</th>
+                      <th className="py-2.5 px-3 text-center w-28">Setor</th>
+                      <th className="py-2.5 px-4 text-right w-36">Quantidade Base</th>
+                      <th className="py-2.5 px-4 text-left w-48">Conferência / Visto</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -790,10 +800,10 @@ export function PdfViewerModal({
                   </tbody>
                   <tfoot>
                     <tr className="bg-gray-100 font-black border-t-2 border-gray-400">
-                      <td className="py-2.5 px-4">TOTAL GERAL DE CARGA</td>
+                      <td className="py-2.5 px-4">SUBTOTAL BASE DIÁRIA (ROTA)</td>
                       <td className="py-2.5 px-3 text-center">-</td>
                       <td className="py-2.5 px-4 text-right font-mono text-sm text-blue-950">
-                        {totalPaoUnidades} un.
+                        {totalBaseDiaria} un.
                       </td>
                       <td className="py-2.5 px-4 text-gray-600">Conforme padrão de saída</td>
                     </tr>
@@ -806,78 +816,163 @@ export function PdfViewerModal({
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-black uppercase text-purple-950 flex items-center gap-1.5">
                     <Building2 className="h-4 w-4 text-purple-700" />
-                    Desdobramento de Entregas por Cliente Empresarial (B2B)
+                    2. Desdobramento de Entregas por Cliente Empresarial (B2B)
                   </h3>
                   <span className="text-[11px] font-bold text-gray-500">
-                    {clientesB2BRota.length} {clientesB2BRota.length === 1 ? 'cliente afeto' : 'clientes afetos'}
+                    {clientesB2BComCarga.length} {clientesB2BComCarga.length === 1 ? 'cliente com carga hoje' : 'clientes com carga hoje'}
                   </span>
                 </div>
 
-                {clientesB2BRota.length === 0 ? (
+                {clientesB2BComCarga.length === 0 ? (
                   <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-500 text-center">
-                    Esta rota não tem entregas de clientes empresariais (B2B) registadas para {diaSemana.toUpperCase()}. Distribuição porta-a-porta e particulares.
+                    Esta rota não tem entregas de clientes empresariais (B2B) agendadas para {diaSemana.toUpperCase()}. Distribuição porta-a-porta e particulares.
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {clientesB2BRota.map((cli) => {
-                      const semana = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
-                      const mapa = semana[diaSemana] || {};
-                      const artigos = Array.from(new Set(Object.keys(mapa)));
-                      const itensDoCli = artigos.map((artigo) => {
-                        let qtd = Number(mapa[artigo] || 0);
-                        if (dataReferencia) {
-                          const { quantidade } = obterQuantidadeEfetivaClienteB2B(dataReferencia, cli.id, artigo, semana, diaSemana);
-                          qtd = quantidade;
-                        }
-                        return [artigo, qtd] as [string, number];
-                      }).filter(([_, q]) => q > 0);
-                      const totalCli = itensDoCli.reduce((acc, [_, q]) => acc + Number(q), 0);
-
-                      return (
-                        <div key={cli.id} className="border border-purple-200 rounded-xl overflow-hidden bg-white shadow-2xs">
-                          <div className="bg-purple-50/80 px-3 py-2 border-b border-purple-200 flex flex-wrap items-center justify-between gap-2">
-                            <div>
-                              <span className="font-black text-xs text-purple-950">{cli.nome}</span>
-                              <span className="text-[10px] text-gray-600 block">
-                                {cli.morada || 'Arouca'} {cli.telefone ? `• Tel: ${cli.telefone}` : ''} {cli.nif ? `• NIF: ${cli.nif}` : ''}
-                              </span>
-                            </div>
-                            <span className="font-mono font-black text-xs bg-purple-600 text-white px-2.5 py-0.5 rounded-full">
-                              Total Cliente: {totalCli} un.
+                    {clientesB2BComCarga.map((cli) => (
+                      <div key={cli.id} className="border border-purple-200 rounded-xl overflow-hidden bg-white shadow-2xs">
+                        <div className="bg-purple-50/80 px-3 py-2 border-b border-purple-200 flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <span className="font-black text-xs text-purple-950">{cli.nome}</span>
+                            <span className="text-[10px] text-gray-600 block">
+                              {cli.morada || 'Arouca'} {cli.telefone ? `• Tel: ${cli.telefone}` : ''} {cli.nif ? `• NIF: ${cli.nif}` : ''}
                             </span>
                           </div>
-
-                          {itensDoCli.length === 0 ? (
-                            <p className="p-2.5 text-xs text-gray-400 italic">Sem artigos encomendados para este dia da semana.</p>
-                          ) : (
-                            <table className="w-full text-xs border-collapse">
-                              <thead>
-                                <tr className="bg-gray-50 text-gray-700 border-b border-gray-200 font-bold text-[11px]">
-                                  <th className="py-1.5 px-3 text-left">Artigo / Produto</th>
-                                  <th className="py-1.5 px-3 text-right w-28">Quantidade</th>
-                                  <th className="py-1.5 px-3 text-center w-36">Conferência de Entrega</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-gray-100">
-                                {itensDoCli.map(([artigo, qtd], i) => (
-                                  <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}>
-                                    <td className="py-1.5 px-3 font-semibold text-gray-900">{artigo}</td>
-                                    <td className="py-1.5 px-3 text-right font-mono font-black text-purple-950">
-                                      {qtd} un.
-                                    </td>
-                                    <td className="py-1.5 px-3 text-center text-gray-400 text-[11px]">
-                                      [ &nbsp; ] Entregue Conforme
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          )}
+                          <span className="font-mono font-black text-xs bg-purple-600 text-white px-2.5 py-0.5 rounded-full">
+                            Total Cliente: {cli.totalCli} un.
+                          </span>
                         </div>
-                      );
-                    })}
+
+                        <table className="w-full text-xs border-collapse">
+                          <thead>
+                            <tr className="bg-gray-50 text-gray-700 border-b border-gray-200 font-bold text-[11px]">
+                              <th className="py-1.5 px-3 text-left">Artigo / Produto</th>
+                              <th className="py-1.5 px-3 text-right w-28">Quantidade</th>
+                              <th className="py-1.5 px-3 text-center w-36">Conferência de Entrega</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {cli.itensDoCli.map((item: any, i: number) => (
+                              <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}>
+                                <td className="py-1.5 px-3 font-semibold text-gray-900">{item.artigo}</td>
+                                <td className="py-1.5 px-3 text-right font-mono font-black text-purple-950">
+                                  {item.quantidade} un.
+                                </td>
+                                <td className="py-1.5 px-3 text-center text-gray-400 text-[11px]">
+                                  [ &nbsp; ] Entregue Conforme
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ))}
+
+                    {/* Subtotal Clientes B2B */}
+                    <div className="p-2.5 bg-purple-50 border border-purple-200 rounded-xl flex items-center justify-between text-xs font-black text-purple-950">
+                      <span>SUBTOTAL CLIENTES B2B</span>
+                      <span className="font-mono">{totalB2B} un. ({clientesB2BComCarga.length} paragens)</span>
+                    </div>
                   </div>
                 )}
+              </div>
+
+              {/* NO FIM DA TABELA: DESDOBRAMENTO DE ENCOMENDAS ADICIONAIS DA ROTA */}
+              <div className="pt-4 border-t-2 border-gray-300 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black uppercase text-amber-950 flex items-center gap-1.5">
+                    <ShoppingBag className="h-4 w-4 text-amber-700" />
+                    3. Desdobramento de Encomendas Adicionais ao Domicílio
+                  </h3>
+                  <span className="text-[11px] font-bold text-gray-500">
+                    {encomendasComCarga.length} {encomendasComCarga.length === 1 ? 'encomenda afeta' : 'encomendas afetas'}
+                  </span>
+                </div>
+
+                {encomendasComCarga.length === 0 ? (
+                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-500 text-center">
+                    Nenhuma encomenda adicional ao domicílio afeta a esta viatura para a data selecionada.
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {encomendasComCarga.map((enc: any, i: number) => (
+                      <div key={enc.id || i} className="border border-amber-200 rounded-xl overflow-hidden bg-white shadow-2xs">
+                        <div className="bg-amber-50/80 px-3 py-2 border-b border-amber-200 flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-2 text-xs">
+                            <span className="font-mono font-black text-amber-950 bg-white px-2 py-0.5 rounded border border-amber-300">
+                              {enc.codigo || `#ENC-${i + 1}`}
+                            </span>
+                            <span className="font-bold text-gray-900">{enc.cliente?.nome || 'Cliente Particular'}</span>
+                            {enc.cliente?.telefone && (
+                              <span className="text-gray-500 text-[11px]">Tel: {enc.cliente.telefone}</span>
+                            )}
+                            {enc.hora_agendamento && (
+                              <span className="text-amber-800 text-[11px] font-bold">⏰ {enc.hora_agendamento}</span>
+                            )}
+                          </div>
+                          <span className="font-mono font-black text-xs bg-amber-600 text-white px-2.5 py-0.5 rounded-full">
+                            Total Encomenda: {enc.totalEnc} un.
+                          </span>
+                        </div>
+
+                        {(enc.cliente?.morada || enc.notas_cliente || enc.observacoes_producao) && (
+                          <div className="px-3 py-1 bg-amber-50/40 border-b border-amber-100 text-[11px] text-amber-900 space-x-2">
+                            {enc.cliente?.morada && <span><b>Morada:</b> {enc.cliente.morada}</span>}
+                            {enc.notas_cliente && <span>• <b>Obs:</b> {enc.notas_cliente}</span>}
+                          </div>
+                        )}
+
+                        <table className="w-full text-xs border-collapse">
+                          <thead>
+                            <tr className="bg-gray-50 text-gray-700 border-b border-gray-200 font-bold text-[11px]">
+                              <th className="py-1.5 px-3 text-left">Artigo / Encomenda</th>
+                              <th className="py-1.5 px-3 text-right w-28">Quantidade</th>
+                              <th className="py-1.5 px-3 text-center w-36">Conferência de Entrega</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {enc.itensValidos.map((item: any, itIdx: number) => (
+                              <tr key={itIdx} className={itIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}>
+                                <td className="py-1.5 px-3 font-semibold text-gray-900">{item.produto_nome}</td>
+                                <td className="py-1.5 px-3 text-right font-mono font-black text-amber-950">
+                                  {item.quantidade} {item.unidade}
+                                </td>
+                                <td className="py-1.5 px-3 text-center text-gray-400 text-[11px]">
+                                  [ &nbsp; ] Entregue Conforme
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ))}
+
+                    {/* Subtotal Encomendas Adicionais */}
+                    <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between text-xs font-black text-amber-950">
+                      <span>SUBTOTAL ENCOMENDAS ADICIONAIS</span>
+                      <span className="font-mono">{totalEncomendas} un. ({encomendasComCarga.length} entregas)</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* RESUMO GERAL CONSOLIDADO DA GUIA DE CARGA */}
+              <div className="p-4 bg-gray-900 text-white rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase text-gray-400 font-bold block">Resumo Consolidado de Carga</span>
+                  <div className="text-gray-300 text-[11px] space-x-3">
+                    <span>1. Base Diária: <b>{totalBaseDiaria} un.</b></span>
+                    <span>•</span>
+                    <span>2. B2B: <b>{totalB2B} un.</b></span>
+                    <span>•</span>
+                    <span>3. Encomendas: <b>{totalEncomendas} un.</b></span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] uppercase text-amber-400 font-bold block">Total Geral a Bordo</span>
+                  <span className="text-xl font-black text-amber-400">{totalGeralCarga} un.</span>
+                  <span className="text-[10px] text-gray-400 block mt-0.5">~ {totalGeralCaixasEstimadas} caixas estimadas</span>
+                </div>
               </div>
 
               {/* Assinatura do Motorista na Folha de Carga */}
