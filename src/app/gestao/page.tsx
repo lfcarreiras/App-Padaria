@@ -689,27 +689,8 @@ export default function AdminPage() {
       }
     });
 
-    // 2. Clientes B2B da carrinha
-    const b2bDaRota = clientesB2B.filter((cli) => cli.ativo && cli.carrinha_id === carAlvo.id);
-    b2bDaRota.forEach((cli) => {
-      const semCli = cli.quantidades_semanais || cli.quantidades_semana;
-      const mapaCli = semCli?.[diaSemanaBaseFixa] || {};
-      Object.entries(mapaCli).forEach(([artigo, qtd]) => {
-        if (typeof qtd === 'number' && qtd > 0) {
-          const prod = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
-          const atual = mapaItens.get(artigo);
-          if (atual) {
-            atual.quantidade += qtd;
-          } else {
-            mapaItens.set(artigo, {
-              quantidade: qtd,
-              categoria: prod?.categoria || 'padaria',
-              unidade: prod?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.',
-            });
-          }
-        }
-      });
-    });
+    // NOTA: Clientes B2B foram desdobrados para o fim da Folha de Carga.
+    // A Tabela Principal inclui estritamente a Base Diária da viatura.
 
     const itens: LinhaArtigoCarga[] = [];
     mapaItens.forEach((val, nome) => {
@@ -6361,6 +6342,11 @@ export default function AdminPage() {
         dataReferencia={new Date().toLocaleDateString('pt-PT')}
         itensCarga={pdfItensCarga}
         clientesB2BRota={clientesB2B.filter((cli) => cli.ativo && cli.carrinha_id === pdfCarrinhaSelecionada?.id)}
+        encomendasRota={encomendas.filter(
+          (e) => (pdfCarrinhaSelecionada ? e.carrinha_id === pdfCarrinhaSelecionada.id : true) &&
+                 e.tipo === 'entrega_domicilio' &&
+                 e.estado !== 'cancelado'
+        )}
         clienteB2B={pdfClienteB2B}
         nomeCondutor="Rui Oliveira"
         matriculaCarro={pdfCarrinhaSelecionada?.matricula}

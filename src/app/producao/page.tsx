@@ -624,54 +624,8 @@ export default function ProducaoPage() {
         });
       });
 
-    // 2. Quantidades dos Clientes B2B desta rota (com eventuais ajustes pontuais)
-    const b2bDaRota = clientesB2B.filter((cli) => cli.ativo && cli.carrinha_id === car.id);
-    b2bDaRota.forEach((cli) => {
-      const semCli = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
-      const mapaCli = semCli?.[diaSemanaAlvo] || cli.produtos_predefinidos || {};
-      Object.keys(mapaCli).forEach((artigo) => {
-        const { quantidade } = obterQuantidadeEfetivaClienteB2B(dataAlvo, cli.id, artigo, semCli, diaSemanaAlvo);
-        if (quantidade > 0) {
-          const prodRef = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
-          const cat: 'padaria' | 'pastelaria' = prodRef?.categoria || 'padaria';
-          const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
-          const atual = mapaItens.get(artigo);
-          if (atual) {
-            atual.quantidade += quantidade;
-          } else {
-            mapaItens.set(artigo, {
-              quantidade,
-              categoria: cat,
-              unidade: unid,
-            });
-          }
-        }
-      });
-    });
-
-    // 3. Encomendas avulsas atribuídas a esta carrinha para a data selecionada
-    const encsDestaCarrinha = encomendas.filter(
-      (e) => e.data_agendamento === dataAlvo && e.tipo === 'entrega_domicilio' && e.carrinha_id === car.id && e.estado !== 'cancelado'
-    );
-    encsDestaCarrinha.forEach((e) => {
-      e.itens.forEach((item) => {
-        if (item.estado_producao !== 'recusado') {
-          const prodRef = produtos.find((p) => p.id === item.produto_id || p.nome.toLowerCase() === item.produto_nome.toLowerCase());
-          const cat: 'padaria' | 'pastelaria' = prodRef?.categoria || 'padaria';
-          const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
-          const atual = mapaItens.get(item.produto_nome);
-          if (atual) {
-            atual.quantidade += item.quantidade;
-          } else {
-            mapaItens.set(item.produto_nome, {
-              quantidade: item.quantidade,
-              categoria: cat,
-              unidade: unid,
-            });
-          }
-        }
-      });
-    });
+    // NOTA: Clientes B2B e Encomendas foram desdobrados para o fim da Folha de Carga,
+    // garantindo que a Tabela Principal reflita estritamente a Base Diária da rota (porta-a-porta e particulares).
 
     const resultado: LinhaArtigoCarga[] = [];
     mapaItens.forEach((val, nome) => {
@@ -1691,8 +1645,12 @@ export default function ProducaoPage() {
                 const b2bDaRota = clientesB2B.filter(cli => {
                   if (!cli.ativo || cli.carrinha_id !== car.id) return false;
                   const semCli = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
-                  const mapaCli = semCli?.[diaSemanaAlvoGuia] || cli.produtos_predefinidos || {};
-                  return Object.keys(mapaCli).length > 0;
+                  const mapaCli = semCli?.[diaSemanaAlvoGuia] || {};
+                  const totalCli = Object.keys(mapaCli).reduce((acc, art) => {
+                    const { quantidade } = obterQuantidadeEfetivaClienteB2B(dataAlvoGuia, cli.id, art, semCli, diaSemanaAlvoGuia);
+                    return acc + (quantidade > 0 ? quantidade : 0);
+                  }, 0);
+                  return totalCli > 0;
                 });
 
                 return (
@@ -1784,6 +1742,12 @@ export default function ProducaoPage() {
         setorFiltro={setorAtivo}
         clienteB2B={pdfClienteB2B}
         clientesB2BRota={clientesB2B.filter((cli) => cli.ativo && cli.carrinha_id === pdfCarrinhaSelecionada?.id)}
+        encomendasRota={encomendas.filter(
+          (e) => (pdfCarrinhaSelecionada ? e.carrinha_id === pdfCarrinhaSelecionada.id : true) &&
+                 e.data_agendamento === (pdfDataReferencia || (dataGuiasCarga === 'amanha' ? amanha : hoje)) &&
+                 e.tipo === 'entrega_domicilio' &&
+                 e.estado !== 'cancelado'
+        )}
         nomeCondutor={currentUser.nome}
         matriculaCarro={pdfCarrinhaSelecionada?.matricula}
       />

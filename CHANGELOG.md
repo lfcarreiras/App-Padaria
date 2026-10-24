@@ -42,6 +42,21 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.11] - 2026-10-24
+
+### Added & Changed (Segregação de Fontes de Carga e Supressão de Clientes B2B a Zero)
+- **Segregação Estrita da Base Diária na Folha de Carga**:
+  - A Tabela Principal da Folha de Carga (`PdfViewerModal.tsx`) passa a listar única e exclusivamente os artigos da **Base Diária da Rota** (abastecimento fixo da carrinha e entregas recorrentes porta-a-porta a particulares).
+  - Removida a agregação antecipada de clientes empresariais (B2B) e de encomendas avulsas no cálculo de `prepararItensFolhaCarga` em `/entregas`, `/producao` e `/gestao`.
+- **Desdobramentos Detalhados no Fim da Folha de Carga**:
+  - **Secção 2 (Clientes B2B)**: desdobramento detalhado por cliente institucional afeto à rota com artigos, quantidades e caixa de visto `[ ] Entregue Conforme`, com subtotal próprio.
+  - **Secção 3 (Encomendas Adicionais)**: desdobramento de encomendas agendadas ao domicílio com código `#ENC`, contacto do cliente, morada, horário agendado, observações, tabela de artigos e caixa de visto `[ ] Entregue Conforme`, com subtotal próprio.
+  - **Secção 4 (Resumo Geral Consolidado)**: bloco escuro com a soma das 3 fontes (Base Diária + B2B + Encomendas = Total Geral a Bordo com estimativa de caixas).
+- **Supressão de Clientes B2B com Quantidade Zero (`0 un.`)**:
+  - No **Cockpit de Carrinhas & Distribuição (`/entregas`)**: entidades empresariais sem entregas agendadas para o dia selecionado (como a *Associação de Pais de Chave* ao sábado) são omitidas da listagem e do contador de clientes ativos, eliminando cartões com `Total Hoje: 0 un.`.
+  - Na **Folha de Carga em PDF**: entidades B2B com `0 un.` não surgem na secção de desdobramento.
+  - No **Cockpit de Produção (`/producao`)**: as etiquetas das carrinhas apenas indicam clientes B2B com entregas efetivas para a data.
+
 ## [v2.7.10] - 2026-10-24
 
 ### Fixed (Resolução de Erro de Compilação SWC no Build de Produção Vercel)

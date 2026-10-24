@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Carrinha, ClienteEmpresarialB2B, DiaSemana } from '../../types';
-import { obterQuantidadeEfetivaClienteB2B } from '../../lib/encomendasService';
+import { obterQuantidadeEfetivaClienteB2B, normalizarNomeArtigoCanonico } from '../../lib/encomendasService';
 import { 
   X, 
   Printer, 
@@ -50,6 +50,7 @@ export interface PdfViewerModalProps {
   dataReferencia?: string;
   itensCarga?: LinhaArtigoCarga[];
   clientesB2BRota?: ClienteEmpresarialB2B[];
+  encomendasRota?: any[];
   // Dados para Comprovativo B2B
   clienteB2B?: ClienteEmpresarialB2B;
   nomeCondutor?: string;
@@ -70,6 +71,7 @@ export function PdfViewerModal({
   dataReferencia,
   itensCarga = [],
   clientesB2BRota = [],
+  encomendasRota = [],
   clienteB2B,
   nomeCondutor,
   matriculaCarro,
@@ -103,9 +105,72 @@ export function PdfViewerModal({
   const dataFormatada = dataReferencia || new Date().toLocaleDateString('pt-PT');
   const horaAtual = horaEntrega || new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
 
-  // Totais de Carga
-  const totalPaoUnidades = itensCarga.reduce((acc, it) => acc + it.quantidade, 0);
-  const totalCaixas = itensCarga.reduce((acc, it) => acc + it.caixasEstimadas, 0);
+  // Totais de Carga - Separando Base Diária, Clientes B2B e Encomendas Adicionais
+  const totalBaseDiaria = useMemo(() => itensCarga.reduce((acc, it) => acc + it.quantidade, 0), [itensCarga]);
+  const totalBaseCaixas = useMemo(() => itensCarga.reduce((acc, it) => acc + it.caixasEstimadas, 0), [itensCarga]);
+
+  // Clientes B2B da Rota (filtrando estritamente clientes com entregas agendadas > 0 un. para o dia)
+  const clientesB2BComCarga = useMemo(() => {
+    return clientesB2BRota
+      .map((cli) => {
+        const semana = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
+        const mapa = semana[diaSemana] || {};
+        const artigos = Array.from(new Set(Object.keys(mapa)));
+        const itensDoCli = artigos
+          .map((artigo) => {
+            let qtd = Number(mapa[artigo] || 0);
+            if (dataReferencia) {
+              const { quantidade } = obterQuantidadeEfetivaClienteB2B(dataReferencia, cli.id, artigo, semana, diaSemana);
+              qtd = quantidade;
+            }
+            return {
+              artigo: normalizarNomeArtigoCanonico(artigo),
+              quantidade: qtd,
+            };
+          })
+          .filter((it) => it.quantidade > 0);
+
+        const totalCli = itensDoCli.reduce((acc, it) => acc + it.quantidade, 0);
+        return {
+          ...cli,
+          itensDoCli,
+          totalCli,
+        };
+      })
+      .filter((cli) => cli.totalCli > 0);
+  }, [clientesB2BRota, diaSemana, dataReferencia]);
+
+  const totalB2B = useMemo(() => {
+    return clientesB2BComCarga.reduce((acc, cli) => acc + cli.totalCli, 0);
+  }, [clientesB2BComCarga]);
+
+  // Encomendas Adicionais com entrega nesta carrinha para o dia
+  const encomendasComCarga = useMemo(() => {
+    return (encomendasRota || [])
+      .map((enc) => {
+        const itensValidos = (enc.itens || [])
+          .filter((it: any) => it.estado_producao !== 'recusado' && Number(it.quantidade) > 0)
+          .map((it: any) => ({
+            produto_nome: normalizarNomeArtigoCanonico(it.produto_nome),
+            quantidade: Number(it.quantidade),
+            unidade: normalizarUnidade(it.unidade),
+          }));
+        const totalEnc = itensValidos.reduce((acc: number, it: any) => acc + it.quantidade, 0);
+        return {
+          ...enc,
+          itensValidos,
+          totalEnc,
+        };
+      })
+      .filter((enc) => enc.totalEnc > 0);
+  }, [encomendasRota]);
+
+  const totalEncomendas = useMemo(() => {
+    return encomendasComCarga.reduce((acc, enc) => acc + enc.totalEnc, 0);
+  }, [encomendasComCarga]);
+
+  const totalGeralCarga = totalBaseDiaria + totalB2B + totalEncomendas;
+  const totalGeralCaixasEstimadas = totalBaseCaixas + Math.ceil((totalB2B + totalEncomendas) / 30);
 
   // Totais de Fabrico
   const totalFabricoUnidades = itensFabrico.reduce((acc, it) => acc + it.quantidade_total, 0);
@@ -276,9 +341,15 @@ export function PdfViewerModal({
       window.open(`https://wa.me/351${telefone}?text=${texto}`, '_blank');
     } else {
       const texto = encodeURIComponent(
-        `📋 *PADARIA DA VILA — GUIA DE CARGA (${carrinha?.rota || 'Rota'})*\n` +
-        `Data: ${dataFormatada}\n` +
-        `Total de Unidades: ${totalPaoUnidades} pães/peças carregadas.`
+        `*PADARIA DA VILA — GUIA DE CARGA OFICIAL*\n` +
+        `Rota: ${carrinha?.rota || 'Frota'} (${carrinha?.matricula || ''})\n` +
+        `Condutor: ${carrinha?.nome_condutor || nomeCondutor || 'Condutor'}\n` +
+        `Data: ${dataFormatada}\n\n` +
+        `1. Base Diária Rota: ${totalBaseDiaria} un.\n` +
+        `2. Clientes B2B: ${totalB2B} un. (${clientesB2BComCarga.length} paragens)\n` +
+        `3. Encomendas: ${totalEncomendas} un. (${encomendasComCarga.length} entregas)\n` +
+        `--------------------------------\n` +
+        `*TOTAL GERAL A BORDO: ${totalGeralCarga} un. (~ ${totalGeralCaixasEstimadas} cx)*`
       );
       window.open(`https://wa.me/?text=${texto}`, '_blank');
     }

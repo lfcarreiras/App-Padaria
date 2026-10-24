@@ -390,55 +390,8 @@ export default function EntregasPage() {
       }
     });
 
-    // 2. Quantidades dos Clientes B2B desta rota (com eventuais ajustes ad-hoc)
-    const b2bDaRota = clientesB2B.filter((cli) => cli.ativo && cli.carrinha_id === car.id);
-    b2bDaRota.forEach((cli) => {
-      const semCli = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
-      const mapaCli = semCli?.[diaSemanaHoje] || {};
-      Object.entries(mapaCli).forEach(([artigo, baselineQtd]) => {
-        const { quantidade } = obterQuantidadeEfetivaClienteB2B(hoje, cli.id, artigo, semCli, diaSemanaHoje);
-        if (quantidade > 0) {
-          const qtd = quantidade;
-          const prodRef = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
-          const cat: 'padaria' | 'pastelaria' = prodRef?.categoria || 'padaria';
-          const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
-          const atual = mapaItens.get(artigo);
-          if (atual) {
-            atual.quantidade += qtd;
-          } else {
-            mapaItens.set(artigo, {
-              quantidade: qtd,
-              categoria: cat,
-              unidade: unid,
-            });
-          }
-        }
-      });
-    });
-
-    // 3. Encomendas avulsas atribuídas a esta carrinha para hoje
-    const encsDestaCarrinha = encomendas.filter(
-      (e) => e.data_agendamento === hoje && e.tipo === 'entrega_domicilio' && e.carrinha_id === car.id && e.estado !== 'cancelado'
-    );
-    encsDestaCarrinha.forEach((e) => {
-      e.itens.forEach((item) => {
-        if (item.estado_producao !== 'recusado') {
-          const prodRef = produtos.find((p) => p.id === item.produto_id || p.nome.toLowerCase() === item.produto_nome.toLowerCase());
-          const cat: 'padaria' | 'pastelaria' = prodRef?.categoria || 'padaria';
-          const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
-          const atual = mapaItens.get(item.produto_nome);
-          if (atual) {
-            atual.quantidade += item.quantidade;
-          } else {
-            mapaItens.set(item.produto_nome, {
-              quantidade: item.quantidade,
-              categoria: cat,
-              unidade: unid,
-            });
-          }
-        }
-      });
-    });
+    // NOTA: Clientes B2B e Encomendas foram desdobrados para o fim da Folha de Carga,
+    // garantindo que a Tabela Principal reflita estritamente a Base Diária da rota (porta-a-porta e particulares).
 
     // 4. Entregas Recorrentes Diárias Porta-a-Porta (excluindo clientes em modo férias)
     const basesDestaCarrinha = basesRecorrentes.filter(
@@ -451,11 +404,12 @@ export default function EntregasPage() {
           const prodRef = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
           const cat: 'padaria' | 'pastelaria' = prodRef?.categoria || (artigo.toLowerCase().includes('bolo') || artigo.toLowerCase().includes('croissant') ? 'pastelaria' : 'padaria');
           const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
-          const atual = mapaItens.get(artigo);
+          const artigoCanonico = normalizarNomeArtigoCanonico(artigo);
+          const atual = mapaItens.get(artigoCanonico);
           if (atual) {
             atual.quantidade += qtd;
           } else {
-            mapaItens.set(artigo, {
+            mapaItens.set(artigoCanonico, {
               quantidade: qtd,
               categoria: cat,
               unidade: unid,
@@ -998,32 +952,46 @@ export default function EntregasPage() {
           )}
         </div>
 
-        {/* CLIENTES EMPRESARIAIS B2B DA ROTA (HOSPITAL, LAR, PATRONATO, ESCOLAS) */}
-        {clientesB2B.filter((cli) => cli.ativo && (carrinhaSelecionadaId === 'todas' || cli.carrinha_id === carrinhaSelecionadaId)).length > 0 && (
-          <div className="rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-amber-500/10 border-2 border-amber-300 p-4 shadow-xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-600 text-white font-black text-xs shadow-xs">
-                  <Building2 className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-stone-900">
-                    Clientes Empresariais B2B da Rota ({clientesB2B.filter((cli) => cli.ativo && (carrinhaSelecionadaId === 'todas' || cli.carrinha_id === carrinhaSelecionadaId)).length})
-                  </h3>
-                  <p className="text-[11px] text-stone-600">
-                    Paragens institucionais fixas com emissão de Comprovativo de Entrega em PDF e assinatura digital no telemóvel
-                  </p>
+        {/* CLIENTES EMPRESARIAIS B2B DA ROTA (FILTRANDO QUEM TEM 0 UN. HOJE) */}
+        {(() => {
+          const clientesAtivosComCarga = clientesB2B
+            .filter((cli) => cli.ativo && (carrinhaSelecionadaId === 'todas' || cli.carrinha_id === carrinhaSelecionadaId))
+            .map((cli) => {
+              const semCli = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
+              const mapaHoje = semCli[diaSemanaHoje] || {};
+              const itensHoje = Object.keys(mapaHoje)
+                .map((art) => {
+                  const { quantidade } = obterQuantidadeEfetivaClienteB2B(hoje, cli.id, art, semCli, diaSemanaHoje);
+                  return [normalizarNomeArtigoCanonico(art), quantidade] as [string, number];
+                })
+                .filter(([, q]) => q > 0);
+              const totalQtd = itensHoje.reduce((acc, [, q]) => acc + q, 0);
+              return { cli, itensHoje, totalQtd };
+            })
+            .filter(({ totalQtd }) => totalQtd > 0);
+
+          if (clientesAtivosComCarga.length === 0) return null;
+
+          return (
+            <div className="rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-amber-500/10 border-2 border-amber-300 p-4 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-600 text-white font-black text-xs shadow-xs">
+                    <Building2 className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-stone-900">
+                      Clientes Empresariais B2B da Rota ({clientesAtivosComCarga.length})
+                    </h3>
+                    <p className="text-[11px] text-stone-600">
+                      Paragens institucionais fixas com entregas agendadas para hoje ({nomesDiaSemana[diaSemanaHoje] || diaSemanaHoje.toUpperCase()})
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {clientesB2B
-                .filter((cli) => cli.ativo && (carrinhaSelecionadaId === 'todas' || cli.carrinha_id === carrinhaSelecionadaId))
-                .map((cli) => {
-                  const semCli = cli.quantidades_semanais || cli.quantidades_semana || {};
-                  const mapaHoje = semCli[diaSemanaHoje] || {};
-                  const totalQtd = Object.values(mapaHoje).reduce((acc: number, val) => acc + (typeof val === 'number' ? val : 0), 0);
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {clientesAtivosComCarga.map(({ cli, itensHoje, totalQtd }) => {
                   const carrinhaDoCli = carrinhas.find((c) => c.id === cli.carrinha_id);
 
                   return (
@@ -1048,8 +1016,7 @@ export default function EntregasPage() {
                             <span>Total Hoje ({nomesDiaSemana[diaSemanaHoje]}):</span>
                             <span className="font-black text-amber-800">{totalQtd} un.</span>
                           </div>
-                          {Object.entries(mapaHoje)
-                            .filter(([, q]) => typeof q === 'number' && q > 0)
+                          {itensHoje
                             .slice(0, 3)
                             .map(([art, q]) => (
                               <div key={art} className="text-stone-600 flex justify-between text-[10px]">
@@ -1057,9 +1024,9 @@ export default function EntregasPage() {
                                 <span className="font-semibold">{q} un.</span>
                               </div>
                             ))}
-                          {Object.keys(mapaHoje).length > 3 && (
+                          {itensHoje.length > 3 && (
                             <p className="text-[10px] text-stone-400 italic">
-                              +{Object.keys(mapaHoje).length - 3} outros artigos...
+                              +{itensHoje.length - 3} outros artigos...
                             </p>
                           )}
                         </div>
@@ -1625,6 +1592,12 @@ export default function EntregasPage() {
         dataReferencia={hoje}
         itensCarga={pdfItensCarga}
         clientesB2BRota={clientesB2B.filter((cli) => cli.ativo && cli.carrinha_id === pdfCarrinhaSelecionada?.id)}
+        encomendasRota={encomendas.filter(
+          (e) => (pdfCarrinhaSelecionada ? e.carrinha_id === pdfCarrinhaSelecionada.id : true) &&
+                 e.data_agendamento === hoje &&
+                 e.tipo === 'entrega_domicilio' &&
+                 e.estado !== 'cancelado'
+        )}
         clienteB2B={pdfClienteB2B}
         nomeCondutor={currentUser.nome}
         matriculaCarro={pdfCarrinhaSelecionada?.matricula}
