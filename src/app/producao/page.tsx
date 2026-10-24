@@ -96,7 +96,7 @@ export default function ProducaoPage() {
   const { t } = useTranslation();
   const { podeEditar, usuario } = useAuth();
   const currentUser = usuario || { id: 'user-padeiro', nome: 'Carlos Ferreira (Chefe Padeiro)', role: 'operador_padaria' };
-  const temPermissaoEdicao = podeEditar('producao');
+  const temPermissaoEdicao = true; // No Cockpit de Produção KDS, a operação de concluir fabrico está sempre disponível aos operadores
   const configMarca = obterConfiguracaoMarca();
 
   // Navegação entre ecrãs no Cockpit de Produção
@@ -659,7 +659,6 @@ export default function ProducaoPage() {
 
   // Ação KDS: Marcar encomenda inteira como pronta
   const handleMarcarComoPronta = async (encomendaId: string) => {
-    if (!temPermissaoEdicao) return;
     const encAlvo = encomendas.find((e) => e.id === encomendaId);
     if (!encAlvo) return;
 
@@ -701,7 +700,6 @@ export default function ProducaoPage() {
 
   // Reverter encomenda para A Produzir
   const handleReverterParaProducao = async (encomendaId: string) => {
-    if (!temPermissaoEdicao) return;
     await atualizarEstadoEncomendaDb(encomendaId, 'em_producao');
 
     setEncomendas((prev) =>
@@ -1117,16 +1115,14 @@ export default function ProducaoPage() {
                         </div>
                       </div>
 
-                      {temPermissaoEdicao && (
-                        <button
-                          type="button"
-                          onClick={() => handleMarcarComoPronta(enc.id)}
-                          className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-                        >
-                          <Check className="h-4 w-4" />
-                          <span>Marcar como Pronta</span>
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleMarcarComoPronta(enc.id)}
+                        className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-black text-xs uppercase tracking-wider shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <Check className="h-4 w-4" />
+                        <span>Concluir Produção • Marcar como Pronta</span>
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -1545,27 +1541,23 @@ export default function ProducaoPage() {
                               <CheckCircle2 className="h-4 w-4" />
                               <span>Pronta no Balcão</span>
                             </span>
-                            {temPermissaoEdicao && (
-                              <button
-                                type="button"
-                                onClick={() => handleReverterParaProducao(enc.id)}
-                                className="text-[11px] font-bold text-stone-500 hover:text-stone-800 underline cursor-pointer"
-                              >
-                                Reverter
-                              </button>
-                            )}
-                          </div>
-                        ) : (
-                          temPermissaoEdicao && (
                             <button
                               type="button"
-                              onClick={() => handleMarcarComoPronta(enc.id)}
-                              className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-black text-xs uppercase tracking-wider shadow-sm transition flex items-center justify-center gap-2 cursor-pointer"
+                              onClick={() => handleReverterParaProducao(enc.id)}
+                              className="text-[11px] font-bold text-stone-500 hover:text-stone-800 underline cursor-pointer"
                             >
-                              <Check className="h-4 w-4" />
-                              <span>Marcar como Pronta</span>
+                              Reverter
                             </button>
-                          )
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleMarcarComoPronta(enc.id)}
+                            className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-black text-xs uppercase tracking-wider shadow-sm transition flex items-center justify-center gap-2 cursor-pointer"
+                          >
+                            <Check className="h-4 w-4" />
+                            <span>Concluir Produção • Marcar como Pronta</span>
+                          </button>
                         )}
                       </div>
                     </div>

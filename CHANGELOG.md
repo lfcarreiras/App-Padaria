@@ -42,6 +42,14 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.13] - 2026-10-24
+
+### Fixed (Resolução do Erro React #310 na Folha de Fabrico e Restauro do Botão de Conclusão KDS)
+- **Correção do Erro React #310 (Rules of Hooks) em `PdfViewerModal.tsx`**:
+  - Movida a condição de fecho precoce `if (!isOpen || !mounted) return null;` para após todos os hooks (`useState`, `useRef`, `useMemo`), assegurando a mesma ordem de execução em todas as renderizações e eliminando o crash do modal ao gerar a Folha de Fabrico.
+- **Restauração do Botão "Concluir Produção • Marcar como Pronta" no KDS (`producao/page.tsx`)**:
+  - Garantida a visibilidade e operacionalidade contínua do botão de conclusão de fabrico nos cartões de encomendas (normais e urgentes), permitindo aos operadores da padaria/pastelaria sinalizar a conclusão das encomendas sem bloqueios de permissão.
+
 ## [v2.7.12] - 2026-10-24
 
 ### Fixed (Correção de Fecho de Tag JSX em `entregas/page.tsx`)

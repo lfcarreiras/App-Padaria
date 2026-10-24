@@ -100,8 +100,6 @@ export function PdfViewerModal({
 
   const isDrawingRef = useRef<boolean>(false);
 
-  if (!isOpen || !mounted) return null;
-
   const dataFormatada = dataReferencia || new Date().toLocaleDateString('pt-PT');
   const horaAtual = horaEntrega || new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
 
@@ -354,6 +352,8 @@ export function PdfViewerModal({
       window.open(`https://wa.me/?text=${texto}`, '_blank');
     }
   };
+
+  if (!isOpen || !mounted) return null;
 
   return createPortal(
     <div id="pdf-print-root" className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 sm:p-4 backdrop-blur-xs overflow-y-auto print:p-0 print:bg-white print:static">
