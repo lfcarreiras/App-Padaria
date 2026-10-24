@@ -1,9 +1,9 @@
 ---
 title: "04 - Dossier Mestre do Projeto: Cliente, Backlog, Orçamento, Bolsa de Horas, Sprints e Oportunidades"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.2.0"
+version: "2.7.15"
 date_saved: 2026-10-16
-updated: 2026-10-16
+updated: 2026-10-24
 status: "Em Produção / Fase de Adjudicação & Go-Live"
 tags:
   - #Inprooval/DossierProjeto
@@ -19,7 +19,7 @@ tags:
 **Consultor Responsável:** Luís Carreiras  
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
 **Data de Início do Projeto:** 07/09/2026  
-**Última Atualização:** 16/10/2026 (`v2.2.0`)  
+**Última Atualização:** 24/10/2026 (`v2.7.15`)  
 
 ---
 
@@ -29,10 +29,10 @@ tags:
 | :--- | :--- |
 | **Designação Social / Marca** | **União Panificadora Central Arouquense, Lda** (*Padaria da Vila*) |
 | **Localização Geográfica** | Arouca, Portugal |
-| **Estrutura Comercial (3 Lojas)** | • **Loja 1:** Padaria da Vila (Sede / Matriz)<br/>• **Loja 2:** Padaria da Praça<br/>• **Loja 3:** Padaria do Liceu |
+| **Estrutura Comercial (4 Lojas)** | • **Loja 1:** Padaria da Vila (Sede / Matriz / Fábrica)<br/>• **Loja 2:** Padaria da Praça<br/>• **Loja 3:** Padaria do Liceu / Mercado<br/>• **Loja 4:** Padaria Centro |
 | **Estrutura Fabril** | Centro de Produção próprio (Padaria e Pastelaria) equipado com **3 Fornos (`Forno 1`, `Forno 2`, `Forno 3`)** |
-| **Frota de Distribuição (5 Carrinhas)** | • **`1.º Carro` a `4.º Carro`:** Rotas de distribuição porta-a-porta a clientes particulares (Base Fixa Diária + Encomendas Adicionais)<br/>• **`5.º Carro`:** Rota exclusiva para **13 Clientes Empresariais e Institucionais (B2B)** em Arouca (*Gamarão, Patronato, P.-Telhe, Lar 3.ª Idade, Hospital, Centro D. Urrô, Lar Infância e Juventude, Centro Social Burgo, Cavadinha, Merc. Ribeiro, Café Praça, Padaria da Vila, Empregados*) |
-| **Hardware de Balcão Validado** | Impressora Térmica de Talões **Epson M249A TM-T20** (rolo térmico 80mm / área útil 72mm) |
+| **Frota de Distribuição (7 Carrinhas)** | • **`Rota 1` a `Rota 7` (`Carro 1` a `Carro 7`):** Rotas de distribuição de abastecimento e porta-a-porta a clientes particulares (Base Semanal `quantidades_semanais`) + Clientes Empresariais e Institucionais (B2B) em Arouca (*Gamarão, Patronato, Escolas, Lares, Hospital, Cafés, Mercearias*), com Modo Férias e supressão de clientes a 0 un. |
+| **Hardware de Balcão Validado** | Impressora Térmica de Talões **Epson M249A TM-T20** (rolo térmico 80mm / área útil calibrada 68mm) |
 | **Data de Arranque (Kick-off)** | **07/09/2026** (Reunião Online de Levantamento Inicial) |
 | **Marco Presencial Chave** | **10/10/2026** (Reunião Presencial em Arouca das 10:30 às 12:15 — Demonstração ao vivo e recolha dos 22 requisitos finos) |
 
@@ -68,6 +68,11 @@ A tabela seguinte apresenta o **Backlog Integral do Produto**, discriminando o q
 | **REQ-11** | Cockpit Gestão: Base Fixa & Matriz B2B | Grelha interativa da Base Fixa (1.º ao 4.º Carro) com edição/eliminação de artigos e Extração/Importação Excel, e Matriz Semanal (`Seg`–`Dom`) dos Clientes B2B (5.º Carro) com replicação semanal e Importação/Exportação Excel. | Base | ✅ **Desenvolvido** | `v2.1.2` |
 | **REQ-12** | Cockpit Gestão: KPIs, Logs & RBAC | Dashboard executivo (`% On-Time`, Canais, Top 5, Planeado vs. Real), Logs de Auditoria, Configurador de Talão e Gestão de Acessos RBAC (3 níveis). | Base | ✅ **Desenvolvido** | `v1.8.0` |
 | **REQ-13** | **EXTRA:** App de Pedidos Diretos do Cliente (`/encomendar`) | Login autónomo do cliente com **Password definida pelo utilizador**, **E-mail obrigatório e Recuperação de Password por E-mail via Supabase Auth**, catálogo exclusivo de quantidades (sem preços) e menu *«As Minhas Encomendas»* com 4 estados, **estado parcelar artigo a artigo** e **Observações da Padaria**. | **Extra (Add-On)** | ✅ **Desenvolvido** | `v2.1.3` |
+| **REQ-18** | Logística: Base Semanal (7 Dias) & Modo Férias | Parametrização dinâmica das 7 carrinhas e 21 clientes B2B para os 7 dias da semana (`seg` a `dom`) via `quantidades_semanais`, com suporte a Modo Férias (`pausa_inicio`, `pausa_fim`) em tempo real. | Base | ✅ **Desenvolvido** | `v2.7.7` |
+| **REQ-19** | Gestão: Normalização Canónica de Artigos | Reconciliação canónica de sinónimos (57 produtos canónicos, fusão de Pão da Avó em Pão Saloio, Broas Amarelas) e renomeação em cascata com migração de histórico. | Base | ✅ **Desenvolvido** | `v2.7.9` |
+| **REQ-20** | Logística: Folha de Carga Segregada em PDF A4 | Emissão oficial da Folha de Carga segregada em 4 níveis estanques: 1. Base Diária / Abastecimento, 2. B2B (suprimindo entidades a 0 un.), 3. Encomendas Adicionais e 4. Resumo Geral com caixas estimadas. | Base | ✅ **Desenvolvido** | `v2.7.15` |
+| **REQ-21** | Produção: Folha de Fabrico de Encomendas por Loja | No Cockpit de Produção (`filtroTipologia === 'encomendas'`), emissão de Folha de Fabrico com pedidos discriminados encomenda a encomenda, agrupados por loja com quebra de página A4 e conferência de embalamento. | Base | ✅ **Desenvolvido** | `v2.7.15` |
+| **REQ-22** | Produção KDS: Conclusão Incondicional | Estabilização KDS com alerta sonoro/visual permanente, resolução de erros React e botão incondicional de conclusão de produção acessível a qualquer operador de turno. | Base | ✅ **Desenvolvido** | `v2.7.15` |
 | **REQ-14** | Integração Faturação Certificada AT | Emissão automática de Fatura-Recibo / Guia de Transporte via API (Moloni / InvoiceXpress / PHC) no ato da entrega. | Fase 2 (Upsell) | ⏳ **Em Backlog** | Planeado |
 | **REQ-15** | WhatsApp Business API 100% Silencioso (Webhook Cloud) | Disparo de mensagens WhatsApp em background via Meta Cloud API / Twilio sem necessidade de o operador clicar em «Enviar» na janela do WhatsApp. | Fase 2 (Upsell) | ⏳ **Em Backlog** | Planeado |
 | **REQ-16** | Pagamentos Online MB WAY / Multibanco | Integração de gateway Ifthenpay / Easypay no portal `/encomendar` para pré-pagamento de encomendas especiais. | Fase 2 (Upsell) | ⏳ **Em Backlog** | Planeado |
@@ -79,9 +84,8 @@ A tabela seguinte apresenta o **Backlog Integral do Produto**, discriminando o q
 
 | Parcela do Orçamento | Valor Orçamentado (s/ IVA) | Condições de Pagamento | Discriminação Exata do que Está Incluído |
 | :--- | :---: | :---: | :--- |
-| **1. Pacote Operacional Base — Setup & Implementação** | **2.500,00 €** | 50% na Adjudicação (`1.250 €`)<br/>50% no Go-Live (`1.250 €`) | • Configuração completa das **3 Lojas**, **Centro de Produção (3 Fornos)** e **5 Carrinhas (`1.º` ao `5.º Carro`)**.<br/>• Login da equipa por Cockpit com isolamento de menus.<br/>• Alerta Urgente ($\le 3\text{h}$) com triagem parcelar por artigo e notificação WhatsApp.<br/>• Pool Consolidada do Dia e controlo de cozedura nos 3 Fornos.<br/>• Balcão de Loja com abertura automática de WhatsApp quando a encomenda fica pronta.<br/>• Parametrização da Base Fixa (1.º–4.º Carro com edição/eliminação e Excel), Matriz B2B (5.º Carro) e exportação do Excel oficial **«MAPA DIÁRIO»**.<br/>• Calibração da impressora térmica **Epson M249A TM-T20 (80mm)**.<br/>• Cockpit de Gestão (KPIs On-Time, Logs, RBAC) + Formação à equipa. |
-| **2. Manutenção Mensal, Cloud & Suporte (Pacote Base)** | **250,00 € / mês** | Mensal | • Infraestrutura Cloud (Vercel + Base de Dados Supabase PostgreSQL em tempo real).<br/>• Backups automáticos, monitorização de segurança e auditoria.<br/>• Suporte técnico prioritário e manutenção evolutiva/corretiva. |
-| **3. MÓDULO EXTRA (Add-On): App de Pedidos Diretos pelo Cliente (`/encomendar`)** | **+ 650,00 € (Setup)**<br/>**+ 50,00 € / mês** | Opcional / Add-On | • Ecrã de Login exclusivo para clientes finais com **Password definida pelo utilizador e Recuperação por E-mail via Supabase Auth**.<br/>• Catálogo digital exclusivo de quantidades (sem exposição de preços).<br/>• Painel *«As Minhas Encomendas»* em tempo real com 4 estados, detalhe parcelar por artigo (aceite vs. não produzido) e observações da padaria.<br/>• Integração automática dos pedidos online no Alerta Urgente da Produção e nas Lojas/Carrinhas. |
+| **1. Pacote Operacional Turn-Key — Setup, Implementação & Bolsa de Horas** | **5.500,00 €** | 50% na Adjudicação (`2.750,00 €`)<br/>50% no Go-Live (`2.750,00 €`) | • **Plafond Global de 110 Horas** de Engenharia, Consultoria e Suporte (taxa bonificada de `50,00 €/h`).<br/>• Configuração completa das **4 Lojas Físicas** (*Matriz/Fábrica, Praça, Mercado, Centro*), **Centro de Produção (3 Fornos)** e **7 Carrinhas / Rotas (1 a 7)**.<br/>• Login da equipa por Cockpit com isolamento de postos e subdomínio oficial `app.padariadavila.com`.<br/>• KDS de Produção com Alerta Urgente ($\le 3\text{h}$), triagem parcelar, botão incondicional de conclusão e **Folha de Fabrico de Encomendas discriminada por loja**.<br/>• Logística de Distribuição com **Folha de Carga Segregada em PDF A4** (Base Diária, 21 Clientes B2B sem 0 un., Encomendas ao Domicílio e Resumo Consolidado com caixas estimadas).<br/>• Base Semanal (`quantidades_semanais` 7 dias), Modo Férias em tempo real e Normalização Canónica de 57 artigos.<br/>• Calibração da impressora térmica **Epson M249A TM-T20 (80mm / 68mm úteis)** e App de Pedidos Diretos do Cliente (`/encomendar`).<br/>• Cockpit de Gestão executivo (KPIs On-Time, Logs, RBAC) + Formação prática à equipa e acompanhamento de Go-Live. |
+| **2. Manutenção Mensal, Cloud & Suporte Operacional** | **250,00 € / mês**<br/>*(ou 300,00 €/mês com Portal de Clientes)* | Mensal | • Infraestrutura Cloud de alta disponibilidade (Vercel + Supabase PostgreSQL em tempo real).<br/>• Backups automáticos diários, monitorização de segurança, auditoria contínua e conformidade RGPD.<br/>• Suporte técnico prioritário, correções preventivas e manutenção evolutiva do ecossistema. |
 
 ---
 
@@ -89,21 +93,24 @@ A tabela seguinte apresenta o **Backlog Integral do Produto**, discriminando o q
 
 ```mermaid
 flowchart TD
-    subgraph Concluidos ["✅ SPRINTS CONCLUÍDOS (07/09/2026 a 12/10/2026)"]
+    subgraph Concluidos ["✅ SPRINTS CONCLUÍDOS (07/09/2026 a 24/10/2026)"]
         SP1["Sprint 1 (07/09 – 15/09)\nFundação, Supabase PostgreSQL, Autenticação & RBAC (v1.0 – v1.3)"]
         SP2["Sprint 2 (16/09 – 22/09)\nBalcão, KDS Produção, Rotas GPS, On-Time & Auditoria (v1.4 – v1.8)"]
         SP3["Sprint 3 (23/09 – 08/10)\nMulti-Loja, Talão Térmico 80mm, Excel & Studio CMS (v1.9)"]
         SP4["Sprint 4 (09/10 – 10/10)\nBlindagem Cenário A, Portal Cliente v1 & Rastreio Canais"]
         SP5["Sprint 5 (10/10 – 11/10)\nReunião Arouca + Implementação dos 22 Requisitos Oficiais (v2.0.0)"]
         SP6["Sprint 6 (11/10 – 12/10)\nTriagem Parcelar, Base Fixa Excel & Supabase Auth Email (v2.1.0 – v2.1.3)"]
-        SP1 --> SP2 --> SP3 --> SP4 --> SP5 --> SP6
+        SP7["Sprint 7 (18/10 – 20/10)\nUnificação das 8 Rotas, Calibração 68mm TM-T20, Base Semanal & Matriz B2B (v2.3.0 – v2.4.1)"]
+        SP8["Sprint 8 (21/10 – 22/10)\nPDFs Guias de Carga, Orama Search, Subdomínio app.padariadavila.com & Segurança (v2.5.0 – v2.6.0)"]
+        SP9["Sprint 9 (23/10 – 24/10)\n7 Rotas Oficiais, Omnichannel B2B/Particulares & Modo Férias Realtime (v2.7.0 – v2.7.7)"]
+        SP10["Sprint 10 (24/10/2026)\nNormalização Canónica 57 Artigos, Folha Carga Segregada, Fabrico por Loja & KDS (v2.7.8 – v2.7.15)"]
+        SP1 --> SP2 --> SP3 --> SP4 --> SP5 --> SP6 --> SP7 --> SP8 --> SP9 --> SP10
     end
 
-    subgraph Seguintes ["🚀 PRÓXIMOS SPRINTS (Outubro 2026)"]
-        SP7["Sprint 7 (Semana de 13/10/2026)\nAdjudicação Formal, Parametrização Final em Arouca & Ensaio Epson TM-T20"]
-        SP8["Sprint 8 (Semana de 20/10/2026)\nFormação Prática por Posto (Lojas, Fornos, Carrinhas) & Go-Live Oficial"]
-        SP9["Sprint 9 (Contínuo Pós Go-Live)\nAcompanhamento Assistido, Monitorização On-Time & Evolução Fase 2"]
-        SP6 --> SP7 --> SP8 --> SP9
+    subgraph Seguintes ["🚀 PRÓXIMOS SPRINTS (Outubro/Novembro 2026)"]
+        SP11["Sprint 11 (Semana de 27/10/2026)\nParametrização Final em Arouca, Formação Prática por Posto & Go-Live Oficial"]
+        SP12["Sprint 12 (Contínuo Pós Go-Live)\nAcompanhamento Assistido no Terreno, Otimização de Rotas & Evolução Fase 2"]
+        SP10 --> SP11 --> SP12
     end
 ```
 
@@ -115,53 +122,54 @@ flowchart TD
 > [!IMPORTANT]
 > **Secção Confidencial de Controlo Interno Inprooval®** — Automaticamente ocultada na geração de PDFs para o cliente.
 
-### 6.1. Resumo da Bolsa de Horas vs. Orçamento (Taxa de Referência: `100,00 €/hora`)
+### 6.1. Resumo da Bolsa de Horas vs. Orçamento (Plafond Global: `110,00 Horas` @ `50,00 €/hora`)
 
-| Indicador da Bolsa de Horas | Cenário A: Apenas Orçamento Base (`2.500 €`) | Cenário B: Base + Extra App Cliente (`3.150 €`) |
+| Indicador da Bolsa de Horas | Pacote Global Turn-Key (`5.500,00 € + IVA`) | Valor a Preço de Tabela Mercado (@ 150 €/h) |
 | :--- | :---: | :---: |
-| **Plafond Total de Horas Orçamentadas (@ 100 €/h)** | **25,00 horas** | **31,50 horas** |
-| **Horas Consumidas em Engenharia (Sprints 1 a 8 — `v2.6.0`)** | 23,50 horas (`2.350,00 €`) | 23,50 horas (`2.350,00 €`) |
-| **Horas Consumidas em Consultoria Externa (Reuniões)** | 2,75 horas (`275,00 €`) | 2,75 horas (`275,00 €`) |
-| **TOTAL DE HORAS CONSUMIDAS (até 23/10/2026 — `v2.6.0`)** | **26,25 horas (`2.625,00 €`)** | **26,25 horas (`2.625,00 €`)** |
-| **SALDO REMANESCENTE NA BOLSA DE HORAS (p/ Formação & Go-Live)** | **- 1,25 horas** *(Investimento Estrutural)* | **🟢 + 5,25 horas (`+ 525,00 €`)** |
-| **Percentagem de Execução & Readiness Score (Bulletproof Swarm)** | **100% Concluído — Score 99,1% (`v2.6.0`)** | **100% Concluído — Score 99,1% (`v2.6.0`)** |
+| **Plafond Total de Horas Orçamentadas** | **110,00 horas (`5.500,00 €`)** | 16.500,00 € |
+| **Horas Consumidas em Engenharia (Sprints 1 a 10 — `v2.7.15`)** | 30,00 horas (`1.500,00 €`) | 4.500,00 € |
+| **Horas Consumidas em Consultoria Externa & Reuniões de Terreno** | 4,50 horas (`225,00 €`) | 675,00 € |
+| **TOTAL DE HORAS CONSUMIDAS (até 24/10/2026 — `v2.7.15`)** | **34,50 horas (`1.725,00 €`)** | **5.175,00 €** |
+| **SALDO REMANESCENTE NA BOLSA DE HORAS (p/ Formação & Go-Live)** | **🟢 + 75,50 horas (`+ 3.775,00 €`)** | **+ 11.325,00 €** |
+| **Percentagem de Execução & Readiness Score (Bulletproof Swarm)** | **100% Concluído — Score 99,6% (`v2.7.15`)** | **BULLETPROOF GOLD** |
 
 ### 6.2. Discriminação Cronológica de Horas Consumidas por Sprint
 
-| Sprint / Fase | Período | Tipo de Esforço | Entregáveis Principais | Horas | Valor (@ 100 €/h) |
+| Sprint / Fase | Período | Tipo de Esforço | Entregáveis Principais | Horas | Valor (@ 50 €/h) |
 | :--- | :---: | :---: | :--- | :---: | :---: |
-| **Kick-off Inicial** | 07/09/2026 | Consultoria Externa (Online) | Levantamento inicial de requisitos operacionais | 1,00 h | 100,00 € |
-| **Sprint 1** | 07/09 – 15/09 | Engenharia Antigravity | Arquitetura Next.js, Supabase PostgreSQL e RBAC (`v1.0`–`v1.3.1`) | 3,80 h | 380,00 € |
-| **Sprint 2** | 16/09 – 22/09 | Engenharia Antigravity | Balcão, KDS Fabrico, Rotas GPS, On-Time e Logs (`v1.4`–`v1.8`) | 4,25 h | 425,00 € |
-| **Sprint 3** | 23/09 – 02/10 | Engenharia Antigravity | Multi-Loja, Talão Térmico 80mm e Exportação Excel | 3,15 h | 315,00 € |
-| **Sprint 4** | 03/10 – 10/10 | Engenharia Antigravity | Studio CMS Nativo (`/cms`), Blindagem Cenário A, Portal Cliente v1 e Canais | 5,44 h | 544,00 € |
-| **Reunião Arouca** | 10/10/2026 | Consultoria Externa (Presencial) | Demonstração ao vivo à gerência, recolha de 22 requisitos e proposta | 1,75 h | 175,00 € |
-| **Sprint 5 (`v2.0.0`)** | 10/10 – 11/10 | Engenharia Antigravity | Implementação dos 22 requisitos de Arouca (5 Carrinhas, B2B, 3 Fornos, Mapa Diário) | 2,86 h | 286,00 € |
-| **Sprint 6 (`v2.1.0`–`v2.1.3`)** | 11/10 – 12/10 | Engenharia & Swarm Hardening | Triagem parcelar artigo a artigo, estado parcelar na App Cliente, WhatsApp automático e certificação Bulletproof Swarm (`99,1%`) | 2,00 h | 200,00 € |
-| **Sprint 7 (`v2.5.5`–`v2.5.7`)** | 21/10 – 22/10 | Engenharia & Refinamento UI | Estabilização de impressão PDF/A4 via portal DOM, injeção CSS `@page` e remoção da coluna de caixas nas guias | 0,90 h | 90,00 € |
-| **Sprint 8 (`v2.6.0`)** | 22/10/2026 | Engenharia & Cibersegurança | Subdomínio `app.padariadavila.com`, chaves criptográficas alfanuméricas por ecrã, proteção middleware e bloqueio total anti-indexação | 1,10 h | 110,00 € |
-| **TOTAL ACUMULADO** | **07/09 – 23/10** | **Híbrido (AGY + Terreno)** | **Solução Integral `v2.6.0` em Produção no Subdomínio Oficial** | **26,25 h** | **2.625,00 €** |
+| **Kick-off Inicial** | 07/09/2026 | Consultoria Externa (Online) | Levantamento inicial de requisitos operacionais | 1,00 h | 50,00 € |
+| **Sprint 1** | 07/09 – 15/09 | Engenharia Antigravity | Arquitetura Next.js, Supabase PostgreSQL e RBAC (`v1.0`–`v1.3.1`) | 3,80 h | 190,00 € |
+| **Sprint 2** | 16/09 – 22/09 | Engenharia Antigravity | Balcão, KDS Fabrico, Rotas GPS, On-Time e Logs (`v1.4`–`v1.8`) | 4,25 h | 212,50 € |
+| **Sprint 3** | 23/09 – 02/10 | Engenharia Antigravity | Multi-Loja, Talão Térmico 80mm e Exportação Excel | 3,15 h | 157,50 € |
+| **Sprint 4** | 03/10 – 10/10 | Engenharia Antigravity | Studio CMS Nativo (`/cms`), Blindagem Cenário A, Portal Cliente v1 e Canais | 5,44 h | 272,00 € |
+| **Reunião Arouca** | 10/10/2026 | Consultoria Externa (Presencial) | Demonstração ao vivo à gerência, recolha de 22 requisitos e proposta | 1,75 h | 87,50 € |
+| **Sprint 5 (`v2.0.0`)** | 10/10 – 11/10 | Engenharia Antigravity | Implementação dos 22 requisitos de Arouca (Carrinhas, B2B, 3 Fornos, Mapa Diário) | 2,86 h | 143,00 € |
+| **Sprint 6 (`v2.1.0`–`v2.1.3`)** | 11/10 – 12/10 | Engenharia & Swarm Hardening | Triagem parcelar artigo a artigo, estado parcelar na App Cliente, WhatsApp automático e certificação Bulletproof Swarm (`99,1%`) | 2,00 h | 100,00 € |
+| **Sprint 7 (`v2.4.0`–`v2.5.7`)** | 18/10 – 22/10 | Engenharia & Refinamento UI | Unificação de rotas, calibração 68mm TM-T20, base diária semanal, matriz B2B e PDFs A4 | 4,15 h | 207,50 € |
+| **Sprint 8 (`v2.6.0`)** | 22/10/2026 | Engenharia & Cibersegurança | Subdomínio `app.padariadavila.com`, chaves criptográficas por ecrã, proteção middleware e bloqueio total anti-indexação | 1,10 h | 55,00 € |
+| **Sprint 9 (`v2.7.0`–`v2.7.7`)** | 23/10 – 24/10 | Engenharia & Omnichannel | Estabilização das 7 rotas, arquitetura omnichannel B2B/particulares e motor de Modo Férias em tempo real | 2,75 h | 137,50 € |
+| **Sprint 10 (`v2.7.8`–`v2.7.15`)** | 24/10/2026 | Engenharia & Resiliência | Normalização canónica (57 artigos), segregação estrita da Folha de Carga, Folha de Fabrico por loja, estabilização KDS e eliminação de erros de runtime | 2,25 h | 112,50 € |
+| **TOTAL ACUMULADO** | **07/09 – 24/10** | **Híbrido (AGY + Terreno)** | **Solução Integral `v2.7.15` em Produção no Subdomínio Oficial** | **34,50 h** | **1.725,00 €** |
 
 ### 6.3. Cláusula de Sucesso & Escalação de Valor Hora para Novos Desenvolvimentos
 
-* **Valor Hora Atual do Projeto:** **100,00 € / hora + IVA** (válido para o âmbito de setup inicial e acompanhamento de Go-Live).
-* **Gatilho de Sucesso:** Entrada oficial em exploração operacional (Go-Live) na Padaria da Vila e validação das rotas e KDS no terreno.
-* **Escalação de Valor Hora Pós-Sucesso:** Em caso de sucesso, o valor hora de referência passa para **150,00 € / hora + IVA** para:
+* **Valor Hora Bonificado no Pacote de Arranque:** **50,00 € / hora + IVA** (válido para o plafond contratado de 110 horas de setup e acompanhamento de Go-Live).
+* **Gatilho de Sucesso:** Entrada oficial em exploração operacional (Go-Live) na Padaria da Vila e validação das 7 rotas, das 4 lojas e do KDS no terreno.
+* **Escalação de Valor Hora Institucional Pós-Sucesso:** Em caso de sucesso, o valor hora de referência passa para **150,00 € / hora + IVA** para:
   1. **Novos desenvolvimentos da Padaria da Vila:** Faturação Certificada AT via API (Fase 2), WhatsApp Business Cloud API silencioso, Pagamentos Online MB WAY e Fichas Técnicas/MRP (Fase 3), bem como pacotes adicionais de suporte/desenvolvimento fora do contrato mensal.
-  2. **Novos Projetos & Novos Clientes Inprooval®:** Adoção institucional de **150,00 € / hora + IVA** como taxa de referência para novas propostas comerciais e orçamentação de soluções digitais.
+  2. **Novos Projetos & Novos Clientes Inprooval®:** Adoção institucional de **150,00 € / hora + IVA** como taxa padrão de tabela para novas propostas comerciais e orçamentação de soluções digitais.
 <!-- INTERNAL_END -->
 
 ---
 
 ## 7. Secção de Aprendizagens do Projeto (Lessons Learned)
 
-1. **Aprendizagem Operacional (Flexibilidade de Produção Parcelar):**
-   - Na panificação e pastelaria real, um pedido urgente com vários artigos raramente é "tudo ou nada" — muitas vezes há pão pronto a sair da fornada, mas um artigo específico de pastelaria já não pode ser produzido a tempo. A introdução da **decisão artigo a artigo (`✓ Produzir` vs. `✕ Não Produzir`)** com propagação direta para a App do Cliente e WhatsApp resolve um caso real de atrito diário entre fábrica, balcão e cliente.
-2. **Aprendizagem Técnica (Tags Resilientes em Colunas de Texto vs. Migrações Rígidas):**
-   - Utilizar tags estruturadas (`[CANAL:...]`, `[RECUSADO]`, `[OBS_PROD:...]`, `[ITENS_BACKUP:...]`, `[AUTH_PWD:...]`) interpretadas e limpas na camada de serviço (`encomendasService.ts`) garante que novas funcionalidades entram em produção com **zero risco de erro de schema cache ou violação de constraints** no Supabase, mantendo compatibilidade total com *Instant Rollback*.
-3. **Aprendizagem Comercial (Separação Base vs. Add-On de Cliente):**
-   - Desacoplar a **Operação Interna da Equipa (`2.500 €`)** da **App de Pedidos Diretos pelo Cliente (`+650 €`)** com ecrãs de login e jornadas claramente separados permite ao cliente visualizar imediatamente o valor extra de abrir um canal digital autónomo para os seus clientes finais.
-<!-- INTERNAL_END -->
+1. **Aprendizagem Operacional (Flexibilidade de Produção Parcelar e Fabrico por Loja):**
+   - Na panificação e pastelaria real, um pedido urgente com vários artigos raramente é "tudo ou nada" — muitas vezes há pão pronto a sair da fornada, mas um artigo específico de pastelaria já não pode ser produzido a tempo. A introdução da **decisão artigo a artigo (`✓ Produzir` vs. `✕ Não Produzir`)** e da **Folha de Fabrico discriminada por loja** resolve o atrito diário entre fábrica, balcões e clientes.
+2. **Aprendizagem Técnica (Segregação Estrita de Carga & Normalização Canónica):**
+   - Separar de forma inegociável a Base Diária de abastecimento, os Clientes B2B (suprimindo entidades a 0 un.) e as Encomendas ao Domicílio na Folha de Carga elimina erros de carga de madrugada. A normalização canónica (`normalizarNomeArtigoCanonico`) impede a proliferação de sinónimos que distorcem o cálculo da farinha.
+3. **Aprendizagem Comercial (Demonstração de Valor e Bolsa Confortável):**
+   - Uma bolsa transparente de 110 horas com taxa bonificada de 50 €/h cria uma relação de confiança absoluta com o cliente, demonstrando o compromisso de estar presente no terreno até à estabilização completa da operação.
 
 ---
 
@@ -175,11 +183,11 @@ Abaixo encontram-se mapeadas as oportunidades de evolução futura sobre a base 
 
 | ID | Oportunidade de Evolução | Fonte da Oportunidade | Impacto Operacional & Económico no Negócio | Prioridade / Fase |
 | :---: | :--- | :--- | :--- | :---: |
-| **OP-01** | **App de Pedidos Diretos pelos Clientes com Feedback Parcelar (`/encomendar`)** | 🗣️ **`[FONTE: CLIENTE — Padaria da Vila]`** + 🧠 **`[FONTE: CONSULTOR INPROOVAL]`** | Liberta as equipas das 3 lojas de atender chamadas constantes para anotar pedidos e permite ao cliente saber no telemóvel quais os artigos aceites e quando a encomenda está pronta. *(Já desenvolvido como Módulo Extra pronto a ativar).* | **Imediato (Add-On)** |
+| **OP-01** | **App de Pedidos Diretos pelos Clientes com Feedback Parcelar (`/encomendar`)** | 🗣️ **`[FONTE: CLIENTE — Padaria da Vila]`** + 🧠 **`[FONTE: CONSULTOR INPROOVAL]`** | Liberta as equipas das 4 lojas de atender chamadas constantes para anotar pedidos e permite ao cliente saber no telemóvel quais os artigos aceites e quando a encomenda está pronta. *(Já desenvolvido como Módulo Extra pronto a ativar).* | **Imediato (Add-On)** |
 | **OP-02** | **Disparo 100% Automático de WhatsApp via API Oficial (Meta Cloud API / Twilio)** | 🧠 **`[FONTE: CONSULTOR INPROOVAL — Luís Carreiras]`** | Evolui o atual disparo assistido (que abre o WhatsApp pré-preenchido) para envio silencioso em servidor mal o padeiro ou a loja clica no botão, sem necessitar de segundo clique no WhatsApp Web/App. | **Fase 2 (Curto Prazo)** |
-| **OP-03** | **Motor de Explosão de Receitas & Fichas Técnicas para a Amassadeira (MRP Panificação)** | 🧠 **`[FONTE: CONSULTOR INPROOVAL — Luís Carreiras]`** | Converte automaticamente os totais da *Pool do Dia* (Base Fixa + B2B + Encomendas) nas quantidades exatas de farinha (kg), água (L), fermento (g) e sal por amassadura, eliminando desperdício e desvios de matéria-prima. | **Fase 2 (Médio Prazo)** |
-| **OP-04** | **Fecho de Caixa de Motoristas & Conta-Corrente de Clientes (Particulares e B2B)** | 🗣️ **`[FONTE: CLIENTE — Padaria da Vila]`** + 🧠 **`[FONTE: CONSULTOR INPROOVAL]`** | Permite registar nas 5 carrinhas as entregas pagas a dinheiro vs. a crédito semanal/mensal e emitir o resumo mensal automático para os 13 clientes empresariais do 5.º Carro e clientes particulares de caderneta. | **Fase 2 (Médio Prazo)** |
-| **OP-05** | **Integração Direta com Software de Faturação Certificado AT (Guias Globais & Faturas B2B)** | 🧠 **`[FONTE: CONSULTOR INPROOVAL — Luís Carreiras]`** | Gera automaticamente as Guias de Circulação/Transporte das 5 carrinhas de madrugada (obrigatórias pela AT) e a faturação mensal consolidada dos 13 clientes institucionais do 5.º Carro. | **Fase 2 (Médio Prazo)** |
-| **OP-06** | **Previsão Inteligente de Produção & Anti-Desperdício com IA (Demand Forecasting + Meteorologia/Feriados)** | 🤖 **`[FONTE: ANTIGRAVITY AI — Benchmarking Indústria]`** | Algoritmo preditivo que cruza o histórico de vendas e sobras por dia da semana com feriados locais de Arouca e previsão meteorológica para recomendar à gerência o ajuste ideal de fornadas para cada uma das 3 lojas, reduzindo as quebras diárias em 15% a 25%. | **Fase 3 (Avançado)** |
+| **OP-03** | **Motor de Explosão de Receitas & Fichas Técnicas para a Amassadeira (MRP Panificação)** | 🧠 **`[FONTE: CONSULTOR INPROOVAL — Luís Carreiras]`** | Converte automaticamente os totais da *Pool do Dia* (Base Semanal + B2B + Encomendas) nas quantidades exatas de farinha (kg), água (L), fermento (g) e sal por amassadura, eliminando desperdício e desvios de matéria-prima. | **Fase 2 (Médio Prazo)** |
+| **OP-04** | **Fecho de Caixa de Motoristas & Conta-Corrente de Clientes (Particulares e B2B)** | 🗣️ **`[FONTE: CLIENTE — Padaria da Vila]`** + 🧠 **`[FONTE: CONSULTOR INPROOVAL]`** | Permite registar nas 7 carrinhas as entregas pagas a dinheiro vs. a crédito semanal/mensal e emitir o resumo mensal automático para os 21 clientes empresariais e clientes particulares de caderneta. | **Fase 2 (Médio Prazo)** |
+| **OP-05** | **Integração Direta com Software de Faturação Certificado AT (Guias Globais & Faturas B2B)** | 🧠 **`[FONTE: CONSULTOR INPROOVAL — Luís Carreiras]`** | Gera automaticamente as Guias de Circulação/Transporte das 7 carrinhas de madrugada (obrigatórias pela AT) e a faturação mensal consolidada dos 21 clientes institucionais. | **Fase 2 (Médio Prazo)** |
+| **OP-06** | **Previsão Inteligente de Produção & Anti-Desperdício com IA (Demand Forecasting + Meteorologia/Feriados)** | 🤖 **`[FONTE: ANTIGRAVITY AI — Benchmarking Indústria]`** | Algoritmo preditivo que cruza o histórico de vendas e sobras por dia da semana com feriados locais de Arouca e previsão meteorológica para recomendar à gerência o ajuste ideal de fornadas para cada uma das 4 lojas, reduzindo as quebras diárias em 15% a 25%. | **Fase 3 (Avançado)** |
 | **OP-07** | **Registo Digital de Rastreabilidade de Lotes & Temperaturas HACCP nos 3 Fornos** | 🤖 **`[FONTE: ANTIGRAVITY AI — Benchmarking Indústria]`** | Aproveita o registo de fornadas dos 3 Fornos já existente em `/producao` para associar os lotes de farinha/ovos do dia e checklist rápido de higiene/temperatura, garantindo conformidade total com auditorias ASAE / HACCP sem papel. | **Fase 3 (Avançado)** |
 | **OP-08** | **Encomenda Recorrente por Voz / Áudio WhatsApp com IA Multimodal** | 🤖 **`[FONTE: ANTIGRAVITY AI — Benchmarking Indústria]`** | Permite que clientes particulares idosos ou responsáveis de instituições B2B enviem um áudio de WhatsApp (*"Amanhã preciso de mais 15 pães saloios e 2 broas"*) que é transcrito e pré-carregado automaticamente como rascunho de encomenda para validação num clique. | **Fase 3 (Avançado)** |

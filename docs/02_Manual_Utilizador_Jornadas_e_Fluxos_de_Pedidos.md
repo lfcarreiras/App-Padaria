@@ -1,9 +1,9 @@
 ---
 title: "02 - Manual de Utilização, Jornadas por Perfil e Fluxos End-to-End de Pedidos"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.2.0"
+version: "2.7.15"
 date_saved: 2026-10-16
-updated: 2026-10-16
+updated: 2026-10-24
 status: "Em Produção (Live)"
 tags:
   - #Inprooval/ManualUtilizador
@@ -16,7 +16,7 @@ tags:
 
 **Entidade Tecnológica:** EyeQ Lda / Inprooval®  
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
-**Versão:** `v2.2.0` (16/10/2026)  
+**Versão:** `v2.7.15` (24/10/2026)  
 
 ---
 
@@ -26,7 +26,7 @@ A plataforma separa de forma estrita a **Jornada Interna da Equipa** e a **Jorna
 
 | Tipo de Utilizador | URL de Acesso | Método de Autenticação | Isolamento de Ecrã / Experiência |
 | :--- | :--- | :--- | :--- |
-| **Equipa Interna** (*Atendentes, Padeiros, Pasteleiros, Motoristas, Gerência*) | `/login` | Utilizador + Palavra-passe + **Seleção Obrigatória do Cockpit de Trabalho** (`Loja 1`, `Loja 2`, `Loja 3`, `Centro de Produção`, `Carrinhas`, `Gestão`) | Mostra apenas os menus e dados pertinentes ao posto de trabalho selecionado. |
+| **Equipa Interna** (*Atendentes, Padeiros, Pasteleiros, Motoristas, Gerência*) | `/login` | Utilizador + Palavra-passe + **Seleção Obrigatória do Cockpit de Trabalho** (`4 Lojas: Matriz, Praça, Mercado, Centro`, `Centro de Produção`, `Carrinhas: Rotas 1 a 7`, `Gestão`) | Mostra apenas os menus e dados pertinentes ao posto de trabalho selecionado. |
 | **Cliente Final** (*Módulo Extra: App de Pedidos Diretos*) | `/encomendar` | **Telemóvel (ou E-mail) + Password Definida pelo Utilizador** + **E-mail Obrigatório para Recuperação de Password** | Acesso exclusivo ao Catálogo de Quantidades (sem preços) e ao painel *«As Minhas Encomendas»*. |
 
 ---
@@ -93,13 +93,13 @@ flowchart TD
 ## 3. Passo-a-Passo Detalhado por Ecrã e Perfil de Utilizador
 
 ### 3.1. Perfil 1: Atendente de Balcão — Receção de Encomendas (`/encomendas`)
-1. **Acesso:** Iniciar sessão em `/login`, introduzir as credenciais e selecionar o Cockpit da respetiva loja (`Loja 1 — Padaria da Vila`, `Loja 2 — Padaria da Praça` ou `Loja 3 — Padaria do Liceu`).
+1. **Acesso:** Iniciar sessão em `/login`, introduzir as credenciais e selecionar o Cockpit da respetiva loja (`Loja 1 — Padaria da Vila (Matriz / Fábrica)`, `Loja 2 — Padaria da Praça`, `Loja 3 — Padaria do Liceu / Mercado` ou `Loja 4 — Padaria Centro`).
 2. **Registar Nova Encomenda:**
    - **Passo 1 (Canal de Origem):** Selecionar o canal pelo qual o cliente fez o pedido: `🏪 Presencial`, `📞 Telefone` ou `💬 WhatsApp`.
    - **Passo 2 (Dados do Cliente):** Introduzir o telefone ou nome; se o cliente já existir, os dados (nome, morada, notas de entrega) preenchem-se automaticamente. Caso seja novo, fica gravado automaticamente ao submeter.
    - **Passo 3 (Modalidade de Entrega):**
-     - **Levantamento em Loja:** Selecionar em qual das 3 lojas o cliente vai levantar.
-     - **Entrega ao Domicílio:** Preencher a morada e selecionar a carrinha responsável (`1.º Carro` a `4.º Carro` para particulares, ou `5.º Carro` para reforços empresariais B2B).
+     - **Levantamento em Loja:** Selecionar em qual das 4 lojas o cliente vai levantar.
+     - **Entrega ao Domicílio:** Preencher a morada e selecionar a carrinha responsável (`Rota 1` a `Rota 7` / `Carro 1` a `Carro 7`).
    - **Passo 4 (Data e Hora):** Definir a data e hora pretendida de recolha/entrega.
    - **Passo 5 (Artigos e Personalizações):** Pesquisar ou filtrar artigos por setor (*Padaria* / *Pastelaria*), definir quantidades e adicionar notas específicas por artigo (ex.: *"Escrever Parabéns João"*, *"Fatiado"*, *"Sem açúcar"*).
    - **Passo 6 (Submissão e Impressão Térmica):** Clicar em **Gravar Encomenda**. Abre imediatamente o modal do **Talão Térmico (80mm)** pronto a imprimir na **Epson M249A TM-T20**.
@@ -129,20 +129,27 @@ flowchart TD
      - **Se o pedido veio da App Cliente (`site_online`):** Clicar em **`Atualizar na App Cliente`** (o cliente passa a ver imediatamente na sua App quais os artigos aceites, quais os recusados e a observação da produção) ou, opcionalmente, clicar também em **`Enviar também via WhatsApp ao Cliente`**.
      - **Se o pedido veio de Presencial, Telefone ou WhatsApp:** Clicar no botão **`Enviar Estado Parcelar via WhatsApp ao Cliente`**, que abre automaticamente o WhatsApp com a mensagem formatada contendo a lista de artigos que serão produzidos (`✅`), os não produzidos (`❌`) e as observações.
    - Clicar em **`Concluir Triagem / Fechar Alerta`** para silenciar o alerta dessa encomenda.
-3. **Gestão da Pool Consolidada do Dia e dos 3 Fornos (`Forno 1`, `Forno 2`, `Forno 3`):**
-   - **Pool de Artigos a Produzir Hoje:** Soma automaticamente todas as necessidades do dia:
-     $$\text{Pool do Dia} = \text{Encomendas Aceites} + \text{Base Fixa (1.º ao 4.º Carro)} + \text{Matriz Semanal B2B (5.º Carro)}$$
-   - **Alocação aos 3 Fornos:** Em cada artigo da Pool, selecionar a quantidade a enviar e escolher **`Forno 1`**, **`Forno 2`** ou **`Forno 3`**.
-   - **Controlo de Cozedura nos 3 Cartões de Forno:**
-     - Clicar em **`🔥 Iniciar Preparação`**: Ativa o cronómetro em tempo real no respetivo forno.
-     - Clicar em **`✅ Pronto`**: Conclui a fornada, regista a duração exata no **Histórico de Fornadas Concluídas Hoje** e liberta o forno.
-4. **Vista Hierárquica (Artigo $\to$ Encomendas):**
-   - Permite expandir qualquer artigo para ver a que clientes/encomendas se destina, alterar estados individuais ou enviar aviso WhatsApp ao cliente.
+3. **Gestão da Pool Consolidada do Dia, Tipologias e Folha de Fabrico por Loja:**
+   - **Pool de Artigos a Produzir Hoje:** Soma automaticamente todas as necessidades do dia (respeitando data, período e modo férias de clientes recorrentes):
+     $$\text{Pool do Dia} = \text{Bases Diárias das Carrinhas} + \text{Clientes Empresariais B2B} + \text{Encomendas Aceites}$$
+   - **Filtro por Tipologia:** Permite filtrar instantaneamente a Pool por `Todas`, `Base Diária`, `Clientes Empresariais` ou `Encomendas`.
+   - **Folha de Fabrico de Encomendas Discriminada por Loja (`filtroTipologia === 'encomendas'`):**
+     - Ao selecionar a tipologia «Encomendas», surge um **Banner de Ação Rápida** com botões diretos:
+       - **`[Imprimir Todas as Lojas]`**: Gera o PDF completo com quebras de página por loja (`break-before: page`).
+       - **Botões por Loja** (ex: `[Loja Praça]`, `[Loja Centro]`, `[Loja Mercado]`): Filtram e imprimem apenas as encomendas daquela loja.
+     - **Documento PDF de Fabrico:** Cada loja tem o seu cabeçalho oficial e total a produzir, listando as encomendas discriminadas uma a uma com código `#ENC`, horário, modalidade (Balcão/Domicílio), nome/telefone do cliente, notas de personalização dos produtos e caixas de verificação `[ ] Pronto / Embalado`.
+     - **Controlos no Modal PDF:** Permite alternar entre visualização *Consolidado Global* e *Por Encomenda*, e filtrar em tempo real por Loja e por Setor (*Padaria* / *Pastelaria*).
+4. **Alocação aos 3 Fornos (`Forno 1`, `Forno 2`, `Forno 3`):**
+   - Em cada artigo da Pool, selecionar a quantidade a enviar e escolher **`Forno 1`**, **`Forno 2`** ou **`Forno 3`**.
+   - Clicar em **`🔥 Iniciar Preparação`**: Ativa o cronómetro em tempo real no respetivo forno.
+   - Clicar em **`✅ Pronto`**: Conclui a fornada, regista a duração exata no **Histórico de Fornadas Concluídas Hoje** e liberta o forno.
+5. **KDS de Encomendas & Conclusão de Produção:**
+   - Cada cartão de encomenda no KDS disponibiliza o botão incondicional **`Concluir Produção • Marcar como Pronta`** para rápida transição de estado pelos operadores.
 
 ---
 
 ### 3.3. Perfil 3: Atendimento de Loja — Expedição e Levantamento (`/loja`)
-1. **Acesso:** Iniciar sessão em `/login` com o Cockpit da loja (`Loja 1`, `Loja 2` ou `Loja 3`). O ecrã filtra automaticamente as encomendas daquela loja.
+1. **Acesso:** Iniciar sessão em `/login` com o Cockpit da respetiva loja (`Loja Matriz/Fábrica`, `Loja Praça`, `Loja Mercado` ou `Loja Centro`). O ecrã filtra automaticamente as encomendas daquela loja.
 2. **Verificar Estado dos Artigos e Observações da Produção:**
    - Cada cartão de encomenda mostra os artigos a entregar. Se algum artigo tiver sido marcado como **`✕ Não Produzido`** pela produção, surge devidamente identificado a vermelho, juntamente com a caixa **💬 Observações da Produção**.
 3. **Dar Encomenda como Pronta para Entrega (Disparo Automático de WhatsApp):**
@@ -155,15 +162,22 @@ flowchart TD
 
 ---
 
-### 3.4. Perfil 4: Motorista / Logística — Frota de 5 Carrinhas & Mapa Diário (`/entregas`)
+### 3.4. Perfil 4: Motorista / Logística — Frota de 7 Carrinhas, Folha de Carga & Mapa Diário (`/entregas`)
 1. **Acesso:** Iniciar sessão em `/login` com o Cockpit **`Carrinhas`**.
-2. **Seleção da Carrinha (`1.º Carro` ao `5.º Carro`):**
-   - **`1.º Carro` ao `4.º Carro` (Rotas de Particulares):** Apresentam o resumo consolidado da **Base Fixa Diária** daquela carrinha somado às **Encomendas Adicionais ao Domicílio** agendadas para esse dia.
-   - **`5.º Carro` (Rota Exclusiva de Clientes Empresariais B2B):** Apresenta a tabela dos **13 Clientes Empresariais** com as quantidades fixas frequentes do dia da semana selecionado somadas a eventuais pedidos adicionais do dia.
-3. **Exportação Oficial do Excel «MAPA DIÁRIO»:**
-   - Clicar no botão **`📥 Exportar Excel «MAPA DIÁRIO»`** no topo do ecrã.
-   - Descarrega imediatamente o ficheiro `.xlsx` formatado segundo a folha oficial da *União Panificadora Central Arouquense, Lda* (linhas `1.º CARRO` a `5.º CARRO`, subtotais, desdobramento individual dos 13 clientes empresariais do `5.º CARRO` e colunas dos 29 produtos oficiais + Totais).
-4. **Execução da Rota e Registo de Entrega Real:**
+2. **Seleção da Carrinha (Rotas 1 a 7):**
+   - Cada viatura da frota (`Rota 1` a `Rota 7`) apresenta o seu plano de distribuição diário com distinção clara entre:
+     - **Base Diária da Rota:** Pão e broas de abastecimento regular e entregas porta-a-porta a particulares.
+     - **Clientes Empresariais (B2B):** Entidades institucionais com quantidades semanais ativas para a data.
+     - **Encomendas Adicionais:** Pedidos avulsos agendados para entrega ao domicílio.
+3. **Geração da Folha de Carga Oficial em PDF (`PdfViewerModal.tsx`):**
+   - Clicar no botão **`Gerar Folha de Carga`** no cartão da carrinha.
+   - **Tabela 1 (Base Diária):** Lista exclusiva dos produtos da base da rota (não poluída com quantidades B2B ou encomendas) com caixas de visto de carregamento.
+   - **Tabela 2 (Desdobramento B2B):** Lista apenas os clientes empresariais com entregas agendadas para o dia (suprimindo entidades a 0 un., como a Associação de Pais de Chave ao sábado) e visto `[ ] Entregue Conforme`.
+   - **Tabela 3 (Desdobramento Encomendas):** Detalhe de encomendas adicionais ao domicílio com morada, horário agendado e contacto.
+   - **Bloco de Fecho Consolidado:** Resumo geral no fim da folha somando `Base Diária + B2B + Encomendas = Total Geral a Bordo` com estimativa de caixas e assinatura do motorista e expedição.
+4. **Exportação Oficial do Excel «MAPA DIÁRIO»:**
+   - Clicar no botão **`📥 Exportar Excel «MAPA DIÁRIO»`** no topo do ecrã para descarregar o ficheiro consolidado da frota.
+5. **Execução da Rota e Registo de Entrega Real:**
    - Reordenar paragens por *Drag & Drop* ou usar o botão **Otimizar Rota**.
    - Clicar em **Abrir GPS (Google Maps)** para navegar até à morada do cliente.
    - Ao entregar o pão/pastelaria na porta do cliente, clicar em **`✅ Concluir Entrega`** — o sistema regista automaticamente a **Data e Hora Real da Entrega** para o cálculo de pontualidade (*% On-Time*).

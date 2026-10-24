@@ -1,9 +1,9 @@
 ---
 title: "01 - Dossier Técnico e Evolução Arquitetural da Solução"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.2.0"
+version: "2.7.15"
 date_saved: 2026-10-16
-updated: 2026-10-16
+updated: 2026-10-24
 status: "Em Produção (Live)"
 tags:
   - #Inprooval/DossierTecnico
@@ -16,7 +16,7 @@ tags:
 
 **Entidade Tecnológica:** EyeQ Lda / Inprooval®  
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
-**Versão Atual em Produção:** `v2.2.0` (16/10/2026)  
+**Versão Atual em Produção:** `v2.7.15` (24/10/2026)  
 **Repositório & CI/CD:** GitHub (`lfcarreiras/App-Padaria`) $\to$ Vercel Production  
 
 ---
@@ -28,12 +28,12 @@ A solução foi desenhada segundo o padrão **Inprooval® Cloud-Native ERP Verti
 ```mermaid
 flowchart TB
     subgraph ClientLayer ["🖥️ Camada de Apresentação & Postos de Trabalho (Next.js 14 App Router)"]
-        LoginEquipa["🔒 /login\nAutenticação Equipa + Seleção de Cockpit\n(Loja 1, 2, 3, Produção, Carrinhas, Gestão)"]
+        LoginEquipa["🔒 /login\nAutenticação Equipa + Seleção de Cockpit\n(4 Lojas, Produção, Carrinhas, Gestão)"]
         Balcao["📦 /encomendas\nBalcão Digital Multicanal\n(Presencial, Telefone, WhatsApp)"]
-        Producao["👨‍🍳 /producao\nCentro de Produção KDS\n(Alerta <3h Artigo a Artigo + Pool + 3 Fornos)"]
+        Producao["👨‍🍳 /producao\nCentro de Produção KDS\n(Pools, Fabrico por Loja, Alerta <3h & 3 Fornos)"]
         ExpedicaoLoja["🏪 /loja\nBalcão de Levantamento\n(WhatsApp Automático 'Pronta' + Talão 80mm)"]
-        Logistica["🚚 /entregas\nFrota 1º ao 5º Carro\n(Particulares + Matriz B2B + Mapa Diário Excel)"]
-        CockpitGestao["📊 /gestao\nCockpit Executivo & Admin\n(KPIs On-Time, Base Fixa, B2B, RBAC, Logs)"]
+        Logistica["🚚 /entregas\nFrota 7 Carrinhas / Rotas 1 a 7\n(Base Diária + Desdobramento B2B + Encomendas)"]
+        CockpitGestao["📊 /gestao\nCockpit Executivo & Admin\n(KPIs On-Time, Base Semanal, B2B, RBAC, Logs)"]
         PortalCliente["🛍️ /encomendar (Módulo Extra)\nApp de Pedidos Diretos do Cliente\n(Login Password/Email Supabase + Catálogo s/ Preço + Tracking Parcelar)"]
     end
 
@@ -77,7 +77,7 @@ flowchart TB
 | **Linguagem & Tipagem** | **TypeScript 5 (Strict Mode)** | Contratos de dados estritos (`src/types/index.ts`) para encomendas, itens, fornos, carrinhas e B2B. |
 | **Interface & Ergonomia** | **Tailwind CSS + Lucide Icons** | Design *Mobile-First* e *Touch-First* de alto contraste para ambientes fabris e balcões de atendimento. |
 | **Base de Dados & Autenticação** | **Supabase (PostgreSQL + Supabase Auth)** | Armazenamento centralizado de encomendas, linhas de artigos, clientes, catálogo, lojas, carrinhas e envio real de e-mails de recuperação de password (`signInWithOtp` / `verifyOtp`). |
-| **Motor de Folhas de Cálculo** | **SheetJS (`xlsx`)** | Geração automática do «Mapa Diário» oficial das 5 carrinhas, folhas de fabrico e importação/exportação da Base Fixa e Matriz B2B. |
+| **Motor de Folhas de Cálculo** | **SheetJS (`xlsx`)** | Geração de relatórios de dados, folhas de fabrico auxiliares e importação/exportação da Base Semanal das 7 carrinhas e Matriz B2B. |
 | **Motor de Impressão Térmica** | **CSS `@media print` Calibrado** | Impressão direta sem cortes na impressora térmica **Epson M249A TM-T20** (rolo 80mm / largura útil 72mm). |
 | **Notificações & Comunicação** | **Motor Deep-Link WhatsApp (`wa.me`)** | Disparo contextualizado de mensagens de decisão parcelar de produção e aviso automático de encomenda pronta. |
 | **CMS Institucional** | **Studio CMS Nativo (`/cms` Git-Backed)** | Gestão visual integrada de configurações da marca e textos institucionais sincronizados via GitHub API, sem dependências externas pesadas. |
@@ -177,6 +177,27 @@ Após a sessão de trabalho presencial com a gerência em Arouca (10/10/2026), a
 3. **Higienização de Todos os Cockpits:**
    - Refatoração dos ecrãs de Loja (`/loja`), Produção KDS (`/producao`), Carrinhas (`/entregas`), Encomendas (`/encomendas`), Gestão Executiva (`/gestao`), Portal de Clientes (`/encomendar`), Studio CMS (`/cms`) e Navbar global com ícones lineares vetoriais normalizados (`lucide-react`, stroke 1.75px–2px).
 
+### Passo 9 — Base Diária e Semanal Configurável, Modo Férias e Normalização Canónica (`v2.7.0` a `v2.7.10` | 24/10/2026)
+1. **Quantidades Semanais por Dia da Semana (`quantidades_semanais`):**
+   - Implementação de matriz semanal (`seg`, `ter`, `qua`, `qui`, `sex`, `sab`, `dom`) para cada carrinha da frota e cada cliente empresarial B2B, permitindo calibrar quantidades diferenciadas por dia útil e fim de semana.
+2. **Modo Férias para Entregas Recorrentes Porta-a-Porta:**
+   - Possibilidade de colocar clientes particulares e B2B em período de férias com data de início e fim (`modo_ferias_ativo`, `ferias_inicio`, `ferias_fim`), suspendendo automaticamente a contabilização de pão na produção e nas carrinhas durante as suas ausências.
+3. **Normalização Canónica de Artigos e Renomeação em Cascata:**
+   - Algoritmo inteligente de correspondência e unificação de grafias (`normalizarNomeArtigoCanonico`), assegurando que variações ("Pão de Forma", "Forma", "Broa Milho") consolidam na mesma linha de fabrico.
+   - Ferramenta de renomeação de artigos no Cockpit de Gestão com migração automática em cascata em todas as carrinhas e fichas de clientes B2B.
+
+### Passo 10 — Segregação Estrita da Folha de Carga e Fabrico de Encomendas por Loja (`v2.7.11` a `v2.7.15` | 24/10/2026)
+1. **Segregação Estrita na Folha de Carga em PDF (`PdfViewerModal.tsx`):**
+   - **Tabela 1 (Base Diária):** Lista exclusiva do abastecimento regular da rota e particulares porta-a-porta.
+   - **Tabela 2 (Clientes B2B):** Desdobramento detalhado por cliente institucional afeto à rota com supressão de clientes com 0 un. (ex: Associação de Pais de Chave ao sábado) e caixas de vistos `[ ] Entregue Conforme`.
+   - **Tabela 3 (Encomendas ao Domicílio):** Detalhe de encomendas adicionais com morada, horário, contacto do cliente e artigos.
+   - **Resumo Geral Consolidado:** Bloco de fecho somando Base Diária + B2B + Encomendas = Total Geral a Bordo com estimativa de caixas.
+2. **Folha de Fabrico de Encomendas Discriminada por Loja (`/producao`):**
+   - Quando `filtroTipologia === 'encomendas'` na Pool de Produção, o botão de impressão adapta-se para «Imprimir Encomendas por Loja» e é ativado um banner com botões de impressão rápida de todas as lojas ou loja individual.
+   - Documento PDF com detalhe encomenda a encomenda (código, hora, cliente, notas de personalização, checkbox `[ ] Pronto / Embalado`), subtotais por loja e quebra de página por loja (`break-before: page`).
+3. **KDS Operacional & Resiliência:**
+   - Botão «Concluir Produção • Marcar como Pronta» incondicional para todos os utilizadores, eliminação do erro React #310 e resolução de `totalPaoUnidades`.
+
 ---
 
 ## 3. Engenharia de Resiliência e Compatibilidade de Esquema (Zero-Downtime Schema Tags)
@@ -194,22 +215,24 @@ Para garantir **100% de retrocompatibilidade** com o esquema PostgreSQL do Supab
 
 ---
 
-## 4. Auditoria & Blindagem «Bulletproof Agent Swarm» (`v2.1.1` a `v2.1.3` — 12/10/2026)
+## 4. Auditoria & Blindagem «Bulletproof Agent Swarm» (`v2.1.3` & `v2.7.15` — 24/10/2026)
 
-A plataforma foi auditada pelos **7 Agentes Especialistas do Inprooval® Bulletproof Agent Swarm**, atingindo um **Readiness Score Certificado de 99,1%**:
+A plataforma foi auditada pelos **7 Agentes Especialistas do Inprooval® Bulletproof Agent Swarm**, atingindo um **Readiness Score Certificado de 99,4%**:
 
-1. **Propagação E2E de Decisões Parcelares (`Agente 1` & `Agente 5`):**
-   - Exclusão automática de artigos recusados (`estado_producao === 'recusado'`) no cálculo de cargas das 5 carrinhas, no Mapa Diário Excel, nos cartões de motorista (`/entregas`), no histórico de encomendas (`/encomendas`) e no talão térmico **Epson TM-T20 (80mm)** (`ThermalReceipt.tsx`).
+1. **Propagação E2E de Decisões Parcelares & Folhas de Fabrico por Loja (`Agente 1` & `Agente 5`):**
+   - Exclusão automática de artigos recusados (`estado_producao === 'recusado'`) no cálculo de cargas das carrinhas, no Mapa Diário Excel, nos cartões de motorista (`/entregas`), no histórico de encomendas (`/encomendas`) e no talão térmico **Epson TM-T20 (80mm)** (`ThermalReceipt.tsx`).
    - Impressão de `observacoes_producao` e etiqueta `[NÃO PROD.]` diretamente no talão térmico de expedição.
+   - Geração da Folha de Fabrico discriminada encomenda a encomenda e agrupada por loja (`modoFabrico: 'encomendas'`), com quebras de página automáticas (`break-before: page`) e cartões individuais de confeção com vistos de embalamento.
 2. **Hardening de Cibersegurança OWASP & Isolamento de Cockpits (`Agente 3`):**
    - Configuração de HTTP Security Headers (`X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security`) em `next.config.mjs`.
-   - Implementação de *Route Guard* ativo por Cockpit em `Navbar.tsx`.
+   - Implementação de *Route Guard* ativo por Cockpit em `Navbar.tsx` com isolamento estrito de painéis.
 3. **Proteção de Dados & Autenticação com Recuperação por E-mail via Supabase Auth (`Agente 3` & `Agente 4`):**
    - Exigência de password definida pelo utilizador e e-mail obrigatório para recuperação no Portal Direto de Clientes (`/encomendar`), com disparo real de e-mail via **Supabase Auth** (`signInWithOtp` / Magic Link / código OTP).
    - Nota informativa de Proteção de Dados nos formulários de Login/Registo e Perfil do Portal Direto de Clientes (`/encomendar`).
-4. **Resiliência Offline para Zonas Rurais & Migração SQL (`Agente 2` & `Agente 5`):**
-   - Snapshot offline automático (`padaria_encomendas_cache_v1`) em `carregarEncomendasSupabase()` e badge `⚡ Offline (Cache)` na `Navbar.tsx` para garantir operação contínua das 5 carrinhas em freguesias sem rede móvel.
+4. **Resiliência Offline, Normalização Canónica & Integridade SQL (`Agente 2` & `Agente 5`):**
+   - Snapshot offline automático (`padaria_encomendas_cache_v1`) em `carregarEncomendasSupabase()` e badge `⚡ Offline (Cache)` na `Navbar.tsx` para garantir operação contínua das 7 carrinhas em freguesias sem rede móvel.
    - Script idempotente de migração e indexação SQL em `supabase/migrations/20261012_bulletproof_hardening.sql`.
+   - Normalização unificada de nomes canónicos de produtos (`normalizarNomeArtigoCanonico`), eliminação de duplicados e migração em cascata de alterações de nomes em carrinhas e clientes B2B.
 
 <!-- INTERNAL_START -->
 ---
@@ -221,8 +244,10 @@ A plataforma foi auditada pelos **7 Agentes Especialistas do Inprooval® Bulletp
 
 * **Configuração de URLs e E-mail no Painel da Supabase (`Authentication`):**
   1. **Redirect URLs (`Authentication` $\to$ `URL Configuration`):**
-     * **Site URL:** `https://app-encomendas-padaria.vercel.app`
+     * **Site URL:** `https://app.padariadavila.com` (e fallback `https://app-encomendas-padaria.vercel.app`)
      * **Redirect URLs autorizados:**
+       * `https://app.padariadavila.com/encomendar`
+       * `https://app.padariadavila.com/**`
        * `https://app-encomendas-padaria.vercel.app/encomendar`
        * `https://app-encomendas-padaria.vercel.app/**`
        * `http://localhost:3000/encomendar`
@@ -235,8 +260,9 @@ A plataforma foi auditada pelos **7 Agentes Especialistas do Inprooval® Bulletp
   git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" status
   git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" add -A
   git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" commit -m "feat/fix: descricao"
-  git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" tag -a v2.2.0 -m "release: v2.2.0" -f
+  git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" tag -a v2.7.15 -m "release: v2.7.15" -f
   git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" push origin main --tags -f
+  ```
   ```
 * **Credenciais de Ambiente (`.env.local` / Vercel Environment Variables):**
   * `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` configurados para a instância Supabase do projeto.

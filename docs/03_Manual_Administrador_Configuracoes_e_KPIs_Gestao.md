@@ -1,9 +1,9 @@
 ---
 title: "03 - Manual do Administrador, Parametrizações e Fórmulas de Indicadores do Cockpit de Gestão"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.4.0"
+version: "2.7.15"
 date_saved: 2026-10-18
-updated: 2026-10-20
+updated: 2026-10-24
 status: "Em Produção (Live)"
 tags:
   - #Inprooval/ManualAdmin
@@ -17,7 +17,7 @@ tags:
 **Entidade Tecnológica:** EyeQ Lda / Inprooval®  
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
 **Rota de Acesso:** `/gestao` (Exclusivo para Perfil **Administrador / Gerência**)  
-**Versão:** `v2.4.0` (20/10/2026)  
+**Versão:** `v2.7.15` (24/10/2026)  
 
 ---
 
@@ -27,11 +27,11 @@ O utilizador com perfil **Administrador** seleciona no login o Cockpit **`Gestã
 
 ```mermaid
 flowchart LR
-    Admin(["🔐 Administrador (/gestao)"]) --> T1["1. 📊 Indicadores\n(On-Time, Canais, Rankings,\nPlaneado vs Real)"]
-    Admin --> T2["2. 🏪 Lojas e Rotas\n(8 Rotas Operacionais, Base Diária\n+ Matriz B2B com Login)"]
-    Admin --> T3["3. 🗄️ Base de Dados\n(Catálogo 86 Produtos, Clientes,\nImport Excel & Studio CMS)"]
-    Admin --> T4["4. 🛡️ Auditoria\n(Rastreabilidade Total\nde Operadores)"]
-    Admin --> T5["5. 🖨️ Talão Térmico\n(Calibração Epson TM-T20\n80mm / 68mm Úteis)"]
+    Admin(["🔐 Administrador (/gestao)"]) --> T1["1. 📊 Indicadores\n(On-Time, Canais, Rankings,\nPlaneado vs Real & Folhas de Fabrico)"]
+    Admin --> T2["2. 🏪 Lojas e Rotas\n(4 Lojas, 7 Rotas, Base Semanal,\nModo Férias & Matriz B2B)"]
+    Admin --> T3["3. 🗄️ Base de Dados\n(Catálogo 86 Produtos, Clientes,\nNormalização Canónica & Excel)"]
+    Admin --> T4["4. 🛡️ Auditoria\n(Rastreabilidade Total\nde Operadores e Logs)"]
+    Admin --> T5["5. 🖨️ Talão Térmico\n(Calibração Epson TM-T20\n80mm / 68mm Úteis & QR Code)"]
     Admin --> T6["6. 🔑 Acessos RBAC\n(Utilizadores, Senhas e\nPermissões por Painel)"]
 ```
 
@@ -41,7 +41,7 @@ flowchart LR
 
 Todos os indicadores do Cockpit de Gestão são **reativos em tempo real** aos **3 Filtros Globais de Contexto** situados no topo do painel:
 
-1. **Filtro de Loja (`selectedLojaId`):** `Todas as Lojas`, `Loja 1 — Padaria da Vila`, `Loja 2 — Padaria da Praça`, `Loja 3 — Padaria do Liceu`.
+1. **Filtro de Loja (`selectedLojaId`):** `Todas as Lojas`, `Loja 1 — Padaria da Vila (Matriz / Fábrica)`, `Loja 2 — Padaria da Praça`, `Loja 3 — Padaria do Liceu / Mercado`, `Loja 4 — Padaria Centro`.
 2. **Filtro de Formato de Entrega (`formatoEntrega`):** `Todos os Formatos`, `🏪 Levantamento em Loja` (`levantamento_loja`), `🚚 Entrega ao Domicílio` (`entrega_domicilio`).
 3. **Filtro Temporal (`periodoSelecionado`):**
    - **Hoje (`dia`):** $D_{\text{agendamento}} = D_{\text{hoje}}$
@@ -60,7 +60,7 @@ Seja $\mathcal{E}$ o subconjunto de encomendas que satisfaz simultaneamente os 3
 | :--- | :--- | :--- |
 | **1. Volume Total de Encomendas ($N_{\text{total}}$)** | $$N_{\text{total}} = \|\mathcal{E}\|$$ | Número total de encomendas agendadas para o período, loja e formato selecionados. |
 | **2. Total de Artigos Encomendados ($Q_{\text{total}}$)** | $$Q_{\text{total}} = \sum_{e \in \mathcal{E}} \sum_{i \in \text{itens}(e)} q_i$$ | Soma de todas as unidades ($q_i$) de produtos de padaria e pastelaria incluídas nas encomendas filtradas. |
-| **3. Total de Levantamentos em Loja ($N_{\text{loja}}$)** | $$N_{\text{loja}} = \|\{e \in \mathcal{E} : e.\text{tipo} = \text{'levantamento\_loja'}\}\|$$<br/>$$\%_{\text{loja}} = \frac{N_{\text{loja}}}{N_{\text{total}}} \times 100$$ | Quantidade e peso percentual de pedidos recolhidos diretamente nos balcões das 3 lojas. |
+| **3. Total de Levantamentos em Loja ($N_{\text{loja}}$)** | $$N_{\text{loja}} = \|\{e \in \mathcal{E} : e.\text{tipo} = \text{'levantamento\_loja'}\}\|$$<br/>$$\%_{\text{loja}} = \frac{N_{\text{loja}}}{N_{\text{total}}} \times 100$$ | Quantidade e peso percentual de pedidos recolhidos diretamente nos balcões das 4 lojas. |
 | **4. Total de Entregas ao Domicílio ($N_{\text{dom}}$)** | $$N_{\text{dom}} = \|\{e \in \mathcal{E} : e.\text{tipo} = \text{'entrega\_domicilio'}\}\|$$<br/>$$\%_{\text{dom}} = \frac{N_{\text{dom}}}{N_{\text{total}}} \times 100$$ | Quantidade e peso percentual de pedidos expedidos através da frota de carrinhas. |
 
 ---
@@ -109,37 +109,46 @@ Mede a tração de cada canal de entrada de encomendas no período filtrado:
 
 ---
 
-## 3. Aba 2: Lojas e Rotas — 8 Rotas Operacionais, Base Diária e Matriz B2B (`lojas_carrinhas`)
+## 3. Aba 2: Lojas e Rotas — 4 Lojas Físicas, 7 Rotas Operacionais, Base Semanal, Modo Férias e Matriz B2B (`lojas_carrinhas`)
 
 Esta aba centraliza toda a parametrização operacional e logística da *Padaria da Vila*:
 
-### 3.1. Gestão das Lojas Físicas e Rotas de Distribuição (Carros 1 a 8)
-- **Salvaguarda Comercial do Modelo de Pricing (`v2.4.0`):** A adição livre de lojas físicas ou rotas está restrita na operação diária, travando as cotas contratadas em **3 Lojas Físicas** e **8 Rotas Operacionais**. A expansão de quota fica reservada exclusivamente ao Backoffice mestre de licenciamento.
-- **Lojas Físicas (3 Unidades Licenciadas):** Consulta e Edição de Nome, Código, Morada, Telefone e NIF das lojas (`Padaria da Vila I (Praça)`, `Padaria da Vila II (Av. 25 de Abril)` e `Padaria da Vila III (Loja Carocha)`).
-- **Rotas de Distribuição — Carros (8 Rotas Licenciadas):**
-  - Rotas ordenadas rigorosamente de **1 a 8** (`Rota 1` a `Rota 8`), cada qual associada ao respetivo carro (`Carro 1` a `Carro 8`), matrícula e condutor atribuído.
+### 3.1. Gestão das Lojas Físicas e Rotas de Distribuição (Carros 1 a 7)
+- **Salvaguarda Comercial do Modelo de Licenciamento (`v2.7.15`):** A rede está dimensionada para **4 Lojas Físicas** e **7 Rotas Operacionais**. A expansão de quota fica reservada exclusivamente ao Backoffice mestre de licenciamento.
+- **Lojas Físicas (4 Unidades Licenciadas):** Consulta e Edição de Nome, Código, Morada, Telefone e NIF das lojas:
+  1. `Padaria da Vila (Sede / Matriz / Fábrica)` — Loja Matriz e Centro de Fabrico Principal
+  2. `Padaria da Praça` — Balcão Central da Praça
+  3. `Padaria do Liceu / Mercado` — Balcão da zona escolar e residencial
+  4. `Padaria Centro` — Balcão urbano de alta rotação
+- **Rotas de Distribuição — Carros (7 Rotas Licenciadas):**
+  - Rotas ordenadas rigorosamente de **1 a 7** (`Rota 1` a `Rota 7`), cada qual associada ao respetivo carro (`Carro 1` a `Carro 7`), matrícula e condutor atribuído.
   - Edição direta de: **Nome da Rota**, **Nome do Carro**, **Nome do Condutor** e **Matrícula**.
-  - Atribuição direta de encomendas por **Rota de Entrega** (1 a 8) no formulário e modal de encomendas (`/encomendas`).
+  - Atribuição direta de encomendas por **Rota de Entrega** (1 a 7) no formulário e modal de encomendas (`/encomendas`).
 
-### 3.2. Grelha da Base Diária Consolidada por Rota (Rotas 1 a 8)
-- **Todas as 8 Rotas com Base Diária:** Qualquer um dos 8 carros pode transportar tanto a Base Diária de particulares como encomendas B2B.
-- **Cabeçalhos Normalizados por Rota:** As colunas exibem claramente o **Nome da Rota** (`Rota 1` a `Rota 8`) e a viatura/matrícula associada.
-- **Pesquisa em Tempo Real e Ordenação (`v2.4.0`):**
-  - **Filtro em Tempo Real por Artigo:** Caixa de pesquisa para localizar instantaneamente qualquer artigo entre os 86 produtos catalogados (ex: `Pão Normal`, `Broa`, `Lanche`, `Centeio`).
+### 3.2. Grelha da Base Semanal Configurável por Rota (Rotas 1 a 7)
+- **Matriz Semanal Dinâmica (`quantidades_semanais`):** Em vez de uma quantidade diária fixa rígida, cada carrinha dispõe agora de uma matriz semanal completa para os 7 dias da semana (`seg`, `ter`, `qua`, `qui`, `sex`, `sab`, `dom`), permitindo configurar abastecimentos diferenciados para dias úteis e fins de semana.
+- **Cabeçalhos Normalizados por Rota:** As colunas exibem claramente o **Nome da Rota** (`Rota 1` a `Rota 7`) e a viatura/matrícula associada.
+- **Pesquisa em Tempo Real e Ordenação:**
+  - **Filtro em Tempo Real por Artigo:** Caixa de pesquisa para localizar instantaneamente qualquer artigo entre os produtos catalogados (ex: `Pão Normal`, `Broa Amarela`, `Lanche Misto`, `Pão Saloio`).
   - **Ordenação Dinâmica:** Permite ordenar a grelha por `Artigo (A → Z)`, `Artigo (Z → A)`, `Maior Quantidade` e `Menor Quantidade`.
-- **Edição Total e Normalização:** Edição direta de quantidades para os 7 dias (`Seg` a `Dom`), replicação semanal instantânea, adição/remoção de artigos e exportação/importação Excel (.xlsx).
+- **Renomeação em Cascata com Migração de Quantidades:** Ao alterar o nome de um produto na Base Fixa, o sistema migra automaticamente as quantidades desse produto em todas as 7 carrinhas e em todas as matrizes semanais, garantindo integridade sem perda de histórico.
+- **Exportação e Importação Excel:** Suporte integral a folhas de cálculo `.xlsx` para parametrização em lote das rotas.
 
-### 3.3. Matriz dos Clientes Empresariais (B2B) & Integração com Login de Clientes
-- **Matriz Semanal Multirota (`v2.4.0`):** Parametriza as quantidades fixas diárias contratadas com entidades empresariais/institucionais (*Hospital, Patronato, Centros Sociais, Escolas, Lares, Cafés e Mercearias*), com cada cliente associado à sua respetiva rota operacional (Rotas 1 a 8).
+### 3.3. Matriz dos Clientes Empresariais (B2B), Modo Férias & Integração com Portal do Cliente
+- **Matriz Semanal Multirota B2B (`v2.7.15`):** Parametriza as quantidades fixas diárias contratadas com entidades empresariais e institucionais (*Hospital, Patronato, Escolas, Associações, Lares, Cafés e Mercearias*), com cada cliente associado à sua respetiva rota operacional (Rotas 1 a 7).
+- **Gestão de Modo Férias (`pausa_inicio` e `pausa_fim`):**
+  - Permite agendar o período de encerramento temporário de um cliente institucional (ex: pausas letivas escolares ou férias de associações).
+  - Durante o período configurado, o cliente é automaticamente desativado da Folha de Carga diária e da Pool de Produção, evitando desperdício de massa e entregas indevidas.
+- **Supressão Automática de Entidades a Zero Unidades:** Entidades sem encomendas ou consumo contratado para o dia da semana corrente (como a Associação de Pais de Chave aos fins de semana ou feriados) são automaticamente omitidas da Folha de Carga e do Cockpit de Entregas, garantindo uma lista limpa e sem ruído aos motoristas.
 - **Filtros e Pesquisa Integrada B2B:**
   1. **Filtro por Rota:** Seleção de uma rota específica (ex: `Rota 1`, `Rota 5`) ou `Todas as Rotas`.
   2. **Pesquisa por Cliente / NIF / Contacto:** Localização rápida por nome da entidade, NIF, telemóvel ou email.
   3. **Filtro por Artigo Contratual:** Localiza os clientes que consomem determinado produto num dado dia.
   4. **Ordenação de Clientes:** Por Nome (A-Z, Z-A) ou por Volume Total diário (Maior/Menor Volume).
-- **Base de Dados Unificada com Logins de Clientes (`v2.4.0`):**
+- **Base de Dados Unificada com Logins de Clientes:**
   - O Cockpit de Gestão permite registar o **Nome**, **NIF**, **Telemóvel**, **Email**, **Password**, **Morada** e **Rota**.
   - Esta ficha alimenta diretamente a base de autenticação do portal de clientes (`/encomendar`).
-  - **Qualquer cliente empresarial pode iniciar sessão diretamente na app de clientes** ou **efetuar reset à password** de forma autónoma através do seu telemóvel ou email.
+  - Qualquer cliente empresarial pode iniciar sessão diretamente na app de clientes ou recuperar acesso de forma autónoma.
 
 ---
 
