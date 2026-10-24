@@ -164,6 +164,28 @@ export default function ProducaoPage() {
     carregar();
   }, []);
 
+  // Sincronização em tempo real das Bases Diárias, Clientes B2B e Ajustes Pontuais
+  const [versaoDados, setVersaoDados] = useState<number>(0);
+  useEffect(() => {
+    const handleAtualizacoes = () => {
+      setBaseFixaCarrinhas(carregarBaseFixaCarrinhas());
+      setClientesB2B(carregarClientesEmpresariaisB2B());
+      setVersaoDados((v) => v + 1);
+    };
+
+    window.addEventListener('app_base_fixa_atualizada', handleAtualizacoes);
+    window.addEventListener('app_b2b_atualizado', handleAtualizacoes);
+    window.addEventListener('app_ajustes_adhoc_atualizados', handleAtualizacoes);
+    window.addEventListener('storage', handleAtualizacoes);
+
+    return () => {
+      window.removeEventListener('app_base_fixa_atualizada', handleAtualizacoes);
+      window.removeEventListener('app_b2b_atualizado', handleAtualizacoes);
+      window.removeEventListener('app_ajustes_adhoc_atualizados', handleAtualizacoes);
+      window.removeEventListener('storage', handleAtualizacoes);
+    };
+  }, []);
+
   // Relógio ao vivo para verificação em tempo real do alerta de 3 horas
   useEffect(() => {
     const timer = setInterval(() => {
@@ -292,53 +314,51 @@ export default function ProducaoPage() {
       return mapa[chave];
     };
 
-    const dataAlvo = filtroPeriodo === 'amanha' ? amanha : hoje;
-    const dataObj = new Date(dataAlvo + 'T12:00:00');
-    const diasSem: DiaSemana[] = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
-    const diaSemanaAlvo: DiaSemana = diasSem[dataObj.getDay()];
+    const dataAlvo = filtroPeriodo === 'amanha' 
+      ? amanha 
+      : filtroPeriodo === 'personalizado' && dataInicioPersonalizada 
+      ? dataInicioPersonalizada 
+      : hoje;
+    const diaSemanaAlvo: DiaSemana = obterDiaSemanaDeData(dataAlvo);
 
     // 1. BASES DIÁRIAS (Rotas 1 a 7, excluindo Rota 8)
-    if (selectedLojaId === 'todas') {
-      const rotasValidas = carrinhas.filter((c) => c.rota !== 'Rota 8' && c.numero !== 8);
-      rotasValidas.forEach((car) => {
-        const bf = baseFixaCarrinhas.find((b) => b.carrinha_id === car.id);
-        const semana = (bf?.quantidades_semanais || bf?.quantidades_semana || {}) as Record<string, Record<string, number>>;
-        const mapaHoje = semana?.[diaSemanaAlvo] || bf?.quantidades_por_produto || {};
+    const rotasValidas = carrinhas.filter((c) => c.rota !== 'Rota 8' && c.numero !== 8);
+    rotasValidas.forEach((car) => {
+      const bf = baseFixaCarrinhas.find((b) => b.carrinha_id === car.id);
+      const semana = (bf?.quantidades_semanais || bf?.quantidades_semana || {}) as Record<string, Record<string, number>>;
+      const mapaDia = semana?.[diaSemanaAlvo] || bf?.quantidades_por_produto || {};
 
-        Object.keys(mapaHoje).forEach((artigo) => {
-          const { quantidade } = obterQuantidadeEfetivaBaseRota(dataAlvo, car.id, artigo, semana, diaSemanaAlvo);
-          if (quantidade > 0) {
-            const entry = registrarOuObter(artigo);
-            entry.qtd_bases_diarias += quantidade;
-          }
-        });
+      Object.keys(mapaDia).forEach((artigo) => {
+        const { quantidade } = obterQuantidadeEfetivaBaseRota(dataAlvo, car.id, artigo, semana, diaSemanaAlvo);
+        if (quantidade > 0) {
+          const entry = registrarOuObter(artigo);
+          entry.qtd_bases_diarias += quantidade;
+        }
       });
-    }
+    });
 
     // 2. CLIENTES EMPRESARIAIS (B2B)
-    if (selectedLojaId === 'todas') {
-      const clientesValidos = clientesB2B.filter((cli) => {
-        if (!cli.ativo) return false;
-        if (cli.carrinha_id) {
-          const car = carrinhas.find((c) => c.id === cli.carrinha_id);
-          if (car && (car.rota === 'Rota 8' || car.numero === 8)) return false;
+    const clientesValidos = clientesB2B.filter((cli) => {
+      if (!cli.ativo) return false;
+      if (cli.carrinha_id) {
+        const car = carrinhas.find((c) => c.id === cli.carrinha_id);
+        if (car && (car.rota === 'Rota 8' || car.numero === 8)) return false;
+      }
+      return true;
+    });
+
+    clientesValidos.forEach((cli) => {
+      const semana = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
+      const mapaDia = semana?.[diaSemanaAlvo] || cli.produtos_predefinidos || {};
+
+      Object.keys(mapaDia).forEach((artigo) => {
+        const { quantidade } = obterQuantidadeEfetivaClienteB2B(dataAlvo, cli.id, artigo, semana, diaSemanaAlvo);
+        if (quantidade > 0) {
+          const entry = registrarOuObter(artigo);
+          entry.qtd_clientes_b2b += quantidade;
         }
-        return true;
       });
-
-      clientesValidos.forEach((cli) => {
-        const semana = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
-        const mapaHoje = semana?.[diaSemanaAlvo] || cli.produtos_predefinidos || {};
-
-        Object.keys(mapaHoje).forEach((artigo) => {
-          const { quantidade } = obterQuantidadeEfetivaClienteB2B(dataAlvo, cli.id, artigo, semana, diaSemanaAlvo);
-          if (quantidade > 0) {
-            const entry = registrarOuObter(artigo);
-            entry.qtd_clientes_b2b += quantidade;
-          }
-        });
-      });
-    }
+    });
 
     // 3. ENCOMENDAS (Balcão, Loja e Entregas)
     encomendas.forEach((enc) => {
@@ -424,7 +444,8 @@ export default function ProducaoPage() {
     amanha,
     setorAtivo,
     filtroTipologia,
-    pesquisaTexto
+    pesquisaTexto,
+    versaoDados
   ]);
 
   // Lista de Encomendas Filtradas para o ecrã KDS
