@@ -280,7 +280,7 @@ export async function carregarEncomendasSupabase(): Promise<Encomenda[]> {
     }
 
     const parsed = parseEncomendasFromDb(data);
-    if (typeof window !== 'undefined' && parsed.length > 0) {
+    if (typeof window !== 'undefined') {
       try {
         localStorage.setItem(OFFLINE_ENCOMENDAS_CACHE_KEY, JSON.stringify(parsed));
       } catch {}

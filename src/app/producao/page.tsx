@@ -94,6 +94,7 @@ export default function ProducaoPage() {
 
   // Navegação entre ecrãs no Cockpit de Produção
   const [abaAtiva, setAbaAtiva] = useState<'kds' | 'encomendas' | 'balcao' | 'guias_carga'>('kds');
+  const [dataGuiasCarga, setDataGuiasCarga] = useState<'hoje' | 'amanha'>('hoje');
 
   // Dados Globais
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
@@ -143,6 +144,8 @@ export default function ProducaoPage() {
   const [pdfClienteB2B, setPdfClienteB2B] = useState<ClienteEmpresarialB2B | undefined>(undefined);
   const [pdfItensCarga, setPdfItensCarga] = useState<LinhaArtigoCarga[]>([]);
   const [pdfItensFabrico, setPdfItensFabrico] = useState<LinhaArtigoFabrico[]>([]);
+  const [pdfDataReferencia, setPdfDataReferencia] = useState<string>('');
+  const [pdfDiaSemana, setPdfDiaSemana] = useState<string>('');
 
   // Carregar dados iniciais
   useEffect(() => {
@@ -525,16 +528,18 @@ export default function ProducaoPage() {
   };
 
   // Preparar Itens de Folha de Carga por Carrinha
-  const prepararItensFolhaCarga = (car: Carrinha): LinhaArtigoCarga[] => {
+  const prepararItensFolhaCarga = (car: Carrinha, dataAlvoParam?: string): LinhaArtigoCarga[] => {
+    const dataAlvo = dataAlvoParam || (dataGuiasCarga === 'amanha' ? amanha : hoje);
+    const diaSemanaAlvo = obterDiaSemanaDeData(dataAlvo);
     const mapaItens = new Map<string, { quantidade: number; categoria: 'padaria' | 'pastelaria'; unidade: string }>();
 
-    // 1. Quantidades da Base Fixa da carrinha para hoje (com eventuais ajustes pontuais)
+    // 1. Quantidades da Base Fixa da carrinha para a data selecionada (com eventuais ajustes pontuais)
     const bf = baseFixaCarrinhas.find((b) => b.carrinha_id === car.id);
     const semana = (bf?.quantidades_semanais || bf?.quantidades_semana || {}) as Record<string, Record<string, number>>;
-    const mapaHoje = semana?.[diaSemanaHoje] || bf?.quantidades_por_produto || {};
+    const mapaDia = semana?.[diaSemanaAlvo] || bf?.quantidades_por_produto || {};
 
-    Object.keys(mapaHoje).forEach((artigo) => {
-      const { quantidade } = obterQuantidadeEfetivaBaseRota(hoje, car.id, artigo, semana, diaSemanaHoje);
+    Object.keys(mapaDia).forEach((artigo) => {
+      const { quantidade } = obterQuantidadeEfetivaBaseRota(dataAlvo, car.id, artigo, semana, diaSemanaAlvo);
       if (quantidade > 0) {
         const prodRef = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
         const cat: 'padaria' | 'pastelaria' = prodRef?.categoria || (artigo.toLowerCase().includes('bolo') || artigo.toLowerCase().includes('croissant') ? 'pastelaria' : 'padaria');
@@ -551,9 +556,9 @@ export default function ProducaoPage() {
     const b2bDaRota = clientesB2B.filter((cli) => cli.ativo && cli.carrinha_id === car.id);
     b2bDaRota.forEach((cli) => {
       const semCli = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
-      const mapaCli = semCli?.[diaSemanaHoje] || cli.produtos_predefinidos || {};
+      const mapaCli = semCli?.[diaSemanaAlvo] || cli.produtos_predefinidos || {};
       Object.keys(mapaCli).forEach((artigo) => {
-        const { quantidade } = obterQuantidadeEfetivaClienteB2B(hoje, cli.id, artigo, semCli, diaSemanaHoje);
+        const { quantidade } = obterQuantidadeEfetivaClienteB2B(dataAlvo, cli.id, artigo, semCli, diaSemanaAlvo);
         if (quantidade > 0) {
           const prodRef = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
           const cat: 'padaria' | 'pastelaria' = prodRef?.categoria || 'padaria';
@@ -572,9 +577,9 @@ export default function ProducaoPage() {
       });
     });
 
-    // 3. Encomendas avulsas atribuídas a esta carrinha para hoje
+    // 3. Encomendas avulsas atribuídas a esta carrinha para a data selecionada
     const encsDestaCarrinha = encomendas.filter(
-      (e) => e.data_agendamento === hoje && e.tipo === 'entrega_domicilio' && e.carrinha_id === car.id && e.estado !== 'cancelado'
+      (e) => e.data_agendamento === dataAlvo && e.tipo === 'entrega_domicilio' && e.carrinha_id === car.id && e.estado !== 'cancelado'
     );
     encsDestaCarrinha.forEach((e) => {
       e.itens.forEach((item) => {
@@ -614,10 +619,14 @@ export default function ProducaoPage() {
     });
   };
 
-  const abrirFolhaCargaPdf = (car: Carrinha) => {
-    const itens = prepararItensFolhaCarga(car);
+  const abrirFolhaCargaPdf = (car: Carrinha, dataAlvoParam?: string) => {
+    const dataAlvo = dataAlvoParam || (dataGuiasCarga === 'amanha' ? amanha : hoje);
+    const diaSem = obterDiaSemanaDeData(dataAlvo);
+    const itens = prepararItensFolhaCarga(car, dataAlvo);
     setPdfItensCarga(itens);
     setPdfCarrinhaSelecionada(car);
+    setPdfDataReferencia(dataAlvo);
+    setPdfDiaSemana(diaSem);
     setPdfModalTipo('folha_carga');
     setPdfModalOpen(true);
   };
@@ -1559,26 +1568,60 @@ export default function ProducaoPage() {
           </div>
         )}
 
-        {/* ECRÃ 4: GUIAS DE CARGA DAS 7 ROTAS (PDF)                                   */}
+        {/* ECRÃ 4: GUIAS DE CARGA DAS 7 ROTAS                                        */}
         {/* ========================================================================= */}
         {abaAtiva === 'guias_carga' && (
           <div className="space-y-4">
             <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h3 className="text-base font-black text-stone-900 flex items-center gap-2">
-                  <Truck className="h-5 w-5 text-amber-600" />
-                  Guias de Carga das 7 Rotas de Distribuição
+                <h3 className="text-base font-black text-stone-900 flex items-center gap-2 whitespace-nowrap">
+                  <Truck className="h-5 w-5 text-amber-600 shrink-0" />
+                  <span>Guias de Carga das 7 Rotas de Distribuição</span>
                 </h3>
+                <p className="text-xs text-stone-500 mt-0.5">
+                  Consolidação diária de artigos por carrinha para conferência e carga de madrugada ({dataGuiasCarga === 'amanha' ? `Amanhã, ${amanha}` : `Hoje, ${hoje}`})
+                </p>
+              </div>
+
+              {/* Selector de Data: Hoje (por defeito) vs Amanhã */}
+              <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-xl text-xs font-bold shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setDataGuiasCarga('hoje')}
+                  className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
+                    dataGuiasCarga === 'hoje' ? 'bg-white text-stone-900 shadow-xs font-black' : 'text-stone-600 hover:text-stone-900'
+                  }`}
+                >
+                  <Calendar className="h-3.5 w-3.5 text-amber-600" />
+                  <span>Hoje ({hoje})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDataGuiasCarga('amanha')}
+                  className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
+                    dataGuiasCarga === 'amanha' ? 'bg-white text-stone-900 shadow-xs font-black' : 'text-stone-600 hover:text-stone-900'
+                  }`}
+                >
+                  <Calendar className="h-3.5 w-3.5 text-amber-600" />
+                  <span>Amanhã ({amanha})</span>
+                </button>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {carrinhas.filter((c) => c.rota !== 'Rota 8' && c.numero !== 8).map((car) => {
-                const itensCar = prepararItensFolhaCarga(car);
+                const dataAlvoGuia = dataGuiasCarga === 'amanha' ? amanha : hoje;
+                const diaSemanaAlvoGuia = obterDiaSemanaDeData(dataAlvoGuia);
+                const itensCar = prepararItensFolhaCarga(car, dataAlvoGuia);
                 const totalPao = itensCar.filter(i => i.categoria === 'padaria').reduce((acc, i) => acc + i.quantidade, 0);
                 const totalPastelaria = itensCar.filter(i => i.categoria === 'pastelaria').reduce((acc, i) => acc + i.quantidade, 0);
                 const totalCaixas = itensCar.reduce((acc, i) => acc + i.caixasEstimadas, 0);
-                const b2bDaRota = clientesB2B.filter(cli => cli.ativo && cli.carrinha_id === car.id);
+                const b2bDaRota = clientesB2B.filter(cli => {
+                  if (!cli.ativo || cli.carrinha_id !== car.id) return false;
+                  const semCli = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
+                  const mapaCli = semCli?.[diaSemanaAlvoGuia] || cli.produtos_predefinidos || {};
+                  return Object.keys(mapaCli).length > 0;
+                });
 
                 return (
                   <div
@@ -1632,7 +1675,7 @@ export default function ProducaoPage() {
 
                     <button
                       type="button"
-                      onClick={() => abrirFolhaCargaPdf(car)}
+                      onClick={() => abrirFolhaCargaPdf(car, dataAlvoGuia)}
                       className="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black shadow-xs transition cursor-pointer"
                     >
                       <FileText className="h-4 w-4" />
@@ -1661,8 +1704,8 @@ export default function ProducaoPage() {
         tipo={pdfModalTipo}
         onClose={() => setPdfModalOpen(false)}
         carrinha={pdfCarrinhaSelecionada}
-        diaSemana={diaSemanaHoje as any}
-        dataReferencia={filtroPeriodo === 'amanha' ? amanha : hoje}
+        diaSemana={(pdfModalTipo === 'folha_carga' ? (pdfDiaSemana || diaSemanaHoje) : (filtroPeriodo === 'amanha' ? obterDiaSemanaDeData(amanha) : diaSemanaHoje)) as any}
+        dataReferencia={pdfModalTipo === 'folha_carga' ? (pdfDataReferencia || (dataGuiasCarga === 'amanha' ? amanha : hoje)) : (filtroPeriodo === 'amanha' ? amanha : hoje)}
         itensCarga={pdfItensCarga}
         itensFabrico={pdfItensFabrico}
         lojaNome={selectedLojaId === 'todas' ? 'Todas as Lojas' : (lojas.find((l) => l.id === selectedLojaId)?.nome || 'Loja')}

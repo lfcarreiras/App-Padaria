@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Carrinha, ClienteEmpresarialB2B, DiaSemana } from '../../types';
+import { obterQuantidadeEfetivaClienteB2B } from '../../lib/encomendasService';
 import { 
   X, 
   Printer, 
@@ -547,9 +548,17 @@ export function PdfViewerModal({
                 ) : (
                   <div className="space-y-4">
                     {clientesB2BRota.map((cli) => {
-                      const semana = cli.quantidades_semanais || cli.quantidades_semana || {};
+                      const semana = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
                       const mapa = semana[diaSemana] || {};
-                      const itensDoCli = Object.entries(mapa).filter(([_, q]) => Number(q) > 0);
+                      const artigos = Array.from(new Set(Object.keys(mapa)));
+                      const itensDoCli = artigos.map((artigo) => {
+                        let qtd = Number(mapa[artigo] || 0);
+                        if (dataReferencia) {
+                          const { quantidade } = obterQuantidadeEfetivaClienteB2B(dataReferencia, cli.id, artigo, semana, diaSemana);
+                          qtd = quantidade;
+                        }
+                        return [artigo, qtd] as [string, number];
+                      }).filter(([_, q]) => q > 0);
                       const totalCli = itensDoCli.reduce((acc, [_, q]) => acc + Number(q), 0);
 
                       return (
@@ -684,9 +693,17 @@ export function PdfViewerModal({
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {(() => {
-                      const semana = clienteB2B?.quantidades_semanais || clienteB2B?.quantidades_semana || {};
+                      const semana = (clienteB2B?.quantidades_semanais || clienteB2B?.quantidades_semana || {}) as Record<string, Record<string, number>>;
                       const mapa = semana[diaSemana] || {};
-                      const linhas = Object.entries(mapa).filter(([_, qtd]) => Number(qtd) > 0);
+                      const artigos = Array.from(new Set(Object.keys(mapa)));
+                      const linhas = artigos.map((artigo) => {
+                        let qtd = Number(mapa[artigo] || 0);
+                        if (dataReferencia && clienteB2B) {
+                          const { quantidade } = obterQuantidadeEfetivaClienteB2B(dataReferencia, clienteB2B.id, artigo, semana, diaSemana);
+                          qtd = quantidade;
+                        }
+                        return [artigo, qtd] as [string, number];
+                      }).filter(([_, qtd]) => Number(qtd) > 0);
 
                       if (linhas.length === 0) {
                         return (
@@ -719,9 +736,16 @@ export function PdfViewerModal({
                       <td className="py-2.5 px-3">TOTAL DE ARTIGOS RECEPCIONADOS</td>
                       <td className="py-2.5 px-3 text-right font-mono text-base text-indigo-950">
                         {(() => {
-                          const semana = clienteB2B?.quantidades_semanais || clienteB2B?.quantidades_semana || {};
+                          const semana = (clienteB2B?.quantidades_semanais || clienteB2B?.quantidades_semana || {}) as Record<string, Record<string, number>>;
                           const mapa = semana[diaSemana] || {};
-                          return Object.values(mapa).reduce((a, b) => a + Number(b || 0), 0);
+                          return Object.keys(mapa).reduce((acc, artigo) => {
+                            let qtd = Number(mapa[artigo] || 0);
+                            if (dataReferencia && clienteB2B) {
+                              const { quantidade } = obterQuantidadeEfetivaClienteB2B(dataReferencia, clienteB2B.id, artigo, semana, diaSemana);
+                              qtd = quantidade;
+                            }
+                            return acc + qtd;
+                          }, 0);
                         })()} un.
                       </td>
                       <td className="py-2.5 px-3 text-center">un.</td>
