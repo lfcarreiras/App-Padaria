@@ -1,8 +1,8 @@
-# 🛡️ Relatório de Auditoria & Certificação de Qualidade — Inprooval® Bulletproof Agent Swarm (`v2.7.15`)
+# 🛡️ Relatório de Auditoria & Certificação de Qualidade — Inprooval® Bulletproof Agent Swarm (`v2.7.17`)
 
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
 **Parceiro Tecnológico & Engenharia de Processos:** Inprooval® (*Processos Inteligentes, Resultados Reais.*)  
-**Versão Auditada e Certificada:** `v2.7.15` (Release Oficial de Produção no Subdomínio `app.padariadavila.com`)  
+**Versão Auditada e Certificada:** `v2.7.17` (Release Oficial de Produção no Subdomínio `app.padariadavila.com`)  
 **Data da Auditoria:** 24 de Outubro de 2026  
 **Readiness Score Global Consolidado:** **99,6% — CERTIFICADO PARA EXPLORAÇÃO OPERACIONAL EM PRODUÇÃO (`BULLETPROOF GOLD`)**
 
@@ -10,17 +10,17 @@
 
 ## 1. Sumário Executivo e Readiness Score por Dimensão
 
-A plataforma digital da **Padaria da Vila (`v2.7.15`)** foi submetida à **2.ª Ronda Completa de Auditoria de Stress e Caos do Inprooval® Bulletproof Agent Swarm**, executada por **7 Agentes Especialistas Autónomos** coordenados pelo Maestro de Qualidade.
+A plataforma digital da **Padaria da Vila (`v2.7.17`)** foi submetida à **2.ª Ronda Completa de Auditoria de Stress e Caos do Inprooval® Bulletproof Agent Swarm**, executada por **7 Agentes Especialistas Autónomos** coordenados pelo Maestro de Qualidade.
 
 Esta auditoria incidiu sobre a totalidade das novas capacidades introduzidas nos Sprints 7 a 10:
 1. **Rede de 4 Lojas Físicas:** *Padaria da Vila (Sede / Matriz / Fábrica)*, *Padaria da Praça*, *Padaria do Liceu / Mercado* e *Padaria Centro*.
-2. **Frota de 7 Carrinhas / Rotas Operacionais (1 a 7):** Unificação logística de rotas de abastecimento e entrega ao domicílio (com a descontinuação formal da antiga Rota 8).
+2. **Frota de 7 Carrinhas / Rotas Operacionais (1 a 7):** Unificação logística de rotas de abastecimento e entrega ao domicílio (com a descontinuação formal das antigas Rotas 8 e 9).
 3. **Folha de Carga Segregada em PDF A4:** Segregação estrita em 4 camadas estanques: 1. Base Diária / Abastecimento, 2. Desdobramento dos 21 Clientes B2B (**com supressão inteligente de entidades a 0 unidades**), 3. Encomendas Adicionais ao Domicílio e 4. Resumo Geral Consolidado com cálculo de caixas estimadas.
 4. **Folha de Fabrico de Encomendas Discriminada por Loja:** No Cockpit de Produção (`filtroTipologia === 'encomendas'`), visualização e impressão PDF encomenda a encomenda com contactos, horários, notas e vistos de embalamento, agrupada por balcão com quebras de página A4 limpas.
 5. **KDS Produção sem Barreiras:** Botão incondicional `Concluir Produção • Marcar como Pronta` operacional em todos os perfis de turno, com alertas sonoros e visuais contínuos para encomendas urgentes ($\le 3\text{h}$).
 6. **Base Semanal (`quantidades_semanais` 7 dias) & Modo Férias:** Parametrização dinâmica de seg a dom e gestão de pausas letivas/férias de entidades empresariais.
-7. **Normalização Canónica de Artigos (57 Produtos Canónicos):** Reconciliação semântica de sinónimos (*Pão Saloio*, *Broas Amarelas*) e renomeação em cascata com migração de histórico.
-8. **Resolução Definitiva de Erros:** Erro React #310 eliminado em `PdfViewerModal.tsx` e variável residual `totalPaoUnidades` 100% substituída por `totalBaseDiaria` e `totalGeralCarga`, com compilação TypeScript limpa (`0 erros`).
+7. **Consumo Direto de Nomes Canónicos do Supabase (`v2.7.17`):** Eliminação de dicionários estáticos de tradução no cliente (`normalizarNomeArtigoCanonico`), consumindo diretamente os 57 artigos canónicos consolidados na base de dados com tolerância e higienização direta.
+8. **Resolução Definitiva de Erros:** Erro React #310 eliminado em `PdfViewerModal.tsx`, variável residual `totalPaoUnidades` 100% substituída por `totalBaseDiaria` e `totalGeralCarga`, e compilação TypeScript limpa (`0 erros`).
 
 ```mermaid
 flowchart LR
@@ -136,13 +136,15 @@ flowchart LR
 
 ### 📚 Agente 7 — Guardião de Documentação Viva & Identidade de Marca
 * **Alinhamento Documental Integral (Manuais `01` a `06`):**
-  - Todos os 6 documentos em `docs/` foram atualizados e sincronizados para refletirem com exatidão a plataforma `v2.7.15`:
-    - `01_Dossier_Tecnico_e_Evolucao_Arquitetural.md` (`v2.7.15`)
-    - `02_Manual_Utilizador_Jornadas_e_Fluxos_de_Pedidos.md` (`v2.7.15`)
-    - `03_Manual_Administrador_Configuracoes_e_KPIs_Gestao.md` (`v2.7.15`)
-    - `04_Dossier_Projeto_Cliente_Backlog_Horas_e_Oportunidades.md` (`v2.7.15`)
-    - `05_Proposta_Comercial_e_Demonstracao_de_Valor.md` (`v5.0` | `v2.7.15`)
-    - `06_Relatorio_Auditoria_Bulletproof_Swarm.md` (`v2.7.15`)
+  - Todos os 6 documentos em `docs/` foram atualizados e sincronizados para refletirem com exatidão a plataforma `v2.7.17`:
+    - `01_Dossier_Tecnico_e_Evolucao_Arquitetural.md` (`v2.7.17` com *Deprecation & Retrofit Ledger*)
+    - `02_Manual_Utilizador_Jornadas_e_Fluxos_de_Pedidos.md` (`v2.7.17`)
+    - `03_Manual_Administrador_Configuracoes_e_KPIs_Gestao.md` (`v2.7.17`)
+    - `04_Dossier_Projeto_Cliente_Backlog_Horas_e_Oportunidades.md` (`v2.7.17` com *Deprecation Ledger*)
+    - `05_Proposta_Comercial_e_Demonstracao_de_Valor.md` (`v5.0` | `v2.7.17`)
+    - `06_Relatorio_Auditoria_Bulletproof_Swarm.md` (`v2.7.17`)
+* **Registo de Retrofits, Descontinuações e Simplificações (Deprecation Ledger):**
+  - Auditoria e catalogação formal de todas as simplificações arquiteturais ocorridas no projeto: eliminação da tradução estática legada e consumo direto do Supabase (`v2.7.17`), remoção de rotas secretas (`v2.7.2`), desativação do fecho automático Trigger.dev (`v2.7.0`), descontinuação das rotas 8 e 9 (`v2.7.0`), substituição do Excel legado pela Folha de Carga em PDF A4 (`v2.7.8`), remoção da coluna de caixas e bloco de assinaturas (`v2.5.2`) e fusão canónica de artigos.
 * **Standard Zero Emojis & Tipografia Corporativa:**
   - Código limpo, sem emojis em strings funcionais ou nomes de variáveis, assegurando um padrão estético corporativo e de alta fiabilidade.
 
@@ -150,13 +152,14 @@ flowchart LR
 
 ## 3. Declaração de Certificação Final Inprooval®
 
-A plataforma digital da **Padaria da Vila (*União Panificadora Central Arouquense, Lda*)**, na sua versão **`v2.7.15`**, cumpre escrupulosamente todos os padrões funcionais, de estabilidade logística, cibersegurança e resiliência de fabrico preconizados pelo protocolo **Inprooval® Bulletproof Delivery**.
+A plataforma digital da **Padaria da Vila (*União Panificadora Central Arouquense, Lda*)**, na sua versão **`v2.7.17`**, cumpre escrupulosamente todos os padrões funcionais, de estabilidade logística, cibersegurança e resiliência de fabrico preconizados pelo protocolo **Inprooval® Bulletproof Delivery**.
 
 A solução encontra-se **integralmente aprovada e certificada para entrada em exploração comercial e operacional**, suportando:
 * **4 Lojas Físicas de Balcão e Expedição**;
 * **Centro de Produção com 3 Fornos e KDS sem restrições**;
 * **Frota de 7 Carrinhas de Distribuição com Folha de Carga Segregada**;
 * **21 Clientes Empresariais e Institucionais B2B com Modo Férias**;
+* **Catálogo Canónico Consolidado de 57 Artigos com Consumo Direto Supabase**;
 * **Portal Autónomo de Pedidos Diretos pelos Clientes (`/encomendar`)**.
 
 ---

@@ -1,7 +1,7 @@
 ---
 title: "02 - Manual de Utilização, Jornadas por Perfil e Fluxos End-to-End de Pedidos"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.7.15"
+version: "2.7.17"
 date_saved: 2026-10-16
 updated: 2026-10-24
 status: "Em Produção (Live)"
@@ -16,7 +16,7 @@ tags:
 
 **Entidade Tecnológica:** EyeQ Lda / Inprooval®  
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
-**Versão:** `v2.7.15` (24/10/2026)  
+**Versão:** `v2.7.17` (24/10/2026)  
 
 ---
 

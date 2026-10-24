@@ -19,7 +19,7 @@ tags:
 **Destinatário:** À atenção da Gerência — *Padaria da Vila (União Panificadora Central Arouquense, Lda)*  
 **Âmbito Global:** Rede de 4 Lojas Físicas + Centro de Produção (3 Fornos) + Frota de 7 Carrinhas / Rotas (Particulares & 21 Clientes Empresariais B2B) + Portal do Cliente (`/encomendar`) + Cockpit de Gestão  
 **Subdomínio Oficial:** `app.padariadavila.com`  
-**Data:** 24 de Outubro de 2026 | **Versão:** 5.0 (`v2.7.15`)  
+**Data:** 24 de Outubro de 2026 | **Versão:** 5.0 (`v2.7.17`)  
 
 ---
 

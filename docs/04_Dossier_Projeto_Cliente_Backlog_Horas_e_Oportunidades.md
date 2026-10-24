@@ -1,7 +1,7 @@
 ---
 title: "04 - Dossier Mestre do Projeto: Cliente, Backlog, Orçamento, Bolsa de Horas, Sprints e Oportunidades"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.7.15"
+version: "2.7.17"
 date_saved: 2026-10-16
 updated: 2026-10-24
 status: "Em Produção / Fase de Adjudicação & Go-Live"
@@ -19,7 +19,7 @@ tags:
 **Consultor Responsável:** Luís Carreiras  
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
 **Data de Início do Projeto:** 07/09/2026  
-**Última Atualização:** 24/10/2026 (`v2.7.15`)  
+**Última Atualização:** 24/10/2026 (`v2.7.17`)  
 
 ---
 
@@ -63,9 +63,9 @@ A tabela seguinte apresenta o **Backlog Integral do Produto**, discriminando o q
 | **REQ-06** | Produção: Feedback WhatsApp ao Cliente | Botão na Produção para enviar via WhatsApp ao cliente o estado parcelar da encomenda (artigos aceites `✅`, artigos não produzidos `❌` e observações). | Base | ✅ **Desenvolvido** | `v2.1.0` |
 | **REQ-07** | Produção: Pool Consolidada & 3 Fornos | Compilação automática do dia (Encomendas Aceites + Base Fixa 1.º–4.º Carro + B2B 5.º Carro) e alocação aos **3 Cartões de Forno (`Forno 1`, `Forno 2`, `Forno 3`)** com cronómetro ao vivo e histórico de fornadas. | Base | ✅ **Desenvolvido** | `v2.0.0` |
 | **REQ-08** | Loja: Levantamento & WhatsApp Automático | Ecrã `/loja` filtrado pela loja do Cockpit, com botão **`✅ Dar Encomenda como Pronta p/ Entrega`** que abre **automaticamente o WhatsApp** ao cliente, e botão **`Entregar`** que grava Data e Hora Real. | Base | ✅ **Desenvolvido** | `v2.1.0` |
-| **REQ-09** | Logística: 5 Carrinhas (`1.º` a `5.º Carro`) | Operação de 5 carrinhas: `1.º` ao `4.º Carro` para particulares (Base Fixa + Adicionais) e `5.º Carro` exclusivo para os 13 Clientes Empresariais B2B, com GPS Google Maps e registo de Hora Real de entrega. | Base | ✅ **Desenvolvido** | `v2.0.0` |
-| **REQ-10** | Exportação Excel «MAPA DIÁRIO» | Botão em `/entregas` que exporta o ficheiro `.xlsx` oficial da *União Panificadora Central Arouquense, Lda* (5 carrinhas, 13 clientes B2B e 29 colunas de produtos). | Base | ✅ **Desenvolvido** | `v2.0.0` |
-| **REQ-11** | Cockpit Gestão: Base Fixa & Matriz B2B | Grelha interativa da Base Fixa (1.º ao 4.º Carro) com edição/eliminação de artigos e Extração/Importação Excel, e Matriz Semanal (`Seg`–`Dom`) dos Clientes B2B (5.º Carro) com replicação semanal e Importação/Exportação Excel. | Base | ✅ **Desenvolvido** | `v2.1.2` |
+| **REQ-09** | Logística: 7 Carrinhas (`Rota 1` a `Rota 7`) | Operação de 7 carrinhas para abastecimento e particulares (Base Semanal + Adicionais) e 21 Clientes B2B, com descontinuação das rotas 8 e 9, navegação GPS e registo de Hora Real. | Base | ✅ **Desenvolvido** | `v2.7.0` |
+| **REQ-10** | Exportação Excel «MAPA DIÁRIO» (Legado) | Botão legado de download do `.xlsx` de 29 colunas. *Substituído integralmente pela Folha de Carga oficial em PDF A4 segregada (`REQ-20`).* | Base | 🔄 **Retrofitted** | `v2.7.8` |
+| **REQ-11** | Cockpit Gestão: Base Fixa & Matriz B2B | Grelha interativa da Base Fixa com edição/eliminação de artigos e Extração/Importação Excel, e Matriz Semanal (`Seg`–`Dom`) dos Clientes B2B com replicação semanal e Importação/Exportação Excel. | Base | ✅ **Desenvolvido** | `v2.1.2` |
 | **REQ-12** | Cockpit Gestão: KPIs, Logs & RBAC | Dashboard executivo (`% On-Time`, Canais, Top 5, Planeado vs. Real), Logs de Auditoria, Configurador de Talão e Gestão de Acessos RBAC (3 níveis). | Base | ✅ **Desenvolvido** | `v1.8.0` |
 | **REQ-13** | **EXTRA:** App de Pedidos Diretos do Cliente (`/encomendar`) | Login autónomo do cliente com **Password definida pelo utilizador**, **E-mail obrigatório e Recuperação de Password por E-mail via Supabase Auth**, catálogo exclusivo de quantidades (sem preços) e menu *«As Minhas Encomendas»* com 4 estados, **estado parcelar artigo a artigo** e **Observações da Padaria**. | **Extra (Add-On)** | ✅ **Desenvolvido** | `v2.1.3` |
 | **REQ-18** | Logística: Base Semanal (7 Dias) & Modo Férias | Parametrização dinâmica das 7 carrinhas e 21 clientes B2B para os 7 dias da semana (`seg` a `dom`) via `quantidades_semanais`, com suporte a Modo Férias (`pausa_inicio`, `pausa_fim`) em tempo real. | Base | ✅ **Desenvolvido** | `v2.7.7` |
@@ -73,10 +73,34 @@ A tabela seguinte apresenta o **Backlog Integral do Produto**, discriminando o q
 | **REQ-20** | Logística: Folha de Carga Segregada em PDF A4 | Emissão oficial da Folha de Carga segregada em 4 níveis estanques: 1. Base Diária / Abastecimento, 2. B2B (suprimindo entidades a 0 un.), 3. Encomendas Adicionais e 4. Resumo Geral com caixas estimadas. | Base | ✅ **Desenvolvido** | `v2.7.15` |
 | **REQ-21** | Produção: Folha de Fabrico de Encomendas por Loja | No Cockpit de Produção (`filtroTipologia === 'encomendas'`), emissão de Folha de Fabrico com pedidos discriminados encomenda a encomenda, agrupados por loja com quebra de página A4 e conferência de embalamento. | Base | ✅ **Desenvolvido** | `v2.7.15` |
 | **REQ-22** | Produção KDS: Conclusão Incondicional | Estabilização KDS com alerta sonoro/visual permanente, resolução de erros React e botão incondicional de conclusão de produção acessível a qualquer operador de turno. | Base | ✅ **Desenvolvido** | `v2.7.15` |
+| **REQ-23** | Arquitetura: Consumo Direto Supabase | Eliminação definitiva de dicionários estáticos de tradução no cliente (`normalizarNomeArtigoCanonico`), consumindo diretamente os 57 artigos canónicos da base de dados. | Base | ✅ **Desenvolvido** | `v2.7.17` |
 | **REQ-14** | Integração Faturação Certificada AT | Emissão automática de Fatura-Recibo / Guia de Transporte via API (Moloni / InvoiceXpress / PHC) no ato da entrega. | Fase 2 (Upsell) | ⏳ **Em Backlog** | Planeado |
 | **REQ-15** | WhatsApp Business API 100% Silencioso (Webhook Cloud) | Disparo de mensagens WhatsApp em background via Meta Cloud API / Twilio sem necessidade de o operador clicar em «Enviar» na janela do WhatsApp. | Fase 2 (Upsell) | ⏳ **Em Backlog** | Planeado |
 | **REQ-16** | Pagamentos Online MB WAY / Multibanco | Integração de gateway Ifthenpay / Easypay no portal `/encomendar` para pré-pagamento de encomendas especiais. | Fase 2 (Upsell) | ⏳ **Em Backlog** | Planeado |
 | **REQ-17** | Explosão de Fichas Técnicas & Matérias-Primas | Conversão automática do Mapa Diário em quilos de farinha, fermento, água e sal para a amassadeira. | Fase 3 (Upsell) | ⏳ **Em Backlog** | Planeado |
+
+### 3.1. Registo de Retrofits, Descontinuações e Simplificações de Backlog (Deprecation Ledger)
+
+Em conformidade com a governação do Agente 7 do Inprooval Swarm, todos os itens que sofreram descontinuação ou retrofit constam discriminados para transparência orçamental e operacional:
+
+1. **`REQ-10` (Download de Excel Legado do Mapa Diário):**
+   - *Estado:* 🔄 **Retrofitted** em `v2.7.8`.
+   - *Motivo:* Substituído pela **Folha de Carga Segregada em PDF A4** (`REQ-20`), eliminando o risco de fórmulas manuais corrompidas e garantindo documentos prontos a imprimir por rota.
+2. **`REQ-09` (Expansão de 5 para 7 Carrinhas e Eliminação de Rotas 8 e 9):**
+   - *Estado:* 🔄 **Retrofitted** em `v2.7.0`.
+   - *Motivo:* Descontinuadas as referências às rotas 8 e 9 por inexistência de viaturas reais, estabilizando a frota oficial em **7 Carrinhas Operacionais (`Rota 1` a `Rota 7`)**.
+3. **Mecanismo de Tradução Estática no Frontend (`normalizarNomeArtigoCanonico`):**
+   - *Estado:* ❌ **Eliminado** em `v2.7.17`.
+   - *Motivo:* Dicionários estáticos no código cliente geravam divergências e potenciais `ReferenceError`. A aplicação passou a consumir **100% diretamente os 57 nomes canónicos consolidados na base de dados Supabase** (`REQ-23`).
+4. **Rotas Secretas Ofuscadas (`/g9d0e2f...`):**
+   - *Estado:* ❌ **Eliminado** em `v2.7.2`.
+   - *Motivo:* Substituído pelo subdomínio corporativo oficial `app.padariadavila.com` com Route Guards ativos e bloqueio anti-indexação.
+5. **Fecho Automático Noturno Trigger.dev:**
+   - *Estado:* ❌ **Eliminado** em `v2.7.0`.
+   - *Motivo:* Fecho robotizado às 20h colidia com os turnos da fábrica. O fecho de produção é agora efetuado sob demanda no KDS pelos chefes de turno.
+6. **Coluna de Caixas e Bloco de Assinaturas nas Folhas de Carga:**
+   - *Estado:* ❌ **Eliminado** em `v2.5.2`.
+   - *Motivo:* Simplificação da interface física para os motoristas, focando em quantidades reais (`un.`) e visto de conformidade `[ ] Entregue Conforme`.
 
 ---
 
@@ -103,7 +127,7 @@ flowchart TD
         SP7["Sprint 7 (18/10 – 20/10)\nUnificação das 8 Rotas, Calibração 68mm TM-T20, Base Semanal & Matriz B2B (v2.3.0 – v2.4.1)"]
         SP8["Sprint 8 (21/10 – 22/10)\nPDFs Guias de Carga, Orama Search, Subdomínio app.padariadavila.com & Segurança (v2.5.0 – v2.6.0)"]
         SP9["Sprint 9 (23/10 – 24/10)\n7 Rotas Oficiais, Omnichannel B2B/Particulares & Modo Férias Realtime (v2.7.0 – v2.7.7)"]
-        SP10["Sprint 10 (24/10/2026)\nNormalização Canónica 57 Artigos, Folha Carga Segregada, Fabrico por Loja & KDS (v2.7.8 – v2.7.15)"]
+        SP10["Sprint 10 (24/10/2026)\nNormalização Canónica 57 Artigos, Folha Carga Segregada, Fabrico por Loja, KDS & Consumo Direto Supabase (v2.7.8 – v2.7.17)"]
         SP1 --> SP2 --> SP3 --> SP4 --> SP5 --> SP6 --> SP7 --> SP8 --> SP9 --> SP10
     end
 
@@ -127,11 +151,11 @@ flowchart TD
 | Indicador da Bolsa de Horas | Pacote Global Turn-Key (`5.500,00 € + IVA`) | Valor a Preço de Tabela Mercado (@ 150 €/h) |
 | :--- | :---: | :---: |
 | **Plafond Total de Horas Orçamentadas** | **110,00 horas (`5.500,00 €`)** | 16.500,00 € |
-| **Horas Consumidas em Engenharia (Sprints 1 a 10 — `v2.7.15`)** | 30,00 horas (`1.500,00 €`) | 4.500,00 € |
+| **Horas Consumidas em Engenharia (Sprints 1 a 10 — `v2.7.17`)** | 30,00 horas (`1.500,00 €`) | 4.500,00 € |
 | **Horas Consumidas em Consultoria Externa & Reuniões de Terreno** | 4,50 horas (`225,00 €`) | 675,00 € |
-| **TOTAL DE HORAS CONSUMIDAS (até 24/10/2026 — `v2.7.15`)** | **34,50 horas (`1.725,00 €`)** | **5.175,00 €** |
+| **TOTAL DE HORAS CONSUMIDAS (até 24/10/2026 — `v2.7.17`)** | **34,50 horas (`1.725,00 €`)** | **5.175,00 €** |
 | **SALDO REMANESCENTE NA BOLSA DE HORAS (p/ Formação & Go-Live)** | **🟢 + 75,50 horas (`+ 3.775,00 €`)** | **+ 11.325,00 €** |
-| **Percentagem de Execução & Readiness Score (Bulletproof Swarm)** | **100% Concluído — Score 99,6% (`v2.7.15`)** | **BULLETPROOF GOLD** |
+| **Percentagem de Execução & Readiness Score (Bulletproof Swarm)** | **100% Concluído — Score 99,6% (`v2.7.17`)** | **BULLETPROOF GOLD** |
 
 ### 6.2. Discriminação Cronológica de Horas Consumidas por Sprint
 
@@ -148,8 +172,8 @@ flowchart TD
 | **Sprint 7 (`v2.4.0`–`v2.5.7`)** | 18/10 – 22/10 | Engenharia & Refinamento UI | Unificação de rotas, calibração 68mm TM-T20, base diária semanal, matriz B2B e PDFs A4 | 4,15 h | 207,50 € |
 | **Sprint 8 (`v2.6.0`)** | 22/10/2026 | Engenharia & Cibersegurança | Subdomínio `app.padariadavila.com`, chaves criptográficas por ecrã, proteção middleware e bloqueio total anti-indexação | 1,10 h | 55,00 € |
 | **Sprint 9 (`v2.7.0`–`v2.7.7`)** | 23/10 – 24/10 | Engenharia & Omnichannel | Estabilização das 7 rotas, arquitetura omnichannel B2B/particulares e motor de Modo Férias em tempo real | 2,75 h | 137,50 € |
-| **Sprint 10 (`v2.7.8`–`v2.7.15`)** | 24/10/2026 | Engenharia & Resiliência | Normalização canónica (57 artigos), segregação estrita da Folha de Carga, Folha de Fabrico por loja, estabilização KDS e eliminação de erros de runtime | 2,25 h | 112,50 € |
-| **TOTAL ACUMULADO** | **07/09 – 24/10** | **Híbrido (AGY + Terreno)** | **Solução Integral `v2.7.15` em Produção no Subdomínio Oficial** | **34,50 h** | **1.725,00 €** |
+| **Sprint 10 (`v2.7.8`–`v2.7.17`)** | 24/10/2026 | Engenharia & Resiliência | Normalização canónica (57 artigos), segregação estrita da Folha de Carga, Fabrico por loja, KDS sem bloqueios, tolerância B2B e consumo direto Supabase | 2,25 h | 112,50 € |
+| **TOTAL ACUMULADO** | **07/09 – 24/10** | **Híbrido (AGY + Terreno)** | **Solução Integral `v2.7.17` em Produção no Subdomínio Oficial** | **34,50 h** | **1.725,00 €** |
 
 ### 6.3. Cláusula de Sucesso & Escalação de Valor Hora para Novos Desenvolvimentos
 

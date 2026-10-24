@@ -1,7 +1,7 @@
 ---
 title: "01 - Dossier Técnico e Evolução Arquitetural da Solução"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.7.15"
+version: "2.7.17"
 date_saved: 2026-10-16
 updated: 2026-10-24
 status: "Em Produção (Live)"
@@ -16,7 +16,7 @@ tags:
 
 **Entidade Tecnológica:** EyeQ Lda / Inprooval®  
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
-**Versão Atual em Produção:** `v2.7.15` (24/10/2026)  
+**Versão Atual em Produção:** `v2.7.17` (24/10/2026)  
 **Repositório & CI/CD:** GitHub (`lfcarreiras/App-Padaria`) $\to$ Vercel Production  
 
 ---
@@ -229,15 +229,32 @@ A plataforma foi auditada pelos **7 Agentes Especialistas do Inprooval® Bulletp
 3. **Proteção de Dados & Autenticação com Recuperação por E-mail via Supabase Auth (`Agente 3` & `Agente 4`):**
    - Exigência de password definida pelo utilizador e e-mail obrigatório para recuperação no Portal Direto de Clientes (`/encomendar`), com disparo real de e-mail via **Supabase Auth** (`signInWithOtp` / Magic Link / código OTP).
    - Nota informativa de Proteção de Dados nos formulários de Login/Registo e Perfil do Portal Direto de Clientes (`/encomendar`).
-4. **Resiliência Offline, Normalização Canónica & Integridade SQL (`Agente 2` & `Agente 5`):**
+4. **Resiliência Offline, Confiança Direta no Supabase & Integridade SQL (`Agente 2` & `Agente 5`):**
    - Snapshot offline automático (`padaria_encomendas_cache_v1`) em `carregarEncomendasSupabase()` e badge `⚡ Offline (Cache)` na `Navbar.tsx` para garantir operação contínua das 7 carrinhas em freguesias sem rede móvel.
    - Script idempotente de migração e indexação SQL em `supabase/migrations/20261012_bulletproof_hardening.sql`.
-   - Normalização unificada de nomes canónicos de produtos (`normalizarNomeArtigoCanonico`), eliminação de duplicados e migração em cascata de alterações de nomes em carrinhas e clientes B2B.
+   - Eliminação de dicionários estáticos de tradução em memória; consumo 100% direto dos 57 nomes canónicos oficiais da base de dados Supabase (`v2.7.17`).
+
+---
+
+## 5. Registo de Retrofits, Descontinuações e Simplificações Arquiteturais (Deprecation & Retrofit Ledger)
+
+Como parte da disciplina de **Living Documentation** mantida pelo Agente 7 do Inprooval Swarm, todas as decisões de descontinuação, retrofit ou eliminação de componentes ocorridas ao longo do projeto encontram-se rigorosamente auditadas abaixo:
+
+| Componente / Funcionalidade | Estado | Versão de Corte | Motivo da Decisão de Engenharia & Retrofit | Substituto Técnico / Solução Adotada |
+| :--- | :---: | :---: | :--- | :--- |
+| **Camada de Tradução Estática (`normalizarNomeArtigoCanonico`)** | ❌ **Eliminada** | `v2.7.17` | Dicionários estáticos no cliente geravam `ReferenceError`, divergência semântica e complexidade desnecessária. | Consumo 100% direto dos 57 nomes canónicos consolidados na base de dados Supabase com higienização elementar (`.trim()`). |
+| **Rotas Secretas Ofuscadas (`/g9d0e2f...`)** | ❌ **Eliminada** | `v2.7.2` | Criavam atrito de navegação, incompatibilidade com atalhos e falsa sensação de segurança por obscuridade. | Implantação do subdomínio oficial `app.padariadavila.com` com cabeçalhos HTTP OWASP, bloqueio anti-indexação e Route Guards por sessão. |
+| **Fecho Noturno Automático Trigger.dev** | ❌ **Eliminada** | `v2.7.0` | O fecho rígido robotizado às 20h colidia com o horário real dos padeiros e turnos noturnos da fábrica de Arouca. | Compilação contínua e fecho de produção sob demanda executado pelos mestres padeiros no KDS. |
+| **Rotas 8 e 9 na Frota de Distribuição** | ❌ **Eliminada** | `v2.7.0` | Inexistência de viaturas físicas correspondentes em Arouca. Poluíam as tabelas e ecrãs de logística. | Frota estabilizada e consolidada nas 7 Carrinhas / Rotas reais (`Rota 1` a `Rota 7` / `Carro 1` a `Carro 7`). |
+| **Download de Excel Legado («MAPA DIÁRIO»)** | 🔄 **Retrofitted** | `v2.7.8` | Folha de cálculo manual no balcão apresentava risco de corrupção acidental de fórmulas e desvios de quantidades. | Folha de Carga oficial em PDF A4 de alta resolução via portal DOM, segregada em 4 níveis estanques. |
+| **Coluna de Caixas e Assinaturas nas Guias** | ❌ **Eliminada** | `v2.5.2` | Complexidade visual desnecessária na cabine das carrinhas; motoristas preferem conferir unidades reais (`un.`). | Foco exclusivo nas quantidades reais por produto com visto rápido de conformidade `[ ] Entregue Conforme`. |
+| **Fusão Canónica de Artigos (*Pão da Avó* $\to$ *Pão Saloio*)** | 🔄 **Retrofitted** | `v2.7.8` | Nomes duplicados para a mesma receita fragmentavam a amassadura e distorciam a contagem de quilos de farinha. | Catálogo saneado e consolidado em 57 artigos canónicos com migração automática de histórico. |
+| **Tracking de Hora em Entregas ao Domicílio** | 🔄 **Retrofitted** | `v2.3.0` | A variabilidade do trânsito rural gerava expectativas irrealistas de horário nos clientes particulares. | O portal exibe apenas a data de entrega para domicílios, reservando o agendamento horário para levantamentos em loja. |
 
 <!-- INTERNAL_START -->
 ---
 
-## 5. Notas Técnicas Internas de Manutenção, Supabase Auth & Deploy (Exclusivo Inprooval®)
+## 6. Notas Técnicas Internas de Manutenção, Supabase Auth & Deploy (Exclusivo Inprooval®)
 
 > [!NOTE]
 > **Secção de Uso Interno Inprooval®** — Esta secção é automaticamente omitida na geração de PDFs destinados ao cliente.
@@ -260,9 +277,8 @@ A plataforma foi auditada pelos **7 Agentes Especialistas do Inprooval® Bulletp
   git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" status
   git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" add -A
   git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" commit -m "feat/fix: descricao"
-  git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" tag -a v2.7.15 -m "release: v2.7.15" -f
+  git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" tag -a v2.7.17 -m "release: v2.7.17" -f
   git -C "g:\O meu disco\1. Projetos\app-encomendas-padaria" push origin main --tags -f
-  ```
   ```
 * **Credenciais de Ambiente (`.env.local` / Vercel Environment Variables):**
   * `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` configurados para a instância Supabase do projeto.

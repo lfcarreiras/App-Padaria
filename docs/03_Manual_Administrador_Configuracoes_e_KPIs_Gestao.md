@@ -1,7 +1,7 @@
 ---
 title: "03 - Manual do Administrador, Parametrizações e Fórmulas de Indicadores do Cockpit de Gestão"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.7.15"
+version: "2.7.17"
 date_saved: 2026-10-18
 updated: 2026-10-24
 status: "Em Produção (Live)"
@@ -17,7 +17,7 @@ tags:
 **Entidade Tecnológica:** EyeQ Lda / Inprooval®  
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
 **Rota de Acesso:** `/gestao` (Exclusivo para Perfil **Administrador / Gerência**)  
-**Versão:** `v2.7.15` (24/10/2026)  
+**Versão:** `v2.7.17` (24/10/2026)  
 
 ---
 
@@ -29,7 +29,7 @@ O utilizador com perfil **Administrador** seleciona no login o Cockpit **`Gestã
 flowchart LR
     Admin(["🔐 Administrador (/gestao)"]) --> T1["1. 📊 Indicadores\n(On-Time, Canais, Rankings,\nPlaneado vs Real & Folhas de Fabrico)"]
     Admin --> T2["2. 🏪 Lojas e Rotas\n(4 Lojas, 7 Rotas, Base Semanal,\nModo Férias & Matriz B2B)"]
-    Admin --> T3["3. 🗄️ Base de Dados\n(Catálogo 86 Produtos, Clientes,\nNormalização Canónica & Excel)"]
+    Admin --> T3["3. 🗄️ Base de Dados\n(57 Artigos Canónicos, Clientes,\nConsumo Direto Supabase & Excel)"]
     Admin --> T4["4. 🛡️ Auditoria\n(Rastreabilidade Total\nde Operadores e Logs)"]
     Admin --> T5["5. 🖨️ Talão Térmico\n(Calibração Epson TM-T20\n80mm / 68mm Úteis & QR Code)"]
     Admin --> T6["6. 🔑 Acessos RBAC\n(Utilizadores, Senhas e\nPermissões por Painel)"]
@@ -152,10 +152,10 @@ Esta aba centraliza toda a parametrização operacional e logística da *Padaria
 
 ---
 
-## 4. Aba 3: Base de Dados, Catálogo de Produtos & Importação Massiva (`database`)
+## 4. Aba 3: Base de Dados, Catálogo Canónico & Importação Massiva (`database`)
 
-1. **Catálogo de Artigos com Gestão Integrada (`v2.3.4`):**
-   - Eliminação do cabeçalho avulso "+ Inserir Registo na Base de Dados" para um design mais limpo e ergonómico.
+1. **Catálogo Canónico Consolidado & Consumo Direto Supabase (`v2.7.17`):**
+   - Eliminação de dicionários estáticos de tradução no código frontend (`normalizarNomeArtigoCanonico`); a plataforma consome diretamente a lista oficial de **57 artigos canónicos consolidados** da base de dados Supabase (ex.: *Pão Saloio*, *Broa Amarela 1 kg*, *Lanche Misto*).
    - Botão **«+ Novo Artigo»** posicionado diretamente no cabeçalho do Catálogo de Artigos.
    - Pesquisa em tempo real por nome, filtro por Categoria (`Padaria` / `Pastelaria`), Unidade (`unidade` / `kg`) e Estado (`Ativo` / `Inativo`).
    - **Normalização Automática Title Case (`formatarNomeEntidade`):** Qualquer produto inserido ou importado em maiúsculas é automaticamente formatado com ortografia portuguesa e acentuação correta.
