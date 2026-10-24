@@ -37,7 +37,12 @@ import {
   eliminarClienteEmpresarialB2B,
   sincronizarClientesB2BComSupabase,
   subscreverAlteracoesClientesB2B,
-  subscreverAlteracoesClientes
+  subscreverAlteracoesClientes,
+  carregarBasesDiariasRecorrentes,
+  salvarBaseDiariaRecorrente,
+  eliminarBaseDiariaRecorrente,
+  clienteEmModoFerias,
+  subscreverAlteracoesBasesRecorrentes
 } from '../../lib/encomendasService';
 import { 
   ReceiptConfig, 
@@ -45,7 +50,7 @@ import {
   saveReceiptConfig, 
   DEFAULT_RECEIPT_CONFIG 
 } from '../../lib/receiptConfig';
-import { Encomenda, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, Role, NivelAcesso, LogAuditoria, BaseFixaCarrinha, ClienteEmpresarialB2B, DiaSemana } from '../../types';
+import { Encomenda, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, Role, NivelAcesso, LogAuditoria, BaseFixaCarrinha, ClienteEmpresarialB2B, DiaSemana, BaseDiariaRecorrente } from '../../types';
 import { useTranslation } from '../../lib/i18n';
 import { useAuth } from '../../lib/authContext';
 import { obterConfiguracaoMarca } from '../../lib/tinaContent';
@@ -246,6 +251,18 @@ export default function AdminPage() {
   const [feedbackBaseFixa, setFeedbackBaseFixa] = useState<string | null>(null);
   const [feedbackB2B, setFeedbackB2B] = useState<string | null>(null);
 
+  // Bases Diárias Recorrentes (Porta-a-Porta & Modo Férias)
+  const [basesRecorrentes, setBasesRecorrentes] = useState<BaseDiariaRecorrente[]>([]);
+  const [baseRecorrenteEmEdicao, setBaseRecorrenteEmEdicao] = useState<Partial<BaseDiariaRecorrente> | null>(null);
+  const [modalFeriasBase, setModalFeriasBase] = useState<BaseDiariaRecorrente | null>(null);
+  const [feriasInicio, setFeriasInicio] = useState<string>('');
+  const [feriasFim, setFeriasFim] = useState<string>('');
+  const [filtroRotaBaseRecorrente, setFiltroRotaBaseRecorrente] = useState<string>('todas');
+  const [filtroBuscaBaseRecorrente, setFiltroBuscaBaseRecorrente] = useState<string>('');
+  const [filtroEstadoBaseRecorrente, setFiltroEstadoBaseRecorrente] = useState<'todos' | 'ativos' | 'ferias'>('todos');
+  const [diaSemanaBaseRecorrenteModal, setDiaSemanaBaseRecorrenteModal] = useState<DiaSemana>('seg');
+  const [feedbackBaseRecorrente, setFeedbackBaseRecorrente] = useState<string | null>(null);
+
   // Estados do Modal de PDF (Folha de Carga & Comprovativo B2B)
   const [pdfModalOpen, setPdfModalOpen] = useState<boolean>(false);
   const [pdfModalTipo, setPdfModalTipo] = useState<'folha_carga' | 'comprovativo_b2b'>('folha_carga');
@@ -319,10 +336,18 @@ export default function AdminPage() {
     const unsubClientes = subscreverAlteracoesClientes((lista) => {
       setClientes(lista);
     });
+    const unsubBases = subscreverAlteracoesBasesRecorrentes((lista) => {
+      setBasesRecorrentes(lista);
+    });
+
+    carregarBasesDiariasRecorrentes().then((bases) => {
+      if (Array.isArray(bases)) setBasesRecorrentes(bases);
+    });
 
     return () => {
       unsubB2B();
       unsubClientes();
+      unsubBases();
     };
   }, []);
 
@@ -396,6 +421,30 @@ export default function AdminPage() {
       return (a.nome || '').localeCompare(b.nome || '', 'pt');
     });
   }, [clientesB2B, filtroRotaB2B, filtroClienteB2B, filtroArtigoB2B, ordenacaoB2B, diaSemanaB2B, carrinhas]);
+
+  // Bases Recorrentes Filtradas (Porta-a-Porta & Modo Férias)
+  const basesRecorrentesFiltradas = useMemo(() => {
+    const hojeStr = new Date().toISOString().split('T')[0];
+    return basesRecorrentes.filter((base) => {
+      // 1. Filtro Rota
+      if (filtroRotaBaseRecorrente !== 'todas' && base.carrinha_id !== filtroRotaBaseRecorrente) return false;
+      // 2. Filtro Busca
+      if (filtroBuscaBaseRecorrente.trim()) {
+        const q = filtroBuscaBaseRecorrente.toLowerCase().trim();
+        const nome = (base.cliente_nome || '').toLowerCase();
+        const tel = (base.cliente_telefone || '').toLowerCase();
+        const morada = (base.cliente_morada || '').toLowerCase();
+        if (!nome.includes(q) && !tel.includes(q) && !morada.includes(q)) return false;
+      }
+      // 3. Filtro Estado
+      if (filtroEstadoBaseRecorrente === 'ferias') {
+        if (!clienteEmModoFerias(base, hojeStr)) return false;
+      } else if (filtroEstadoBaseRecorrente === 'ativos') {
+        if (!base.ativo || clienteEmModoFerias(base, hojeStr)) return false;
+      }
+      return true;
+    });
+  }, [basesRecorrentes, filtroRotaBaseRecorrente, filtroBuscaBaseRecorrente, filtroEstadoBaseRecorrente]);
 
   const obterQtdBaseCarrinha = (carrinhaId: string, dia: DiaSemana, prodNome: string): number => {
     const reg = (baseFixaCarrinhas || []).find((b) => b?.carrinha_id === carrinhaId);
@@ -998,6 +1047,70 @@ export default function AdminPage() {
     };
     reader.readAsArrayBuffer(file);
     e.target.value = '';
+  };
+
+  // --- Handlers de Bases Diárias Recorrentes (Porta-a-Porta & Modo Férias) ---
+  const handleSalvarBaseRecorrenteModal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!baseRecorrenteEmEdicao || !baseRecorrenteEmEdicao.cliente_id || !baseRecorrenteEmEdicao.carrinha_id) {
+      alert('Por favor selecione o cliente e a rota/carrinha de distribuição.');
+      return;
+    }
+
+    const salvo = await salvarBaseDiariaRecorrente(baseRecorrenteEmEdicao as any);
+    if (salvo) {
+      const atualizadas = await carregarBasesDiariasRecorrentes();
+      setBasesRecorrentes(atualizadas);
+      setBaseRecorrenteEmEdicao(null);
+      setFeedbackBaseRecorrente('Entrega diária recorrente guardada com sucesso!');
+      setTimeout(() => setFeedbackBaseRecorrente(null), 3500);
+    }
+  };
+
+  const handleEliminarBaseRecorrente = async (id: string, clienteNome?: string) => {
+    if (!window.confirm(`Deseja eliminar a entrega diária recorrente do cliente "${clienteNome || 'selecionado'}"?`)) return;
+    const ok = await eliminarBaseDiariaRecorrente(id);
+    if (ok) {
+      const atualizadas = await carregarBasesDiariasRecorrentes();
+      setBasesRecorrentes(atualizadas);
+    }
+  };
+
+  const handleAbrirModalFerias = (base: BaseDiariaRecorrente) => {
+    setModalFeriasBase(base);
+    setFeriasInicio(base.pausa_inicio || '');
+    setFeriasFim(base.pausa_fim || '');
+  };
+
+  const handleSalvarFerias = async () => {
+    if (!modalFeriasBase) return;
+    const atualizado = await salvarBaseDiariaRecorrente({
+      ...modalFeriasBase,
+      pausa_inicio: feriasInicio || null,
+      pausa_fim: feriasFim || null,
+    });
+    if (atualizado) {
+      const lista = await carregarBasesDiariasRecorrentes();
+      setBasesRecorrentes(lista);
+      setModalFeriasBase(null);
+      setFeedbackBaseRecorrente('Modo Férias atualizado com sucesso!');
+      setTimeout(() => setFeedbackBaseRecorrente(null), 3500);
+    }
+  };
+
+  const handleCancelarFerias = async (base: BaseDiariaRecorrente) => {
+    if (!window.confirm(`Deseja cancelar o Modo Férias e retomar as entregas diárias de imediato para "${base.cliente_nome || 'o cliente'}"?`)) return;
+    const atualizado = await salvarBaseDiariaRecorrente({
+      ...base,
+      pausa_inicio: null,
+      pausa_fim: null,
+    });
+    if (atualizado) {
+      const lista = await carregarBasesDiariasRecorrentes();
+      setBasesRecorrentes(lista);
+      setFeedbackBaseRecorrente('Entregas diárias retomadas com sucesso!');
+      setTimeout(() => setFeedbackBaseRecorrente(null), 3500);
+    }
   };
 
   // Filtragem Reativa de Encomendas (Tempo + Loja + Formato de Entrega)
@@ -3273,6 +3386,248 @@ export default function AdminPage() {
                                   onClick={() => handleEliminarClienteB2B(cli.id, cli.nome)}
                                   className="p-1 rounded-lg text-red-600 hover:bg-red-50 transition cursor-pointer"
                                   title="Remover cliente empresarial"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* TABELA DE BASES DIÁRIAS RECORRENTES (PORTA-A-PORTA & MODO FÉRIAS) */}
+            <div className="bg-white p-5 rounded-2xl border border-teal-200 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-teal-100 pb-3">
+                <div>
+                  <h3 className="text-sm font-black text-gray-900 flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-teal-600 text-white font-bold text-xs shadow-2xs">
+                      🏠
+                    </span>
+                    Bases Diárias Recorrentes (Porta-a-Porta & Modo Férias)
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Contratos de pão diário e clientes particulares por carrinha, com suporte a pausa de férias e integração com a produção.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBaseRecorrenteEmEdicao({
+                        cliente_id: clientes[0]?.id || '',
+                        carrinha_id: carrinhas[0]?.id || '',
+                        quantidades_semanais: { seg: {}, ter: {}, qua: {}, qui: {}, sex: {}, sab: {}, dom: {} },
+                        metodo_pagamento: 'dinheiro_ao_motorista',
+                        ativo: true,
+                      });
+                      setDiaSemanaBaseRecorrenteModal('seg');
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Nova Entrega Recorrente
+                  </button>
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-teal-50 text-teal-800 border border-teal-200">
+                    Total: <b>{basesRecorrentes.length}</b>
+                  </span>
+                  {basesRecorrentes.filter((b) => clienteEmModoFerias(b, new Date().toISOString().split('T')[0])).length > 0 && (
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1">
+                      <span>🏖️ Em Férias:</span>
+                      <b>{basesRecorrentes.filter((b) => clienteEmModoFerias(b, new Date().toISOString().split('T')[0])).length}</b>
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {feedbackBaseRecorrente && (
+                <div className="bg-teal-50 border border-teal-200 text-teal-900 text-xs px-3.5 py-2 rounded-xl flex items-center gap-2">
+                  <Check className="h-4 w-4 text-teal-600" />
+                  <span>{feedbackBaseRecorrente}</span>
+                </div>
+              )}
+
+              {/* Filtros da Tabela de Bases Recorrentes */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-teal-50/40 p-3 rounded-xl border border-teal-100">
+                <div>
+                  <label className="block text-[10px] font-black text-teal-950 uppercase mb-1">Filtrar por Rota</label>
+                  <select
+                    value={filtroRotaBaseRecorrente}
+                    onChange={(e) => setFiltroRotaBaseRecorrente(e.target.value)}
+                    className="w-full text-xs font-bold bg-white border border-teal-200 rounded-lg px-2.5 py-1.5 text-gray-800 focus:outline-hidden cursor-pointer"
+                  >
+                    <option value="todas">Todas as Rotas (1 a 7)</option>
+                    {carrinhas.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.identificador || c.rota || `Carrinha ${c.numero || ''}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-teal-950 uppercase mb-1">Pesquisar Cliente / Morada</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={filtroBuscaBaseRecorrente}
+                      onChange={(e) => setFiltroBuscaBaseRecorrente(e.target.value)}
+                      placeholder="Nome, telefone ou morada..."
+                      className="w-full pl-7 pr-2 py-1.5 text-xs bg-white border border-teal-200 rounded-lg font-bold text-gray-800 focus:outline-hidden"
+                    />
+                    <Search className="h-3 w-3 text-gray-400 absolute left-2.5 top-2.5" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-teal-950 uppercase mb-1">Estado das Entregas</label>
+                  <select
+                    value={filtroEstadoBaseRecorrente}
+                    onChange={(e) => setFiltroEstadoBaseRecorrente(e.target.value as any)}
+                    className="w-full text-xs font-bold bg-white border border-teal-200 rounded-lg px-2.5 py-1.5 text-gray-800 focus:outline-hidden cursor-pointer"
+                  >
+                    <option value="todos">Todos os Estados</option>
+                    <option value="ativos">Apenas Ativos (A entregar hoje)</option>
+                    <option value="ferias">Em Modo Férias / Pausa</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Tabela de Bases Recorrentes */}
+              <div className="overflow-x-auto border border-teal-100 rounded-xl">
+                <table className="w-full text-left text-xs text-gray-600">
+                  <thead className="bg-teal-50/70 text-teal-950 border-b border-teal-200">
+                    <tr>
+                      <th className="py-2.5 px-3 font-black uppercase text-[10px]">Cliente Particular</th>
+                      <th className="py-2.5 px-3 font-black uppercase text-[10px]">Rota / Carrinha</th>
+                      <th className="py-2.5 px-3 font-black uppercase text-[10px]">Pão Semanal Configurado</th>
+                      <th className="py-2.5 px-3 font-black uppercase text-[10px]">Pagamento & Notas</th>
+                      <th className="py-2.5 px-3 font-black uppercase text-[10px] text-center">Modo Férias</th>
+                      <th className="py-2.5 px-3 font-black uppercase text-[10px] text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {basesRecorrentesFiltradas.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-gray-400 font-bold">
+                          Nenhuma entrega recorrente encontrada com os filtros selecionados.
+                        </td>
+                      </tr>
+                    ) : (
+                      basesRecorrentesFiltradas.map((base) => {
+                        const hojeStr = new Date().toISOString().split('T')[0];
+                        const emFerias = clienteEmModoFerias(base, hojeStr);
+                        const car = carrinhas.find((c) => c.id === base.carrinha_id);
+                        const cli = clientes.find((c) => c.id === base.cliente_id);
+                        const sem = base.quantidades_semanais || { seg: {}, ter: {}, qua: {}, qui: {}, sex: {}, sab: {}, dom: {} };
+
+                        const diasComQtd = Object.entries(sem).filter(([, mapa]) => Object.values(mapa || {}).some((q) => Number(q) > 0));
+
+                        return (
+                          <tr key={base.id} className="hover:bg-teal-50/20 transition">
+                            <td className="py-2.5 px-3">
+                              <div className="font-bold text-gray-900 text-xs">{base.cliente_nome || cli?.nome || 'Cliente'}</div>
+                              <div className="text-[11px] text-gray-500 font-mono">{base.cliente_telefone || cli?.telefone}</div>
+                              {(base.cliente_morada || cli?.morada) && (
+                                <div className="text-[10px] text-gray-400 truncate max-w-xs">{base.cliente_morada || cli?.morada}</div>
+                              )}
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <span className="font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded border border-teal-200 text-[11px]">
+                                {base.carrinha_nome || car?.identificador || car?.rota || 'Rota'}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3">
+                              {diasComQtd.length === 0 ? (
+                                <span className="text-gray-400 italic text-[11px]">(Sem quantidades definidas)</span>
+                              ) : (
+                                <div className="flex flex-wrap gap-1 max-w-md">
+                                  {diasComQtd.map(([d, mapa]) => {
+                                    const totalDia = Object.values(mapa).reduce((a, b) => a + (Number(b) || 0), 0);
+                                    const prods = Object.entries(mapa).filter(([, q]) => Number(q) > 0).map(([p, q]) => `${q}x ${p}`).join(', ');
+                                    return (
+                                      <span key={d} className="inline-flex items-center gap-1 bg-white border border-gray-200 px-1.5 py-0.5 rounded text-[10px] text-gray-700" title={prods}>
+                                        <b className="uppercase text-teal-700">{d}:</b>
+                                        <span>{totalDia} un.</span>
+                                      </span>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-2.5 px-3 text-[11px]">
+                              <div className="font-medium text-gray-700">
+                                {base.metodo_pagamento === 'dinheiro_ao_motorista' ? '💵 Dinheiro ao motorista' :
+                                 base.metodo_pagamento === 'conta_mensal' ? '📑 Conta mensal' :
+                                 base.metodo_pagamento === 'mbway_semanal' ? '📱 MBWay semanal' : '🏦 Multibanco'}
+                              </div>
+                              {base.notas_motorista && (
+                                <div className="text-[10px] text-gray-500 italic truncate max-w-xs">
+                                  📝 {base.notas_motorista}
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-2.5 px-3 text-center">
+                              {emFerias ? (
+                                <div className="inline-flex flex-col items-center">
+                                  <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full text-[10px] font-black">
+                                    🏖️ Em Férias
+                                  </span>
+                                  {base.pausa_fim && (
+                                    <span className="text-[9px] text-amber-700 mt-0.5 font-bold">
+                                      até {base.pausa_fim}
+                                    </span>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCancelarFerias(base)}
+                                    className="text-[9px] text-teal-700 underline font-bold mt-0.5 hover:text-teal-900 cursor-pointer"
+                                  >
+                                    Retomar agora
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleAbrirModalFerias(base)}
+                                  className="inline-flex items-center gap-1 bg-gray-50 hover:bg-amber-50 text-gray-600 hover:text-amber-800 border border-gray-200 hover:border-amber-300 px-2 py-0.5 rounded-lg text-[10px] font-bold transition cursor-pointer"
+                                  title="Definir pausa de férias"
+                                >
+                                  <span>Ativar Férias</span>
+                                </button>
+                              )}
+                            </td>
+                            <td className="py-2.5 px-3 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleAbrirModalFerias(base)}
+                                  className="p-1 rounded-lg text-amber-600 hover:bg-amber-50 transition cursor-pointer"
+                                  title="Configurar datas de férias"
+                                >
+                                  🏖️
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setBaseRecorrenteEmEdicao(base);
+                                    setDiaSemanaBaseRecorrenteModal('seg');
+                                  }}
+                                  className="p-1 rounded-lg text-teal-700 hover:bg-teal-50 transition cursor-pointer"
+                                  title="Editar quantidades e detalhes da entrega recorrente"
+                                >
+                                  <Edit3 className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleEliminarBaseRecorrente(base.id, base.cliente_nome)}
+                                  className="p-1 rounded-lg text-red-600 hover:bg-red-50 transition cursor-pointer"
+                                  title="Eliminar entrega recorrente"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </button>
@@ -5622,6 +5977,351 @@ export default function AdminPage() {
                     className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 font-black text-white shadow-xs transition cursor-pointer"
                   >
                     Guardar Cliente Empresarial
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE CONFIGURAÇÃO DE MODO FÉRIAS */}
+      {modalFeriasBase && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-amber-200 space-y-4 text-xs">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <h3 className="text-sm font-black text-gray-900 flex items-center gap-2">
+                  <span>🏖️</span>
+                  Modo Férias / Pausa Temporária
+                </h3>
+                <p className="text-[11px] text-gray-500 mt-0.5">
+                  Suspende automaticamente as entregas diárias e subtrai do fabrico no período indicado.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalFeriasBase(null)}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="bg-amber-50 p-3 rounded-xl border border-amber-200 text-amber-950 font-bold space-y-1">
+              <div>Cliente: {modalFeriasBase.cliente_nome || 'Cliente Selecionado'}</div>
+              <div className="text-[11px] text-amber-800 font-normal">
+                Durante o período de férias, nenhum pão desta entrega será incluído na folha de fabrico nem na carrinha.
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Data de Início da Pausa *</label>
+                <input
+                  type="date"
+                  value={feriasInicio}
+                  onChange={(e) => setFeriasInicio(e.target.value)}
+                  className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-300 font-bold focus:outline-hidden focus:border-amber-500 bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Data de Fim da Pausa (inclusive) *</label>
+                <input
+                  type="date"
+                  value={feriasFim}
+                  onChange={(e) => setFeriasFim(e.target.value)}
+                  className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-300 font-bold focus:outline-hidden focus:border-amber-500 bg-white"
+                />
+              </div>
+
+              {/* Atalhos Rápidos */}
+              <div className="flex items-center gap-1.5 pt-1">
+                <span className="text-[10px] text-gray-500 font-bold">Atalhos:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const d = new Date();
+                    const inicio = d.toISOString().split('T')[0];
+                    const fimD = new Date(d);
+                    fimD.setDate(d.getDate() + 7);
+                    setFeriasInicio(inicio);
+                    setFeriasFim(fimD.toISOString().split('T')[0]);
+                  }}
+                  className="px-2 py-0.5 rounded bg-gray-100 hover:bg-gray-200 text-[10px] font-bold text-gray-700 cursor-pointer"
+                >
+                  Próximos 7 dias
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const d = new Date();
+                    const inicio = d.toISOString().split('T')[0];
+                    const fimD = new Date(d);
+                    fimD.setDate(d.getDate() + 15);
+                    setFeriasInicio(inicio);
+                    setFeriasFim(fimD.toISOString().split('T')[0]);
+                  }}
+                  className="px-2 py-0.5 rounded bg-gray-100 hover:bg-gray-200 text-[10px] font-bold text-gray-700 cursor-pointer"
+                >
+                  15 dias
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 pt-3 border-t">
+              {modalFeriasBase.pausa_inicio ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleCancelarFerias(modalFeriasBase);
+                    setModalFeriasBase(null);
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-red-50 text-red-700 font-bold border border-red-200 hover:bg-red-100 transition cursor-pointer"
+                >
+                  Retomar Entregas
+                </button>
+              ) : <div />}
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setModalFeriasBase(null)}
+                  className="px-3 py-1.5 rounded-xl bg-gray-100 font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSalvarFerias}
+                  className="px-4 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 font-bold text-white shadow-xs transition cursor-pointer"
+                >
+                  Guardar Férias
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE CRIAÇÃO / EDIÇÃO DE ENTREGA RECORRENTE */}
+      {baseRecorrenteEmEdicao && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-5 shadow-2xl border border-teal-200 space-y-4 text-xs max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <h3 className="text-sm font-black text-gray-900 flex items-center gap-2">
+                  <span className="text-teal-600">🏠</span>
+                  Configurar Entrega Diária Recorrente (Porta-a-Porta)
+                </h3>
+                <p className="text-[11px] text-gray-500 mt-0.5">
+                  Defina o cliente, rota habitual e o plano semanal de artigos.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBaseRecorrenteEmEdicao(null)}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSalvarBaseRecorrenteModal} className="space-y-4 overflow-y-auto pr-1 flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-teal-50/50 p-3 rounded-xl border border-teal-100">
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Cliente Particular *</label>
+                  <select
+                    value={baseRecorrenteEmEdicao.cliente_id || ''}
+                    onChange={(e) => {
+                      const cli = clientes.find((c) => c.id === e.target.value);
+                      setBaseRecorrenteEmEdicao({
+                        ...baseRecorrenteEmEdicao,
+                        cliente_id: e.target.value,
+                        cliente_nome: cli?.nome,
+                        cliente_telefone: cli?.telefone,
+                        cliente_morada: cli?.morada,
+                        carrinha_id: cli?.carrinha_id || baseRecorrenteEmEdicao.carrinha_id || carrinhas[0]?.id || '',
+                      });
+                    }}
+                    required
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-300 font-bold focus:outline-hidden focus:border-teal-500 bg-white cursor-pointer"
+                  >
+                    <option value="">Selecione o cliente...</option>
+                    {clientes.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nome} ({c.telefone})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Rota / Carrinha *</label>
+                  <select
+                    value={baseRecorrenteEmEdicao.carrinha_id || carrinhas[0]?.id || ''}
+                    onChange={(e) => {
+                      const car = carrinhas.find((c) => c.id === e.target.value);
+                      setBaseRecorrenteEmEdicao({
+                        ...baseRecorrenteEmEdicao,
+                        carrinha_id: e.target.value,
+                        carrinha_nome: car?.identificador,
+                      });
+                    }}
+                    required
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-300 font-bold focus:outline-hidden focus:border-teal-500 bg-white cursor-pointer"
+                  >
+                    {carrinhas.map((car) => (
+                      <option key={car.id} value={car.id}>
+                        {car.identificador || car.rota || `Carrinha ${car.numero || ''}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Método de Pagamento</label>
+                  <select
+                    value={baseRecorrenteEmEdicao.metodo_pagamento || 'dinheiro_ao_motorista'}
+                    onChange={(e) => setBaseRecorrenteEmEdicao({ ...baseRecorrenteEmEdicao, metodo_pagamento: e.target.value as any })}
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-300 font-bold focus:outline-hidden focus:border-teal-500 bg-white cursor-pointer"
+                  >
+                    <option value="dinheiro_ao_motorista">💵 Dinheiro ao motorista</option>
+                    <option value="conta_mensal">📑 Conta mensal</option>
+                    <option value="mbway_semanal">📱 MBWay semanal</option>
+                    <option value="multibanco">🏦 Multibanco</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Notas para o Motorista</label>
+                  <input
+                    type="text"
+                    value={baseRecorrenteEmEdicao.notas_motorista || ''}
+                    onChange={(e) => setBaseRecorrenteEmEdicao({ ...baseRecorrenteEmEdicao, notas_motorista: e.target.value })}
+                    placeholder="Ex: Deixar no saco azul na maçaneta"
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-300 focus:outline-hidden focus:border-teal-500 bg-white"
+                  />
+                </div>
+              </div>
+
+              {/* Matriz Semanal de Pão */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-gray-800 flex items-center gap-1.5">
+                    <Calendar className="h-4 w-4 text-teal-600" />
+                    Pão Diário para: <b className="uppercase text-teal-700">{diaSemanaBaseRecorrenteModal}</b>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const sem = baseRecorrenteEmEdicao.quantidades_semanais || { seg: {}, ter: {}, qua: {}, qui: {}, sex: {}, sab: {}, dom: {} };
+                      const baseDia = { ...(sem[diaSemanaBaseRecorrenteModal] || {}) };
+                      const novaSem: any = {};
+                      ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'].forEach((d) => {
+                        novaSem[d] = { ...baseDia };
+                      });
+                      setBaseRecorrenteEmEdicao({ ...baseRecorrenteEmEdicao, quantidades_semanais: novaSem });
+                    }}
+                    className="text-[10px] font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 px-2 py-1 rounded-lg cursor-pointer"
+                  >
+                    Copiar {diaSemanaBaseRecorrenteModal.toUpperCase()} para toda a semana
+                  </button>
+                </div>
+
+                {/* Seletor de dia */}
+                <div className="flex gap-1 overflow-x-auto pb-1">
+                  {([
+                    { id: 'seg', label: 'Seg' },
+                    { id: 'ter', label: 'Ter' },
+                    { id: 'qua', label: 'Qua' },
+                    { id: 'qui', label: 'Qui' },
+                    { id: 'sex', label: 'Sex' },
+                    { id: 'sab', label: 'Sáb' },
+                    { id: 'dom', label: 'Dom' },
+                  ] as { id: DiaSemana; label: string }[]).map((d) => (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => setDiaSemanaBaseRecorrenteModal(d.id)}
+                      className={`px-2.5 py-1 rounded-lg font-bold text-[11px] cursor-pointer ${
+                        diaSemanaBaseRecorrenteModal === d.id ? 'bg-teal-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Grelha de Artigos de Padaria */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto border border-gray-200 rounded-xl p-2 bg-gray-50/50">
+                  {produtos
+                    .filter((p) => p.ativo && p.categoria === 'padaria')
+                    .map((prod) => {
+                      const sem = baseRecorrenteEmEdicao.quantidades_semanais || { seg: {}, ter: {}, qua: {}, qui: {}, sex: {}, sab: {}, dom: {} };
+                      const qtd = sem[diaSemanaBaseRecorrenteModal]?.[prod.nome] || 0;
+                      return (
+                        <div key={prod.id} className="flex items-center justify-between p-1.5 bg-white border border-gray-200 rounded-lg">
+                          <span className="font-bold text-gray-800 text-[11px] truncate pr-1" title={prod.nome}>
+                            {prod.nome}
+                          </span>
+                          <input
+                            type="number"
+                            min={0}
+                            value={qtd === 0 ? '' : qtd}
+                            placeholder="0"
+                            onChange={(e) => {
+                              const val = Math.max(0, Math.floor(Number(e.target.value) || 0));
+                              const mapaDia = { ...(sem[diaSemanaBaseRecorrenteModal] || {}) };
+                              if (val <= 0) {
+                                delete mapaDia[prod.nome];
+                              } else {
+                                mapaDia[prod.nome] = val;
+                              }
+                              setBaseRecorrenteEmEdicao({
+                                ...baseRecorrenteEmEdicao,
+                                quantidades_semanais: {
+                                  ...sem,
+                                  [diaSemanaBaseRecorrenteModal]: mapaDia,
+                                },
+                              });
+                            }}
+                            className="w-14 text-center py-0.5 px-1 rounded border border-gray-300 font-mono font-bold text-teal-950 text-xs"
+                          />
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-3 border-t">
+                {baseRecorrenteEmEdicao.id ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleEliminarBaseRecorrente(baseRecorrenteEmEdicao.id!, baseRecorrenteEmEdicao.cliente_nome);
+                      setBaseRecorrenteEmEdicao(null);
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 font-bold text-red-600 border border-red-200 transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Eliminar
+                  </button>
+                ) : <div />}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setBaseRecorrenteEmEdicao(null)}
+                    className="px-3 py-1.5 rounded-lg bg-gray-100 font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
+                  >
+                    {t.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 font-black text-white shadow-xs transition cursor-pointer"
+                  >
+                    Guardar Entrega Recorrente
                   </button>
                 </div>
               </div>

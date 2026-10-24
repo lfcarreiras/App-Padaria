@@ -13,6 +13,9 @@ import {
   carregarClientesEmpresariaisB2B,
   sincronizarClientesB2BComSupabase,
   subscreverAlteracoesClientesB2B,
+  carregarBasesDiariasRecorrentes,
+  clienteEmModoFerias,
+  subscreverAlteracoesBasesRecorrentes,
   obterDiaSemanaDeData,
   obterQuantidadeEfetivaBaseRota,
   obterQuantidadeEfetivaClienteB2B,
@@ -31,7 +34,8 @@ import {
   Carrinha,
   BaseFixaCarrinha,
   ClienteEmpresarialB2B,
-  DiaSemana
+  DiaSemana,
+  BaseDiariaRecorrente
 } from '../../types';
 import { useTranslation } from '../../lib/i18n';
 import { useAuth } from '../../lib/authContext';
@@ -105,6 +109,7 @@ export default function ProducaoPage() {
   const [carrinhas, setCarrinhas] = useState<Carrinha[]>(CARRINHAS_MOCK);
   const [baseFixaCarrinhas, setBaseFixaCarrinhas] = useState<BaseFixaCarrinha[]>([]);
   const [clientesB2B, setClientesB2B] = useState<ClienteEmpresarialB2B[]>([]);
+  const [basesRecorrentes, setBasesRecorrentes] = useState<BaseDiariaRecorrente[]>([]);
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
   const [encomendaParaImprimir, setEncomendaParaImprimir] = useState<Encomenda | null>(null);
 
@@ -168,6 +173,9 @@ export default function ProducaoPage() {
         if (res && res.length > 0) setClientesB2B(res);
       });
       setUltimoFechoPool(obterUltimoFechoNoturno());
+      carregarBasesDiariasRecorrentes().then((bases) => {
+        if (Array.isArray(bases)) setBasesRecorrentes(bases);
+      });
     }
     carregar();
 
@@ -175,9 +183,14 @@ export default function ProducaoPage() {
       setClientesB2B(lista);
       setVersaoDados((v) => v + 1);
     });
+    const unsubBases = subscreverAlteracoesBasesRecorrentes((lista) => {
+      setBasesRecorrentes(lista);
+      setVersaoDados((v) => v + 1);
+    });
 
     return () => {
       unsubB2B();
+      unsubBases();
     };
   }, []);
 
@@ -347,6 +360,22 @@ export default function ProducaoPage() {
 
       Object.keys(mapaDia).forEach((artigo) => {
         const { quantidade } = obterQuantidadeEfetivaBaseRota(dataAlvo, car.id, artigo, semana, diaSemanaAlvo);
+        if (quantidade > 0) {
+          const entry = registrarOuObter(artigo);
+          entry.qtd_bases_diarias += quantidade;
+        }
+      });
+    });
+
+    // 1.1 BASES DIÁRIAS RECORRENTES (PORTA-A-PORTA - Exclui automaticamente quem está em Modo Férias)
+    basesRecorrentes.forEach((base) => {
+      if (!base.ativo) return;
+      if (clienteEmModoFerias(base, dataAlvo)) return; // FÉRIAS ATIVAS -> NÃO PRODUZ PÃO
+      if (selectedCarrinhaId !== 'todas' && base.carrinha_id !== selectedCarrinhaId) return;
+
+      const mapaDia = base.quantidades_semanais?.[diaSemanaAlvo] || {};
+      Object.entries(mapaDia).forEach(([artigo, qtd]) => {
+        const quantidade = Number(qtd) || 0;
         if (quantidade > 0) {
           const entry = registrarOuObter(artigo);
           entry.qtd_bases_diarias += quantidade;
@@ -565,6 +594,31 @@ export default function ProducaoPage() {
         });
       }
     });
+
+    // 1.1 Quantidades das Bases Diárias Recorrentes desta rota (excluindo quem está em Modo Férias)
+    basesRecorrentes
+      .filter((b) => b.ativo && b.carrinha_id === car.id && !clienteEmModoFerias(b, dataAlvo))
+      .forEach((b) => {
+        const mapaDia = b.quantidades_semanais?.[diaSemanaAlvo] || {};
+        Object.entries(mapaDia).forEach(([artigo, qtd]) => {
+          const quantidade = Number(qtd) || 0;
+          if (quantidade > 0) {
+            const prodRef = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
+            const cat = prodRef?.categoria || (artigo.toLowerCase().includes('bolo') || artigo.toLowerCase().includes('croissant') ? 'pastelaria' : 'padaria');
+            const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
+            const atual = mapaItens.get(artigo);
+            if (atual) {
+              atual.quantidade += quantidade;
+            } else {
+              mapaItens.set(artigo, {
+                quantidade,
+                categoria: cat,
+                unidade: unid,
+              });
+            }
+          }
+        });
+      });
 
     // 2. Quantidades dos Clientes B2B desta rota (com eventuais ajustes pontuais)
     const b2bDaRota = clientesB2B.filter((cli) => cli.ativo && cli.carrinha_id === car.id);

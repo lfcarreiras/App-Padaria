@@ -18,7 +18,12 @@ import {
   registarLogAuditoria,
   guardarCanalOrigemLocal,
   carregarClientesEmpresariaisB2B,
-  salvarClientesEmpresariaisB2B
+  salvarClientesEmpresariaisB2B,
+  carregarBasesDiariasRecorrentes,
+  salvarBaseDiariaRecorrente,
+  clienteEmModoFerias,
+  subscreverAlteracoesBasesRecorrentes,
+  enviarEmailRecuperacaoPassword
 } from '../../lib/encomendasService';
 import { 
   Produto, 
@@ -64,7 +69,11 @@ import {
   Layers,
   Edit3,
   AlertTriangle,
-  XCircle
+  XCircle,
+  Palmtree,
+  CalendarRange,
+  Sun,
+  Home
 } from 'lucide-react';
 import { StatusBadge } from '../../components/StatusBadge';
 import { OriginBadge, SectorBadge } from '../../components/InproovalBadges';
@@ -108,8 +117,13 @@ export default function EncomendarClientePage() {
   const [authErro, setAuthErro] = useState('');
   const [authSucesso, setAuthSucesso] = useState('');
 
-  // Aba / Vista do Portal ('catalogo' | 'checkout' | 'minhas_encomendas')
-  const [vistaAtiva, setVistaAtiva] = useState<'catalogo' | 'checkout' | 'minhas_encomendas'>('catalogo');
+  // Aba / Vista do Portal ('catalogo' | 'checkout' | 'minhas_encomendas' | 'minha_base_diaria')
+  const [vistaAtiva, setVistaAtiva] = useState<'catalogo' | 'checkout' | 'minhas_encomendas' | 'minha_base_diaria'>('catalogo');
+  const [basesRecorrentes, setBasesRecorrentes] = useState<BaseDiariaRecorrente[]>([]);
+  const [salvandoFeriasCliente, setSalvandoFeriasCliente] = useState(false);
+  const [feriasClienteInicio, setFeriasClienteInicio] = useState('');
+  const [feriasClienteFim, setFeriasClienteFim] = useState('');
+  const [feedbackFeriasCliente, setFeedbackFeriasCliente] = useState<string | null>(null);
 
   // Carrinho de Compras
   const [carrinho, setCarrinho] = useState<ItemCarrinhoCliente[]>([]);
@@ -156,10 +170,11 @@ export default function EncomendarClientePage() {
     async function carregarTudo() {
       setCarregandoDados(true);
       try {
-        const [prodsDb, lojasDb, clisDb] = await Promise.all([
+        const [prodsDb, lojasDb, clisDb, basesDb] = await Promise.all([
           carregarProdutosSupabase(),
           carregarLojasSupabase(),
           carregarClientesSupabase(),
+          carregarBasesDiariasRecorrentes(),
         ]);
         if (prodsDb && prodsDb.length > 0) {
           setProdutos(prodsDb.filter(p => p.ativo !== false));
@@ -172,6 +187,9 @@ export default function EncomendarClientePage() {
         }
         if (clisDb && clisDb.length > 0) {
           setClientes(clisDb);
+        }
+        if (basesDb && basesDb.length > 0) {
+          setBasesRecorrentes(basesDb);
         }
         setClientesB2B(carregarClientesEmpresariaisB2B());
       } catch (err) {
@@ -240,10 +258,21 @@ export default function EncomendarClientePage() {
           setAuthSucesso(`E-mail (${session.user.email}) confirmado pela Supabase! Defina agora a sua nova password abaixo.`);
         }
       });
+      const unsubBases = subscreverAlteracoesBasesRecorrentes((novasBases) => {
+        setBasesRecorrentes(novasBases);
+      });
+
       return () => {
         authListener.subscription.unsubscribe();
+        unsubBases();
       };
     }
+    const unsubBases = subscreverAlteracoesBasesRecorrentes((novasBases) => {
+      setBasesRecorrentes(novasBases);
+    });
+    return () => {
+      unsubBases();
+    };
   }, []);
 
   // Atualizar Encomendas do Cliente Sempre que o cliente estiver logado ou mudar para 'minhas_encomendas'
@@ -345,6 +374,93 @@ export default function EncomendarClientePage() {
 
     buscarEncomendasCliente();
   }, [clienteLogado, vistaAtiva]);
+
+  // ---------------- GESTÃO DO PÃO DIÁRIO DO CLIENTE & MODO FÉRIAS ---------------- //
+  const minhaBaseDiaria = useMemo(() => {
+    if (!clienteLogado) return null;
+    const telLimpo = (clienteLogado.telefone || '').replace(/\D/g, '');
+    return (
+      basesRecorrentes.find((b) => {
+        if (b.cliente_id && b.cliente_id === clienteLogado.id) return true;
+        const bTel = (b.cliente_telefone || '').replace(/\D/g, '');
+        if (telLimpo.length >= 9 && bTel === telLimpo) return true;
+        return false;
+      }) || null
+    );
+  }, [clienteLogado, basesRecorrentes]);
+
+  const DIAS_SEMANA_ORDEM: { id: DiaSemana; label: string; abrev: string }[] = [
+    { id: 'seg', label: 'Segunda-feira', abrev: 'Seg' },
+    { id: 'ter', label: 'Terça-feira', abrev: 'Ter' },
+    { id: 'qua', label: 'Quarta-feira', abrev: 'Qua' },
+    { id: 'qui', label: 'Quinta-feira', abrev: 'Qui' },
+    { id: 'sex', label: 'Sexta-feira', abrev: 'Sex' },
+    { id: 'sab', label: 'Sábado', abrev: 'Sáb' },
+    { id: 'dom', label: 'Domingo', abrev: 'Dom' },
+  ];
+
+  const mapaDiaHoje: Record<number, DiaSemana> = {
+    0: 'dom',
+    1: 'seg',
+    2: 'ter',
+    3: 'qua',
+    4: 'qui',
+    5: 'sex',
+    6: 'sab',
+  };
+  const diaSemanaHojeAtual = mapaDiaHoje[new Date().getDay()] || 'seg';
+
+  const handleSalvarFeriasCliente = async () => {
+    if (!minhaBaseDiaria) return;
+    if (!feriasClienteInicio || !feriasClienteFim) {
+      alert('Por favor, selecione as datas de início e fim da pausa de entregas.');
+      return;
+    }
+    setSalvandoFeriasCliente(true);
+    try {
+      const atualizada = await salvarBaseDiariaRecorrente({
+        ...minhaBaseDiaria,
+        pausa_inicio: feriasClienteInicio,
+        pausa_fim: feriasClienteFim,
+        ativo: true,
+      });
+      if (atualizada) {
+        setBasesRecorrentes((prev) =>
+          prev.map((b) => (b.id === atualizada.id ? atualizada : b))
+        );
+        setFeedbackFeriasCliente('Pausa de férias ativada com sucesso! O forno e a carrinha foram notificados.');
+        setTimeout(() => setFeedbackFeriasCliente(null), 5000);
+      }
+    } catch (err: any) {
+      alert('Erro ao ativar pausa de férias: ' + (err.message || 'Tente novamente.'));
+    } finally {
+      setSalvandoFeriasCliente(false);
+    }
+  };
+
+  const handleCancelarFeriasCliente = async () => {
+    if (!minhaBaseDiaria) return;
+    setSalvandoFeriasCliente(true);
+    try {
+      const atualizada = await salvarBaseDiariaRecorrente({
+        ...minhaBaseDiaria,
+        pausa_inicio: null,
+        pausa_fim: null,
+        ativo: true,
+      });
+      if (atualizada) {
+        setBasesRecorrentes((prev) =>
+          prev.map((b) => (b.id === atualizada.id ? atualizada : b))
+        );
+        setFeedbackFeriasCliente('Entregas diárias retomadas com sucesso!');
+        setTimeout(() => setFeedbackFeriasCliente(null), 5000);
+      }
+    } catch (err: any) {
+      alert('Erro ao retomar entregas: ' + (err.message || 'Tente novamente.'));
+    } finally {
+      setSalvandoFeriasCliente(false);
+    }
+  };
 
   // Ações do Carrinho
   const adicionarAoCarrinho = (prod: Produto) => {
@@ -1667,6 +1783,27 @@ export default function EncomendarClientePage() {
               </button>
             )}
 
+            {clienteLogado && (
+              <button
+                type="button"
+                onClick={() => setVistaAtiva('minha_base_diaria')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                  vistaAtiva === 'minha_base_diaria'
+                    ? 'bg-amber-600 text-white shadow-2xs'
+                    : 'text-stone-700 hover:bg-stone-100'
+                }`}
+              >
+                <Home className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">O Meu Pão Diário</span>
+                <span className="sm:hidden">Pão Diário</span>
+                {minhaBaseDiaria && clienteEmModoFerias(minhaBaseDiaria, new Date().toISOString().split('T')[0]) && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-900 font-black">
+                    🏖️ Férias
+                  </span>
+                )}
+              </button>
+            )}
+
             {/* Carrinho Flutuante / Botão */}
             <button
               type="button"
@@ -2393,6 +2530,357 @@ export default function EncomendarClientePage() {
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ---------------- VISTA 4: O MEU PÃO DIÁRIO (PORTA-A-PORTA & MODO FÉRIAS) ---------------- */}
+        {vistaAtiva === 'minha_base_diaria' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setVistaAtiva('catalogo')}
+                className="flex items-center gap-1 text-xs font-bold text-stone-600 hover:text-stone-900 cursor-pointer"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>Voltar ao Catálogo</span>
+              </button>
+
+              <h2 className="text-base font-black text-stone-900 flex items-center gap-2">
+                <Home className="h-5 w-5 text-amber-600" />
+                <span>O Meu Plano de Pão Diário</span>
+              </h2>
+            </div>
+
+            {feedbackFeriasCliente && (
+              <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-bold flex items-center gap-2 shadow-xs">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                <span>{feedbackFeriasCliente}</span>
+              </div>
+            )}
+
+            {!minhaBaseDiaria ? (
+              <div className="rounded-3xl bg-white border border-stone-200 p-8 sm:p-12 text-center max-w-xl mx-auto shadow-xs space-y-4">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-100 text-amber-800 mx-auto">
+                  <Home className="h-8 w-8" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-base font-black text-stone-900">
+                    Ainda não tem entregas diárias de pão configuradas
+                  </h3>
+                  <p className="text-xs text-stone-600 leading-relaxed">
+                    A nossa padaria entrega pão quente todas as manhãs diretamente à sua porta nas várias freguesias de Arouca. 
+                    Pode fazer encomendas pontuais através do catálogo ou solicitar uma rota diária fixa.
+                  </p>
+                </div>
+                <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setVistaAtiva('catalogo')}
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-amber-600 text-white font-bold text-xs shadow-xs hover:bg-amber-700 transition cursor-pointer"
+                  >
+                    Ver Catálogo de Produtos
+                  </button>
+                  <a
+                    href="https://wa.me/351256944111?text=Ol%C3%A1!%20Gostaria%20de%20subscrever%20a%20entrega%20di%C3%A1ria%20de%20p%C3%A3o%20em%20minha%20casa."
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-xs hover:bg-emerald-700 transition flex items-center justify-center gap-1.5"
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    <span>Pedir Entrega Porta-a-Porta</span>
+                  </a>
+                </div>
+              </div>
+            ) : (() => {
+              const dataHojeStr = new Date().toISOString().split('T')[0];
+              const estaEmModoFerias = clienteEmModoFerias(minhaBaseDiaria, dataHojeStr);
+
+              const rotuloPag: Record<string, string> = {
+                dinheiro_ao_motorista: 'Dinheiro entregue ao motorista',
+                conta_mensal: 'Conta mensal / Faturação periódica',
+                mbway_semanal: 'MBWay semanal',
+                multibanco: 'Referência Multibanco',
+              };
+
+              return (
+                <div className="space-y-6">
+                  {/* Resumo do Contrato Diário */}
+                  <div className="rounded-3xl bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-amber-500/10 border-2 border-amber-300 p-5 shadow-xs">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-600 text-white font-black text-sm shadow-xs">
+                          <Home className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-black text-stone-900">
+                              {minhaBaseDiaria.cliente_nome || clienteLogado?.nome || 'Plano de Pão Diário'}
+                            </h3>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                              {minhaBaseDiaria.carrinha_nome || 'Carrinha de Rota'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-stone-600 mt-0.5 flex items-center gap-1">
+                            <MapPin className="h-3.5 w-3.5 text-red-500 shrink-0" />
+                            <span>{minhaBaseDiaria.cliente_morada || clienteLogado?.morada || 'Arouca'}</span>
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-left sm:text-right text-xs">
+                        <span className="text-[11px] text-stone-500">Liquidação:</span>
+                        <div className="font-bold text-stone-800">
+                          {rotuloPag[minhaBaseDiaria.metodo_pagamento] || 'Dinheiro ao Motorista'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {minhaBaseDiaria.notas_motorista && (
+                      <div className="text-xs bg-amber-50 text-amber-950 border border-amber-200 rounded-xl p-2.5 flex items-center gap-2">
+                        <span className="font-bold">💡 Notas de Entrega:</span>
+                        <span>{minhaBaseDiaria.notas_motorista}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* CARTÃO DE MODO FÉRIAS (PAUSA DE ENTREGAS) */}
+                  <div className="rounded-3xl bg-white border border-stone-200 p-5 shadow-xs space-y-4">
+                    <div className="flex items-center justify-between border-b pb-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-2 rounded-xl bg-amber-100 text-amber-800">
+                          <Palmtree className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-black text-stone-900">
+                            Modo Férias & Pausa de Entregas
+                          </h4>
+                          <p className="text-xs text-stone-500">
+                            Pause o fabrico e a entrega do seu pão durante as suas ausências
+                          </p>
+                        </div>
+                      </div>
+
+                      {estaEmModoFerias ? (
+                        <span className="text-xs font-black px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1">
+                          <Palmtree className="h-3.5 w-3.5" />
+                          Em Pausa
+                        </span>
+                      ) : (
+                        <span className="text-xs font-black px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 flex items-center gap-1">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Ativo Hoje
+                        </span>
+                      )}
+                    </div>
+
+                    {estaEmModoFerias ? (
+                      <div className="bg-amber-50 border border-amber-300 rounded-2xl p-4 text-xs space-y-3">
+                        <div className="font-bold text-amber-950">
+                          🏖️ As suas entregas estão em pausa de férias de {minhaBaseDiaria.pausa_inicio} até {minhaBaseDiaria.pausa_fim}.
+                        </div>
+                        <p className="text-stone-600">
+                          Durante este período o forno da padaria não coze o seu pão diário e a carrinha não passa na sua morada, 
+                          garantindo desperdício zero.
+                        </p>
+                        <div>
+                          <button
+                            type="button"
+                            onClick={handleCancelarFeriasCliente}
+                            disabled={salvandoFeriasCliente}
+                            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+                          >
+                            {salvandoFeriasCliente ? 'A atualizar...' : 'Regressei mais cedo — Retomar Entregas Diárias'}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <p className="text-xs text-stone-600">
+                          Vai viajar ou ausentar-se de casa? Indique as datas em que não precisa de pão. O sistema atualiza o fabrico 
+                          e a rota da carrinha automaticamente.
+                        </p>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                          <div>
+                            <label className="block font-bold text-stone-700 mb-1">
+                              Data de Início da Pausa *
+                            </label>
+                            <input
+                              type="date"
+                              value={feriasClienteInicio}
+                              onChange={(e) => setFeriasClienteInicio(e.target.value)}
+                              className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs font-bold focus:outline-hidden focus:border-amber-600 bg-white"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block font-bold text-stone-700 mb-1">
+                              Data de Fim da Pausa (inclusive) *
+                            </label>
+                            <input
+                              type="date"
+                              value={feriasClienteFim}
+                              onChange={(e) => setFeriasClienteFim(e.target.value)}
+                              className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs font-bold focus:outline-hidden focus:border-amber-600 bg-white"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Atalhos Rápidos */}
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                          <span className="text-[10px] text-stone-500 font-bold mr-1">Atalhos rápidos:</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const d = new Date();
+                              const inicio = d.toISOString().split('T')[0];
+                              const fim = new Date(d);
+                              fim.setDate(d.getDate() + 3);
+                              setFeriasClienteInicio(inicio);
+                              setFeriasClienteFim(fim.toISOString().split('T')[0]);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-[10px] font-bold text-stone-700 cursor-pointer transition"
+                          >
+                            3 Dias
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const d = new Date();
+                              const inicio = d.toISOString().split('T')[0];
+                              const fim = new Date(d);
+                              fim.setDate(d.getDate() + 7);
+                              setFeriasClienteInicio(inicio);
+                              setFeriasClienteFim(fim.toISOString().split('T')[0]);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-[10px] font-bold text-stone-700 cursor-pointer transition"
+                          >
+                            7 Dias
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const d = new Date();
+                              const inicio = d.toISOString().split('T')[0];
+                              const fim = new Date(d);
+                              fim.setDate(d.getDate() + 15);
+                              setFeriasClienteInicio(inicio);
+                              setFeriasClienteFim(fim.toISOString().split('T')[0]);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-[10px] font-bold text-stone-700 cursor-pointer transition"
+                          >
+                            15 Dias
+                          </button>
+                        </div>
+
+                        <div className="pt-2">
+                          <button
+                            type="button"
+                            onClick={handleSalvarFeriasCliente}
+                            disabled={salvandoFeriasCliente}
+                            className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+                          >
+                            {salvandoFeriasCliente ? 'A guardar...' : 'Confirmar Pausa de Férias'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* CALENDÁRIO SEMANAL DE ENTREGAS */}
+                  <div className="rounded-3xl bg-white border border-stone-200 p-5 shadow-xs space-y-4">
+                    <div className="flex items-center justify-between border-b pb-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-2 rounded-xl bg-teal-100 text-teal-800">
+                          <CalendarRange className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-black text-stone-900">
+                            Calendário Semanal do seu Pão
+                          </h4>
+                          <p className="text-xs text-stone-500">
+                            Quantidades fixas agendadas para cada dia da semana
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
+                      {DIAS_SEMANA_ORDEM.map((dia) => {
+                        const mapaDia = minhaBaseDiaria.quantidades_semanais?.[dia.id] || {};
+                        const totalQtd = Object.values(mapaDia).reduce((acc: number, val) => acc + (typeof val === 'number' ? val : 0), 0);
+                        const isHoje = dia.id === diaSemanaHojeAtual;
+
+                        return (
+                          <div
+                            key={dia.id}
+                            className={`rounded-2xl border p-3 flex flex-col justify-between transition ${
+                              isHoje
+                                ? 'bg-amber-50/80 border-amber-400 ring-2 ring-amber-400/30'
+                                : 'bg-stone-50 border-stone-200'
+                            }`}
+                          >
+                            <div>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-xs font-black text-stone-900">
+                                  {dia.abrev}
+                                </span>
+                                {isHoje && (
+                                  <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-amber-600 text-white">
+                                    Hoje
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="space-y-1 my-2">
+                                {totalQtd === 0 ? (
+                                  <p className="text-[10px] text-stone-400 italic">Sem pão</p>
+                                ) : (
+                                  Object.entries(mapaDia)
+                                    .filter(([, q]) => typeof q === 'number' && q > 0)
+                                    .map(([art, q]) => (
+                                      <div key={art} className="text-[10px] text-stone-700 flex justify-between">
+                                        <span className="truncate mr-1">{art}:</span>
+                                        <span className="font-black text-stone-900">{q} un.</span>
+                                      </div>
+                                    ))
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="pt-2 border-t border-stone-200/60 flex items-center justify-between text-[11px]">
+                              <span className="text-stone-500 font-semibold">Total:</span>
+                              <span className="font-black text-amber-800">{totalQtd} un.</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Ação de Encomenda Adicional */}
+                  <div className="rounded-3xl bg-stone-900 text-white p-6 shadow-md flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="space-y-1 text-center sm:text-left">
+                      <h4 className="text-sm font-black text-white flex items-center justify-center sm:justify-start gap-2">
+                        <Sparkles className="h-4 w-4 text-amber-400" />
+                        <span>Precisa de pão extra ou pastelaria especial?</span>
+                      </h4>
+                      <p className="text-xs text-stone-400">
+                        Pode encomendar broas, croissants, bolos de festa ou pães adicionais sem alterar o seu plano diário fixo.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setVistaAtiva('catalogo')}
+                      className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs shadow-md transition cursor-pointer shrink-0"
+                    >
+                      Explorar Catálogo
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
       </main>
