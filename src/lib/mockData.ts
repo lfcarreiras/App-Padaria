@@ -145,9 +145,7 @@ export const COLUNAS_MAPA_DIARIO_OFICIAL: string[] = [
   "Pão de Forma Pequeno",
   "Pão de Forma Grande",
   "Pão de Forma Grande (Corte Fino)",
-  "Broa 1 kg",
-  "Broa 2 kg",
-  "Broa Amarela 1 kg",
+      "Broa Amarela 1 kg",
   "Broa Amarela 2 kg",
   "Broa Amarela 0,5 kg",
   "Broa Branca 1 kg",
@@ -155,13 +153,16 @@ export const COLUNAS_MAPA_DIARIO_OFICIAL: string[] = [
   "Broa de Centeio 0,5 kg",
   "Broa de Mistura",
   "Broa com Chouriço",
+  "Mini Broa com Chouriço",
   "Triga Milha 0,3 kg",
   "Triga Milha 0,5 kg",
   "Triga Milha 1 kg",
   "Triga Milha Saloio",
   "Regueifa Doce",
-  "Regueifa de Coco",
+  "Regueifa de Côco",
   "Regueifa de Canela",
+  "Mini Pão de Centeio",
+  "Mini Pão Saloio",
   "Regueifa Branca",
   "Trança Regueifa Branca",
   "Trança de Chocolate",
@@ -169,7 +170,7 @@ export const COLUNAS_MAPA_DIARIO_OFICIAL: string[] = [
   "Pasteis",
   "Pastel de Nata",
   "Pastel Miniatura",
-  "Lanche",
+  "Lanche Misto",
   "Lanche de Fiambre",
   "Lanche de Chocolate",
   "Croissant Simples",
@@ -199,11 +200,11 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
       "Padinhas": 7,
       "Pão de Leite": 1,
       "Triga Milha 0,5 kg": 2,
-      "Broa 2 kg": 4,
-      "Broa 1 kg": 6,
+      "Broa Amarela 2 kg": 4,
+      "Broa Amarela 1 kg": 6,
       "Pão de Forma Pequeno": 5,
       "Pasteis": 40,
-      "Lanche": 3,
+      "Lanche Misto": 3,
       "Pão Saloio": 1,
       "Pão Italiano": 40,
       "Pão de Sementes": 10,
@@ -222,11 +223,11 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
         "Padinhas": 7,
         "Pão de Leite": 1,
         "Triga Milha 0,5 kg": 2,
-        "Broa 2 kg": 4,
-        "Broa 1 kg": 6,
+        "Broa Amarela 2 kg": 4,
+        "Broa Amarela 1 kg": 6,
         "Pão de Forma Pequeno": 5,
         "Pasteis": 40,
-        "Lanche": 3,
+        "Lanche Misto": 3,
         "Pão Saloio": 1,
         "Pão Italiano": 40,
         "Pão de Sementes": 10,
@@ -244,11 +245,11 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
         "Padinhas": 7,
         "Pão de Leite": 1,
         "Triga Milha 0,5 kg": 2,
-        "Broa 2 kg": 4,
-        "Broa 1 kg": 5,
+        "Broa Amarela 2 kg": 4,
+        "Broa Amarela 1 kg": 5,
         "Pão de Forma Pequeno": 5,
         "Pasteis": 50,
-        "Lanche": 3,
+        "Lanche Misto": 3,
         "Pão Saloio": 9,
         "Pão Italiano": 40,
         "Pão de Sementes": 10,
@@ -266,11 +267,11 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
         "Padinhas": 7,
         "Pão de Leite": 1,
         "Triga Milha 0,5 kg": 2,
-        "Broa 2 kg": 4,
-        "Broa 1 kg": 5,
+        "Broa Amarela 2 kg": 4,
+        "Broa Amarela 1 kg": 5,
         "Pão de Forma Pequeno": 5,
         "Pasteis": 50,
-        "Lanche": 3,
+        "Lanche Misto": 3,
         "Pão Saloio": 9,
         "Pão Italiano": 40,
         "Pão de Sementes": 10,
@@ -288,11 +289,11 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
         "Padinhas": 7,
         "Pão de Leite": 1,
         "Triga Milha 0,5 kg": 2,
-        "Broa 2 kg": 4,
-        "Broa 1 kg": 5,
+        "Broa Amarela 2 kg": 4,
+        "Broa Amarela 1 kg": 5,
         "Pão de Forma Pequeno": 5,
         "Pasteis": 40,
-        "Lanche": 3,
+        "Lanche Misto": 3,
         "Pão Saloio": 9,
         "Pão Italiano": 40,
         "Pão de Sementes": 10,
@@ -310,11 +311,11 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
         "Padinhas": 7,
         "Pão de Leite": 1,
         "Triga Milha 0,5 kg": 2,
-        "Broa 2 kg": 4,
-        "Broa 1 kg": 6,
+        "Broa Amarela 2 kg": 4,
+        "Broa Amarela 1 kg": 6,
         "Pão de Forma Pequeno": 5,
         "Pasteis": 40,
-        "Lanche": 3,
+        "Lanche Misto": 3,
         "Pão Saloio": 9,
         "Pão Italiano": 40,
         "Pão de Sementes": 10,
@@ -333,15 +334,15 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
         "Padinhas": 8,
         "Pão de Leite": 1,
         "Triga Milha 0,5 kg": 6,
-        "Broa 2 kg": 4,
-        "Broa 1 kg": 6,
+        "Broa Amarela 2 kg": 4,
+        "Broa Amarela 1 kg": 6,
         "Pão de Forma Pequeno": 8,
         "Pasteis": 50,
-        "Lanche": 3,
+        "Lanche Misto": 3,
         "Pão Saloio": 9,
         "Pão Italiano": 40,
         "Pão de Sementes": 10,
-        "Regueifa de Coco": 1,
+        "Regueifa de Côco": 1,
         "Regueifa Doce": 2,
         "Meia Lua": 1,
         "Regueifa de Canela": 2,
@@ -362,12 +363,12 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
         "Padinhas": 6,
         "Pão de Leite": 1,
         "Triga Milha 0,5 kg": 1,
-        "Broa 2 kg": 4,
-        "Broa 1 kg": 3,
+        "Broa Amarela 2 kg": 4,
+        "Broa Amarela 1 kg": 3,
         "Pasteis": 60,
         "Pão Saloio": 4,
         "Pão Italiano": 35,
-        "Regueifa de Coco": 4,
+        "Regueifa de Côco": 4,
         "Regueifa Doce": 5,
         "Meia Lua": 3,
         "Trança de Chocolate": 3,
@@ -393,7 +394,7 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
       "Broa Amarela 1 kg": 2,
       "Pão de Forma Pequeno": 2,
       "Pasteis": 15,
-      "Lanche": 2,
+      "Lanche Misto": 2,
       "Pão Italiano": 37,
       "Pão de Sementes": 8,
       "Pão 7 Grãos Pequeno": 1,
@@ -414,7 +415,7 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
         "Broa Amarela 1 kg": 2,
         "Pão de Forma Pequeno": 2,
         "Pasteis": 15,
-        "Lanche": 2,
+        "Lanche Misto": 2,
         "Pão Italiano": 37,
         "Pão de Sementes": 8,
         "Pão 7 Grãos Pequeno": 1,
@@ -434,7 +435,7 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
         "Broa Amarela 1 kg": 2,
         "Pão de Forma Pequeno": 2,
         "Pasteis": 15,
-        "Lanche": 2,
+        "Lanche Misto": 2,
         "Pão Italiano": 37,
         "Pão de Sementes": 8,
         "Pão 7 Grãos Pequeno": 1,
@@ -454,7 +455,7 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
         "Broa Amarela 1 kg": 2,
         "Pão de Forma Pequeno": 2,
         "Pasteis": 15,
-        "Lanche": 2,
+        "Lanche Misto": 2,
         "Pão Italiano": 37,
         "Pão de Sementes": 8,
         "Pão 7 Grãos Pequeno": 1,
@@ -474,7 +475,7 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
         "Broa Amarela 1 kg": 2,
         "Pão de Forma Pequeno": 2,
         "Pasteis": 15,
-        "Lanche": 2,
+        "Lanche Misto": 2,
         "Pão Italiano": 37,
         "Pão de Sementes": 8,
         "Pão 7 Grãos Pequeno": 1,
@@ -494,7 +495,7 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
         "Broa Amarela 1 kg": 2,
         "Pão de Forma Pequeno": 2,
         "Pasteis": 15,
-        "Lanche": 2,
+        "Lanche Misto": 2,
         "Pão Italiano": 37,
         "Pão de Sementes": 8,
         "Pão 7 Grãos Pequeno": 1,
@@ -515,10 +516,10 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
         "Broa Amarela 1 kg": 5,
         "Pão de Forma Pequeno": 2,
         "Pasteis": 21,
-        "Lanche": 2,
+        "Lanche Misto": 2,
         "Pão Italiano": 45,
         "Pão de Sementes": 9,
-        "Regueifa de Coco": 8,
+        "Regueifa de Côco": 8,
         "Regueifa Doce": 5,
         "Regueifa de Canela": 1,
         "Pão Croissant": 3
@@ -893,7 +894,7 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
       "Pão Saloio": 15,
       "Broa Amarela 1 kg": 5,
       "Pasteis": 20,
-      "Lanche": 5
+      "Lanche Misto": 5
     },
     "quantidades_semanais": {
       "seg": {
@@ -906,7 +907,7 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
         "Pão Saloio": 15,
         "Broa Amarela 1 kg": 5,
         "Pasteis": 20,
-        "Lanche": 5
+        "Lanche Misto": 5
       },
       "ter": {
         "Pão Normal": 150,
@@ -918,7 +919,7 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
         "Pão Saloio": 15,
         "Broa Amarela 1 kg": 5,
         "Pasteis": 20,
-        "Lanche": 5
+        "Lanche Misto": 5
       },
       "qua": {
         "Pão Normal": 150,
@@ -930,7 +931,7 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
         "Pão Saloio": 15,
         "Broa Amarela 1 kg": 5,
         "Pasteis": 20,
-        "Lanche": 5
+        "Lanche Misto": 5
       },
       "qui": {
         "Pão Normal": 150,
@@ -942,7 +943,7 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
         "Pão Saloio": 15,
         "Broa Amarela 1 kg": 5,
         "Pasteis": 20,
-        "Lanche": 5
+        "Lanche Misto": 5
       },
       "sex": {
         "Pão Normal": 150,
@@ -954,7 +955,7 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
         "Pão Saloio": 15,
         "Broa Amarela 1 kg": 5,
         "Pasteis": 20,
-        "Lanche": 5
+        "Lanche Misto": 5
       },
       "sab": {
         "Pão Normal": 150,
@@ -966,7 +967,7 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
         "Pão Saloio": 15,
         "Broa Amarela 1 kg": 5,
         "Pasteis": 20,
-        "Lanche": 5
+        "Lanche Misto": 5
       },
       "dom": {}
     }
@@ -985,7 +986,7 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
       "Broa Amarela 1 kg": 14,
       "Pão de Forma Pequeno": 2,
       "Pasteis": 25,
-      "Lanche": 2,
+      "Lanche Misto": 2,
       "Pão Saloio": 10,
       "Pão Italiano": 30,
       "Pão de Sementes": 15,
@@ -1005,7 +1006,7 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
         "Broa Amarela 1 kg": 14,
         "Pão de Forma Pequeno": 2,
         "Pasteis": 25,
-        "Lanche": 2,
+        "Lanche Misto": 2,
         "Pão Saloio": 10,
         "Pão Italiano": 30,
         "Pão de Sementes": 15,
@@ -1024,7 +1025,7 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
         "Broa Amarela 1 kg": 14,
         "Pão de Forma Pequeno": 2,
         "Pasteis": 25,
-        "Lanche": 2,
+        "Lanche Misto": 2,
         "Pão Saloio": 10,
         "Pão Italiano": 30,
         "Pão de Sementes": 15,
@@ -1043,7 +1044,7 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
         "Broa Amarela 1 kg": 14,
         "Pão de Forma Pequeno": 2,
         "Pasteis": 25,
-        "Lanche": 2,
+        "Lanche Misto": 2,
         "Pão Saloio": 10,
         "Pão Italiano": 30,
         "Pão de Sementes": 15,
@@ -1062,7 +1063,7 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
         "Broa Amarela 1 kg": 14,
         "Pão de Forma Pequeno": 2,
         "Pasteis": 25,
-        "Lanche": 2,
+        "Lanche Misto": 2,
         "Pão Saloio": 10,
         "Pão Italiano": 30,
         "Pão de Sementes": 15,
@@ -1081,7 +1082,7 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
         "Broa Amarela 1 kg": 14,
         "Pão de Forma Pequeno": 2,
         "Pasteis": 25,
-        "Lanche": 2,
+        "Lanche Misto": 2,
         "Pão Saloio": 10,
         "Pão Italiano": 30,
         "Pão de Sementes": 15,
@@ -1100,7 +1101,7 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
         "Broa Amarela 1 kg": 14,
         "Pão de Forma Pequeno": 2,
         "Pasteis": 25,
-        "Lanche": 2,
+        "Lanche Misto": 2,
         "Pão Saloio": 10,
         "Pão Italiano": 30,
         "Pão de Sementes": 15,
@@ -1140,13 +1141,13 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Broa Amarela 1 kg": 3
       },
       "sab": {
-        "Broa 1 kg": 3,
-        "Regueifa de Coco": 2,
+        "Broa Amarela 1 kg": 3,
+        "Regueifa de Côco": 2,
         "Trança de Chocolate": 2
       },
       "dom": {
-        "Broa 1 kg": 4,
-        "Regueifa de Coco": 4,
+        "Broa Amarela 1 kg": 4,
+        "Regueifa de Côco": 4,
         "Trança de Chocolate": 2
       }
     }
@@ -1171,9 +1172,9 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pão Saloio": 20,
         "Padinhas": 50,
         "Pasteis": 10,
-        "Broa 1 kg": 4,
+        "Broa Amarela 1 kg": 4,
         "Regueifa Doce": 1,
-        "Regueifa de Coco": 1,
+        "Regueifa de Côco": 1,
         "Regueifa de Canela": 1,
         "Pão Croissant": 8,
         "Meia Bola de Carne": 1
@@ -1190,7 +1191,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pasteis": 10,
         "Broa Amarela 1 kg": 4,
         "Regueifa Doce": 1,
-        "Regueifa de Coco": 1,
+        "Regueifa de Côco": 1,
         "Regueifa de Canela": 1,
         "Pão Croissant": 8,
         "Meia Bola de Carne": 1
@@ -1207,7 +1208,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pasteis": 10,
         "Broa Amarela 1 kg": 4,
         "Regueifa Doce": 1,
-        "Regueifa de Coco": 1,
+        "Regueifa de Côco": 1,
         "Regueifa de Canela": 1,
         "Pão Croissant": 1,
         "Meia Bola de Carne": 1
@@ -1224,7 +1225,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pasteis": 10,
         "Broa Amarela 1 kg": 4,
         "Regueifa Doce": 1,
-        "Regueifa de Coco": 1,
+        "Regueifa de Côco": 1,
         "Regueifa de Canela": 1,
         "Pão Croissant": 1,
         "Meia Bola de Carne": 1
@@ -1241,7 +1242,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pasteis": 10,
         "Broa Amarela 1 kg": 4,
         "Regueifa Doce": 1,
-        "Regueifa de Coco": 1,
+        "Regueifa de Côco": 1,
         "Regueifa de Canela": 1,
         "Pão Croissant": 1,
         "Meia Bola de Carne": 1
@@ -1258,7 +1259,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pasteis": 10,
         "Broa Amarela 1 kg": 4,
         "Regueifa Doce": 2,
-        "Regueifa de Coco": 3,
+        "Regueifa de Côco": 3,
         "Regueifa de Canela": 1,
         "Pão Croissant": 8,
         "Meia Bola de Carne": 1,
@@ -1278,7 +1279,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pasteis": 5,
         "Broa Amarela 1 kg": 3,
         "Regueifa Doce": 3,
-        "Regueifa de Coco": 2,
+        "Regueifa de Côco": 2,
         "Regueifa de Canela": 2,
         "Trança de Chocolate": 2,
         "Regueifa Branca": 2
@@ -1296,7 +1297,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
     "ativo": true,
     "quantidades_semanais": {
       "seg": {
-        "Pão da Avó": 30,
+        "Pão Saloio": 30,
         "Pão de Sementes": 10,
         "Padinhas": 15,
         "Pão de Leite": 15,
@@ -1308,7 +1309,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pastel de Nata": 1
       },
       "ter": {
-        "Pão da Avó": 30,
+        "Pão Saloio": 30,
         "Pão de Sementes": 10,
         "Padinhas": 15,
         "Pão de Leite": 15,
@@ -1320,7 +1321,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pastel de Nata": 1
       },
       "qua": {
-        "Pão da Avó": 30,
+        "Pão Saloio": 30,
         "Pão de Sementes": 10,
         "Padinhas": 15,
         "Pão de Leite": 15,
@@ -1332,7 +1333,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pastel de Nata": 1
       },
       "qui": {
-        "Pão da Avó": 30,
+        "Pão Saloio": 30,
         "Pão de Sementes": 10,
         "Padinhas": 15,
         "Pão de Leite": 15,
@@ -1344,7 +1345,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pastel de Nata": 1
       },
       "sex": {
-        "Pão da Avó": 30,
+        "Pão Saloio": 30,
         "Pão de Sementes": 10,
         "Padinhas": 15,
         "Pão de Leite": 15,
@@ -1356,7 +1357,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pastel de Nata": 1
       },
       "sab": {
-        "Pão da Avó": 30,
+        "Pão Saloio": 30,
         "Pão de Sementes": 10,
         "Padinhas": 15,
         "Pão de Leite": 15,
@@ -1506,19 +1507,19 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
     "ativo": true,
     "quantidades_semanais": {
       "seg": {
-        "Mini Pão Centeio": 30
+        "Mini Pão de Centeio": 30
       },
       "ter": {
-        "Mini Pão Centeio": 30
+        "Mini Pão de Centeio": 30
       },
       "qua": {
-        "Mini Pão Centeio": 30
+        "Mini Pão de Centeio": 30
       },
       "qui": {
-        "Mini Pão Centeio": 30
+        "Mini Pão de Centeio": 30
       },
       "sex": {
-        "Mini Pão Centeio": 30
+        "Mini Pão de Centeio": 30
       },
       "sab": {},
       "dom": {}
@@ -1547,7 +1548,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pão de Sementes": 5,
         "Pão de Leite": 6,
         "Regueifa Doce": 1,
-        "Regueifa de Coco": 1,
+        "Regueifa de Côco": 1,
         "Meia Lua": 1,
         "Regueifa de Canela": 2,
         "Trança de Chocolate": 1,
@@ -1566,7 +1567,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pão de Sementes": 5,
         "Pão de Leite": 6,
         "Regueifa Doce": 1,
-        "Regueifa de Coco": 1,
+        "Regueifa de Côco": 1,
         "Meia Lua": 1,
         "Regueifa de Canela": 2,
         "Trança de Chocolate": 1,
@@ -1585,7 +1586,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pão de Sementes": 5,
         "Pão de Leite": 6,
         "Regueifa Doce": 1,
-        "Regueifa de Coco": 1,
+        "Regueifa de Côco": 1,
         "Meia Lua": 1,
         "Regueifa de Canela": 2,
         "Trança de Chocolate": 1,
@@ -1604,7 +1605,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pão de Sementes": 5,
         "Pão de Leite": 6,
         "Regueifa Doce": 1,
-        "Regueifa de Coco": 1,
+        "Regueifa de Côco": 1,
         "Meia Lua": 1,
         "Regueifa de Canela": 2,
         "Trança de Chocolate": 1,
@@ -1623,7 +1624,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pão de Sementes": 5,
         "Pão de Leite": 6,
         "Regueifa Doce": 1,
-        "Regueifa de Coco": 1,
+        "Regueifa de Côco": 1,
         "Meia Lua": 1,
         "Regueifa de Canela": 2,
         "Trança de Chocolate": 1,
@@ -1642,7 +1643,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pão de Sementes": 5,
         "Pão de Leite": 6,
         "Regueifa Doce": 2,
-        "Regueifa de Coco": 6,
+        "Regueifa de Côco": 6,
         "Meia Lua": 2,
         "Regueifa de Canela": 3,
         "Trança de Chocolate": 8,
@@ -1736,57 +1737,57 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
     "ativo": true,
     "quantidades_semanais": {
       "seg": {
-        "Broa 1 kg": 2,
+        "Broa Amarela 1 kg": 2,
         "Padas Normais": 5,
         "Padinhas": 20,
         "Pão Normal": 70,
         "Pão de Sementes": 5,
-        "Pão da Avó": 8,
+        "Pão Saloio": 8,
         "Triga Milha Saloio": 1
       },
       "ter": {
-        "Broa 1 kg": 2,
+        "Broa Amarela 1 kg": 2,
         "Padas Normais": 5,
         "Padinhas": 20,
         "Pão Normal": 70,
         "Pão de Sementes": 5,
-        "Pão da Avó": 8,
+        "Pão Saloio": 8,
         "Triga Milha Saloio": 1
       },
       "qua": {
-        "Broa 1 kg": 2,
+        "Broa Amarela 1 kg": 2,
         "Padas Normais": 5,
         "Padinhas": 20,
         "Pão Normal": 70,
         "Pão de Sementes": 5,
-        "Pão da Avó": 8,
+        "Pão Saloio": 8,
         "Triga Milha Saloio": 1
       },
       "qui": {
-        "Broa 1 kg": 2,
+        "Broa Amarela 1 kg": 2,
         "Padas Normais": 5,
         "Padinhas": 20,
         "Pão Normal": 70,
         "Pão de Sementes": 5,
-        "Pão da Avó": 8,
+        "Pão Saloio": 8,
         "Triga Milha Saloio": 1
       },
       "sex": {
-        "Broa 1 kg": 2,
+        "Broa Amarela 1 kg": 2,
         "Padas Normais": 5,
         "Padinhas": 20,
         "Pão Normal": 70,
         "Pão de Sementes": 5,
-        "Pão da Avó": 8,
+        "Pão Saloio": 8,
         "Triga Milha Saloio": 1
       },
       "sab": {
-        "Broa 1 kg": 2,
+        "Broa Amarela 1 kg": 2,
         "Padas Normais": 5,
         "Padinhas": 10,
         "Pão Normal": 80,
         "Pão de Sementes": 5,
-        "Pão da Avó": 9,
+        "Pão Saloio": 9,
         "Triga Milha Saloio": 1,
         "Meia Lua": 1,
         "Pão Italiano": 5,
@@ -1986,7 +1987,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pasteis": 55,
         "Pastel Miniatura": 25,
         "Pão com Chouriço": 8,
-        "Lanche": 6,
+        "Lanche Misto": 6,
         "Pão Pizza": 2,
         "Merendas": 2,
         "Meia Bola de Carne": 3
@@ -2007,7 +2008,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pasteis": 55,
         "Pastel Miniatura": 25,
         "Pão com Chouriço": 8,
-        "Lanche": 6,
+        "Lanche Misto": 6,
         "Pão Pizza": 2,
         "Merendas": 2,
         "Meia Bola de Carne": 3
@@ -2028,7 +2029,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pasteis": 55,
         "Pastel Miniatura": 25,
         "Pão com Chouriço": 8,
-        "Lanche": 6,
+        "Lanche Misto": 6,
         "Pão Pizza": 2,
         "Merendas": 2,
         "Meia Bola de Carne": 3
@@ -2049,7 +2050,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pasteis": 55,
         "Pastel Miniatura": 25,
         "Pão com Chouriço": 8,
-        "Lanche": 6,
+        "Lanche Misto": 6,
         "Pão Pizza": 2,
         "Merendas": 2,
         "Meia Bola de Carne": 3
@@ -2070,7 +2071,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pasteis": 55,
         "Pastel Miniatura": 25,
         "Pão com Chouriço": 8,
-        "Lanche": 6,
+        "Lanche Misto": 6,
         "Pão Pizza": 2,
         "Merendas": 2,
         "Meia Bola de Carne": 3
@@ -2091,7 +2092,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pasteis": 55,
         "Pastel Miniatura": 25,
         "Pão com Chouriço": 8,
-        "Lanche": 6,
+        "Lanche Misto": 6,
         "Pão Pizza": 2,
         "Merendas": 2,
         "Meia Bola de Carne": 3
@@ -2114,7 +2115,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pão Italiano": 15,
         "Padas de Centeio": 15,
         "Pasteis": 4,
-        "Lanche": 1,
+        "Lanche Misto": 1,
         "Fatia de Pizza": 1,
         "Broa Amarela 1 kg": 3,
         "Triga Milha Saloio": 2
@@ -2124,7 +2125,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pão Italiano": 15,
         "Padas de Centeio": 15,
         "Pasteis": 4,
-        "Lanche": 1,
+        "Lanche Misto": 1,
         "Fatia de Pizza": 1,
         "Broa Amarela 1 kg": 3,
         "Triga Milha Saloio": 2
@@ -2134,7 +2135,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pão Italiano": 15,
         "Padas de Centeio": 15,
         "Pasteis": 4,
-        "Lanche": 1,
+        "Lanche Misto": 1,
         "Fatia de Pizza": 1,
         "Broa Amarela 1 kg": 3,
         "Triga Milha Saloio": 2
@@ -2144,7 +2145,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pão Italiano": 15,
         "Padas de Centeio": 15,
         "Pasteis": 4,
-        "Lanche": 1,
+        "Lanche Misto": 1,
         "Fatia de Pizza": 1,
         "Broa Amarela 1 kg": 3,
         "Triga Milha Saloio": 2
@@ -2154,7 +2155,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pão Italiano": 15,
         "Padas de Centeio": 15,
         "Pasteis": 4,
-        "Lanche": 1,
+        "Lanche Misto": 1,
         "Fatia de Pizza": 1,
         "Broa Amarela 1 kg": 3,
         "Triga Milha Saloio": 2
@@ -2164,7 +2165,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Pão Italiano": 15,
         "Padas de Centeio": 15,
         "Pasteis": 4,
-        "Lanche": 1,
+        "Lanche Misto": 1,
         "Fatia de Pizza": 1,
         "Broa Amarela 1 kg": 3,
         "Triga Milha Saloio": 2
@@ -2271,7 +2272,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Padas de Centeio": 5,
         "Pão de Sementes": 10,
         "Pasteis": 21,
-        "Lanche": 4,
+        "Lanche Misto": 4,
         "Fatia de Pizza": 2
       },
       "ter": {
@@ -2289,7 +2290,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Padas de Centeio": 5,
         "Pão de Sementes": 10,
         "Pasteis": 21,
-        "Lanche": 4,
+        "Lanche Misto": 4,
         "Fatia de Pizza": 2
       },
       "qua": {
@@ -2307,7 +2308,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Padas de Centeio": 5,
         "Pão de Sementes": 10,
         "Pasteis": 21,
-        "Lanche": 4,
+        "Lanche Misto": 4,
         "Fatia de Pizza": 2
       },
       "qui": {
@@ -2325,7 +2326,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Padas de Centeio": 5,
         "Pão de Sementes": 10,
         "Pasteis": 21,
-        "Lanche": 4,
+        "Lanche Misto": 4,
         "Fatia de Pizza": 2
       },
       "sex": {
@@ -2343,7 +2344,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Padas de Centeio": 5,
         "Pão de Sementes": 10,
         "Pasteis": 21,
-        "Lanche": 4,
+        "Lanche Misto": 4,
         "Fatia de Pizza": 2
       },
       "sab": {
@@ -2361,7 +2362,7 @@ export const CLIENTES_EMPRESARIAIS_B2B_INICIAIS: ClienteEmpresarialB2B[] = [
         "Padas de Centeio": 5,
         "Pão de Sementes": 10,
         "Pasteis": 21,
-        "Lanche": 4,
+        "Lanche Misto": 4,
         "Fatia de Pizza": 2
       },
       "dom": {}

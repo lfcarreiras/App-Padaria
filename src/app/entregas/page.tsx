@@ -32,7 +32,6 @@ import { Encomenda, EstadoRota, Loja, Carrinha, Produto, BaseFixaCarrinha, Clien
 import { useTranslation } from '../../lib/i18n';
 import { useAuth } from '../../lib/authContext';
 import { obterConfiguracaoMarca } from '../../lib/tinaContent';
-import * as XLSX from 'xlsx';
 import { 
   Truck, 
   MapPin, 
@@ -299,147 +298,12 @@ export default function EntregasPage() {
   };
 
   // ---------------------------------------------------------------------------
-  // EXPORTAÇÃO EXCEL DO MAPA DIÁRIO OFICIAL (POR ARTIGO E POR CARRINHA + B2B)
+  // NOTA OPERACIONAL: O mapa diário legado em formato Excel (.xlsx) foi inativado.
+  // A operação oficial assenta a 100% nos relatórios gerados em PDF especializados:
+  // - Folha de Carga Oficial por Carrinha (Rotas 1 a 7) com totais de caixas e pão;
+  // - Folha de Fabrico Oficial para o Forno (Dashboard de Produção);
+  // - Comprovativos de Entrega B2B com Assinatura Digital Touchscreen.
   // ---------------------------------------------------------------------------
-  const exportarMapaDiarioExcel = async () => {
-    const artigosAtivos = carregarArtigosBaseFixa();
-    const cabecalhosArtigos = artigosAtivos.length > 0 ? artigosAtivos : COLUNAS_MAPA_DIARIO_OFICIAL;
-    const linhaTitulo1 = ['UNIÃO PANIFICADORA CENTRAL AROUQUENSE, LDA'];
-    const linhaTitulo2 = [
-      'MAPA DIÁRIO DE DISTRIBUIÇÃO E CARRINHAS',
-      '',
-      'DIA DA SEMANA:',
-      nomesDiaSemana[diaSemanaHoje] || diaSemanaHoje.toUpperCase(),
-      '',
-      'DATA:',
-      hoje,
-    ];
-    const linhaVazia: string[] = [];
-    const linhaCabecalho = ['VENDEDOR', ...cabecalhosArtigos, 'TOTAL UNIDADES'];
-
-    // Função auxiliar para obter a quantidade de um produto numa encomenda pelo nome
-    const obterQtdEncomendasCarrinha = (carrinhaId: string, colNome: string) => {
-      const encsCarrinha = encomendas.filter(
-        (e) =>
-          e.data_agendamento === hoje &&
-          e.tipo === 'entrega_domicilio' &&
-          e.carrinha_id === carrinhaId &&
-          e.estado !== 'cancelado'
-      );
-      let soma = 0;
-      encsCarrinha.forEach((enc) => {
-        enc.itens.forEach((it) => {
-          if (it.estado_producao === 'recusado') return;
-          if (
-            it.produto_id === colNome ||
-            (it.produto_nome || '').toLowerCase() === (colNome || '').toLowerCase()
-          ) {
-            soma += it.quantidade;
-          }
-        });
-      });
-      return soma;
-    };
-
-    const linhasTabela: (string | number)[][] = [];
-    const totaisPorColuna = new Array(cabecalhosArtigos.length).fill(0);
-
-    // 1. Linhas das Carrinhas (Base Diária + Encomendas Adicionais)
-    carrinhas.forEach((car, idx) => {
-      const bf =
-        baseFixaCarrinhas.find((b) => b.carrinha_id === car.id) ||
-        baseFixaCarrinhas[idx];
-      const mapaFixo = bf?.quantidades_semanais?.[diaSemanaHoje] || bf?.quantidades_por_produto || bf?.quantidades || {};
-      const nomeLinha = car.identificador || `Carrinha ${idx + 1}`;
-      let totalLinha = 0;
-      const valoresCols = cabecalhosArtigos.map((colNome, colIdx) => {
-        const qtdFixa = Number(mapaFixo[colNome] || 0);
-        const qtdAdicional = obterQtdEncomendasCarrinha(car.id, colNome);
-        const soma = qtdFixa + qtdAdicional;
-        totaisPorColuna[colIdx] += soma;
-        totalLinha += soma;
-        return soma > 0 ? soma : '';
-      });
-      linhasTabela.push([nomeLinha, ...valoresCols, totalLinha]);
-    });
-
-    // 2. Linhas dos Clientes Empresariais (B2B)
-    clientesB2B.filter((c) => c?.ativo).forEach((cli) => {
-      const semanaCli = cli?.quantidades_semanais || cli?.quantidades_semana || ({} as Record<string, Record<string, number>>);
-      const mapaDia = semanaCli[diaSemanaHoje] || {};
-      let totalCli = 0;
-      const valoresCli = cabecalhosArtigos.map((colNome, colIdx) => {
-        const qtd = Number(mapaDia[colNome] || 0);
-        totaisPorColuna[colIdx] += qtd;
-        totalCli += qtd;
-        return qtd > 0 ? qtd : '';
-      });
-      linhasTabela.push([cli.nome, ...valoresCli, totalCli]);
-    });
-
-    // 3. Linhas das Entregas Recorrentes Diárias Porta-a-Porta (excluindo férias)
-    const basesAtivasHoje = basesRecorrentes.filter(
-      (b) => b.ativo && !clienteEmModoFerias(b, hoje)
-    );
-    if (basesAtivasHoje.length > 0) {
-      basesAtivasHoje.forEach((b) => {
-        const mapaDia = b.quantidades_semanais?.[diaSemanaHoje] || {};
-        const totalBase = Object.values(mapaDia).reduce((acc: number, val) => acc + (typeof val === 'number' ? val : 0), 0);
-        if (totalBase > 0) {
-          let totalCli = 0;
-          const valoresCli = cabecalhosArtigos.map((colNome, colIdx) => {
-            const qtd = Number(mapaDia[colNome] || 0);
-            totaisPorColuna[colIdx] += qtd;
-            totalCli += qtd;
-            return qtd > 0 ? qtd : '';
-          });
-          linhasTabela.push([`🏠 ${b.cliente_nome || 'Cliente Recorrente'}`, ...valoresCli, totalCli]);
-        }
-      });
-    }
-
-    // 4. Linha Final TOTAL
-    const grandeTotal = totaisPorColuna.reduce((a, b) => a + b, 0);
-    const linhaTotal = [
-      'TOTAL',
-      ...totaisPorColuna.map((v) => (v > 0 ? v : 0)),
-      grandeTotal,
-    ];
-
-    const aoa = [
-      linhaTitulo1,
-      linhaTitulo2,
-      linhaVazia,
-      linhaCabecalho,
-      ...linhasTabela,
-      linhaTotal,
-    ];
-
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws['!cols'] = [
-      { wch: 24 }, // VENDEDOR
-      ...cabecalhosArtigos.map(() => ({ wch: 11 })),
-      { wch: 16 }, // TOTAL UNIDADES
-    ];
-    XLSX.utils.book_append_sheet(wb, ws, 'MAPA DIÁRIO');
-    XLSX.writeFile(wb, `Mapa_Diario_Carrinhas_${hoje}.xlsx`);
-
-    await registarLogAuditoria({
-      encomenda_id: 'mapa-diario-excel',
-      codigo_encomenda: 'MAPA-DIARIO',
-      cliente_nome: 'Frota 5 Carrinhas & Clientes B2B',
-      utilizador_id: currentUser.id,
-      utilizador_nome: currentUser.nome,
-      utilizador_role: currentUser.role,
-      loja_id: selectedLojaId === 'todas' ? 'todas' : lojaAtual.id,
-      loja_nome: selectedLojaId === 'todas' ? 'Todas as Lojas' : lojaAtual.nome,
-      painel: 'entregas',
-      acao: 'Exportação Mapa Diário de Entregas (Excel)',
-      detalhes: `Exportado Mapa Diário oficial de quantidades por artigo e por carrinha (1º ao 5º Carro + ${clientesB2B.length} Clientes Empresariais) para a data ${hoje} (${grandeTotal} unidades totais).`,
-    });
-  };
-
   // ---------------------------------------------------------------------------
   // HANDLERS DE MODO FÉRIAS E PAUSA DE ENTREGAS DIÁRIAS (PORTA-A-PORTA)
   // ---------------------------------------------------------------------------
