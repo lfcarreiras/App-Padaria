@@ -363,6 +363,25 @@ export default function EntregasPage() {
     }
   };
 
+  // Clientes Empresariais B2B com entregas ativas e quantidade > 0 un. hoje (exclui escolas/empresas a 0)
+  const clientesB2BAtivosComCargaHoje = useMemo(() => {
+    return clientesB2B
+      .filter((cli) => cli.ativo && (carrinhaSelecionadaId === 'todas' || cli.carrinha_id === carrinhaSelecionadaId))
+      .map((cli) => {
+        const semCli = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
+        const mapaHoje = semCli[diaSemanaHoje] || {};
+        const itensHoje = Object.keys(mapaHoje)
+          .map((art) => {
+            const { quantidade } = obterQuantidadeEfetivaClienteB2B(hoje, cli.id, art, semCli, diaSemanaHoje);
+            return [normalizarNomeArtigoCanonico(art), quantidade] as [string, number];
+          })
+          .filter(([, q]) => q > 0);
+        const totalQtd = itensHoje.reduce((acc, [, q]) => acc + q, 0);
+        return { cli, itensHoje, totalQtd };
+      })
+      .filter(({ totalQtd }) => totalQtd > 0);
+  }, [clientesB2B, carrinhaSelecionadaId, diaSemanaHoje, hoje]);
+
   // ---------------------------------------------------------------------------
   // GERAÇÃO DE FOLHA DE CARGA (PDF) E COMPROVATIVOS B2B VIA @react-pdf/renderer
   // ---------------------------------------------------------------------------
@@ -953,100 +972,81 @@ export default function EntregasPage() {
         </div>
 
         {/* CLIENTES EMPRESARIAIS B2B DA ROTA (FILTRANDO QUEM TEM 0 UN. HOJE) */}
-        {(() => {
-          const clientesAtivosComCarga = clientesB2B
-            .filter((cli) => cli.ativo && (carrinhaSelecionadaId === 'todas' || cli.carrinha_id === carrinhaSelecionadaId))
-            .map((cli) => {
-              const semCli = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
-              const mapaHoje = semCli[diaSemanaHoje] || {};
-              const itensHoje = Object.keys(mapaHoje)
-                .map((art) => {
-                  const { quantidade } = obterQuantidadeEfetivaClienteB2B(hoje, cli.id, art, semCli, diaSemanaHoje);
-                  return [normalizarNomeArtigoCanonico(art), quantidade] as [string, number];
-                })
-                .filter(([, q]) => q > 0);
-              const totalQtd = itensHoje.reduce((acc, [, q]) => acc + q, 0);
-              return { cli, itensHoje, totalQtd };
-            })
-            .filter(({ totalQtd }) => totalQtd > 0);
-
-          if (clientesAtivosComCarga.length === 0) return null;
-
-          return (
-            <div className="rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-amber-500/10 border-2 border-amber-300 p-4 shadow-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-600 text-white font-black text-xs shadow-xs">
-                    <Building2 className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black text-stone-900">
-                      Clientes Empresariais B2B da Rota ({clientesAtivosComCarga.length})
-                    </h3>
-                    <p className="text-[11px] text-stone-600">
-                      Paragens institucionais fixas com entregas agendadas para hoje ({nomesDiaSemana[diaSemanaHoje] || diaSemanaHoje.toUpperCase()})
-                    </p>
-                  </div>
+        {clientesB2BAtivosComCargaHoje.length > 0 && (
+          <div className="rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-amber-500/10 border-2 border-amber-300 p-4 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-600 text-white font-black text-xs shadow-xs">
+                  <Building2 className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-stone-900">
+                    Clientes Empresariais B2B da Rota ({clientesB2BAtivosComCargaHoje.length})
+                  </h3>
+                  <p className="text-[11px] text-stone-600">
+                    Paragens institucionais fixas com entregas agendadas para hoje ({nomesDiaSemana[diaSemanaHoje] || diaSemanaHoje.toUpperCase()})
+                  </p>
                 </div>
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {clientesAtivosComCarga.map(({ cli, itensHoje, totalQtd }) => {
-                  const carrinhaDoCli = carrinhas.find((c) => c.id === cli.carrinha_id);
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {clientesB2BAtivosComCargaHoje.map(({ cli, itensHoje, totalQtd }) => {
+                const carrinhaDoCli = carrinhas.find((c) => c.id === cli.carrinha_id);
 
-                  return (
-                    <div
-                      key={cli.id}
-                      className="rounded-xl bg-white border border-amber-200/90 p-3 shadow-2xs hover:shadow-sm transition flex flex-col justify-between"
-                    >
-                      <div>
-                        <div className="flex items-center justify-between gap-1 mb-1">
-                          <span className="text-xs font-black text-stone-900 truncate">{cli.nome}</span>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 shrink-0">
-                            {carrinhaDoCli?.rota || carrinhaDoCli?.identificador || 'Rota'}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-stone-500 flex items-center gap-1 mb-2">
-                          <MapPin className="h-3 w-3 text-red-500 shrink-0" />
-                          <span className="truncate">{cli.morada || 'Arouca'}</span>
-                        </p>
-
-                        <div className="rounded-lg bg-stone-50 p-2 mb-3 text-[11px] space-y-1">
-                          <div className="font-bold text-stone-700 flex justify-between">
-                            <span>Total Hoje ({nomesDiaSemana[diaSemanaHoje]}):</span>
-                            <span className="font-black text-amber-800">{totalQtd} un.</span>
-                          </div>
-                          {itensHoje
-                            .slice(0, 3)
-                            .map(([art, q]) => (
-                              <div key={art} className="text-stone-600 flex justify-between text-[10px]">
-                                <span className="truncate mr-1">{art}:</span>
-                                <span className="font-semibold">{q} un.</span>
-                              </div>
-                            ))}
-                          {itensHoje.length > 3 && (
-                            <p className="text-[10px] text-stone-400 italic">
-                              +{itensHoje.length - 3} outros artigos...
-                            </p>
-                          )}
-                        </div>
+                return (
+                  <div
+                    key={cli.id}
+                    className="rounded-xl bg-white border border-amber-200/90 p-3 shadow-2xs hover:shadow-sm transition flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <span className="text-xs font-black text-stone-900 truncate">{cli.nome}</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 shrink-0">
+                          {carrinhaDoCli?.rota || carrinhaDoCli?.identificador || 'Rota'}
+                        </span>
                       </div>
+                      <p className="text-[11px] text-stone-500 flex items-center gap-1 mb-2">
+                        <MapPin className="h-3 w-3 text-red-500 shrink-0" />
+                        <span className="truncate">{cli.morada || 'Arouca'}</span>
+                      </p>
 
-                      {cli.telefone && (
-                        <div className="pt-2 border-t border-stone-100 flex items-center justify-end">
-                          <a
-                            href={`tel:${cli.telefone.replace(/\s+/g, '')}`}
-                            className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold transition"
-                            title="Ligar para o cliente"
-                          >
-                            <Phone className="h-3.5 w-3.5 text-emerald-600" />
-                            <span>{cli.telefone}</span>
-                          </a>
+                      <div className="rounded-lg bg-stone-50 p-2 mb-3 text-[11px] space-y-1">
+                        <div className="font-bold text-stone-700 flex justify-between">
+                          <span>Total Hoje ({nomesDiaSemana[diaSemanaHoje]}):</span>
+                          <span className="font-black text-amber-800">{totalQtd} un.</span>
                         </div>
-                      )}
+                        {itensHoje
+                          .slice(0, 3)
+                          .map(([art, q]) => (
+                            <div key={art} className="text-stone-600 flex justify-between text-[10px]">
+                              <span className="truncate mr-1">{art}:</span>
+                              <span className="font-semibold">{q} un.</span>
+                            </div>
+                          ))}
+                        {itensHoje.length > 3 && (
+                          <p className="text-[10px] text-stone-400 italic">
+                            +{itensHoje.length - 3} outros artigos...
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  );
-                })}
+
+                    {cli.telefone && (
+                      <div className="pt-2 border-t border-stone-100 flex items-center justify-end">
+                        <a
+                          href={`tel:${cli.telefone.replace(/\s+/g, '')}`}
+                          className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold transition"
+                          title="Ligar para o cliente"
+                        >
+                          <Phone className="h-3.5 w-3.5 text-emerald-600" />
+                          <span>{cli.telefone}</span>
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

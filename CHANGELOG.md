@@ -42,6 +42,12 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.12] - 2026-10-24
+
+### Fixed (Correção de Fecho de Tag JSX em `entregas/page.tsx`)
+- **Refatoração do Bloco de Clientes B2B da Rota**:
+  - Movida a agregação e filtragem de clientes empresariais ativos para `useMemo` (`clientesB2BAtivosComCargaHoje`), eliminando a expressão IIFE no JSX que provocava erro de sintaxe SWC no build da Vercel (`Unexpected token div. Expected jsx identifier`).
+
 ## [v2.7.11] - 2026-10-24
 
 ### Added & Changed (Segregação de Fontes de Carga e Supressão de Clientes B2B a Zero)
