@@ -42,6 +42,14 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.17] - 2026-10-24
+
+### Refactor & Simplification (Eliminação Integral de Camadas de Tradução Legada de Artigos)
+- **Eliminação de `normalizarNomeArtigoCanonico` e Confiança Direta no Supabase**:
+  - Removidas todas as chamadas e dicionários de conversão estáticos em todo o projeto (`MatrizAjustesAdhoc.tsx`, `PdfViewerModal.tsx`, `producao/page.tsx`, `entregas/page.tsx`, `gestao/page.tsx`, `encomendasService.ts`).
+  - A aplicação passa a confiar e a consumir 100% diretamente os nomes oficiais da base de dados Supabase (57 artigos canónicos consolidados), usando apenas higienização elementar de espaços (`.trim()`).
+  - As funções `obterQuantidadeEfetivaBaseRota` e `obterQuantidadeEfetivaClienteB2B` foram simplificadas para consultas diretas e lineares, acelerando a renderização e eliminando qualquer risco de `ReferenceError`.
+
 ## [v2.7.16] - 2026-10-24
 
 ### Fixed (Resolução de ReferenceError: normalizarNomeArtigoCanonico nos Ajustes Pontuais B2B)

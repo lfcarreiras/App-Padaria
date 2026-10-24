@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Carrinha, ClienteEmpresarialB2B, DiaSemana, Loja, Encomenda } from '../../types';
-import { obterQuantidadeEfetivaClienteB2B, normalizarNomeArtigoCanonico } from '../../lib/encomendasService';
+import { obterQuantidadeEfetivaClienteB2B } from '../../lib/encomendasService';
 import { 
   X, 
   Printer, 
@@ -168,7 +168,7 @@ export function PdfViewerModal({
               .filter((it: any) => setorModalFiltro === 'todos' || it.setor === setorModalFiltro)
               .map((it: any) => ({
                 ...it,
-                produto_nome: normalizarNomeArtigoCanonico(it.produto_nome),
+                produto_nome: String(it.produto_nome || '').trim(),
                 quantidade: Number(it.quantidade),
               }));
 
@@ -233,7 +233,7 @@ export function PdfViewerModal({
               qtd = quantidade;
             }
             return {
-              artigo: normalizarNomeArtigoCanonico(artigo),
+              artigo: String(artigo || '').trim(),
               quantidade: qtd,
             };
           })
@@ -260,7 +260,7 @@ export function PdfViewerModal({
         const itensValidos = (enc.itens || [])
           .filter((it: any) => it.estado_producao !== 'recusado' && Number(it.quantidade) > 0)
           .map((it: any) => ({
-            produto_nome: normalizarNomeArtigoCanonico(it.produto_nome),
+            produto_nome: String(it.produto_nome || '').trim(),
             quantidade: Number(it.quantidade),
             unidade: normalizarUnidade(it.unidade),
           }));

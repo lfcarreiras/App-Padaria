@@ -26,7 +26,6 @@ import {
   carregarBasesDiariasRecorrentes,
   salvarBaseDiariaRecorrente,
   clienteEmModoFerias,
-  normalizarNomeArtigoCanonico,
   subscreverAlteracoesBasesRecorrentes
 } from '../../lib/encomendasService';
 import { Encomenda, EstadoRota, Loja, Carrinha, Produto, BaseFixaCarrinha, ClienteEmpresarialB2B } from '../../types';
@@ -373,7 +372,7 @@ export default function EntregasPage() {
         const itensHoje = Object.keys(mapaHoje)
           .map((art) => {
             const { quantidade } = obterQuantidadeEfetivaClienteB2B(hoje, cli.id, art, semCli, diaSemanaHoje);
-            return [normalizarNomeArtigoCanonico(art), quantidade] as [string, number];
+            return [art.trim(), quantidade] as [string, number];
           })
           .filter(([, q]) => q > 0);
         const totalQtd = itensHoje.reduce((acc, [, q]) => acc + q, 0);
@@ -400,7 +399,7 @@ export default function EntregasPage() {
         const prodRef = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
         const cat: 'padaria' | 'pastelaria' = prodRef?.categoria || (artigo.toLowerCase().includes('bolo') || artigo.toLowerCase().includes('croissant') ? 'pastelaria' : 'padaria');
         const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
-        const artigoCanonico = normalizarNomeArtigoCanonico(artigo);
+        const artigoCanonico = artigo.trim();
         mapaItens.set(artigoCanonico, {
           quantidade: qtd,
           categoria: cat,
@@ -423,7 +422,7 @@ export default function EntregasPage() {
           const prodRef = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
           const cat: 'padaria' | 'pastelaria' = prodRef?.categoria || (artigo.toLowerCase().includes('bolo') || artigo.toLowerCase().includes('croissant') ? 'pastelaria' : 'padaria');
           const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
-          const artigoCanonico = normalizarNomeArtigoCanonico(artigo);
+          const artigoCanonico = artigo.trim();
           const atual = mapaItens.get(artigoCanonico);
           if (atual) {
             atual.quantidade += qtd;

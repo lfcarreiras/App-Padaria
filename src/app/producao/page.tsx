@@ -15,7 +15,6 @@ import {
   subscreverAlteracoesClientesB2B,
   carregarBasesDiariasRecorrentes,
   clienteEmModoFerias,
-  normalizarNomeArtigoCanonico,
   subscreverAlteracoesBasesRecorrentes,
   obterDiaSemanaDeData,
   obterQuantidadeEfetivaBaseRota,
@@ -405,7 +404,7 @@ export default function ProducaoPage() {
       Object.keys(mapaDia).forEach((artigo) => {
         const { quantidade } = obterQuantidadeEfetivaBaseRota(dataAlvo, car.id, artigo, semana, diaSemanaAlvo);
         if (quantidade > 0) {
-          const artigoCanonico = normalizarNomeArtigoCanonico(artigo);
+          const artigoCanonico = artigo.trim();
           const entry = registrarOuObter(artigoCanonico);
           entry.qtd_bases_diarias += quantidade;
         }
@@ -471,7 +470,7 @@ export default function ProducaoPage() {
         // Se o item foi recusado parcialmente pela produção, não entra na pool
         if (item.estado_producao === 'recusado') return;
 
-        const artigoCanonico = normalizarNomeArtigoCanonico(item.produto_nome);
+        const artigoCanonico = (item.produto_nome || '').trim();
         const entry = registrarOuObter(artigoCanonico, item.setor);
         entry.qtd_encomendas += item.quantidade;
 
@@ -633,7 +632,7 @@ export default function ProducaoPage() {
         const prodRef = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
         const cat: 'padaria' | 'pastelaria' = prodRef?.categoria || (artigo.toLowerCase().includes('bolo') || artigo.toLowerCase().includes('croissant') ? 'pastelaria' : 'padaria');
         const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
-        const artigoCanonico = normalizarNomeArtigoCanonico(artigo);
+        const artigoCanonico = artigo.trim();
         mapaItens.set(artigoCanonico, {
           quantidade,
           categoria: cat,

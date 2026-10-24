@@ -14,8 +14,7 @@ import {
   salvarAjusteAdhoc, 
   removerAjusteAdhoc,
   getChaveAdhocBase, 
-  getChaveAdhocB2B,
-  normalizarNomeArtigoCanonico
+  getChaveAdhocB2B
 } from '../lib/encomendasService';
 import { 
   Calendar, 
@@ -214,18 +213,27 @@ export function MatrizAjustesAdhoc({
     if (baseFixaAtiva?.quantidades_semanais) {
       Object.values(baseFixaAtiva.quantidades_semanais).forEach((mapa) => {
         if (mapa) {
-          Object.keys(mapa).forEach((p) => setProds.add(normalizarNomeArtigoCanonico(p)));
+          Object.keys(mapa).forEach((p) => {
+            const limpo = p.trim();
+            if (limpo) setProds.add(limpo);
+          });
         }
       });
     }
     if (baseFixaAtiva?.quantidades_por_produto) {
-      Object.keys(baseFixaAtiva.quantidades_por_produto).forEach((p) => setProds.add(normalizarNomeArtigoCanonico(p)));
+      Object.keys(baseFixaAtiva.quantidades_por_produto).forEach((p) => {
+        const limpo = p.trim();
+        if (limpo) setProds.add(limpo);
+      });
     }
     // Adicionar também quaisquer produtos que tenham ajustes adhoc registados para esta carrinha
     Object.keys(ajustesAdhoc).forEach((k) => {
       if (carrinhaAtiva && k.includes(`_${carrinhaAtiva.id}_`)) {
         const partes = k.split(`_${carrinhaAtiva.id}_`);
-        if (partes[1]) setProds.add(normalizarNomeArtigoCanonico(partes[1]));
+        if (partes[1]) {
+          const limpo = partes[1].trim();
+          if (limpo) setProds.add(limpo);
+        }
       }
     });
 
@@ -445,15 +453,7 @@ export function MatrizAjustesAdhoc({
                           // Baseline semanal
                           const semana = baseFixaAtiva?.quantidades_semanais || baseFixaAtiva?.quantidades_semana || {};
                           const mapaDia = semana[col.diaSemana] || baseFixaAtiva?.quantidades_por_produto || {};
-                          let baselineVal = Number(mapaDia[produtoNome] || 0);
-                          if (baselineVal === 0 && mapaDia) {
-                            for (const [k, v] of Object.entries(mapaDia)) {
-                              if (normalizarNomeArtigoCanonico(k) === produtoNome) {
-                                baselineVal = Number(v) || 0;
-                                break;
-                              }
-                            }
-                          }
+                          const baselineVal = Number(mapaDia[produtoNome] || 0);
 
                           const valorEfetivo = temAdhoc ? Number(ajustesAdhoc[chave]) : baselineVal;
                           totalLinha7Dias += valorEfetivo;
@@ -568,14 +568,20 @@ export function MatrizAjustesAdhoc({
                 const setProdsCli = new Set<string>();
                 Object.values(semana).forEach((m) => {
                   if (m) {
-                    Object.keys(m).forEach((p) => setProdsCli.add(normalizarNomeArtigoCanonico(p)));
+                    Object.keys(m).forEach((p) => {
+                      const limpo = p.trim();
+                      if (limpo) setProdsCli.add(limpo);
+                    });
                   }
                 });
                 // Adicionar artigos que tenham adhoc para este cliente
                 Object.keys(ajustesAdhoc).forEach((k) => {
                   if (k.includes(`_${cli.id}_`)) {
                     const partes = k.split(`_${cli.id}_`);
-                    if (partes[1]) setProdsCli.add(normalizarNomeArtigoCanonico(partes[1]));
+                    if (partes[1]) {
+                      const limpo = partes[1].trim();
+                      if (limpo) setProdsCli.add(limpo);
+                    }
                   }
                 });
 
@@ -654,15 +660,7 @@ export function MatrizAjustesAdhoc({
                                     const temAdhoc = ajustesAdhoc[chave] !== undefined;
 
                                     const mapaDia = semana[col.diaSemana] || {};
-                                    let baselineVal = Number(mapaDia[artigo] || 0);
-                                    if (baselineVal === 0 && mapaDia) {
-                                      for (const [k, v] of Object.entries(mapaDia)) {
-                                        if (normalizarNomeArtigoCanonico(k) === artigo) {
-                                          baselineVal = Number(v) || 0;
-                                          break;
-                                        }
-                                      }
-                                    }
+                                    const baselineVal = Number(mapaDia[artigo] || 0);
 
                                     const valorEfetivo = temAdhoc ? Number(ajustesAdhoc[chave]) : baselineVal;
                                     totalArtigo7Dias += valorEfetivo;

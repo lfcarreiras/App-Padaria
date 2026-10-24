@@ -1650,50 +1650,20 @@ export const CLIENTES_B2B_STORAGE_KEY = 'padaria_clientes_empresariais_b2b_v4';
 export const ARTIGOS_BASE_FIXA_STORAGE_KEY = 'padaria_artigos_base_fixa_v4';
 
 /**
- * Normaliza qualquer variante histórica de nome de artigo para o nome canónico oficial aprovado pela gerência.
+ * Retorna o nome limpo do artigo diretamente (sem transformações legadas).
  */
 export function normalizarNomeArtigoCanonico(nome: string): string {
-  if (!nome) return '';
-  const limpo = nome.trim();
-  const lower = limpo.toLowerCase();
-
-  // Broas
-  if (lower === 'broa 1 kg' || lower === 'broa 1kg') return 'Broa Amarela 1 kg';
-  if (lower === 'broa 2 kg' || lower === 'broa 2kg') return 'Broa Amarela 2 kg';
-  if (lower === 'broa 0,5 kg' || lower === 'broa 0.5 kg' || lower === 'broa 0.5kg') return 'Broa Amarela 0,5 kg';
-
-  // Pão da Avó fundido em Pão Saloio
-  if (lower === 'pão da avó' || lower === 'pao da avo') return 'Pão Saloio';
-  if (lower === 'mini pão da avó' || lower === 'mini pao da avo') return 'Mini Pão Saloio';
-
-  // Centeio e Sementes
-  if (lower === 'mini pão centeio' || lower === 'mini pao centeio') return 'Mini Pão de Centeio';
-  if (lower === 'pão c/ sementes' || lower === 'pão c/  sementes') return 'Pão de Sementes';
-
-  // Regueifas
-  if (lower === 'regueifa de coco' || lower === 'regueifa côco' || lower === 'regueifa coco') return 'Regueifa de Côco';
-  if (lower === 'regueifa canela') return 'Regueifa de Canela';
-
-  // Tostas e Pães
-  if (lower === 'saco mini tostas' || lower === 'tostas' || lower === 'tosta teste') return 'Tosta';
-  if (lower === 'pão' || lower === 'pao') return 'Pão Normal';
-  if (lower === 'padas') return 'Padas Normais';
-
-  // Salgados / Pastelaria
-  if (lower === 'lanche') return 'Lanche Misto';
-  if (lower === 'mini broa c/ chouriço' || lower === 'mini broa c/ chourico') return 'Mini Broa com Chouriço';
-
-  return limpo;
+  return (nome || '').trim();
 }
 
 /**
- * Normaliza um mapa de quantidades por produto, agregando quantidades se duas chaves antigas convergirem.
+ * Normaliza um mapa de quantidades por produto, higienizando os nomes.
  */
 export function normalizarMapaQuantidades(mapa?: Record<string, number>): Record<string, number> {
   if (!mapa || typeof mapa !== 'object') return {};
   const res: Record<string, number> = {};
   for (const [k, v] of Object.entries(mapa)) {
-    const nomeNorm = normalizarNomeArtigoCanonico(k);
+    const nomeNorm = (k || '').trim();
     if (!nomeNorm) continue;
     const qtd = Number(v) || 0;
     if (qtd > 0) {
@@ -1802,7 +1772,7 @@ export function carregarArtigosBaseFixa(): string[] {
         try {
           const parsedV3 = JSON.parse(rawV3);
           if (Array.isArray(parsedV3)) {
-            const migradas = Array.from(new Set(parsedV3.map(normalizarNomeArtigoCanonico).filter(Boolean)));
+            const migradas = Array.from(new Set(parsedV3.map((p) => String(p || '').trim()).filter(Boolean)));
             localStorage.setItem(ARTIGOS_BASE_FIXA_STORAGE_KEY, JSON.stringify(migradas));
             localStorage.removeItem('padaria_artigos_base_fixa_v3');
             return migradas;
@@ -1813,7 +1783,7 @@ export function carregarArtigosBaseFixa(): string[] {
       try {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const normalizados = Array.from(new Set(parsed.map(normalizarNomeArtigoCanonico).filter(Boolean)));
+          const normalizados = Array.from(new Set(parsed.map((p) => String(p || '').trim()).filter(Boolean)));
           return normalizados;
         }
       } catch (e) {}
@@ -1824,7 +1794,7 @@ export function carregarArtigosBaseFixa(): string[] {
 }
 
 export function salvarArtigosBaseFixa(artigos: string[]): void {
-  const limpos = Array.from(new Set((artigos || []).map(normalizarNomeArtigoCanonico).filter(Boolean)));
+  const limpos = Array.from(new Set((artigos || []).map((p) => String(p || '').trim()).filter(Boolean)));
   if (typeof window !== 'undefined') {
     localStorage.setItem(ARTIGOS_BASE_FIXA_STORAGE_KEY, JSON.stringify(limpos));
     window.dispatchEvent(new Event('app_base_fixa_atualizada'));
@@ -2303,25 +2273,12 @@ export function obterQuantidadeEfetivaBaseRota(
   diaSemana: string = 'seg'
 ): { quantidade: number; isAdhoc: boolean } {
   const ajustes = carregarAjustesAdhoc();
-  const chave = getChaveAdhocBase(dataStr, carrinhaId, produtoNome);
+  const nomeLimpo = (produtoNome || '').trim();
+  const chave = getChaveAdhocBase(dataStr, carrinhaId, nomeLimpo);
   if (ajustes[chave] !== undefined) {
     return { quantidade: Number(ajustes[chave]), isAdhoc: true };
   }
-  const chaveCanon = getChaveAdhocBase(dataStr, carrinhaId, normalizarNomeArtigoCanonico(produtoNome));
-  if (ajustes[chaveCanon] !== undefined) {
-    return { quantidade: Number(ajustes[chaveCanon]), isAdhoc: true };
-  }
-  let baseline = (baseFixaSemanal?.[diaSemana]?.[produtoNome]) ?? 0;
-  if (!baseline && baseFixaSemanal?.[diaSemana]) {
-    const mapa = baseFixaSemanal[diaSemana];
-    const canon = normalizarNomeArtigoCanonico(produtoNome);
-    for (const [k, v] of Object.entries(mapa)) {
-      if (normalizarNomeArtigoCanonico(k) === canon) {
-        baseline = Number(v) || 0;
-        break;
-      }
-    }
-  }
+  const baseline = (baseFixaSemanal?.[diaSemana]?.[nomeLimpo]) ?? 0;
   return { quantidade: Number(baseline), isAdhoc: false };
 }
 
@@ -2333,24 +2290,11 @@ export function obterQuantidadeEfetivaClienteB2B(
   diaSemana: string = 'seg'
 ): { quantidade: number; isAdhoc: boolean } {
   const ajustes = carregarAjustesAdhoc();
-  const chave = getChaveAdhocB2B(dataStr, clienteB2BId, produtoNome);
+  const nomeLimpo = (produtoNome || '').trim();
+  const chave = getChaveAdhocB2B(dataStr, clienteB2BId, nomeLimpo);
   if (ajustes[chave] !== undefined) {
     return { quantidade: Number(ajustes[chave]), isAdhoc: true };
   }
-  const chaveCanon = getChaveAdhocB2B(dataStr, clienteB2BId, normalizarNomeArtigoCanonico(produtoNome));
-  if (ajustes[chaveCanon] !== undefined) {
-    return { quantidade: Number(ajustes[chaveCanon]), isAdhoc: true };
-  }
-  let baseline = (quantidadesSemana?.[diaSemana]?.[produtoNome]) ?? 0;
-  if (!baseline && quantidadesSemana?.[diaSemana]) {
-    const mapa = quantidadesSemana[diaSemana];
-    const canon = normalizarNomeArtigoCanonico(produtoNome);
-    for (const [k, v] of Object.entries(mapa)) {
-      if (normalizarNomeArtigoCanonico(k) === canon) {
-        baseline = Number(v) || 0;
-        break;
-      }
-    }
-  }
+  const baseline = (quantidadesSemana?.[diaSemana]?.[nomeLimpo]) ?? 0;
   return { quantidade: Number(baseline), isAdhoc: false };
 }

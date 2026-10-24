@@ -42,8 +42,7 @@ import {
   salvarBaseDiariaRecorrente,
   eliminarBaseDiariaRecorrente,
   clienteEmModoFerias,
-  subscreverAlteracoesBasesRecorrentes,
-  normalizarNomeArtigoCanonico
+  subscreverAlteracoesBasesRecorrentes
 } from '../../lib/encomendasService';
 import { 
   ReceiptConfig, 
@@ -308,18 +307,18 @@ export default function AdminPage() {
         const bfCarregada = carregarBaseFixaCarrinhas();
         if (Array.isArray(bfCarregada)) setBaseFixaCarrinhas(bfCarregada);
         const artsGuardados = carregarArtigosBaseFixa();
-        const setCombinado = new Set<string>((Array.isArray(artsGuardados) ? artsGuardados : []).map(normalizarNomeArtigoCanonico).filter(Boolean));
+        const setCombinado = new Set<string>((Array.isArray(artsGuardados) ? artsGuardados : []).map((p) => String(p || '').trim()).filter(Boolean));
         (bfCarregada || []).forEach((bf) => {
           if (!bf) return;
           const mapa = bf?.quantidades_por_produto || bf?.quantidades || {};
           Object.keys(mapa).forEach((prod) => {
-            const n = normalizarNomeArtigoCanonico(prod);
+            const n = String(prod || '').trim();
             if (n) setCombinado.add(n);
           });
           if (bf?.quantidades_semanais) {
             Object.values(bf.quantidades_semanais).forEach((m) => {
               Object.keys(m || {}).forEach((prod) => {
-                const n = normalizarNomeArtigoCanonico(prod);
+                const n = String(prod || '').trim();
                 if (n) setCombinado.add(n);
               });
             });
