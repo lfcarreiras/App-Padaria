@@ -824,6 +824,34 @@ export async function eliminarClienteDb(clienteId: string) {
   return true;
 }
 
+
+/**
+ * Envia e-mail de recuperação / redefinição de password através do Supabase Auth
+ * para qualquer cliente particular ou empresarial que tenha e-mail associado
+ */
+export async function enviarEmailRecuperacaoPassword(email: string): Promise<{ success: boolean; message: string }> {
+  const emailLimpo = (email || '').trim().toLowerCase();
+  if (!emailLimpo || !emailLimpo.includes('@')) {
+    return { success: false, message: 'Por favor, indique um endereço de e-mail válido.' };
+  }
+  if (!supabase) {
+    return { success: false, message: 'Ligação à base de dados indisponível no momento.' };
+  }
+  try {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://app.padariadavila.com';
+    const { error } = await supabase.auth.resetPasswordForEmail(emailLimpo, {
+      redirectTo: `${origin}/encomendar?recuperar=1&email=${encodeURIComponent(emailLimpo)}`
+    });
+    if (error) {
+      console.warn('Aviso Supabase ao enviar redefinição de password:', error);
+      return { success: false, message: error.message || 'Erro ao enviar e-mail de redefinição.' };
+    }
+    return { success: true, message: `E-mail de recuperação enviado com sucesso para ${emailLimpo}.` };
+  } catch (err: any) {
+    return { success: false, message: err?.message || 'Falha de comunicação com o servidor de autenticação.' };
+  }
+}
+
 // ---------------- PRODUTOS ---------------- //
 
 export async function carregarProdutosSupabase(): Promise<Produto[]> {
@@ -1769,6 +1797,52 @@ export function salvarClientesEmpresariaisB2B(dados: ClienteEmpresarialB2B[]): v
     localStorage.setItem(CLIENTES_B2B_STORAGE_KEY, JSON.stringify(normalizados));
     window.dispatchEvent(new Event('app_b2b_atualizado'));
   }
+
+  // Sincronização em background com Supabase se a tabela existir
+  if (supabase) {
+    const payloads = normalizados.map((c) => ({
+      id: c.id,
+      nome: c.nome,
+      nif: c.nif || null,
+      telefone: c.telefone || c.telemovel || null,
+      telemovel: c.telemovel || c.telefone || null,
+      email: c.email ? c.email.toLowerCase().trim() : null,
+      morada: c.morada || 'Arouca',
+      carrinha_id: c.carrinha_id || null,
+      ativo: c.ativo !== undefined ? c.ativo : true,
+      quantidades_semanais: c.quantidades_semanais || c.quantidades_semana || {},
+      atualizado_em: new Date().toISOString()
+    }));
+    supabase
+      .from('clientes_empresariais')
+      .upsert(payloads)
+      .then(({ error }) => {
+        if (error) console.warn('Aviso sincronização B2B Supabase:', error.message);
+      })
+      .catch(() => {});
+  }
+}
+
+export async function sincronizarClientesB2BComSupabase(): Promise<ClienteEmpresarialB2B[]> {
+  if (!supabase) return carregarClientesEmpresariaisB2B();
+  try {
+    const { data, error } = await supabase
+      .from('clientes_empresariais')
+      .select('*')
+      .order('nome', { ascending: true });
+
+    if (!error && data && data.length > 0) {
+      const normalizados = data.map(normalizarClienteB2BItem);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(CLIENTES_B2B_STORAGE_KEY, JSON.stringify(normalizados));
+        window.dispatchEvent(new Event('app_b2b_atualizado'));
+      }
+      return normalizados;
+    }
+  } catch (err) {
+    console.warn('Fallback para cache local de clientes B2B:', err);
+  }
+  return carregarClientesEmpresariaisB2B();
 }
 
 export function obterDiaSemanaDeData(dataStr: string): DiaSemana {

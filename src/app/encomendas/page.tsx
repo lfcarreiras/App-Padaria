@@ -6,6 +6,7 @@ import { ThermalReceipt } from '../../components/ThermalReceipt';
 import { LOJAS_MOCK, PRODUTOS_MOCK, CARRINHAS_MOCK } from '../../lib/mockData';
 import { supabase } from '../../lib/supabase';
 import { 
+  enviarEmailRecuperacaoPassword,
   carregarEncomendasSupabase, 
   carregarClientesSupabase, 
   carregarProdutosSupabase,
@@ -79,6 +80,7 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
   const [carrinho, setCarrinho] = useState<ItemEncomenda[]>([]);
   const [nomeCliente, setNomeCliente] = useState('');
   const [telefoneCliente, setTelefoneCliente] = useState('');
+  const [emailCliente, setEmailCliente] = useState('');
   const [moradaCliente, setMoradaCliente] = useState('');
   const [notasEntrega, setNotasEntrega] = useState('');
   const [tipoEntrega, setTipoEntrega] = useState<TipoEntrega>('levantamento_loja');
@@ -170,6 +172,7 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
       setNomeCliente(cliLocal.nome);
       if (cliLocal.morada) setMoradaCliente(cliLocal.morada);
       if (cliLocal.notas_entrega) setNotasEntrega(cliLocal.notas_entrega);
+      if (cliLocal.email) setEmailCliente(cliLocal.email);
       return;
     }
 
@@ -185,6 +188,7 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
         setNomeCliente(cli.nome);
         if (cli.morada) setMoradaCliente(cli.morada);
         if (cli.notas_entrega) setNotasEntrega(cli.notas_entrega);
+        if (cli.email) setEmailCliente(cli.email);
       }
     } catch (e) {
       console.warn('Erro ao pesquisar cliente:', e);
@@ -275,6 +279,7 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
         if (cliExistente) {
           clienteId = cliExistente.id;
           const updates: any = { nome: nomeCliente.trim() };
+          if (emailCliente.trim()) updates.email = emailCliente.trim().toLowerCase();
           if (tipoEntrega === 'entrega_domicilio') {
             updates.morada = moradaCliente.trim() || null;
             updates.notas_entrega = notasEntrega.trim() || null;
@@ -286,6 +291,7 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
             .insert({
               nome: nomeCliente.trim(),
               telefone: telefoneCliente.trim(),
+              email: emailCliente.trim().toLowerCase() || null,
               morada: tipoEntrega === 'entrega_domicilio' ? moradaCliente.trim() : null,
               notas_entrega: tipoEntrega === 'entrega_domicilio' ? notasEntrega.trim() : null,
             })
@@ -386,6 +392,7 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
         id: clienteId || `cli-${Date.now()}`,
         nome: nomeCliente.trim(),
         telefone: telefoneCliente.trim(),
+        email: emailCliente.trim().toLowerCase() || undefined,
         morada: tipoEntrega === 'entrega_domicilio' ? moradaCliente.trim() : undefined,
         notas_entrega: tipoEntrega === 'entrega_domicilio' ? notasEntrega.trim() : undefined,
       };
@@ -442,6 +449,7 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
       setCarrinho([]);
       setNomeCliente('');
       setTelefoneCliente('');
+      setEmailCliente('');
       setMoradaCliente('');
       setNotasEntrega('');
       setNotasGerais('');
@@ -927,6 +935,20 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
                       className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 focus:outline-hidden focus:border-bakery-500"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-600 mb-1 flex items-center justify-between">
+                    <span>E-mail do Cliente</span>
+                    <span className="text-[10px] text-gray-400 font-normal">opcional • para recibo e acesso à app</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={emailCliente}
+                    onChange={(e) => setEmailCliente(e.target.value)}
+                    placeholder="cliente@exemplo.pt"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 focus:outline-hidden focus:border-bakery-500"
+                  />
                 </div>
 
                 {/* Campos Específicos para Entrega ao Domicílio */}
@@ -1570,6 +1592,31 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
                   required
                   value={clienteModal.telefone || ''}
                   onChange={(e) => setClienteModal({ ...clienteModal, telefone: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-bold text-gray-700">E-mail (Acesso à App & Recuperação)</label>
+                  {clienteModal.email && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const res = await enviarEmailRecuperacaoPassword(clienteModal.email!);
+                        alert(res.message);
+                      }}
+                      className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 cursor-pointer"
+                    >
+                      Enviar Redefinição
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="email"
+                  value={clienteModal.email || ''}
+                  onChange={(e) => setClienteModal({ ...clienteModal, email: e.target.value })}
+                  placeholder="cliente@exemplo.pt"
                   className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
                 />
               </div>

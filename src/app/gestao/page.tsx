@@ -20,6 +20,7 @@ import {
   salvarPerfilAcessoDb,
   eliminarPerfilAcessoDb,
   salvarClienteDb,
+  enviarEmailRecuperacaoPassword,
   salvarProdutoDb,
   eliminarProdutoDb,
   formatarNomeEntidade,
@@ -171,8 +172,8 @@ export default function AdminPage() {
   // Inserção de Registo Avulso na BD
   const [modalRegistoAvulsoAberto, setModalRegistoAvulsoAberto] = useState<boolean>(false);
   const [subAbaRegistoAvulso, setSubAbaRegistoAvulso] = useState<'cliente' | 'produto'>('cliente');
-  const [novoCliente, setNovoCliente] = useState<{ nome: string; telefone: string; morada: string; codigo_postal: string; notas_entrega: string }>({
-    nome: '', telefone: '', morada: '', codigo_postal: '', notas_entrega: ''
+  const [novoCliente, setNovoCliente] = useState<{ nome: string; telefone: string; email?: string; morada: string; codigo_postal: string; notas_entrega: string }>({
+    nome: '', telefone: '', email: '', morada: '', codigo_postal: '', notas_entrega: ''
   });
   const [novoProduto, setNovoProduto] = useState<{ nome: string; categoria: 'padaria' | 'pastelaria'; unidade: string }>({
     nome: '', categoria: 'padaria', unidade: 'unidade'
@@ -1476,7 +1477,7 @@ export default function AdminPage() {
     if (salvo) {
       const clis = await carregarClientesSupabase();
       setClientes(clis);
-      setNovoCliente({ nome: '', telefone: '', morada: '', codigo_postal: '', notas_entrega: '' });
+      setNovoCliente({ nome: '', telefone: '', email: '', morada: '', codigo_postal: '', notas_entrega: '' });
       setModalRegistoAvulsoAberto(false);
       alert('Cliente criado com sucesso na Base de Dados!');
     }
@@ -5067,15 +5068,26 @@ export default function AdminPage() {
                     />
                   </div>
                   <div>
-                    <label className="block font-bold text-gray-700 mb-1">Código Postal</label>
+                    <label className="block font-bold text-gray-700 mb-1">E-mail (Acesso à App & Recuperação)</label>
                     <input
-                      type="text"
-                      value={novoCliente.codigo_postal}
-                      onChange={(e) => setNovoCliente({ ...novoCliente, codigo_postal: e.target.value })}
-                      placeholder="4540-102"
+                      type="email"
+                      value={novoCliente.email || ''}
+                      onChange={(e) => setNovoCliente({ ...novoCliente, email: e.target.value })}
+                      placeholder="cliente@exemplo.pt"
                       className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Código Postal</label>
+                  <input
+                    type="text"
+                    value={novoCliente.codigo_postal}
+                    onChange={(e) => setNovoCliente({ ...novoCliente, codigo_postal: e.target.value })}
+                    placeholder="4540-102"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
+                  />
                 </div>
 
                 <div>
@@ -5331,7 +5343,23 @@ export default function AdminPage() {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-gray-700 mb-1">Email (Login & Reset) *</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-bold text-gray-700">Email (Login & Reset) *</label>
+                    {clienteB2BEmEdicao.email && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const res = await enviarEmailRecuperacaoPassword(clienteB2BEmEdicao.email!);
+                          alert(res.message);
+                        }}
+                        className="text-[10px] font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 cursor-pointer flex items-center gap-1"
+                        title="Enviar e-mail para redefinição ou primeiro acesso do cliente"
+                      >
+                        <Mail className="h-3 w-3" />
+                        <span>Enviar Link de Recuperação / Acesso</span>
+                      </button>
+                    )}
+                  </div>
                   <input
                     type="email"
                     value={clienteB2BEmEdicao.email || ''}
