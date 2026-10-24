@@ -5,6 +5,7 @@
  */
 
 import { Produto, Encomenda } from '../types';
+import { correspondePesquisaArtigo } from './fuzzySearch';
 
 export interface ResultadoPesquisaOrama<T> {
   resultados: T[];
@@ -84,6 +85,7 @@ export function buscarArtigosOramaSync(
       if (nomeLimpo === tLimpo) score += 100;
       else if (nomeLimpo.startsWith(tLimpo)) score += 80;
       else if (nomeLimpo.includes(tLimpo)) score += 60;
+      else if (correspondePesquisaArtigo(p.nome, termo)) score += 65;
 
       // 2. Correspondência sem espaços (ex: "trigamilha" encontra "Triga Milha 0,5 kg")
       if (tComprimido.length >= 3 && nomeComprimido.includes(tComprimido)) {
@@ -181,6 +183,12 @@ export function buscarEncomendasOramaSync(
       if (dist <= 2) score += 60;
     }
     if (morada.includes(tLimpo)) score += 40;
+
+    // Correspondência em artigos da encomenda (ex: pesquisar 'bor' ou 'bro' encontra encomendas com 'Broa')
+    const temArtigoMatch = (e.itens || []).some((it) =>
+      correspondePesquisaArtigo(it.produto_nome, termo)
+    );
+    if (temArtigoMatch) score += 70;
 
     return { encomenda: e, score };
   });

@@ -687,21 +687,14 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
           </div>
         )}
 
-        {/* Banner de Aviso de Fornadas / Informações */}
-        {configMarca.bannerAvisoAtivo && configMarca.bannerAvisoTexto && (
-          <div className="mb-5 bg-amber-500 text-stone-950 font-black text-xs py-2 px-4 rounded-2xl shadow-2xs flex items-center justify-between">
-            <span>{configMarca.bannerAvisoTexto}</span>
-          </div>
-        )}
-
         {/* Barra Superior com Título e Seletor de Abas */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-black text-gray-900 flex items-center gap-2">
-              <ShoppingBag className="h-6 w-6 text-bakery-600" />
-              {configMarca.tituloBalcao || t.navEncomendas}
+          <div className="min-w-0">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-black text-gray-900 flex items-center gap-2 whitespace-nowrap truncate">
+              <ShoppingBag className="h-6 w-6 text-bakery-600 shrink-0" />
+              <span>{configMarca.tituloBalcao || t.navEncomendas}</span>
             </h2>
-            <p className="text-xs sm:text-sm text-gray-500">
+            <p className="text-xs sm:text-sm text-gray-500 truncate">
               {configMarca.subtituloBalcao || 'Registo rápido, gestão de contactos de clientes e histórico de pedidos.'}
             </p>
           </div>

@@ -36,6 +36,7 @@ import {
 import { StatusBadge } from '../../components/StatusBadge';
 import { OriginBadge } from '../../components/InproovalBadges';
 import { buscarEncomendasOramaSync } from '../../lib/oramaSearch';
+import { correspondePesquisaArtigo } from '../../lib/fuzzySearch';
 
 export default function EntregaLojaPage({ embedded = false }: { embedded?: boolean; [key: string]: any } = {}) {
   const { t } = useTranslation();
@@ -110,8 +111,11 @@ export default function EntregaLojaPage({ embedded = false }: { embedded?: boole
       matchData = e.data_agendamento === dataPersonalizada;
     }
 
-    // 4. Pesquisa instantânea Orama (< 2 ms) com tolerância a gralhas
-    const matchBusca = busca.trim() === '' || idsOramaValidos.has(e.id);
+    // 4. Pesquisa instantânea Orama (< 2 ms) com tolerância a gralhas e letras trocadas em clientes e artigos
+    const matchBusca =
+      busca.trim() === '' ||
+      idsOramaValidos.has(e.id) ||
+      (e.itens || []).some((it) => correspondePesquisaArtigo(it.produto_nome, busca));
 
     return matchLoja && matchStatus && matchData && matchBusca;
   });
@@ -239,11 +243,14 @@ export default function EntregaLojaPage({ embedded = false }: { embedded?: boole
               <div className="p-3 rounded-2xl bg-amber-600 text-white shadow-sm">
                 <Store className="h-6 w-6" />
               </div>
-              <div>
-                <h2 className="text-lg sm:text-xl font-black text-gray-900 leading-tight">
-                  {configMarca.tituloLojaBalcao || t.storePickupTitle} ({selectedLojaId === 'todas' ? t.allStores : lojaAtual.nome})
+              <div className="min-w-0">
+                <h2 className="text-base sm:text-lg md:text-xl font-black text-gray-900 leading-tight whitespace-nowrap flex items-center gap-2">
+                  <span className="truncate">{configMarca.tituloLojaBalcao || t.storePickupTitle}</span>
+                  <span className="text-xs font-bold text-amber-900 bg-amber-100/90 border border-amber-300 px-2.5 py-0.5 rounded-lg shrink-0">
+                    {selectedLojaId === 'todas' ? t.allStores : lojaAtual.nome}
+                  </span>
                 </h2>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5 truncate">
                   {configMarca.subtituloLojaBalcao || 'Organização hierárquica de levantamento em loja por loja e hora de agendamento'}
                 </p>
               </div>

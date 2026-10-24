@@ -61,7 +61,6 @@ import { StatusBadge } from '../../components/StatusBadge';
 import { OriginBadge } from '../../components/InproovalBadges';
 
 import { PdfViewerModal, LinhaArtigoCarga } from '../../components/pdf/PdfViewerModal';
-import { MatrizAjustesAdhoc } from '../../components/MatrizAjustesAdhoc';
 import { FileText, PenTool } from 'lucide-react';
 
 export default function EntregasPage() {
@@ -92,7 +91,6 @@ export default function EntregasPage() {
   const [pdfCarrinhaSelecionada, setPdfCarrinhaSelecionada] = useState<Carrinha | undefined>(undefined);
   const [pdfClienteB2B, setPdfClienteB2B] = useState<ClienteEmpresarialB2B | undefined>(undefined);
   const [pdfItensCarga, setPdfItensCarga] = useState<LinhaArtigoCarga[]>([]);
-  const [mostrarAjustesAdhoc, setMostrarAjustesAdhoc] = useState<boolean>(true);
 
   // Ordem personalizada de paragens por carrinha (carrinhaId -> lista de encomenda IDs)
   const [ordensCustomizadas, setOrdensCustomizadas] = useState<Record<string, string[]>>({});
@@ -815,33 +813,6 @@ export default function EntregasPage() {
           )}
         </div>
 
-        {/* SECÇÃO: MATRIZ DE AJUSTES AD-HOC CALENDARIZADOS (7 DIAS) */}
-        <div className="mb-6 space-y-3">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setMostrarAjustesAdhoc(!mostrarAjustesAdhoc)}
-              className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs shadow-xs transition cursor-pointer"
-            >
-              <Calendar className="h-4 w-4" />
-              <span>{mostrarAjustesAdhoc ? 'Ocultar Matriz Ad-hoc (7 Dias)' : 'Abrir Matriz de Ajustes Ad-hoc Calendarizados (7 Dias)'}</span>
-              {mostrarAjustesAdhoc ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-            </button>
-            <span className="text-[11px] text-stone-500 font-semibold hidden sm:inline">
-              Ajustes pontuais por data sem alterar a baseline permanente
-            </span>
-          </div>
-
-          {mostrarAjustesAdhoc && (
-            <MatrizAjustesAdhoc
-              carrinhas={carrinhasDaLoja}
-              baseFixaCarrinhas={baseFixaCarrinhas}
-              clientesB2B={clientesB2B}
-              produtos={produtos}
-            />
-          )}
-        </div>
-
         {/* CABEÇALHO DA FROTA E GESTÃO DE ROTA */}
         <div className="rounded-2xl bg-white p-5 border border-blue-200 shadow-xs mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -849,11 +820,14 @@ export default function EntregasPage() {
               <div className="p-3 rounded-2xl bg-blue-600 text-white shadow-sm">
                 <Truck className="h-6 w-6" />
               </div>
-              <div>
-                <h2 className="text-lg sm:text-xl font-black text-gray-900 leading-tight">
-                  {configMarca.tituloEntregas || t.deliveriesTitle} ({selectedLojaId === 'todas' ? t.allStores : lojaAtual.nome})
+              <div className="min-w-0">
+                <h2 className="text-base sm:text-lg md:text-xl font-black text-gray-900 leading-tight whitespace-nowrap flex items-center gap-2">
+                  <span className="truncate">{configMarca.tituloEntregas || t.deliveriesTitle}</span>
+                  <span className="text-xs font-bold text-blue-900 bg-blue-100/90 border border-blue-300 px-2.5 py-0.5 rounded-lg shrink-0">
+                    {selectedLojaId === 'todas' ? t.allStores : lojaAtual.nome}
+                  </span>
                 </h2>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5 truncate">
                   {configMarca.subtituloEntregas || t.deliveriesDesc} • {configMarca.avisoEntregas || 'Carga na Unidade Central de Fabrico & Sede'}
                 </p>
               </div>
@@ -923,7 +897,7 @@ export default function EntregasPage() {
                 title="Gerar Folha de Carga em PDF oficial com totais de caixas e pão por carrinha (Rotas 1 a 7)"
               >
                 <FileText className="h-4 w-4 shrink-0" />
-                <span>Folha de Carga (PDF)</span>
+                <span>Folha de Carga</span>
               </button>
 
               {/* Botão de Otimizar Rota Automática */}

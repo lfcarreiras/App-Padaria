@@ -12,6 +12,7 @@ import {
   obterProdutosMontra, 
   obterLayoutBlocos 
 } from '../../lib/tinaContent';
+import { correspondePesquisaArtigo } from '../../lib/fuzzySearch';
 import { 
   Store, 
   ShoppingBag, 
@@ -508,7 +509,7 @@ export default function CmsFrontofficeReplicaPage() {
   // Filtro de Produtos para Exibição na Grelha
   const produtosFiltrados = produtos.filter((p) => {
     const matchCat = categoriaAtiva === 'todas' || p.categoria === categoriaAtiva;
-    const matchBusca = p.nome.toLowerCase().includes(buscaProduto.toLowerCase());
+    const matchBusca = correspondePesquisaArtigo(p.nome, buscaProduto);
     return matchCat && matchBusca;
   });
 

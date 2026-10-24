@@ -12,6 +12,8 @@ import {
   carregarBaseFixaCarrinhas,
   carregarClientesEmpresariaisB2B,
   obterDiaSemanaDeData,
+  obterQuantidadeEfetivaBaseRota,
+  obterQuantidadeEfetivaClienteB2B,
   atualizarEstadoEncomendaDb,
   atualizarEstadoItemDb,
   salvarObservacoesProducaoDb,
@@ -64,11 +66,15 @@ import {
   Building2,
   ExternalLink,
   ArrowRight,
+  ChevronUp,
+  ChevronDown,
   X
 } from 'lucide-react';
 import { StatusBadge } from '../../components/StatusBadge';
 import { BreadIcon, OriginBadge, SectorBadge } from '../../components/InproovalBadges';
 import { PdfViewerModal, LinhaArtigoCarga, LinhaArtigoFabrico } from '../../components/pdf/PdfViewerModal';
+import { MatrizAjustesAdhoc } from '../../components/MatrizAjustesAdhoc';
+import { correspondePesquisaArtigo } from '../../lib/fuzzySearch';
 import EncomendasPage from '../encomendas/page';
 import EntregaLojaPage from '../loja/page';
 import { 
@@ -101,6 +107,8 @@ export default function ProducaoPage() {
 
   // Estados do Ecrã KDS Fabrico
   const [setorAtivo, setSetorAtivo] = useState<SetorProducao | 'todos'>('todos');
+  const [filtroTipologia, setFiltroTipologia] = useState<'todas' | 'bases_diarias' | 'clientes_b2b' | 'encomendas'>('todas');
+  const [mostrarAjustesPontuais, setMostrarAjustesPontuais] = useState<boolean>(false);
   const [filtroConclusao, setFiltroConclusao] = useState<'nao_concluidas' | 'concluidas' | 'todas'>('nao_concluidas');
   const [somAlertaAtivo, setSomAlertaAtivo] = useState<boolean>(true);
   const [obsProducaoPorEncomenda, setObsProducaoPorEncomenda] = useState<Record<string, string>>({});
@@ -243,18 +251,97 @@ export default function ProducaoPage() {
     };
   }, [somAlertaAtivo, encomendasUrgentes.length]);
 
-  // Pool Consolidada de Fabrico por Artigo para a Fila KDS
+  // Pool Consolidada de Fabrico por Artigo para a Fila KDS (Bases Diárias + Clientes Empresariais + Encomendas)
   const poolArtigosConsolidada = useMemo(() => {
     const mapa: Record<string, {
       produto_nome: string;
       setor: SetorProducao;
+      unidade: string;
+      qtd_bases_diarias: number;
+      qtd_clientes_b2b: number;
+      qtd_encomendas: number;
       quantidade_total: number;
       encomendas_count: number;
       encomendas_codigos: string[];
       personalizacoes: string[];
     }> = {};
 
-    encomendasLevantamentoLoja.forEach((enc) => {
+    const registrarOuObter = (nome: string, setorFallback?: SetorProducao) => {
+      const chave = nome.trim().toLowerCase();
+      if (!mapa[chave]) {
+        const prodRef = produtos.find((p) => p.nome.toLowerCase() === chave);
+        const setor: SetorProducao = prodRef?.categoria || setorFallback || (
+          chave.includes('bolo') || chave.includes('croissant') || chave.includes('pastel') || chave.includes('nata')
+            ? 'pastelaria'
+            : 'padaria'
+        );
+        const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
+        mapa[chave] = {
+          produto_nome: prodRef?.nome || nome,
+          setor,
+          unidade: unid,
+          qtd_bases_diarias: 0,
+          qtd_clientes_b2b: 0,
+          qtd_encomendas: 0,
+          quantidade_total: 0,
+          encomendas_count: 0,
+          encomendas_codigos: [],
+          personalizacoes: [],
+        };
+      }
+      return mapa[chave];
+    };
+
+    const dataAlvo = filtroPeriodo === 'amanha' ? amanha : hoje;
+    const dataObj = new Date(dataAlvo + 'T12:00:00');
+    const diasSem: DiaSemana[] = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
+    const diaSemanaAlvo: DiaSemana = diasSem[dataObj.getDay()];
+
+    // 1. BASES DIÁRIAS (Rotas 1 a 7, excluindo Rota 8)
+    if (selectedLojaId === 'todas') {
+      const rotasValidas = carrinhas.filter((c) => c.rota !== 'Rota 8' && c.numero !== 8);
+      rotasValidas.forEach((car) => {
+        const bf = baseFixaCarrinhas.find((b) => b.carrinha_id === car.id);
+        const semana = (bf?.quantidades_semanais || bf?.quantidades_semana || {}) as Record<string, Record<string, number>>;
+        const mapaHoje = semana?.[diaSemanaAlvo] || bf?.quantidades_por_produto || {};
+
+        Object.keys(mapaHoje).forEach((artigo) => {
+          const { quantidade } = obterQuantidadeEfetivaBaseRota(dataAlvo, car.id, artigo, semana, diaSemanaAlvo);
+          if (quantidade > 0) {
+            const entry = registrarOuObter(artigo);
+            entry.qtd_bases_diarias += quantidade;
+          }
+        });
+      });
+    }
+
+    // 2. CLIENTES EMPRESARIAIS (B2B)
+    if (selectedLojaId === 'todas') {
+      const clientesValidos = clientesB2B.filter((cli) => {
+        if (!cli.ativo) return false;
+        if (cli.carrinha_id) {
+          const car = carrinhas.find((c) => c.id === cli.carrinha_id);
+          if (car && (car.rota === 'Rota 8' || car.numero === 8)) return false;
+        }
+        return true;
+      });
+
+      clientesValidos.forEach((cli) => {
+        const semana = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
+        const mapaHoje = semana?.[diaSemanaAlvo] || cli.produtos_predefinidos || {};
+
+        Object.keys(mapaHoje).forEach((artigo) => {
+          const { quantidade } = obterQuantidadeEfetivaClienteB2B(dataAlvo, cli.id, artigo, semana, diaSemanaAlvo);
+          if (quantidade > 0) {
+            const entry = registrarOuObter(artigo);
+            entry.qtd_clientes_b2b += quantidade;
+          }
+        });
+      });
+    }
+
+    // 3. ENCOMENDAS (Balcão, Loja e Entregas)
+    encomendas.forEach((enc) => {
       // Filtrar por loja se selecionada
       if (selectedLojaId !== 'todas' && enc.loja_id !== selectedLojaId) return;
 
@@ -270,41 +357,75 @@ export default function ProducaoPage() {
       if (enc.estado === 'cancelado') return;
 
       enc.itens.forEach((item) => {
-        // Filtrar por setor
-        if (setorAtivo !== 'todos' && item.setor !== setorAtivo) return;
-
         // Se o item foi recusado parcialmente pela produção, não entra na pool
         if (item.estado_producao === 'recusado') return;
 
-        const chave = item.produto_nome.trim().toLowerCase();
-        if (!mapa[chave]) {
-          mapa[chave] = {
-            produto_nome: item.produto_nome,
-            setor: item.setor,
-            quantidade_total: 0,
-            encomendas_count: 0,
-            encomendas_codigos: [],
-            personalizacoes: [],
-          };
+        const entry = registrarOuObter(item.produto_nome, item.setor);
+        entry.qtd_encomendas += item.quantidade;
+
+        if (!entry.encomendas_codigos.includes(enc.codigo)) {
+          entry.encomendas_codigos.push(enc.codigo);
+          entry.encomendas_count += 1;
         }
 
-        mapa[chave].quantidade_total += item.quantidade;
-        if (!mapa[chave].encomendas_codigos.includes(enc.codigo)) {
-          mapa[chave].encomendas_codigos.push(enc.codigo);
-          mapa[chave].encomendas_count += 1;
-        }
-
-        if (item.notas_personalizacao && !mapa[chave].personalizacoes.includes(item.notas_personalizacao)) {
-          mapa[chave].personalizacoes.push(item.notas_personalizacao);
+        if (item.notas_personalizacao && !entry.personalizacoes.includes(item.notas_personalizacao)) {
+          entry.personalizacoes.push(item.notas_personalizacao);
         }
       });
     });
 
-    return Object.values(mapa).sort((a, b) => {
+    // Calcular quantidade_total e filtrar por tipologia
+    let lista = Object.values(mapa).map((item) => {
+      let qtdFiltrada = 0;
+      if (filtroTipologia === 'todas') {
+        qtdFiltrada = item.qtd_bases_diarias + item.qtd_clientes_b2b + item.qtd_encomendas;
+      } else if (filtroTipologia === 'bases_diarias') {
+        qtdFiltrada = item.qtd_bases_diarias;
+      } else if (filtroTipologia === 'clientes_b2b') {
+        qtdFiltrada = item.qtd_clientes_b2b;
+      } else if (filtroTipologia === 'encomendas') {
+        qtdFiltrada = item.qtd_encomendas;
+      }
+
+      return {
+        ...item,
+        quantidade_total: qtdFiltrada,
+      };
+    });
+
+    // Manter apenas artigos com quantidade > 0 na tipologia selecionada
+    lista = lista.filter((item) => item.quantidade_total > 0);
+
+    // Filtrar por setor (se padaria ou pastelaria)
+    if (setorAtivo !== 'todos') {
+      lista = lista.filter((item) => item.setor === setorAtivo);
+    }
+
+    // Filtrar por pesquisa de artigo com correspondência inteligente (tolerância a gralhas como "bor" -> "broa")
+    if (pesquisaTexto.trim()) {
+      lista = lista.filter((item) => correspondePesquisaArtigo(item.produto_nome, pesquisaTexto));
+    }
+
+    return lista.sort((a, b) => {
       if (a.setor !== b.setor) return a.setor.localeCompare(b.setor);
       return b.quantidade_total - a.quantidade_total;
     });
-  }, [encomendasLevantamentoLoja, selectedLojaId, filtroPeriodo, dataInicioPersonalizada, dataFimPersonalizada, hoje, amanha, setorAtivo]);
+  }, [
+    encomendas,
+    carrinhas,
+    baseFixaCarrinhas,
+    clientesB2B,
+    produtos,
+    selectedLojaId,
+    filtroPeriodo,
+    dataInicioPersonalizada,
+    dataFimPersonalizada,
+    hoje,
+    amanha,
+    setorAtivo,
+    filtroTipologia,
+    pesquisaTexto
+  ]);
 
   // Lista de Encomendas Filtradas para o ecrã KDS
   const encomendasFiltradasKds = useMemo(() => {
@@ -386,40 +507,42 @@ export default function ProducaoPage() {
   const prepararItensFolhaCarga = (car: Carrinha): LinhaArtigoCarga[] => {
     const mapaItens = new Map<string, { quantidade: number; categoria: 'padaria' | 'pastelaria'; unidade: string }>();
 
-    // 1. Quantidades da Base Fixa da carrinha para hoje
+    // 1. Quantidades da Base Fixa da carrinha para hoje (com eventuais ajustes pontuais)
     const bf = baseFixaCarrinhas.find((b) => b.carrinha_id === car.id);
-    const semana = bf?.quantidades_semanais || bf?.quantidades_semana;
+    const semana = (bf?.quantidades_semanais || bf?.quantidades_semana || {}) as Record<string, Record<string, number>>;
     const mapaHoje = semana?.[diaSemanaHoje] || bf?.quantidades_por_produto || {};
 
-    Object.entries(mapaHoje).forEach(([artigo, qtd]) => {
-      if (typeof qtd === 'number' && qtd > 0) {
+    Object.keys(mapaHoje).forEach((artigo) => {
+      const { quantidade } = obterQuantidadeEfetivaBaseRota(hoje, car.id, artigo, semana, diaSemanaHoje);
+      if (quantidade > 0) {
         const prodRef = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
         const cat: 'padaria' | 'pastelaria' = prodRef?.categoria || (artigo.toLowerCase().includes('bolo') || artigo.toLowerCase().includes('croissant') ? 'pastelaria' : 'padaria');
         const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
         mapaItens.set(artigo, {
-          quantidade: qtd,
+          quantidade,
           categoria: cat,
           unidade: unid,
         });
       }
     });
 
-    // 2. Quantidades dos Clientes B2B desta rota
+    // 2. Quantidades dos Clientes B2B desta rota (com eventuais ajustes pontuais)
     const b2bDaRota = clientesB2B.filter((cli) => cli.ativo && cli.carrinha_id === car.id);
     b2bDaRota.forEach((cli) => {
-      const semCli = cli.quantidades_semanais || cli.quantidades_semana;
-      const mapaCli = semCli?.[diaSemanaHoje] || {};
-      Object.entries(mapaCli).forEach(([artigo, qtd]) => {
-        if (typeof qtd === 'number' && qtd > 0) {
+      const semCli = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
+      const mapaCli = semCli?.[diaSemanaHoje] || cli.produtos_predefinidos || {};
+      Object.keys(mapaCli).forEach((artigo) => {
+        const { quantidade } = obterQuantidadeEfetivaClienteB2B(hoje, cli.id, artigo, semCli, diaSemanaHoje);
+        if (quantidade > 0) {
           const prodRef = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
           const cat: 'padaria' | 'pastelaria' = prodRef?.categoria || 'padaria';
           const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
           const atual = mapaItens.get(artigo);
           if (atual) {
-            atual.quantidade += qtd;
+            atual.quantidade += quantidade;
           } else {
             mapaItens.set(artigo, {
-              quantidade: qtd,
+              quantidade,
               categoria: cat,
               unidade: unid,
             });
@@ -604,10 +727,13 @@ export default function ProducaoPage() {
       produto_nome: item.produto_nome,
       setor: item.setor,
       quantidade_total: item.quantidade_total,
-      unidade: 'un.',
+      unidade: item.unidade || 'un.',
       encomendas_count: item.encomendas_count,
       encomendas_codigos: item.encomendas_codigos,
       personalizacoes: item.personalizacoes,
+      qtd_bases_diarias: item.qtd_bases_diarias,
+      qtd_clientes_b2b: item.qtd_clientes_b2b,
+      qtd_encomendas: item.qtd_encomendas,
     }));
 
     setPdfItensFabrico(itensParaPdf);
@@ -839,6 +965,33 @@ export default function ProducaoPage() {
           </button>
         </div>
 
+        {/* SECÇÃO: AJUSTES PONTUAIS À RECORRÊNCIA DE ENTREGAS (7 DIAS) */}
+        <div className="mb-6 space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setMostrarAjustesPontuais(!mostrarAjustesPontuais)}
+              className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs shadow-xs transition cursor-pointer"
+            >
+              <Calendar className="h-4 w-4" />
+              <span>{mostrarAjustesPontuais ? 'Ocultar Ajustes Pontuais (7 Dias)' : 'Abrir Ajustes Pontuais (7 Dias)'}</span>
+              {mostrarAjustesPontuais ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </button>
+            <span className="text-[11px] text-stone-500 font-semibold hidden sm:inline">
+              Ajustes pontuais por data sem alterar a base diária definida
+            </span>
+          </div>
+
+          {mostrarAjustesPontuais && (
+            <MatrizAjustesAdhoc
+              carrinhas={carrinhas.filter((c) => c.rota !== 'Rota 8' && c.numero !== 8)}
+              baseFixaCarrinhas={baseFixaCarrinhas}
+              clientesB2B={clientesB2B}
+              produtos={produtos}
+            />
+          )}
+        </div>
+
         {/* ========================================================================= */}
         {/* ECRÃ 1: FABRICO (KDS)                                                     */}
         {/* ========================================================================= */}
@@ -930,11 +1083,14 @@ export default function ProducaoPage() {
                 <div className="p-2.5 rounded-2xl bg-amber-500 text-white shadow-xs">
                   <ChefHat className="h-6 w-6" />
                 </div>
-                <div>
-                  <h2 className="text-xl font-black text-gray-900 leading-tight">
-                    {configMarca.tituloProducao || 'Cockpit de Produção'} ({selectedLojaId === 'todas' ? t.allStores : lojaAtual.nome})
+                <div className="min-w-0">
+                  <h2 className="text-base sm:text-lg md:text-xl font-black text-gray-900 leading-tight whitespace-nowrap flex items-center gap-2">
+                    <span className="truncate">{configMarca.tituloProducao || 'Cockpit de Produção'}</span>
+                    <span className="text-xs font-bold text-amber-900 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded-lg shrink-0">
+                      {selectedLojaId === 'todas' ? t.allStores : lojaAtual.nome}
+                    </span>
                   </h2>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 truncate mt-0.5">
                     Fila de fabrico exclusiva para levantamentos em loja, ordenada cronologicamente por hora de entrega
                   </p>
                 </div>
@@ -1003,7 +1159,7 @@ export default function ProducaoPage() {
                   title="Imprimir Folha Diária de Fabrico Consolidada em PDF"
                 >
                   <Printer className="h-4 w-4" />
-                  <span>Imprimir Folha de Fabrico (PDF)</span>
+                  <span>Imprimir Folha de Fabrico</span>
                 </button>
               </div>
             </div>
@@ -1076,43 +1232,135 @@ export default function ProducaoPage() {
               </div>
             </div>
 
-            {/* POOL CONSOLIDADA DE QUANTIDADES POR ARTIGO */}
-            {poolArtigosConsolidada.length > 0 && (
-              <div className="rounded-2xl bg-white border border-gray-200 p-4 shadow-xs">
-                <div className="flex items-center justify-between mb-3 border-b pb-2">
-                  <div className="flex items-center gap-2">
-                    <Layers className="h-5 w-5 text-amber-600" />
-                    <h3 className="text-sm font-black text-gray-900">
-                      Pool Consolidada de Fabrico ({poolArtigosConsolidada.reduce((acc, p) => acc + p.quantidade_total, 0)} unidades totais)
+            {/* POOL CONSOLIDADA DE QUANTIDADES POR ARTIGO (TIPOLOGIAS) */}
+            <div className="rounded-2xl bg-white border border-gray-200 p-4 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3">
+                <div className="flex items-center gap-2">
+                  <Layers className="h-5 w-5 text-amber-600 shrink-0" />
+                  <div>
+                    <h3 className="text-sm font-black text-gray-900 flex items-center gap-2">
+                      <span>Pool de Produção</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-950 font-bold">
+                        {poolArtigosConsolidada.reduce((acc, p) => acc + p.quantidade_total, 0)} unidades totais
+                      </span>
                     </h3>
+                    <p className="text-[11px] text-gray-500">
+                      Totais diários calculados em tempo real com base recorrente, clientes empresariais e encomendas
+                    </p>
                   </div>
-                  <span className="text-xs text-gray-500 font-bold">
-                    {poolArtigosConsolidada.length} artigos diferentes
-                  </span>
                 </div>
 
+                {/* Filtro por Tipologia de Fabrico */}
+                <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-xl text-xs font-bold flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setFiltroTipologia('todas')}
+                    className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
+                      filtroTipologia === 'todas'
+                        ? 'bg-amber-600 text-white shadow-xs'
+                        : 'text-stone-700 hover:text-stone-950 hover:bg-white/50'
+                    }`}
+                  >
+                    <span>Consolidado Geral</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFiltroTipologia('bases_diarias')}
+                    className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
+                      filtroTipologia === 'bases_diarias'
+                        ? 'bg-amber-600 text-white shadow-xs'
+                        : 'text-stone-700 hover:text-stone-950 hover:bg-white/50'
+                    }`}
+                  >
+                    <Truck className="h-3.5 w-3.5" />
+                    <span>Bases Diárias</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFiltroTipologia('clientes_b2b')}
+                    className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
+                      filtroTipologia === 'clientes_b2b'
+                        ? 'bg-purple-600 text-white shadow-xs'
+                        : 'text-stone-700 hover:text-stone-950 hover:bg-white/50'
+                    }`}
+                  >
+                    <Building2 className="h-3.5 w-3.5" />
+                    <span>Clientes Empresariais</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFiltroTipologia('encomendas')}
+                    className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
+                      filtroTipologia === 'encomendas'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-stone-700 hover:text-stone-950 hover:bg-white/50'
+                    }`}
+                  >
+                    <ShoppingBag className="h-3.5 w-3.5" />
+                    <span>Encomendas</span>
+                  </button>
+                </div>
+              </div>
+
+              {poolArtigosConsolidada.length === 0 ? (
+                <div className="p-6 text-center text-xs text-stone-500 font-medium">
+                  Nenhum artigo encontrado para a tipologia e filtros selecionados.
+                </div>
+              ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
                   {poolArtigosConsolidada.map((item) => (
                     <div
                       key={item.produto_nome}
-                      className={`p-2.5 rounded-xl border text-center transition ${
+                      className={`p-2.5 rounded-xl border text-center transition flex flex-col justify-between ${
                         item.setor === 'pastelaria'
                           ? 'bg-rose-50/50 border-rose-200 text-rose-950'
                           : 'bg-amber-50/50 border-amber-200 text-amber-950'
                       }`}
                     >
-                      <p className="text-xl font-black">{item.quantidade_total}</p>
-                      <p className="text-xs font-bold leading-tight truncate mt-0.5" title={item.produto_nome}>
-                        {item.produto_nome}
-                      </p>
-                      <p className="text-[10px] text-gray-500 font-medium mt-1">
-                        {item.encomendas_count} encomenda(s)
-                      </p>
+                      <div>
+                        <p className="text-xl font-black font-mono">{item.quantidade_total}</p>
+                        <p className="text-xs font-bold leading-tight truncate mt-0.5" title={item.produto_nome}>
+                          {item.produto_nome}
+                        </p>
+                      </div>
+
+                      {/* Discriminação por Tipologia se Consolidado */}
+                      {filtroTipologia === 'todas' ? (
+                        <div className="mt-2 pt-1.5 border-t border-black/5 text-[10px] space-y-0.5 text-stone-600 font-semibold text-left">
+                          {item.qtd_bases_diarias > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-amber-800">Base Diária:</span>
+                              <span className="font-mono font-bold">{item.qtd_bases_diarias}</span>
+                            </div>
+                          )}
+                          {item.qtd_clientes_b2b > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-purple-800">Empresarial:</span>
+                              <span className="font-mono font-bold">{item.qtd_clientes_b2b}</span>
+                            </div>
+                          )}
+                          {item.qtd_encomendas > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-blue-800">Encomendas:</span>
+                              <span className="font-mono font-bold">{item.qtd_encomendas}</span>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-gray-500 font-medium mt-1">
+                          {filtroTipologia === 'encomendas'
+                            ? `${item.encomendas_count} encomenda(s)`
+                            : `${item.quantidade_total} ${item.unidade || 'un.'}`}
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* LISTA DE ENCOMENDAS KDS */}
             {encomendasFiltradasKds.length === 0 ? (
@@ -1300,9 +1548,6 @@ export default function ProducaoPage() {
                   <Truck className="h-5 w-5 text-amber-600" />
                   Guias de Carga das 7 Rotas de Distribuição
                 </h3>
-                <p className="text-xs text-stone-500">
-                  Emissão em tempo real das folhas de carga oficiais com conferência de caixas e quantidades para o turno da madrugada
-                </p>
               </div>
             </div>
 
@@ -1351,7 +1596,7 @@ export default function ProducaoPage() {
                         <div className="mt-3 pt-2 border-t border-stone-100">
                           <p className="text-[10px] font-bold text-stone-500 uppercase flex items-center gap-1 mb-1">
                             <Building2 className="h-3 w-3 text-amber-700" />
-                            {b2bDaRota.length} Clientes B2B Integrados:
+                            {b2bDaRota.length} Clientes Empresariais:
                           </p>
                           <div className="flex flex-wrap gap-1">
                             {b2bDaRota.map(cli => (
@@ -1370,7 +1615,7 @@ export default function ProducaoPage() {
                       className="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black shadow-xs transition cursor-pointer"
                     >
                       <FileText className="h-4 w-4" />
-                      <span>Gerar Folha de Carga (PDF)</span>
+                      <span>Gerar Folha de Carga</span>
                     </button>
                   </div>
                 );

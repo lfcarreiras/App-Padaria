@@ -88,7 +88,7 @@ const CONFIG_GERAL_DEFAULT: TinaConfiguracaoGeral = {
   modeloWhatsApp: "*PEDIDO - PADARIA DA VILA*\nNome: [O seu nome]\nTelefone: [O seu contacto]\nArtigos:\n- [Artigos]",
   tituloBalcao: "Balcão de Encomendas",
   subtituloBalcao: "Registo rápido, gestão de contactos de clientes e histórico de pedidos.",
-  bannerAvisoAtivo: true,
+  bannerAvisoAtivo: false,
   bannerAvisoTexto: "Fornadas quentes a sair às 07:00, 11:30 e 17:00 em todas as nossas lojas!",
   tituloWhatsApp: "Integração WhatsApp",
   subtituloWhatsApp: "Importar mensagens estruturadas de clientes",

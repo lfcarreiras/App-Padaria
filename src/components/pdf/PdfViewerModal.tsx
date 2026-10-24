@@ -34,6 +34,9 @@ export interface LinhaArtigoFabrico {
   encomendas_count?: number;
   encomendas_codigos?: string[];
   personalizacoes?: string[];
+  qtd_bases_diarias?: number;
+  qtd_clientes_b2b?: number;
+  qtd_encomendas?: number;
 }
 
 export interface PdfViewerModalProps {
@@ -415,7 +418,7 @@ export function PdfViewerModal({
                     Fabrico Próprio de Pão Tradicional e Pastelaria Fina • Arouca
                   </p>
                   <p className="text-[11px] font-mono text-gray-500 mt-0.5">
-                    Centro de Expedição e Logística da Madrugada
+                    Centro de Expedição e Logística
                   </p>
                 </div>
                 <div className="text-left sm:text-right">
@@ -423,7 +426,6 @@ export function PdfViewerModal({
                     Guia de Carga de Expedição
                   </span>
                   <p className="text-xs font-bold text-gray-700 mt-1">Data: {dataFormatada}</p>
-                  <p className="text-xs text-gray-500">Turno da Madrugada (04h00 – 06h00)</p>
                 </div>
               </div>
 
@@ -850,11 +852,22 @@ export function PdfViewerModal({
                             {it.encomendas_count ? `${it.encomendas_count} enc.` : '-'}
                           </td>
                           <td className="py-2 px-3 text-stone-600 text-[11px]">
-                            {it.personalizacoes && it.personalizacoes.length > 0
-                              ? it.personalizacoes.join(' • ')
-                              : it.encomendas_codigos && it.encomendas_codigos.length > 0
-                              ? it.encomendas_codigos.slice(0, 4).join(', ') + (it.encomendas_codigos.length > 4 ? '...' : '')
-                              : '-'}
+                            {it.qtd_bases_diarias || it.qtd_clientes_b2b ? (
+                              <div className="space-y-0.5">
+                                <div className="text-[10px] font-mono font-bold text-stone-800">
+                                  Base: {it.qtd_bases_diarias || 0} • B2B: {it.qtd_clientes_b2b || 0} • Enc: {it.qtd_encomendas || 0}
+                                </div>
+                                {it.personalizacoes && it.personalizacoes.length > 0 && (
+                                  <div className="text-amber-800 font-medium">{it.personalizacoes.join(' • ')}</div>
+                                )}
+                              </div>
+                            ) : it.personalizacoes && it.personalizacoes.length > 0 ? (
+                              it.personalizacoes.join(' • ')
+                            ) : it.encomendas_codigos && it.encomendas_codigos.length > 0 ? (
+                              it.encomendas_codigos.slice(0, 4).join(', ') + (it.encomendas_codigos.length > 4 ? '...' : '')
+                            ) : (
+                              '-'
+                            )}
                           </td>
                           <td className="py-2 px-3 text-center text-stone-400 font-medium">
                             [ &nbsp; ] Cozido
@@ -903,11 +916,22 @@ export function PdfViewerModal({
                             {it.encomendas_count ? `${it.encomendas_count} enc.` : '-'}
                           </td>
                           <td className="py-2 px-3 text-stone-600 text-[11px]">
-                            {it.personalizacoes && it.personalizacoes.length > 0
-                              ? it.personalizacoes.join(' • ')
-                              : it.encomendas_codigos && it.encomendas_codigos.length > 0
-                              ? it.encomendas_codigos.slice(0, 4).join(', ') + (it.encomendas_codigos.length > 4 ? '...' : '')
-                              : '-'}
+                            {it.qtd_bases_diarias || it.qtd_clientes_b2b ? (
+                              <div className="space-y-0.5">
+                                <div className="text-[10px] font-mono font-bold text-stone-800">
+                                  Base: {it.qtd_bases_diarias || 0} • B2B: {it.qtd_clientes_b2b || 0} • Enc: {it.qtd_encomendas || 0}
+                                </div>
+                                {it.personalizacoes && it.personalizacoes.length > 0 && (
+                                  <div className="text-amber-800 font-medium">{it.personalizacoes.join(' • ')}</div>
+                                )}
+                              </div>
+                            ) : it.personalizacoes && it.personalizacoes.length > 0 ? (
+                              it.personalizacoes.join(' • ')
+                            ) : it.encomendas_codigos && it.encomendas_codigos.length > 0 ? (
+                              it.encomendas_codigos.slice(0, 4).join(', ') + (it.encomendas_codigos.length > 4 ? '...' : '')
+                            ) : (
+                              '-'
+                            )}
                           </td>
                           <td className="py-2 px-3 text-center text-stone-400 font-medium">
                             [ &nbsp; ] Pronto
@@ -932,7 +956,7 @@ export function PdfViewerModal({
                   <span className="font-bold text-stone-600 block mb-1">Chefe de Turno de Fabrico:</span>
                   <div className="p-3 rounded-xl bg-stone-50 border border-stone-200">
                     <p className="font-bold text-stone-900">Mestre Padeiro / Responsável da Produção</p>
-                    <p className="text-[11px] text-stone-500 mt-1">Turno de Madrugada e Matinal • Conforme Normas HACCP</p>
+                    <p className="text-[11px] text-stone-500 mt-1">Conforme Normas HACCP</p>
                   </div>
                 </div>
 

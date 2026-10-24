@@ -29,6 +29,7 @@ import {
   ClienteEmpresarialB2B 
 } from '../../types';
 import { obterConfiguracaoMarca } from '../../lib/tinaContent';
+import { correspondePesquisaArtigo } from '../../lib/fuzzySearch';
 import { 
   ShoppingBag, 
   Store, 
@@ -392,7 +393,7 @@ export default function EncomendarClientePage() {
   const produtosFiltrados = useMemo(() => {
     return produtos.filter((p) => {
       const matchCat = categoriaAtiva === 'todas' || p.categoria === categoriaAtiva;
-      const matchBusca = p.nome.toLowerCase().includes(buscaProduto.toLowerCase().trim());
+      const matchBusca = correspondePesquisaArtigo(p.nome, buscaProduto);
       return matchCat && matchBusca;
     });
   }, [produtos, categoriaAtiva, buscaProduto]);

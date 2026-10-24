@@ -8,6 +8,7 @@ import {
   Produto, 
   DiaSemana 
 } from '../types';
+import { correspondePesquisaArtigo } from '../lib/fuzzySearch';
 import { 
   carregarAjustesAdhoc, 
   salvarAjusteAdhoc, 
@@ -229,8 +230,7 @@ export function MatrizAjustesAdhoc({
 
     let lista = Array.from(setProds);
     if (pesquisaArtigo.trim()) {
-      const q = pesquisaArtigo.toLowerCase().trim();
-      lista = lista.filter((p) => p.toLowerCase().includes(q));
+      lista = lista.filter((p) => correspondePesquisaArtigo(p, pesquisaArtigo));
     }
 
     return lista.sort((a, b) => a.localeCompare(b));
@@ -256,6 +256,7 @@ export function MatrizAjustesAdhoc({
       list = list.filter(
         (cli) =>
           cli.nome.toLowerCase().includes(q) ||
+          correspondePesquisaArtigo(cli.nome, pesquisaCliente) ||
           (cli.morada && cli.morada.toLowerCase().includes(q))
       );
     }
@@ -279,23 +280,23 @@ export function MatrizAjustesAdhoc({
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-black tracking-tight flex items-center gap-2">
-                <span>Ajustes Ad-hoc Calendarizados</span>
+                <span>Ajustes Pontuais à Recorrência de Entregas</span>
                 <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-400 text-stone-950 font-bold uppercase tracking-wider">
                   Próximos 7 Dias
                 </span>
               </h2>
               <p className="text-xs text-stone-300 mt-0.5">
-                Faça alterações pontuais de quantidades para datas específicas do mês sem alterar a baseline recorrente do Cockpit de Gestão.
+                Faça alterações pontuais de quantidades para datas específicas sem alterar a base diária definida para cada cliente.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Badges de Estado e Baseline Protegido */}
+        {/* Badges de Estado e Base Protegida */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 border border-white/20 text-stone-200 text-xs font-semibold">
             <ShieldCheck className="h-4 w-4 text-emerald-400" />
-            <span>Baseline Recorrente Protegida</span>
+            <span>Base Recorrente Protegida</span>
           </div>
 
           {totalAjustesAtivos > 0 && (
@@ -341,7 +342,7 @@ export function MatrizAjustesAdhoc({
             }`}
           >
             <Building2 className="h-4 w-4" />
-            <span>Clientes Empresariais B2B (7 Dias)</span>
+            <span>Clientes Empresariais (7 Dias)</span>
           </button>
         </div>
 
@@ -375,7 +376,7 @@ export function MatrizAjustesAdhoc({
                 <span>Base Diária: {carrinhaAtiva?.rota || 'Rota Selecionada'} ({carrinhaAtiva?.matricula})</span>
               </h3>
               <p className="text-[11px] text-stone-500">
-                Altere diretamente o número na célula para aplicar um ajuste ad-hoc nesta data de calendário.
+                Altere diretamente o número na célula para aplicar um ajuste pontual nesta data de calendário.
               </p>
             </div>
 
@@ -475,8 +476,8 @@ export function MatrizAjustesAdhoc({
                                   }`}
                                   title={
                                     temAdhoc
-                                      ? `Ajustado ad-hoc para ${col.dataIso}! (Baseline: ${baselineVal} un.)`
-                                      : `Valor de baseline: ${baselineVal} un.`
+                                      ? `Ajustado pontualmente para ${col.dataIso}! (Base diária: ${baselineVal} un.)`
+                                      : `Valor de base diária: ${baselineVal} un.`
                                   }
                                 />
 
@@ -487,7 +488,7 @@ export function MatrizAjustesAdhoc({
                                       handleReverterBaseAdhoc(col.dataIso, carrinhaAtiva.id, produtoNome)
                                     }
                                     className="p-1 rounded text-stone-400 hover:text-amber-800 hover:bg-amber-200 transition cursor-pointer"
-                                    title={`Reverter para baseline (${baselineVal} un.)`}
+                                    title={`Reverter para base diária (${baselineVal} un.)`}
                                   >
                                     <RotateCcw className="h-3 w-3" />
                                   </button>
@@ -495,7 +496,7 @@ export function MatrizAjustesAdhoc({
                               </div>
                               {temAdhoc && (
                                 <span className="block text-[9px] font-black text-amber-700 tracking-tight mt-0.5">
-                                  ad-hoc
+                                  Ajustado
                                 </span>
                               )}
                             </td>
@@ -524,7 +525,7 @@ export function MatrizAjustesAdhoc({
             <div>
               <h3 className="text-sm font-black text-stone-900 flex items-center gap-2">
                 <Building2 className="h-4 w-4 text-purple-600" />
-                <span>Matriz de Clientes Empresariais (B2B) — Calendário 7 Dias</span>
+                <span>Clientes Empresariais — Calendário 7 Dias</span>
               </h3>
               <p className="text-[11px] text-stone-500">
                 Ajuste pontualmente as encomendas para Lares, Hospitais e Empresas sem mexer no contrato baseline semanal.
@@ -676,8 +677,8 @@ export function MatrizAjustesAdhoc({
                                             }`}
                                             title={
                                               temAdhoc
-                                                ? `Ajustado ad-hoc para ${col.dataIso}! (Baseline: ${baselineVal} un.)`
-                                                : `Valor baseline: ${baselineVal} un.`
+                                                ? `Ajustado pontualmente para ${col.dataIso}! (Base diária: ${baselineVal} un.)`
+                                                : `Valor base diária: ${baselineVal} un.`
                                             }
                                           />
 
@@ -688,12 +689,17 @@ export function MatrizAjustesAdhoc({
                                                 handleReverterB2BAdhoc(col.dataIso, cli.id, artigo)
                                               }
                                               className="p-0.5 rounded text-stone-400 hover:text-amber-800 hover:bg-amber-200 transition cursor-pointer"
-                                              title={`Reverter para baseline (${baselineVal} un.)`}
+                                              title={`Reverter para base diária (${baselineVal} un.)`}
                                             >
                                               <RotateCcw className="h-3 w-3" />
                                             </button>
                                           )}
                                         </div>
+                                        {temAdhoc && (
+                                          <span className="block text-[9px] font-black text-amber-700 tracking-tight mt-0.5 text-center">
+                                            Ajustado
+                                          </span>
+                                        )}
                                       </td>
                                     );
                                   })}
