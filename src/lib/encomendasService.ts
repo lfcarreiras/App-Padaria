@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Encomenda, ItemEncomenda, EstadoEncomenda, EstadoProducaoItem, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, LogAuditoria, BaseFixaCarrinha, ClienteEmpresarialB2B, DiaSemana } from '../types';
+import { Encomenda, ItemEncomenda, EstadoEncomenda, EstadoProducaoItem, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, LogAuditoria, BaseFixaCarrinha, ClienteEmpresarialB2B, DiaSemana, BaseDiariaRecorrente } from '../types';
 import { LOGS_AUDITORIA_MOCK, CARRINHAS_MOCK, COLUNAS_MAPA_DIARIO_OFICIAL, BASE_FIXA_CARRINHAS_INICIAL, CLIENTES_EMPRESARIAIS_B2B_INICIAIS } from './mockData';
 
 const REAL_DELIVERY_TIMESTAMPS_KEY = 'padaria_timestamps_entrega_real_v1';
@@ -696,6 +696,13 @@ function mapearLinhaClienteDb(row: any): Cliente {
     morada: row.morada || undefined,
     codigo_postal: row.codigo_postal || undefined,
     notas_entrega: notasLimpa || undefined,
+    tipo_cliente: row.tipo_cliente || 'particular',
+    pin_hash: row.pin_hash || undefined,
+    nif: row.nif || undefined,
+    carrinha_id: row.carrinha_id || undefined,
+    ativo: row.ativo !== undefined ? row.ativo : true,
+    criado_em: row.criado_em || undefined,
+    atualizado_em: row.atualizado_em || undefined,
   };
 }
 
@@ -779,13 +786,18 @@ export async function salvarClienteDb(cliente: Partial<Cliente> & { nome: string
     ? `${notasBaseLimpa ? `${notasBaseLimpa} ` : ''}[AUTH_PWD:${pwdFinal}]`
     : notasBaseLimpa || null;
 
-  const payload = {
+  const payload: any = {
     nome: formatarNomeEntidade(cliente.nome),
     telefone: cliente.telefone.trim(),
-    email: cliente.email?.trim() || credLocal?.email || null,
+    email: cliente.email ? cliente.email.toLowerCase().trim() : (credLocal?.email ? credLocal.email.toLowerCase().trim() : null),
     morada: cliente.morada?.trim() || null,
     codigo_postal: cliente.codigo_postal?.trim() || null,
     notas_entrega: notasComPwd,
+    tipo_cliente: cliente.tipo_cliente || 'particular',
+    nif: cliente.nif?.trim() || null,
+    carrinha_id: cliente.carrinha_id || null,
+    ativo: cliente.ativo !== undefined ? cliente.ativo : true,
+    atualizado_em: new Date().toISOString(),
   };
 
   if (cliente.id && !cliente.id.startsWith('cli-')) {
@@ -1843,6 +1855,257 @@ export async function sincronizarClientesB2BComSupabase(): Promise<ClienteEmpres
     console.warn('Fallback para cache local de clientes B2B:', err);
   }
   return carregarClientesEmpresariaisB2B();
+}
+
+export async function eliminarClienteEmpresarialB2B(id: string): Promise<boolean> {
+  if (typeof window !== 'undefined') {
+    const lista = carregarClientesEmpresariaisB2B().filter((c) => c.id !== id);
+    localStorage.setItem(CLIENTES_B2B_STORAGE_KEY, JSON.stringify(lista));
+    window.dispatchEvent(new Event('app_b2b_atualizado'));
+  }
+  if (supabase) {
+    try {
+      const { error } = await supabase.from('clientes_empresariais').delete().eq('id', id);
+      if (error) {
+        console.warn('Erro ao eliminar cliente B2B no Supabase:', error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.warn('Erro de rede ao eliminar cliente B2B:', err);
+      return false;
+    }
+  }
+  return true;
+}
+
+// ---------------- BASES DIÁRIAS RECORRENTES (PORTA-A-PORTA & MODO FÉRIAS) ---------------- //
+
+const BASES_RECORRENTES_STORAGE_KEY = 'padaria_bases_diarias_recorrentes_v1';
+
+export function clienteEmModoFerias(base: BaseDiariaRecorrente, dataStr: string): boolean {
+  if (!base.ativo) return true; // Se inativo, está em pausa
+  if (!base.pausa_inicio || !base.pausa_fim) return false;
+  // dataStr: YYYY-MM-DD
+  return dataStr >= base.pausa_inicio && dataStr <= base.pausa_fim;
+}
+
+export function normalizarBaseRecorrenteItem(item: any): BaseDiariaRecorrente {
+  return {
+    id: String(item.id || ''),
+    cliente_id: String(item.cliente_id || ''),
+    cliente_nome: item.cliente_nome || undefined,
+    cliente_telefone: item.cliente_telefone || undefined,
+    cliente_morada: item.cliente_morada || undefined,
+    carrinha_id: String(item.carrinha_id || ''),
+    carrinha_nome: item.carrinha_nome || undefined,
+    ativo: item.ativo !== undefined ? Boolean(item.ativo) : true,
+    pausa_inicio: item.pausa_inicio || null,
+    pausa_fim: item.pausa_fim || null,
+    quantidades_semanais: item.quantidades_semanais || { seg: {}, ter: {}, qua: {}, qui: {}, sex: {}, sab: {}, dom: {} },
+    notas_motorista: item.notas_motorista || null,
+    metodo_pagamento: item.metodo_pagamento || 'dinheiro_ao_motorista',
+    criado_em: item.criado_em || undefined,
+    atualizado_em: item.atualizado_em || undefined,
+  };
+}
+
+export async function carregarBasesDiariasRecorrentes(): Promise<BaseDiariaRecorrente[]> {
+  let locais: BaseDiariaRecorrente[] = [];
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem(BASES_RECORRENTES_STORAGE_KEY);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) locais = parsed.map(normalizarBaseRecorrenteItem);
+      } catch (e) {}
+    }
+  }
+
+  if (!supabase) return locais;
+
+  try {
+    const { data, error } = await supabase
+      .from('bases_diarias_recorrentes')
+      .select(`
+        *,
+        cliente:clientes ( id, nome, telefone, morada ),
+        carrinha:carrinhas ( id, identificador )
+      `)
+      .order('criado_em', { ascending: false });
+
+    if (!error && data) {
+      const normalizadas = data.map((row: any) => ({
+        ...normalizarBaseRecorrenteItem(row),
+        cliente_nome: row.cliente?.nome,
+        cliente_telefone: row.cliente?.telefone,
+        cliente_morada: row.cliente?.morada,
+        carrinha_nome: row.carrinha?.identificador,
+      }));
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(BASES_RECORRENTES_STORAGE_KEY, JSON.stringify(normalizadas));
+        window.dispatchEvent(new Event('app_bases_recorrentes_atualizado'));
+      }
+      return normalizadas;
+    }
+  } catch (err) {
+    console.warn('Fallback para cache local de bases recorrentes:', err);
+  }
+
+  return locais;
+}
+
+export async function salvarBaseDiariaRecorrente(base: Partial<BaseDiariaRecorrente> & { cliente_id: string; carrinha_id: string }): Promise<BaseDiariaRecorrente | null> {
+  const payload: any = {
+    cliente_id: base.cliente_id,
+    carrinha_id: base.carrinha_id,
+    ativo: base.ativo !== undefined ? base.ativo : true,
+    pausa_inicio: base.pausa_inicio || null,
+    pausa_fim: base.pausa_fim || null,
+    quantidades_semanais: base.quantidades_semanais || {},
+    notas_motorista: base.notas_motorista || null,
+    metodo_pagamento: base.metodo_pagamento || 'dinheiro_ao_motorista',
+    atualizado_em: new Date().toISOString(),
+  };
+
+  if (base.id && !base.id.startsWith('temp-')) {
+    payload.id = base.id;
+  }
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('bases_diarias_recorrentes')
+        .upsert(payload)
+        .select(`
+          *,
+          cliente:clientes ( id, nome, telefone, morada ),
+          carrinha:carrinhas ( id, identificador )
+        `)
+        .single();
+
+      if (error) {
+        console.error('Erro ao guardar base recorrente no Supabase:', error);
+      } else if (data) {
+        const item = {
+          ...normalizarBaseRecorrenteItem(data),
+          cliente_nome: data.cliente?.nome,
+          cliente_telefone: data.cliente?.telefone,
+          cliente_morada: data.cliente?.morada,
+          carrinha_nome: data.carrinha?.identificador,
+        };
+        // Atualizar cache local
+        if (typeof window !== 'undefined') {
+          const listaAtual = (await carregarBasesDiariasRecorrentes()).filter((b) => b.id !== item.id);
+          localStorage.setItem(BASES_RECORRENTES_STORAGE_KEY, JSON.stringify([item, ...listaAtual]));
+          window.dispatchEvent(new Event('app_bases_recorrentes_atualizado'));
+        }
+        return item;
+      }
+    } catch (e) {
+      console.warn('Erro de rede ao salvar base recorrente:', e);
+    }
+  }
+
+  // Fallback offline
+  const fallbackItem: BaseDiariaRecorrente = {
+    id: base.id || `base-rec-${Date.now()}`,
+    cliente_id: base.cliente_id,
+    carrinha_id: base.carrinha_id,
+    ativo: base.ativo !== undefined ? base.ativo : true,
+    pausa_inicio: base.pausa_inicio || null,
+    pausa_fim: base.pausa_fim || null,
+    quantidades_semanais: base.quantidades_semanais || { seg: {}, ter: {}, qua: {}, qui: {}, sex: {}, sab: {}, dom: {} },
+    notas_motorista: base.notas_motorista || null,
+    metodo_pagamento: base.metodo_pagamento || 'dinheiro_ao_motorista',
+    criado_em: new Date().toISOString(),
+    atualizado_em: new Date().toISOString(),
+  };
+
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem(BASES_RECORRENTES_STORAGE_KEY);
+    let list: BaseDiariaRecorrente[] = [];
+    try {
+      if (raw) list = JSON.parse(raw);
+    } catch {}
+    list = [fallbackItem, ...list.filter((b) => b.id !== fallbackItem.id)];
+    localStorage.setItem(BASES_RECORRENTES_STORAGE_KEY, JSON.stringify(list));
+    window.dispatchEvent(new Event('app_bases_recorrentes_atualizado'));
+  }
+  return fallbackItem;
+}
+
+export async function eliminarBaseDiariaRecorrente(id: string): Promise<boolean> {
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem(BASES_RECORRENTES_STORAGE_KEY);
+    if (raw) {
+      try {
+        const list: BaseDiariaRecorrente[] = JSON.parse(raw);
+        const filtrada = list.filter((b) => b.id !== id);
+        localStorage.setItem(BASES_RECORRENTES_STORAGE_KEY, JSON.stringify(filtrada));
+        window.dispatchEvent(new Event('app_bases_recorrentes_atualizado'));
+      } catch {}
+    }
+  }
+
+  if (supabase) {
+    try {
+      const { error } = await supabase.from('bases_diarias_recorrentes').delete().eq('id', id);
+      if (error) console.warn('Aviso remoção base recorrente no Supabase:', error.message);
+      return !error;
+    } catch (e) {
+      console.warn('Erro de rede ao eliminar base recorrente:', e);
+    }
+  }
+  return true;
+}
+
+// ---------------- SUBSCRIÇÕES REALTIME OMNICHANNEL ---------------- //
+
+export function subscreverAlteracoesClientesB2B(onUpdate: (lista: ClienteEmpresarialB2B[]) => void) {
+  if (!supabase) return () => {};
+  const channel = supabase
+    .channel('public:clientes_empresariais')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes_empresariais' }, async () => {
+      const atualizados = await sincronizarClientesB2BComSupabase();
+      onUpdate(atualizados);
+    })
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
+export function subscreverAlteracoesClientes(onUpdate: (lista: Cliente[]) => void) {
+  if (!supabase) return () => {};
+  const channel = supabase
+    .channel('public:clientes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, async () => {
+      const atualizados = await carregarClientesSupabase();
+      onUpdate(atualizados);
+    })
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
+export function subscreverAlteracoesBasesRecorrentes(onUpdate: (lista: BaseDiariaRecorrente[]) => void) {
+  if (!supabase) return () => {};
+  const channel = supabase
+    .channel('public:bases_diarias_recorrentes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'bases_diarias_recorrentes' }, async () => {
+      const atualizados = await carregarBasesDiariasRecorrentes();
+      onUpdate(atualizados);
+    })
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
 }
 
 export function obterDiaSemanaDeData(dataStr: string): DiaSemana {

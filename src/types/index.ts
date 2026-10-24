@@ -28,6 +28,13 @@ export interface Cliente {
   morada?: string;
   codigo_postal?: string;
   notas_entrega?: string;
+  tipo_cliente?: 'particular' | 'empresarial';
+  pin_hash?: string;
+  nif?: string;
+  carrinha_id?: string;
+  ativo?: boolean;
+  criado_em?: string;
+  atualizado_em?: string;
 }
 
 export interface Produto {
@@ -187,6 +194,30 @@ export interface ClienteEmpresarialB2B {
   ativo: boolean;
   quantidades_semanais: Record<DiaSemana, Record<string, number>>; // dia da semana -> { [produto_nome]: quantidade }
   quantidades_semana?: Record<DiaSemana, Record<string, number>>; // alias compatível
+}
+
+export type MetodoPagamentoBaseRecorrente = 
+  | 'dinheiro_ao_motorista' 
+  | 'conta_mensal' 
+  | 'mbway_semanal' 
+  | 'multibanco';
+
+export interface BaseDiariaRecorrente {
+  id: string;
+  cliente_id: string;
+  cliente_nome?: string;
+  cliente_telefone?: string;
+  cliente_morada?: string;
+  carrinha_id: string;
+  carrinha_nome?: string;
+  ativo: boolean;
+  pausa_inicio?: string | null; // YYYY-MM-DD (Modo Férias)
+  pausa_fim?: string | null;    // YYYY-MM-DD (Modo Férias)
+  quantidades_semanais: Record<DiaSemana, Record<string, number>>;
+  notas_motorista?: string | null;
+  metodo_pagamento: MetodoPagamentoBaseRecorrente;
+  criado_em?: string;
+  atualizado_em?: string;
 }
 
 export interface ItemAlocadoForno {

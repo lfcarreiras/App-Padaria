@@ -11,6 +11,8 @@ import {
   carregarCarrinhasSupabase,
   carregarBaseFixaCarrinhas,
   carregarClientesEmpresariaisB2B,
+  sincronizarClientesB2BComSupabase,
+  subscreverAlteracoesClientesB2B,
   obterDiaSemanaDeData,
   obterQuantidadeEfetivaBaseRota,
   obterQuantidadeEfetivaClienteB2B,
@@ -162,9 +164,21 @@ export default function ProducaoPage() {
       if (prods && prods.length > 0) setProdutos(prods);
       setBaseFixaCarrinhas(carregarBaseFixaCarrinhas());
       setClientesB2B(carregarClientesEmpresariaisB2B());
+      sincronizarClientesB2BComSupabase().then((res) => {
+        if (res && res.length > 0) setClientesB2B(res);
+      });
       setUltimoFechoPool(obterUltimoFechoNoturno());
     }
     carregar();
+
+    const unsubB2B = subscreverAlteracoesClientesB2B((lista) => {
+      setClientesB2B(lista);
+      setVersaoDados((v) => v + 1);
+    });
+
+    return () => {
+      unsubB2B();
+    };
   }, []);
 
   // Sincronização em tempo real das Bases Diárias, Clientes B2B e Ajustes Pontuais

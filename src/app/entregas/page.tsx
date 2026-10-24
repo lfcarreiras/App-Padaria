@@ -13,6 +13,8 @@ import {
   carregarBaseFixaCarrinhas,
   carregarArtigosBaseFixa,
   carregarClientesEmpresariaisB2B,
+  sincronizarClientesB2BComSupabase,
+  subscreverAlteracoesClientesB2B,
   obterDiaSemanaDeData,
   atualizarEstadoEncomendaDb,
   alternarTipoEntregaDb,
@@ -116,8 +118,19 @@ export default function EntregasPage() {
       if (prods && prods.length > 0) setProdutos(prods);
       setBaseFixaCarrinhas(carregarBaseFixaCarrinhas());
       setClientesB2B(carregarClientesEmpresariaisB2B());
+      sincronizarClientesB2BComSupabase().then((res) => {
+        if (res && res.length > 0) setClientesB2B(res);
+      });
     }
     carregar();
+
+    const unsubB2B = subscreverAlteracoesClientesB2B((lista) => {
+      setClientesB2B(lista);
+    });
+
+    return () => {
+      unsubB2B();
+    };
   }, []);
 
   const lojaAtual = lojas.find((l) => l.id === selectedLojaId) || lojas[0] || LOJAS_MOCK[0];

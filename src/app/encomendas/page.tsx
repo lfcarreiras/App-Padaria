@@ -14,6 +14,7 @@ import {
   carregarCarrinhasSupabase,
   salvarClienteDb,
   eliminarClienteDb,
+  subscreverAlteracoesClientes,
   eliminarEncomendaDb,
   atualizarEncomendaDb,
   alternarTipoEntregaDb,
@@ -151,8 +152,13 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
     };
 
     window.addEventListener('app_produtos_atualizados', handleProdutosAtualizados);
+    const unsubClientes = subscreverAlteracoesClientes((novaLista) => {
+      setClientes(novaLista);
+    });
+
     return () => {
       window.removeEventListener('app_produtos_atualizados', handleProdutosAtualizados);
+      unsubClientes();
     };
   }, [lojaTrabalhoId]);
 
@@ -173,6 +179,7 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
       if (cliLocal.morada) setMoradaCliente(cliLocal.morada);
       if (cliLocal.notas_entrega) setNotasEntrega(cliLocal.notas_entrega);
       if (cliLocal.email) setEmailCliente(cliLocal.email);
+      if (cliLocal.carrinha_id) setCarrinhaSelecionadaId(cliLocal.carrinha_id);
       return;
     }
 
@@ -189,6 +196,7 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
         if (cli.morada) setMoradaCliente(cli.morada);
         if (cli.notas_entrega) setNotasEntrega(cli.notas_entrega);
         if (cli.email) setEmailCliente(cli.email);
+        if (cli.carrinha_id) setCarrinhaSelecionadaId(cli.carrinha_id);
       }
     } catch (e) {
       console.warn('Erro ao pesquisar cliente:', e);
@@ -269,38 +277,7 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
       guardarCanalOrigemLocal(codigoGerado, canalOrigem);
 
       if (supabase) {
-        // 1. Guardar ou Atualizar Cliente automaticamente na Base de Dados
-        const { data: cliExistente } = await supabase
-          .from('clientes')
-          .select('id')
-          .eq('telefone', telefoneCliente.trim())
-          .maybeSingle();
-
-        if (cliExistente) {
-          clienteId = cliExistente.id;
-          const updates: any = { nome: nomeCliente.trim() };
-          if (emailCliente.trim()) updates.email = emailCliente.trim().toLowerCase();
-          if (tipoEntrega === 'entrega_domicilio') {
-            updates.morada = moradaCliente.trim() || null;
-            updates.notas_entrega = notasEntrega.trim() || null;
-          }
-          await supabase.from('clientes').update(updates).eq('id', clienteId);
-        } else {
-          const { data: novoCli } = await supabase
-            .from('clientes')
-            .insert({
-              nome: nomeCliente.trim(),
-              telefone: telefoneCliente.trim(),
-              email: emailCliente.trim().toLowerCase() || null,
-              morada: tipoEntrega === 'entrega_domicilio' ? moradaCliente.trim() : null,
-              notas_entrega: tipoEntrega === 'entrega_domicilio' ? notasEntrega.trim() : null,
-            })
-            .select('id')
-            .single();
-          if (novoCli) clienteId = novoCli.id;
-        }
-
-        // 2. Resolver UUID da Loja e Carrinha
+        // 1. Resolver UUID da Loja e Carrinha
         const { data: lojaDb } = await supabase
           .from('lojas')
           .select('id')
@@ -312,6 +289,44 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
         let carrinhaIdFinal: string | null = null;
         if (tipoEntrega === 'entrega_domicilio' && carrinhaObj) {
           carrinhaIdFinal = carrinhaObj.id;
+        }
+
+        // 2. Guardar ou Atualizar Cliente automaticamente na Base de Dados
+        const { data: cliExistente } = await supabase
+          .from('clientes')
+          .select('id')
+          .eq('telefone', telefoneCliente.trim())
+          .maybeSingle();
+
+        if (cliExistente) {
+          clienteId = cliExistente.id;
+          const updates: any = { 
+            nome: nomeCliente.trim(),
+            atualizado_em: new Date().toISOString()
+          };
+          if (emailCliente.trim()) updates.email = emailCliente.trim().toLowerCase();
+          if (tipoEntrega === 'entrega_domicilio') {
+            updates.morada = moradaCliente.trim() || null;
+            updates.notas_entrega = notasEntrega.trim() || null;
+            if (carrinhaIdFinal) updates.carrinha_id = carrinhaIdFinal;
+          }
+          await supabase.from('clientes').update(updates).eq('id', clienteId);
+        } else {
+          const { data: novoCli } = await supabase
+            .from('clientes')
+            .insert({
+              nome: nomeCliente.trim(),
+              telefone: telefoneCliente.trim(),
+              email: emailCliente.trim().toLowerCase() || null,
+              morada: tipoEntrega === 'entrega_domicilio' ? moradaCliente.trim() : null,
+              notas_entrega: tipoEntrega === 'entrega_domicilio' ? notasEntrega.trim() : null,
+              carrinha_id: tipoEntrega === 'entrega_domicilio' ? carrinhaIdFinal : null,
+              tipo_cliente: 'particular',
+              ativo: true,
+            })
+            .select('id')
+            .single();
+          if (novoCli) clienteId = novoCli.id;
         }
 
         // 3. Inserir Encomenda (com fallback automático caso a coluna canal_origem não exista no schema cache do Supabase)
@@ -477,6 +492,10 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
       morada: clienteModal.morada,
       codigo_postal: clienteModal.codigo_postal,
       notas_entrega: clienteModal.notas_entrega,
+      tipo_cliente: clienteModal.tipo_cliente || 'particular',
+      nif: clienteModal.nif,
+      carrinha_id: clienteModal.carrinha_id,
+      ativo: clienteModal.ativo !== undefined ? clienteModal.ativo : true,
     });
 
     if (salvo) {
@@ -1619,6 +1638,45 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
                   placeholder="cliente@exemplo.pt"
                   className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
                 />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Tipo de Cliente</label>
+                  <select
+                    value={clienteModal.tipo_cliente || 'particular'}
+                    onChange={(e) => setClienteModal({ ...clienteModal, tipo_cliente: e.target.value as 'particular' | 'empresarial' })}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden bg-white text-xs font-bold"
+                  >
+                    <option value="particular">👤 Particular</option>
+                    <option value="empresarial">🏢 Empresarial (B2B)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">NIF</label>
+                  <input
+                    type="text"
+                    value={clienteModal.nif || ''}
+                    onChange={(e) => setClienteModal({ ...clienteModal, nif: e.target.value })}
+                    placeholder="999 999 999"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden font-mono text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Rota Habitual</label>
+                  <select
+                    value={clienteModal.carrinha_id || ''}
+                    onChange={(e) => setClienteModal({ ...clienteModal, carrinha_id: e.target.value || undefined })}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden bg-white text-xs font-bold"
+                  >
+                    <option value="">(Sem rota específica)</option>
+                    {carrinhas.map((car) => (
+                      <option key={car.id} value={car.id}>
+                        {car.identificador || car.matricula}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div>

@@ -33,7 +33,11 @@ import {
   carregarArtigosBaseFixa,
   salvarArtigosBaseFixa,
   carregarClientesEmpresariaisB2B,
-  salvarClientesEmpresariaisB2B
+  salvarClientesEmpresariaisB2B,
+  eliminarClienteEmpresarialB2B,
+  sincronizarClientesB2BComSupabase,
+  subscreverAlteracoesClientesB2B,
+  subscreverAlteracoesClientes
 } from '../../lib/encomendasService';
 import { 
   ReceiptConfig, 
@@ -172,8 +176,26 @@ export default function AdminPage() {
   // Inserção de Registo Avulso na BD
   const [modalRegistoAvulsoAberto, setModalRegistoAvulsoAberto] = useState<boolean>(false);
   const [subAbaRegistoAvulso, setSubAbaRegistoAvulso] = useState<'cliente' | 'produto'>('cliente');
-  const [novoCliente, setNovoCliente] = useState<{ nome: string; telefone: string; email?: string; morada: string; codigo_postal: string; notas_entrega: string }>({
-    nome: '', telefone: '', email: '', morada: '', codigo_postal: '', notas_entrega: ''
+  const [novoCliente, setNovoCliente] = useState<{
+    nome: string;
+    telefone: string;
+    email?: string;
+    morada: string;
+    codigo_postal: string;
+    notas_entrega: string;
+    tipo_cliente?: 'particular' | 'empresarial';
+    nif?: string;
+    carrinha_id?: string;
+  }>({
+    nome: '',
+    telefone: '',
+    email: '',
+    morada: '',
+    codigo_postal: '',
+    notas_entrega: '',
+    tipo_cliente: 'particular',
+    nif: '',
+    carrinha_id: '',
   });
   const [novoProduto, setNovoProduto] = useState<{ nome: string; categoria: 'padaria' | 'pastelaria'; unidade: string }>({
     nome: '', categoria: 'padaria', unidade: 'unidade'
@@ -282,11 +304,26 @@ export default function AdminPage() {
         setArtigosBaseFixa(Array.from(setCombinado));
         const b2b = carregarClientesEmpresariaisB2B();
         if (Array.isArray(b2b)) setClientesB2B(b2b);
+        sincronizarClientesB2BComSupabase().then((res) => {
+          if (res && res.length > 0) setClientesB2B(res);
+        });
       } catch (err) {
         console.error('Erro no carregamento inicial de dados em gestao:', err);
       }
     }
     carregar();
+
+    const unsubB2B = subscreverAlteracoesClientesB2B((lista) => {
+      setClientesB2B(lista);
+    });
+    const unsubClientes = subscreverAlteracoesClientes((lista) => {
+      setClientes(lista);
+    });
+
+    return () => {
+      unsubB2B();
+      unsubClientes();
+    };
   }, []);
 
   // Artigos visíveis na grelha de Base Fixa com pesquisa em tempo real e ordenação
@@ -866,11 +903,11 @@ export default function AdminPage() {
     setTimeout(() => setFeedbackB2B(null), 3500);
   };
 
-  const handleEliminarClienteB2B = (id: string, nome: string) => {
+  const handleEliminarClienteB2B = async (id: string, nome: string) => {
     if (!window.confirm(`Deseja remover o cliente empresarial "${nome}" da rota do 5º Carro?`)) return;
     const novaLista = clientesB2B.filter((c) => c.id !== id);
     setClientesB2B(novaLista);
-    salvarClientesEmpresariaisB2B(novaLista);
+    await eliminarClienteEmpresarialB2B(id);
   };
 
   const handleExportarTemplateB2B = () => {
@@ -1477,7 +1514,7 @@ export default function AdminPage() {
     if (salvo) {
       const clis = await carregarClientesSupabase();
       setClientes(clis);
-      setNovoCliente({ nome: '', telefone: '', email: '', morada: '', codigo_postal: '', notas_entrega: '' });
+      setNovoCliente({ nome: '', telefone: '', email: '', morada: '', codigo_postal: '', notas_entrega: '', tipo_cliente: 'particular', nif: '', carrinha_id: '' });
       setModalRegistoAvulsoAberto(false);
       alert('Cliente criado com sucesso na Base de Dados!');
     }
@@ -5076,6 +5113,45 @@ export default function AdminPage() {
                       placeholder="cliente@exemplo.pt"
                       className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden"
                     />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">Tipo de Cliente</label>
+                    <select
+                      value={novoCliente.tipo_cliente || 'particular'}
+                      onChange={(e) => setNovoCliente({ ...novoCliente, tipo_cliente: e.target.value as 'particular' | 'empresarial' })}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden bg-white text-xs font-bold"
+                    >
+                      <option value="particular">👤 Particular</option>
+                      <option value="empresarial">🏢 Empresarial (B2B)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">NIF (Opcional)</label>
+                    <input
+                      type="text"
+                      value={novoCliente.nif || ''}
+                      onChange={(e) => setNovoCliente({ ...novoCliente, nif: e.target.value })}
+                      placeholder="999 999 999"
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden font-mono text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">Rota / Carrinha Habitual</label>
+                    <select
+                      value={novoCliente.carrinha_id || ''}
+                      onChange={(e) => setNovoCliente({ ...novoCliente, carrinha_id: e.target.value || undefined })}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-hidden bg-white text-xs font-bold"
+                    >
+                      <option value="">(Sem rota específica)</option>
+                      {carrinhas.map((car) => (
+                        <option key={car.id} value={car.id}>
+                          {car.identificador || car.matricula}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
