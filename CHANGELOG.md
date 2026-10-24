@@ -42,6 +42,20 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.14] - 2026-10-24
+
+### Added & Improved (Folha de Fabrico de Encomendas Discriminada por Loja no Cockpit de Produção)
+- **Folha de Fabrico de Encomendas Discriminada por Loja (`PdfViewerModal.tsx` & `producao/page.tsx`)**:
+  - Quando a tipologia **"Encomendas"** está selecionada na Pool de Produção do Cockpit de Produção (`/producao`):
+    - O botão de impressão do topo adapta-se dinamicamente para **"Imprimir Encomendas por Loja"**.
+    - É apresentado um **Banner de Ação Rápida** na Pool de Produção com acesso direto para imprimir todas as lojas ou filtrar individualmente por loja (*Loja Praça*, *Loja Centro*, *Loja Mercado*, etc.).
+    - O documento PDF gerado organiza as encomendas agrupadas por Loja, detalhando **encomenda a encomenda** (código `#ENC`, hora agendada, tipo de recolha/domicílio, nome e contacto do cliente, observações gerais de cliente/produção) e a tabela de artigos com quantidade, setor (Padaria/Pastelaria), personalizações (ex: mensagens em bolos) e caixa de verificação `[ ] Pronto / Embalado`.
+    - Apresenta subtotais específicos por loja (Padaria, Pastelaria e Total) e quebra de página limpa (`break-before: page`) entre lojas para impressão física de folhas independentes por balcão.
+  - **Filtros e Controlos Dinâmicos no Modal de PDF**:
+    - Alternância em tempo real entre visualização **"Consolidado Global"** e **"Por Encomenda (Lojas)"**.
+    - Filtro seletor de Loja e filtro seletor de Setor (Todos, Padaria, Pastelaria) diretamente na barra superior do visualizador PDF.
+    - Partilha WhatsApp atualizada com o resumo discriminado por loja e totais de encomendas a produzir.
+
 ## [v2.7.13] - 2026-10-24
 
 ### Fixed (Resolução do Erro React #310 na Folha de Fabrico e Restauro do Botão de Conclusão KDS)

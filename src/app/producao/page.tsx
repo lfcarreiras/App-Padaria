@@ -154,6 +154,8 @@ export default function ProducaoPage() {
   const [pdfItensFabrico, setPdfItensFabrico] = useState<LinhaArtigoFabrico[]>([]);
   const [pdfDataReferencia, setPdfDataReferencia] = useState<string>('');
   const [pdfDiaSemana, setPdfDiaSemana] = useState<string>('');
+  const [modoFabricoPdf, setModoFabricoPdf] = useState<'consolidado' | 'encomendas'>('consolidado');
+  const [lojaIdFiltroFabrico, setLojaIdFiltroFabrico] = useState<string>('todas');
 
   // Carregar dados iniciais
   useEffect(() => {
@@ -249,6 +251,47 @@ export default function ProducaoPage() {
   const encomendasLevantamentoLoja = useMemo(() => {
     return encomendas.filter((e) => e.tipo === 'levantamento_loja');
   }, [encomendas]);
+
+  // 1.1 Encomendas ativas para fabrico (respeitando data, período, loja e setor)
+  const encomendasParaFabrico = useMemo(() => {
+    return encomendas.filter((enc) => {
+      // Filtrar por loja se selecionada no cockpit
+      if (selectedLojaId !== 'todas' && enc.loja_id !== selectedLojaId) return false;
+
+      // Filtrar por data / período
+      if (filtroPeriodo === 'hoje' && enc.data_agendamento !== hoje) return false;
+      if (filtroPeriodo === 'amanha' && enc.data_agendamento !== amanha) return false;
+      if (filtroPeriodo === 'personalizado') {
+        if (dataInicioPersonalizada && enc.data_agendamento < dataInicioPersonalizada) return false;
+        if (dataFimPersonalizada && enc.data_agendamento > dataFimPersonalizada) return false;
+      }
+
+      // Não incluir encomendas canceladas
+      if (enc.estado === 'cancelado') return false;
+
+      // Filtrar por setor se ativo
+      if (setorAtivo !== 'todos') {
+        const temItemSetor = enc.itens.some(
+          (it) => it.setor === setorAtivo && it.estado_producao !== 'recusado' && Number(it.quantidade) > 0
+        );
+        if (!temItemSetor) return false;
+      }
+
+      // Conter pelo menos um item válido
+      return enc.itens.some(
+        (it) => it.estado_producao !== 'recusado' && Number(it.quantidade) > 0
+      );
+    });
+  }, [
+    encomendas,
+    selectedLojaId,
+    filtroPeriodo,
+    dataInicioPersonalizada,
+    dataFimPersonalizada,
+    hoje,
+    amanha,
+    setorAtivo,
+  ]);
 
   // 2. Encomendas urgentes (<= 3h para a hora agendada e ainda não concluídas)
   const encomendasUrgentes = useMemo(() => {
@@ -790,7 +833,22 @@ export default function ProducaoPage() {
       qtd_encomendas: item.qtd_encomendas,
     }));
 
+    setModoFabricoPdf('consolidado');
+    setLojaIdFiltroFabrico(selectedLojaId);
     setPdfItensFabrico(itensParaPdf);
+    setPdfModalTipo('folha_fabrico');
+    setPdfModalOpen(true);
+  };
+
+  // Abrir Modal de Impressão PDF da Folha de Fabrico de Encomendas por Loja
+  const handleAbrirPdfFolhaFabricoEncomendas = (lojaId?: string) => {
+    if (encomendasParaFabrico.length === 0) {
+      alert('Não existem encomendas ativas para os filtros e data selecionados.');
+      return;
+    }
+
+    setModoFabricoPdf('encomendas');
+    setLojaIdFiltroFabrico(lojaId || selectedLojaId);
     setPdfModalTipo('folha_fabrico');
     setPdfModalOpen(true);
   };
@@ -1203,16 +1261,28 @@ export default function ProducaoPage() {
                   </button>
                 </div>
 
-                {/* Imprimir Folha de Fabrico em PDF */}
-                <button
-                  type="button"
-                  onClick={handleAbrirPdfFolhaFabrico}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-stone-950 text-xs font-black shadow-xs transition cursor-pointer"
-                  title="Imprimir Folha Diária de Fabrico Consolidada em PDF"
-                >
-                  <Printer className="h-4 w-4" />
-                  <span>Imprimir Folha de Fabrico</span>
-                </button>
+                {/* Imprimir Folha de Fabrico em PDF (Dinâmico: Consolidado ou Encomendas por Loja) */}
+                {filtroTipologia === 'encomendas' ? (
+                  <button
+                    type="button"
+                    onClick={() => handleAbrirPdfFolhaFabricoEncomendas()}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black shadow-xs transition cursor-pointer"
+                    title="Imprimir Folha de Fabrico de Encomendas por Loja em PDF"
+                  >
+                    <ShoppingBag className="h-4 w-4" />
+                    <span>Imprimir Encomendas por Loja</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleAbrirPdfFolhaFabrico}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-stone-950 text-xs font-black shadow-xs transition cursor-pointer"
+                    title="Imprimir Folha Diária de Fabrico Consolidada em PDF"
+                  >
+                    <Printer className="h-4 w-4" />
+                    <span>Imprimir Folha de Fabrico</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1356,6 +1426,57 @@ export default function ProducaoPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Banner de Ação Rápida para Folha de Fabrico por Loja */}
+              {filtroTipologia === 'encomendas' && (
+                <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-blue-50/80 border border-blue-200 rounded-xl mb-3 shadow-xs">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 bg-blue-600 text-white rounded-lg">
+                      <ShoppingBag className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-black text-blue-950">
+                        Folha de Fabrico Discriminada por Loja ({encomendasParaFabrico.length} encomendas ativas)
+                      </p>
+                      <p className="text-[11px] text-blue-800">
+                        Impressão por encomenda detalhada com notas de personalização e caixas de verificação.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleAbrirPdfFolhaFabricoEncomendas('todas')}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-black transition cursor-pointer shadow-xs"
+                      title="Imprimir todas as lojas discriminadas por encomenda"
+                    >
+                      <Printer className="h-3.5 w-3.5" />
+                      <span>Imprimir Todas as Lojas</span>
+                    </button>
+
+                    {lojas.map((l) => {
+                      const encsCount = encomendasParaFabrico.filter((e) => e.loja_id === l.id).length;
+                      if (encsCount === 0) return null;
+                      return (
+                        <button
+                          key={l.id}
+                          type="button"
+                          onClick={() => handleAbrirPdfFolhaFabricoEncomendas(l.id)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-blue-300 hover:bg-blue-100 text-blue-950 text-xs font-bold transition cursor-pointer shadow-xs"
+                          title={`Imprimir apenas encomendas da ${l.nome}`}
+                        >
+                          <Store className="h-3 w-3 text-blue-600" />
+                          <span>{l.nome}</span>
+                          <span className="ml-1 px-1.5 py-0.2 bg-blue-200 text-blue-900 rounded-full text-[10px] font-black">
+                            {encsCount}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {poolArtigosConsolidada.length === 0 ? (
                 <div className="p-6 text-center text-xs text-stone-500 font-medium">
@@ -1732,6 +1853,10 @@ export default function ProducaoPage() {
         itensFabrico={pdfItensFabrico}
         lojaNome={selectedLojaId === 'todas' ? 'Todas as Lojas' : (lojas.find((l) => l.id === selectedLojaId)?.nome || 'Loja')}
         setorFiltro={setorAtivo}
+        modoFabrico={modoFabricoPdf}
+        encomendasFabrico={encomendasParaFabrico}
+        lojasFabrico={lojas}
+        lojaIdFiltro={lojaIdFiltroFabrico}
         clienteB2B={pdfClienteB2B}
         clientesB2BRota={clientesB2B.filter((cli) => cli.ativo && cli.carrinha_id === pdfCarrinhaSelecionada?.id)}
         encomendasRota={encomendas.filter(

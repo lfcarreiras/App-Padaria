@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Carrinha, ClienteEmpresarialB2B, DiaSemana } from '../../types';
+import { Carrinha, ClienteEmpresarialB2B, DiaSemana, Loja, Encomenda } from '../../types';
 import { obterQuantidadeEfetivaClienteB2B, normalizarNomeArtigoCanonico } from '../../lib/encomendasService';
 import { 
   X, 
@@ -15,7 +15,13 @@ import {
   Calendar, 
   FileText,
   Package,
-  Layers
+  Layers,
+  ShoppingBag,
+  Store,
+  Clock,
+  User,
+  Phone,
+  Check
 } from 'lucide-react';
 
 export interface LinhaArtigoCarga {
@@ -60,6 +66,10 @@ export interface PdfViewerModalProps {
   itensFabrico?: LinhaArtigoFabrico[];
   lojaNome?: string;
   setorFiltro?: string;
+  modoFabrico?: 'consolidado' | 'encomendas';
+  encomendasFabrico?: Encomenda[] | any[];
+  lojasFabrico?: Loja[];
+  lojaIdFiltro?: string;
 }
 
 export function PdfViewerModal({
@@ -79,6 +89,10 @@ export function PdfViewerModal({
   itensFabrico = [],
   lojaNome = 'Todas as Lojas',
   setorFiltro = 'todos',
+  modoFabrico = 'consolidado',
+  encomendasFabrico = [],
+  lojasFabrico = [],
+  lojaIdFiltro = 'todas',
 }: PdfViewerModalProps) {
   const [nomeRecebedor, setNomeRecebedor] = useState<string>('');
   const [assinaturaDataUrl, setAssinaturaDataUrl] = useState<string | null>(null);
@@ -99,6 +113,103 @@ export function PdfViewerModal({
   };
 
   const isDrawingRef = useRef<boolean>(false);
+
+  // Estados locais para alternar Loja, Setor e Modo dentro do Modal
+  const [lojaModalFiltro, setLojaModalFiltro] = useState<string>(lojaIdFiltro || 'todas');
+  const [setorModalFiltro, setSetorModalFiltro] = useState<string>(setorFiltro || 'todos');
+  const [modoFabricoModal, setModoFabricoModal] = useState<'consolidado' | 'encomendas'>(modoFabrico);
+
+  useEffect(() => {
+    if (lojaIdFiltro) setLojaModalFiltro(lojaIdFiltro);
+  }, [lojaIdFiltro]);
+
+  useEffect(() => {
+    if (modoFabrico) setModoFabricoModal(modoFabrico);
+  }, [modoFabrico]);
+
+  useEffect(() => {
+    if (setorFiltro) setSetorModalFiltro(setorFiltro);
+  }, [setorFiltro]);
+
+  // Lista unificada de todas as lojas para filtro e agrupamento
+  const lojasAlvo = useMemo(() => {
+    const mapaLojas = new Map<string, Loja>();
+    (lojasFabrico || []).forEach((l) => mapaLojas.set(l.id, l));
+    (encomendasFabrico as any[] || []).forEach((enc) => {
+      const lid = enc.loja_id || 'sem_loja';
+      if (!mapaLojas.has(lid)) {
+        mapaLojas.set(lid, {
+          id: lid,
+          nome: enc.loja_nome || (lid === 'sem_loja' ? 'Balcão / Geral' : `Loja ${lid}`),
+          morada: '',
+          telefone: '',
+          codigo: lid,
+          ativo: true,
+        });
+      }
+    });
+    return Array.from(mapaLojas.values());
+  }, [lojasFabrico, encomendasFabrico]);
+
+  // Agrupamento de encomendas por loja para produção discriminada
+  const lojasComEncomendas = useMemo(() => {
+    if (modoFabricoModal !== 'encomendas' || !encomendasFabrico || encomendasFabrico.length === 0) {
+      return [];
+    }
+
+    return lojasAlvo
+      .filter((loja) => lojaModalFiltro === 'todas' || loja.id === lojaModalFiltro)
+      .map((loja) => {
+        const encsDaLoja = (encomendasFabrico as any[])
+          .filter((enc) => (enc.loja_id === loja.id || (!enc.loja_id && loja.id === 'sem_loja')))
+          .map((enc) => {
+            const itensFiltrados = (enc.itens || [])
+              .filter((it: any) => it.estado_producao !== 'recusado' && Number(it.quantidade) > 0)
+              .filter((it: any) => setorModalFiltro === 'todos' || it.setor === setorModalFiltro)
+              .map((it: any) => ({
+                ...it,
+                produto_nome: normalizarNomeArtigoCanonico(it.produto_nome),
+                quantidade: Number(it.quantidade),
+              }));
+
+            const totalEnc = itensFiltrados.reduce((acc: number, it: any) => acc + it.quantidade, 0);
+            return {
+              ...enc,
+              itensFiltrados,
+              totalEnc,
+            };
+          })
+          .filter((enc) => enc.totalEnc > 0)
+          .sort((a, b) => (a.hora_agendamento || '10:00').localeCompare(b.hora_agendamento || '10:00'));
+
+        const totalLojaUnidades = encsDaLoja.reduce((acc, e) => acc + e.totalEnc, 0);
+        const totalLojaPadaria = encsDaLoja.reduce(
+          (acc, e) => acc + e.itensFiltrados.filter((i: any) => i.setor === 'padaria').reduce((s: number, i: any) => s + i.quantidade, 0),
+          0
+        );
+        const totalLojaPastelaria = encsDaLoja.reduce(
+          (acc, e) => acc + e.itensFiltrados.filter((i: any) => i.setor === 'pastelaria' || i.setor !== 'padaria').reduce((s: number, i: any) => s + i.quantidade, 0),
+          0
+        );
+
+        return {
+          loja,
+          encomendas: encsDaLoja,
+          totalLojaUnidades,
+          totalLojaPadaria,
+          totalLojaPastelaria,
+        };
+      })
+      .filter((g) => g.encomendas.length > 0);
+  }, [modoFabricoModal, encomendasFabrico, lojasAlvo, lojaModalFiltro, setorModalFiltro]);
+
+  const totalGeralFabricoEncs = useMemo(() => {
+    return lojasComEncomendas.reduce((acc, g) => acc + g.totalLojaUnidades, 0);
+  }, [lojasComEncomendas]);
+
+  const totalGeralEncsCount = useMemo(() => {
+    return lojasComEncomendas.reduce((acc, g) => acc + g.encomendas.length, 0);
+  }, [lojasComEncomendas]);
 
   const dataFormatada = dataReferencia || new Date().toLocaleDateString('pt-PT');
   const horaAtual = horaEntrega || new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
@@ -306,8 +417,26 @@ export function PdfViewerModal({
   // Partilha via WhatsApp
   const handlePartilharWhatsApp = () => {
     if (tipo === 'folha_fabrico') {
+      if (modoFabricoModal === 'encomendas') {
+        const nomeLojaAtiva = lojaModalFiltro === 'todas' ? 'Todas as Lojas' : (lojasComEncomendas[0]?.loja?.nome || lojaNome);
+        const linhasLojas = lojasComEncomendas.map((g) =>
+          `📍 *${g.loja.nome}*: ${g.encomendas.length} enc. • ${g.totalLojaUnidades} un. (🥖 ${g.totalLojaPadaria} | 🧁 ${g.totalLojaPastelaria})`
+        ).join('\n');
+
+        const texto = encodeURIComponent(
+          `📋 *PADARIA DA VILA — FOLHA DE FABRICO DE ENCOMENDAS POR LOJA*\n` +
+          `Data: ${dataFormatada}\n` +
+          `Loja(s): ${nomeLojaAtiva}\n` +
+          `Setor: ${setorModalFiltro === 'todos' ? 'Todos' : setorModalFiltro.toUpperCase()}\n\n` +
+          `*Resumo por Loja:*\n${linhasLojas || 'Sem encomendas'}\n\n` +
+          `*TOTAL GERAL A FABRICAR:* ${totalGeralFabricoEncs} un. (${totalGeralEncsCount} encomendas)\n` +
+          `Centro de Produção & Unidade Fabril • Arouca`
+        );
+        window.open(`https://wa.me/?text=${texto}`, '_blank');
+        return;
+      }
       const texto = encodeURIComponent(
-        `📋 *PADARIA DA VILA — FOLHA DIÁRIA DE FABRICO*\n` +
+        `📋 *PADARIA DA VILA — FOLHA DIÁRIA DE FABRICO (CONSOLIDADA)*\n` +
         `Data: ${dataFormatada}\n` +
         `Total de Unidades a Produzir: ${totalFabricoUnidades} un.\n` +
         `• Padaria: ${totalFabricoPadaria} un.\n` +
@@ -366,7 +495,9 @@ export function PdfViewerModal({
               {tipo === 'folha_carga'
                 ? `Folha de Carga Oficial — ${carrinha?.rota || 'Rota'}`
                 : tipo === 'folha_fabrico'
-                ? `Folha de Fabrico Oficial — ${dataFormatada}`
+                ? modoFabricoModal === 'encomendas'
+                  ? `Folha de Fabrico de Encomendas por Loja — ${dataFormatada}`
+                  : `Folha de Fabrico Consolidada — ${dataFormatada}`
                 : `Comprovativo de Entrega B2B — ${clienteB2B?.nome || 'Entidade'}`}
             </span>
           </div>
@@ -411,6 +542,76 @@ export function PdfViewerModal({
             </button>
           </div>
         </div>
+
+        {/* Barra Secundária de Filtros do Fabrico (Consolidado vs Encomendas por Loja) */}
+        {tipo === 'folha_fabrico' && (
+          <div className="px-4 py-2.5 bg-gray-800 border-t border-gray-700 flex flex-wrap items-center justify-between gap-2.5 print:hidden">
+            {/* Alternar Modo: Consolidado Global vs Por Encomenda */}
+            <div className="flex items-center gap-1 bg-gray-900 p-1 rounded-xl text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setModoFabricoModal('consolidado')}
+                className={`px-3 py-1 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
+                  modoFabricoModal === 'consolidado'
+                    ? 'bg-amber-500 text-stone-950 shadow-xs'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Layers className="h-3.5 w-3.5" />
+                <span>Consolidado Global</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setModoFabricoModal('encomendas')}
+                className={`px-3 py-1 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
+                  modoFabricoModal === 'encomendas'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <ShoppingBag className="h-3.5 w-3.5" />
+                <span>Por Encomenda (Lojas)</span>
+              </button>
+            </div>
+
+            {/* Filtros no Modo Encomendas */}
+            {modoFabricoModal === 'encomendas' && (
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                {/* Seletor de Loja */}
+                <div className="flex items-center gap-1.5 bg-gray-900 px-2.5 py-1 rounded-xl border border-gray-700">
+                  <Store className="h-3.5 w-3.5 text-blue-400" />
+                  <span className="text-gray-400 font-bold">Loja:</span>
+                  <select
+                    value={lojaModalFiltro}
+                    onChange={(e) => setLojaModalFiltro(e.target.value)}
+                    className="bg-transparent text-white font-bold outline-none cursor-pointer text-xs"
+                  >
+                    <option value="todas" className="bg-gray-800 text-white">Todas as Lojas</option>
+                    {lojasAlvo.map((l) => (
+                      <option key={l.id} value={l.id} className="bg-gray-800 text-white">
+                        {l.nome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Seletor de Setor */}
+                <div className="flex items-center gap-1.5 bg-gray-900 px-2.5 py-1 rounded-xl border border-gray-700">
+                  <span className="text-gray-400 font-bold">Setor:</span>
+                  <select
+                    value={setorModalFiltro}
+                    onChange={(e) => setSetorModalFiltro(e.target.value)}
+                    className="bg-transparent text-white font-bold outline-none cursor-pointer text-xs"
+                  >
+                    <option value="todos" className="bg-gray-800 text-white">Todos os Setores</option>
+                    <option value="padaria" className="bg-gray-800 text-white">🥖 Padaria</option>
+                    <option value="pastelaria" className="bg-gray-800 text-white">🧁 Pastelaria</option>
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Modal de Assinatura no Ecrã (Touchpad para motoristas) */}
         {modoAssinaturaAberto && (
@@ -867,9 +1068,289 @@ export function PdfViewerModal({
           )}
 
           {/* ============================================================== */}
-          {/* CASO 3: FOLHA DE FABRICO OFICIAL (COCKPIT DE PRODUÇÃO)          */}
+          {/* CASO 3.1: FOLHA DE FABRICO DE ENCOMENDAS POR LOJA             */}
           {/* ============================================================== */}
-          {tipo === 'folha_fabrico' && (
+          {tipo === 'folha_fabrico' && modoFabricoModal === 'encomendas' && (
+            <div className="space-y-6">
+              {/* Cabeçalho Oficial de Fabrico de Encomendas por Loja */}
+              <div className="border-b-2 border-stone-900 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-black tracking-tight text-stone-900 uppercase">
+                    Padaria da Vila
+                  </h1>
+                  <p className="text-xs text-stone-600">
+                    Fabrico Próprio de Pão Tradicional e Pastelaria Fina • Arouca
+                  </p>
+                  <p className="text-[11px] font-mono text-stone-500 mt-0.5">
+                    Centro de Produção & Unidade Fabril Central • Folha de Fabrico de Encomendas por Loja
+                  </p>
+                </div>
+                <div className="text-left sm:text-right">
+                  <span className="inline-block px-3 py-1 rounded-lg bg-blue-700 text-white font-black text-xs uppercase tracking-wider">
+                    Encomendas por Loja
+                  </span>
+                  <p className="text-xs font-bold text-stone-900 mt-1">Data: {dataFormatada}</p>
+                  <p className="text-xs text-stone-600">
+                    {lojaModalFiltro === 'todas' ? 'Todas as Lojas' : (lojasComEncomendas[0]?.loja?.nome || lojaNome)}
+                    {setorModalFiltro !== 'todos' ? ` • Setor: ${setorModalFiltro.toUpperCase()}` : ''}
+                  </p>
+                </div>
+              </div>
+
+              {/* Cartões Resumo Totais de Encomendas */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200">
+                  <span className="text-[10px] font-bold text-blue-900 uppercase block">Total Encomendas</span>
+                  <span className="text-2xl font-black text-blue-950 font-mono">{totalGeralEncsCount}</span>
+                  <span className="text-[10px] text-blue-700 block mt-0.5">{lojasComEncomendas.length} loja(s) ativa(s)</span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200">
+                  <span className="text-[10px] font-bold text-amber-900 uppercase block">Total a Produzir</span>
+                  <span className="text-2xl font-black text-amber-950 font-mono">{totalGeralFabricoEncs} un.</span>
+                  <span className="text-[10px] text-amber-700 block mt-0.5">artigos encomendados</span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-amber-100/60 border border-amber-300">
+                  <span className="text-[10px] font-bold text-amber-900 uppercase block">🥖 Padaria</span>
+                  <span className="text-2xl font-black text-stone-950 font-mono">
+                    {lojasComEncomendas.reduce((acc, g) => acc + g.totalLojaPadaria, 0)} un.
+                  </span>
+                  <span className="text-[10px] text-amber-800 block mt-0.5">pães e broas</span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200">
+                  <span className="text-[10px] font-bold text-rose-900 uppercase block">🧁 Pastelaria</span>
+                  <span className="text-2xl font-black text-rose-950 font-mono">
+                    {lojasComEncomendas.reduce((acc, g) => acc + g.totalLojaPastelaria, 0)} un.
+                  </span>
+                  <span className="text-[10px] text-rose-700 block mt-0.5">pastelaria e doçaria</span>
+                </div>
+              </div>
+
+              {/* Se não houver encomendas com os filtros */}
+              {lojasComEncomendas.length === 0 ? (
+                <div className="p-10 text-center border-2 border-dashed border-gray-300 rounded-2xl text-gray-500">
+                  <ShoppingBag className="h-10 w-10 text-gray-400 mx-auto mb-2" />
+                  <p className="font-bold text-sm">Nenhuma encomenda encontrada para produção com os filtros selecionados.</p>
+                  <p className="text-xs text-gray-400 mt-1">Verifique a data ou altere o filtro de setor/loja.</p>
+                </div>
+              ) : (
+                /* Agrupamento por Loja com quebra de página limpa */
+                <div className="space-y-8">
+                  {lojasComEncomendas.map((grupoLoja, idxLoja) => (
+                    <div
+                      key={grupoLoja.loja.id}
+                      className={`space-y-4 ${idxLoja > 0 ? 'print:break-before-page pt-6 border-t-2 border-dashed border-gray-300 print:pt-0 print:border-none' : ''}`}
+                    >
+                      {/* Banner da Loja */}
+                      <div className="bg-stone-900 text-white p-3.5 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-xs">
+                        <div className="flex items-center gap-2.5">
+                          <div className="p-2 bg-amber-500 text-stone-950 rounded-xl font-black">
+                            <Store className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <h2 className="text-base font-black uppercase tracking-tight text-white flex items-center gap-2">
+                              <span>{grupoLoja.loja.nome}</span>
+                              <span className="text-xs font-mono font-normal text-stone-300">({grupoLoja.encomendas.length} encomendas)</span>
+                            </h2>
+                            <p className="text-xs text-stone-300">
+                              {grupoLoja.loja.morada || 'Balcão de Atendimento'} {grupoLoja.loja.telefone ? `• Tel: ${grupoLoja.loja.telefone}` : ''}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <span className="text-xs text-stone-400 uppercase font-bold block">Total a Produzir na Loja</span>
+                          <span className="text-xl font-black font-mono text-amber-400">
+                            {grupoLoja.totalLojaUnidades} un.
+                          </span>
+                          <div className="text-[11px] text-stone-300 space-x-2 mt-0.5">
+                            <span>🥖 {grupoLoja.totalLojaPadaria} un.</span>
+                            <span>•</span>
+                            <span>🧁 {grupoLoja.totalLojaPastelaria} un.</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Listagem Encomenda por Encomenda */}
+                      <div className="space-y-3">
+                        {grupoLoja.encomendas.map((enc: any, idxEnc: number) => (
+                          <div
+                            key={enc.id || idxEnc}
+                            className="border border-stone-300 rounded-2xl overflow-hidden bg-white shadow-xs print:shadow-none print:break-inside-avoid"
+                          >
+                            {/* Cabeçalho da Encomenda */}
+                            <div className="bg-stone-100 p-2.5 px-3.5 border-b border-stone-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-mono font-black text-stone-950 bg-stone-200/80 px-2.5 py-0.5 rounded-lg border border-stone-300">
+                                  {enc.codigo || `#${idxEnc + 1}`}
+                                </span>
+
+                                <span className="flex items-center gap-1 font-bold text-stone-700 bg-white px-2 py-0.5 rounded-lg border border-stone-300">
+                                  <Clock className="h-3 w-3 text-amber-600" />
+                                  <span>{enc.hora_agendamento || '10:00'}</span>
+                                </span>
+
+                                <span className={`px-2 py-0.5 rounded-lg font-bold text-[11px] border ${
+                                  enc.tipo === 'entrega_domicilio'
+                                    ? 'bg-purple-50 text-purple-800 border-purple-200'
+                                    : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                }`}>
+                                  {enc.tipo === 'entrega_domicilio' ? '🚚 Domicílio' : '🏪 Balcão'}
+                                </span>
+                              </div>
+
+                              <div className="flex flex-wrap items-center gap-3 text-stone-700">
+                                <span className="flex items-center gap-1 font-bold text-stone-900">
+                                  <User className="h-3.5 w-3.5 text-stone-500" />
+                                  <span>{enc.cliente?.nome || 'Cliente'}</span>
+                                </span>
+                                {enc.cliente?.telefone && (
+                                  <span className="flex items-center gap-1 text-[11px] text-stone-600 font-mono">
+                                    <Phone className="h-3 w-3 text-stone-400" />
+                                    <span>{enc.cliente.telefone}</span>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Observações da Encomenda se existirem */}
+                            {(enc.notas_cliente || enc.observacoes_producao || (enc.tipo === 'entrega_domicilio' && enc.cliente?.morada)) && (
+                              <div className="px-3.5 py-1.5 bg-amber-50/60 border-b border-amber-200 text-xs text-amber-950 flex flex-wrap items-center gap-3">
+                                {enc.notas_cliente && (
+                                  <div>
+                                    <span className="font-bold">Nota do Cliente:</span> {enc.notas_cliente}
+                                  </div>
+                                )}
+                                {enc.observacoes_producao && (
+                                  <div>
+                                    <span className="font-bold text-amber-900">⚠️ Obs Produção:</span> {enc.observacoes_producao}
+                                  </div>
+                                )}
+                                {enc.tipo === 'entrega_domicilio' && enc.cliente?.morada && (
+                                  <div className="text-[11px] text-purple-900">
+                                    <span className="font-bold">Morada Entrega:</span> {enc.cliente.morada}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Tabela de Artigos desta Encomenda */}
+                            <table className="w-full text-xs border-collapse">
+                              <thead>
+                                <tr className="bg-stone-50 text-stone-600 border-b border-stone-200 text-[11px] font-bold">
+                                  <th className="py-1.5 px-3.5 text-left">Artigo / Produto a Produzir</th>
+                                  <th className="py-1.5 px-2 text-center w-24">Setor</th>
+                                  <th className="py-1.5 px-3 text-right w-24">Quantidade</th>
+                                  <th className="py-1.5 px-3 text-left">Personalização / Especificações</th>
+                                  <th className="py-1.5 px-3 text-center w-36">Fabrico [  ]</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-stone-150">
+                                {enc.itensFiltrados.map((it: any, itIdx: number) => (
+                                  <tr key={it.id || itIdx} className={itIdx % 2 === 0 ? 'bg-white' : 'bg-stone-50/40'}>
+                                    <td className="py-2 px-3.5 font-black text-stone-900">
+                                      {it.produto_nome}
+                                    </td>
+                                    <td className="py-2 px-2 text-center">
+                                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                        it.setor === 'pastelaria'
+                                          ? 'bg-rose-100 text-rose-800'
+                                          : 'bg-amber-100 text-amber-800'
+                                      }`}>
+                                        {it.setor === 'pastelaria' ? 'Pastelaria' : 'Padaria'}
+                                      </span>
+                                    </td>
+                                    <td className="py-2 px-3 text-right font-mono font-black text-stone-950 text-sm">
+                                      {it.quantidade} {normalizarUnidade(it.unidade)}
+                                    </td>
+                                    <td className="py-2 px-3 text-stone-700 text-[11px]">
+                                      {it.notas_personalizacao ? (
+                                        <span className="font-bold text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 block">
+                                          {it.notas_personalizacao}
+                                        </span>
+                                      ) : (
+                                        <span className="text-stone-400">Padrão da receita</span>
+                                      )}
+                                    </td>
+                                    <td className="py-2 px-3 text-center text-stone-400 font-medium whitespace-nowrap">
+                                      [ &nbsp; ] Pronto / Embalado
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                              <tfoot>
+                                <tr className="bg-stone-100/70 border-t border-stone-200 text-stone-800 text-[11px] font-bold">
+                                  <td colSpan={2} className="py-1.5 px-3.5 text-stone-500">
+                                    {enc.itensFiltrados.length} artigo(s) nesta encomenda
+                                  </td>
+                                  <td className="py-1.5 px-3 text-right font-mono font-black text-stone-900">
+                                    {enc.totalEnc} un.
+                                  </td>
+                                  <td colSpan={2} className="py-1.5 px-3 text-stone-400 text-right">
+                                    Conferência de embalamento [ &nbsp; ]
+                                  </td>
+                                </tr>
+                              </tfoot>
+                            </table>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Subtotal da Loja */}
+                      <div className="bg-stone-100 border border-stone-300 p-2.5 px-4 rounded-xl flex flex-wrap items-center justify-between text-xs font-black text-stone-900 gap-2">
+                        <span>SUBTOTAL {grupoLoja.loja.nome.toUpperCase()}</span>
+                        <div className="flex items-center gap-3 font-mono">
+                          <span>{grupoLoja.encomendas.length} Encomendas</span>
+                          <span className="text-amber-800">🥖 Padaria: {grupoLoja.totalLojaPadaria} un.</span>
+                          <span className="text-rose-800">🧁 Pastelaria: {grupoLoja.totalLojaPastelaria} un.</span>
+                          <span className="text-sm bg-stone-900 text-white px-2.5 py-1 rounded-lg">
+                            Total: {grupoLoja.totalLojaUnidades} un.
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Resumo Geral de Todas as Lojas (quando há mais de uma) */}
+                  {lojasComEncomendas.length > 1 && (
+                    <div className="p-4 bg-stone-900 text-white rounded-2xl flex flex-wrap items-center justify-between gap-3 font-mono">
+                      <div>
+                        <span className="text-xs uppercase text-stone-400 font-bold block">Resumo Global de Expedição</span>
+                        <span className="text-lg font-black">{totalGeralEncsCount} Encomendas em {lojasComEncomendas.length} Lojas</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs uppercase text-amber-400 font-bold block">Total Global a Produzir</span>
+                        <span className="text-2xl font-black text-amber-400">{totalGeralFabricoEncs} un.</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Área de Validação e Assinatura do Chefe de Produção */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 border-t-2 border-stone-300 text-xs">
+                    <div>
+                      <span className="font-bold text-stone-600 block mb-1">Chefe de Turno de Fabrico:</span>
+                      <div className="p-3 rounded-xl bg-stone-50 border border-stone-200">
+                        <p className="font-bold text-stone-900">Mestre Padeiro / Responsável da Pastelaria</p>
+                        <p className="text-[11px] text-stone-500 mt-1">Conformidade e Embalamento HACCP</p>
+                      </div>
+                    </div>
+
+                    <div className="border border-stone-300 rounded-xl p-3 bg-stone-50/70 text-center space-y-1">
+                      <span className="font-bold text-stone-700 block text-left">Conferência de Expedição para Lojas:</span>
+                      <div className="py-3 border-b border-dashed border-stone-400 text-stone-400 text-xs">
+                        Assinatura / Visto do Centro de Expedição
+                      </div>
+                      <p className="text-[10px] text-stone-500 font-mono pt-1">Hora de Saída: _____ : _____</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ============================================================== */}
+          {/* CASO 3.2: FOLHA DE FABRICO CONSOLIDADA (PADARIA & PASTELARIA)  */}
+          {/* ============================================================== */}
+          {tipo === 'folha_fabrico' && modoFabricoModal === 'consolidado' && (
             <div className="space-y-6">
               {/* Cabeçalho Oficial de Fabrico */}
               <div className="border-b-2 border-stone-900 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
