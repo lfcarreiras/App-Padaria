@@ -1,0 +1,12 @@
+{
+  "bulletproof-commit-detector": {
+    "enabled": true,
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "node \"g:\\O meu disco\\1. Projetos\\app-encomendas-padaria\\scripts\\check-pending-swarm.mjs\"",
+        "timeout": 15
+      }
+    ]
+  }
+}

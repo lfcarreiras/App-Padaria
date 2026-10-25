@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "typecheck": "node node_modules/typescript/bin/tsc --project tsconfig.json --noEmit",
+    "swarm:audit": "node scripts/bulletproof-post-commit.mjs",
+    "swarm:check": "node scripts/check-pending-swarm.mjs",
+    "swarm:done": "node scripts/bulletproof-complete.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.1",
