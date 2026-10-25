@@ -28,3 +28,9 @@ Após a validação e sincronização documental de cada commit, o assistente de
 npm run swarm:done
 ```
 Isto arquiva o commit no histórico contínuo de integridade e limpa o sinalizador de auditoria pendente.
+
+## 4. Regra Mandatória: Integridade Factual Estrita (Proibição de Inferências Não Solicitadas)
+- É **expressamente proibido** fazer inferências, estimativas ou suposições de factos, horários, quantidades, valores numéricos ou procedimentos de negócio sem pedido explícito do utilizador.
+- Quando faltar qualquer parâmetro ou dado real (ex.: horários exatos de turnos de fabrico ou de saída de carrinhas), o assistente deve manter as referências neutras/agnósticas ou com marcador explícito `[A Definir / A Confirmar com o Cliente]`.
+- Se o utilizador indicar que não dispõe da informação de momento, o assistente não deve insistir nem tentar estimar ou adivinhar o dado por benchmarking.
+
