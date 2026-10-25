@@ -1,16 +1,22 @@
 /**
  * Construtor Nativo de PDFs de Continuidade de Negócio (BCP)
  * Gera ficheiros binários PDF 1.4 em memória para envio como anexos no Resend.
- * Zero dependências externas (compatível 100% com Vercel Serverless / Node.js runtime).
+ * Grelhas calibradas com truncagem estrita de largura para impedir sobreposição de texto.
  */
+
+function fitText(text: string, maxLen: number): string {
+  if (!text) return '';
+  return text.length > maxLen ? text.slice(0, maxLen - 2) + '..' : text;
+}
 
 class PdfPageWriter {
   content: string = '';
   y: number = 780;
 
-  drawText(text: string, x: number, y: number, size: number = 8, isBold: boolean = false, color: string = '0 0 0') {
+  drawText(text: string, x: number, y: number, size: number = 8, isBold: boolean = false, color: string = '0 0 0', maxChars?: number) {
     const font = isBold ? '/F2' : '/F1';
-    const clean = text
+    const textToPrint = maxChars ? fitText(text, maxChars) : text;
+    const clean = textToPrint
       .replace(/\\/g, '\\\\')
       .replace(/\(/g, '\\(')
       .replace(/\)/g, '\\)')
@@ -123,6 +129,8 @@ export class NativePdfDocument {
 
 /**
  * Constrói o PDF Oficial: Folha de Fabrico de Encomendas por Loja
+ * Colunas calibradas:
+ * HORA: 38-72 | CODIGO: 74-124 | CLIENTE: 126-248 | ARTIGOS: 252-390 | OBSERVACOES: 395-485 | VISTO: 490-555
  */
 export function gerarPdfFolhaFabricoLojas(dataAmanhaStr: string): Buffer {
   const doc = new NativePdfDocument(`Folha_Fabrico_Lojas_${dataAmanhaStr}`);
@@ -133,8 +141,8 @@ export function gerarPdfFolhaFabricoLojas(dataAmanhaStr: string): Buffer {
       morada: 'Praca Brandao de Vasconcelos, Arouca',
       encomendas: [
         { hora: '08:00', codigo: '#ENC-2041', cliente: 'Maria Ribeiro (912 345 678)', tipo: 'Balcao', itens: '15x Pao Saloio, 2x Broa Amarela', obs: 'Pao bem cozido', visto: '[ ] Pronto' },
-        { hora: '09:30', codigo: '#ENC-2042', cliente: 'Carlos Ferreira (964 112 233)', tipo: 'Balcao', itens: '1x Bolo de Aniversario (Chantilly 1.5kg)', obs: 'Dizer: Parabens Sofia', visto: '[ ] Pronto' },
-        { hora: '11:00', codigo: '#ENC-2045', cliente: 'Restaurante O Pedrógão (918 223 344)', tipo: 'Balcao', itens: '40x Carcacas, 10x Pao de Centeio', obs: 'Entregar ensacado em papel', visto: '[ ] Pronto' },
+        { hora: '09:30', codigo: '#ENC-2042', cliente: 'Carlos Ferreira (964 112 233)', tipo: 'Balcao', itens: '1x Bolo Aniversario Chantilly (1.5kg)', obs: 'Dizer: Parabens Sofia', visto: '[ ] Pronto' },
+        { hora: '11:00', codigo: '#ENC-2045', cliente: 'Restaurante O Pedrogao (918 223 344)', tipo: 'Balcao', itens: '40x Carcacas, 10x Centeio', obs: 'Ensacado em papel', visto: '[ ] Pronto' },
       ],
       totalUnidades: 68
     },
@@ -142,8 +150,8 @@ export function gerarPdfFolhaFabricoLojas(dataAmanhaStr: string): Buffer {
       nome: 'Loja 2: Padaria da Vila II (Av. 25 de Abril)',
       morada: 'Av. 25 de Abril, Arouca',
       encomendas: [
-        { hora: '07:30', codigo: '#ENC-2046', cliente: 'Ana Paula Silva (933 445 566)', tipo: 'Balcao', itens: '10x Pao de Cereais, 4x Merendas Mistas', obs: 'Quentes se possivel', visto: '[ ] Pronto' },
-        { hora: '10:00', codigo: '#ENC-2048', cliente: 'Joao Pedro Martins (915 667 788)', tipo: 'Balcao', itens: '12x Pasteis de Nata, 6x Bolas de Berlim', obs: 'Caixa de pastelaria', visto: '[ ] Pronto' },
+        { hora: '07:30', codigo: '#ENC-2046', cliente: 'Ana Paula Silva (933 445 566)', tipo: 'Balcao', itens: '10x Pao Cereais, 4x Merendas Mistas', obs: 'Quentes se possivel', visto: '[ ] Pronto' },
+        { hora: '10:00', codigo: '#ENC-2048', cliente: 'Joao Pedro Martins (915 667 788)', tipo: 'Balcao', itens: '12x Pasteis Nata, 6x Bolas Berlim', obs: 'Caixa pastelaria', visto: '[ ] Pronto' },
       ],
       totalUnidades: 32
     },
@@ -151,8 +159,8 @@ export function gerarPdfFolhaFabricoLojas(dataAmanhaStr: string): Buffer {
       nome: 'Loja 3: Padaria da Vila III (Loja Carocha)',
       morada: 'Ponto de Venda Carocha, Arouca',
       encomendas: [
-        { hora: '08:15', codigo: '#ENC-2051', cliente: 'Fernanda Gomes (917 889 900)', tipo: 'Balcao', itens: '20x Pao Alentejano, 5x Broa de Avintes', obs: 'Fatiado no balcao', visto: '[ ] Pronto' },
-        { hora: '12:00', codigo: '#ENC-2053', cliente: 'Sociedade Recreativa (961 223 344)', tipo: 'Balcao', itens: '50x Carcacas, 2x Pao de Lo Tradicional', obs: 'Evento almoco', visto: '[ ] Pronto' },
+        { hora: '08:15', codigo: '#ENC-2051', cliente: 'Fernanda Gomes (917 889 900)', tipo: 'Balcao', itens: '20x Pao Alentejano, 5x Broa Avintes', obs: 'Fatiado no balcao', visto: '[ ] Pronto' },
+        { hora: '12:00', codigo: '#ENC-2053', cliente: 'Sociedade Recreativa (961 223 344)', tipo: 'Balcao', itens: '50x Carcacas, 2x Pao de Lo Trad.', obs: 'Almoco evento', visto: '[ ] Pronto' },
       ],
       totalUnidades: 77
     },
@@ -160,7 +168,7 @@ export function gerarPdfFolhaFabricoLojas(dataAmanhaStr: string): Buffer {
       nome: 'Loja 4: Padaria da Vila Matriz / Fabrica',
       morada: 'Centro Industrial e Fabrico, Arouca',
       encomendas: [
-        { hora: '07:00', codigo: '#ENC-2055', cliente: 'Antonio Manuel Sousa (919 001 122)', tipo: 'Fabrica', itens: '30x Pao Saloio Tradicional, 4x Broas', obs: 'Carregamento matinal', visto: '[ ] Pronto' },
+        { hora: '07:00', codigo: '#ENC-2055', cliente: 'Antonio Manuel Sousa (919 001 122)', tipo: 'Fabrica', itens: '30x Pao Saloio Tradicional, 4x Broas', obs: 'Carregamento cedo', visto: '[ ] Pronto' },
         { hora: '08:45', codigo: '#ENC-2058', cliente: 'Confeitaria Central (935 112 233)', tipo: 'Fabrica', itens: '25x Croissants Franceses, 20x Folhados', obs: 'Massa fresca', visto: '[ ] Pronto' },
       ],
       totalUnidades: 79
@@ -171,11 +179,11 @@ export function gerarPdfFolhaFabricoLojas(dataAmanhaStr: string): Buffer {
     if (idx > 0) doc.addPage();
     const p = doc.currentPage;
 
-    // Header da Loja
+    // Header Principal da Loja
     p.drawRect(35, 745, 525, 55, '0.1 0.1 0.1', null);
     p.drawText('PADARIA DA VILA - CENTRO DE PRODUCAO & KDS', 45, 782, 12, true, '1 1 1');
     p.drawText(`FOLHA DE FABRICO DE ENCOMENDAS • OPERACAO DE ${dataAmanhaStr}`, 45, 767, 9, false, '0.95 0.7 0.1');
-    p.drawText(`Salvo-Conduto BCP de Continuidade • Emitido as 23h15`, 360, 767, 8, false, '0.8 0.8 0.8');
+    p.drawText(`Salvo-Conduto BCP de Continuidade • Emitido as 23h15`, 345, 767, 8, false, '0.8 0.8 0.8');
 
     // Subcabeçalho da Loja
     p.drawRect(35, 705, 525, 32, '0.96 0.96 0.96', '0.85 0.85 0.85');
@@ -183,14 +191,14 @@ export function gerarPdfFolhaFabricoLojas(dataAmanhaStr: string): Buffer {
     p.drawText(loja.morada, 45, 712, 8, false, '0.4 0.4 0.4');
     p.drawText(`Total Programado: ${loja.totalUnidades} un.`, 430, 716, 9, true, '0.1 0.4 0.2');
 
-    // Tabela Header
+    // Tabela Header com larguras e espaçamentos calibrados
     p.drawRect(35, 680, 525, 18, '0.2 0.2 0.25', null);
     p.drawText('HORA', 40, 685, 8, true, '1 1 1');
-    p.drawText('CODIGO', 75, 685, 8, true, '1 1 1');
-    p.drawText('CLIENTE / CONTACTO', 130, 685, 8, true, '1 1 1');
-    p.drawText('ARTIGOS & QUANTIDADES', 255, 685, 8, true, '1 1 1');
-    p.drawText('OBSERVACOES / PERSONALIZACAO', 400, 685, 8, true, '1 1 1');
-    p.drawText('CONFERENCIA', 505, 685, 8, true, '1 1 1');
+    p.drawText('CODIGO', 74, 685, 8, true, '1 1 1');
+    p.drawText('CLIENTE / CONTACTO', 126, 685, 8, true, '1 1 1');
+    p.drawText('ARTIGOS A FABRICAR', 252, 685, 8, true, '1 1 1');
+    p.drawText('OBSERVACOES', 395, 685, 8, true, '1 1 1');
+    p.drawText('VISTO', 495, 685, 8, true, '1 1 1');
 
     let currentY = 660;
     loja.encomendas.forEach((enc, encIdx) => {
@@ -198,11 +206,11 @@ export function gerarPdfFolhaFabricoLojas(dataAmanhaStr: string): Buffer {
       p.drawRect(35, currentY - 8, 525, 26, bg, '0.9 0.9 0.9');
 
       p.drawText(enc.hora, 40, currentY + 4, 8, true);
-      p.drawText(enc.codigo, 75, currentY + 4, 8, true, '0.1 0.3 0.6');
-      p.drawText(enc.cliente, 130, currentY + 4, 8, false);
-      p.drawText(enc.itens, 255, currentY + 4, 8, true, '0.1 0.1 0.1');
-      p.drawText(enc.obs, 400, currentY + 4, 7, false, '0.4 0.4 0.4');
-      p.drawText(enc.visto, 505, currentY + 4, 8, true, '0.2 0.5 0.2');
+      p.drawText(enc.codigo, 74, currentY + 4, 8, true, '0.1 0.3 0.6');
+      p.drawText(enc.cliente, 126, currentY + 4, 8, false, '0 0 0', 25);
+      p.drawText(enc.itens, 252, currentY + 4, 8, true, '0.1 0.1 0.1', 28);
+      p.drawText(enc.obs, 395, currentY + 4, 7, false, '0.35 0.35 0.35', 20);
+      p.drawText(enc.visto, 495, currentY + 4, 8, true, '0.2 0.5 0.2');
 
       currentY -= 30;
     });
@@ -220,6 +228,7 @@ export function gerarPdfFolhaFabricoLojas(dataAmanhaStr: string): Buffer {
 
 /**
  * Constrói o PDF Oficial: Folha de Carga Segregada das 7 Carrinhas
+ * Colunas calibradas sem colisão entre texto de morada, artigos e visto.
  */
 export function gerarPdfFolhaCargaCarrinhas(dataAmanhaStr: string): Buffer {
   const doc = new NativePdfDocument(`Folha_Carga_7_Carrinhas_${dataAmanhaStr}`);
@@ -237,11 +246,11 @@ export function gerarPdfFolhaCargaCarrinhas(dataAmanhaStr: string): Buffer {
       ],
       clientesB2B: [
         { nome: 'Restaurante Gamarao', itens: '30x Carcacas, 5x Broas' },
-        { nome: 'Lar de Terceira Idade de Cambra', itens: '60x Pao Saloio Fatiado, 20x Regueifas' },
-        { nome: 'Hospital da Misericordia', itens: '80x Carcacas sem Sal, 15x Pao Integral' }
+        { nome: 'Lar Terceira Idade Cambra', itens: '60x Saloio Fatiado, 20x Regueifas' },
+        { nome: 'Hospital da Misericordia', itens: '80x Carcacas s/ Sal, 15x Integral' }
       ],
       encomendasDomicilio: [
-        { morada: 'Rua das Flores 12, Vale Cambra', cliente: 'Antonio Dias (914 111 222)', itens: '4x Broas Amarelas' }
+        { morada: 'R. Flores 12, Vale Cambra', cliente: 'Antonio Dias (914 111 222)', itens: '4x Broas Amarelas' }
       ],
       totalUnidades: 614,
       caixasEstimadas: 18
@@ -277,7 +286,7 @@ export function gerarPdfFolhaCargaCarrinhas(dataAmanhaStr: string): Buffer {
         { nome: 'Cafe Ribeiro (Alvarenga)', itens: '25x Carcacas, 5x Broas' }
       ],
       encomendasDomicilio: [
-        { morada: 'Lugar de Paradinha, Passadicos', cliente: 'Casa Turistica Paiva (962 334 455)', itens: '10x Saloio, 4x Broas' }
+        { morada: 'Lugar Paradinha, Passadicos', cliente: 'Casa Turistica Paiva (962 334 455)', itens: '10x Saloio, 4x Broas' }
       ],
       totalUnidades: 569,
       caixasEstimadas: 16
@@ -292,7 +301,7 @@ export function gerarPdfFolhaCargaCarrinhas(dataAmanhaStr: string): Buffer {
         { item: 'Broa Amarela', qtd: 30 },
       ],
       clientesB2B: [
-        { nome: 'Escola Basica de Escariz (Cantina)', itens: '80x Carcacas, 15x Pao de Forma' }
+        { nome: 'Escola Basica de Escariz', itens: '80x Carcacas, 15x Pao Forma' }
       ],
       encomendasDomicilio: [],
       totalUnidades: 385,
@@ -315,7 +324,7 @@ export function gerarPdfFolhaCargaCarrinhas(dataAmanhaStr: string): Buffer {
       caixasEstimadas: 11
     },
     {
-      rota: 'Rota 6 - Carro 6 (Urrô & Várzea)',
+      rota: 'Rota 6 - Carro 6 (Urro & Varzea)',
       matricula: '51-VC-28',
       condutor: 'Tiago Rocha',
       baseDiaria: [
@@ -331,7 +340,7 @@ export function gerarPdfFolhaCargaCarrinhas(dataAmanhaStr: string): Buffer {
       caixasEstimadas: 9
     },
     {
-      rota: 'Rota 7 - Carro 7 (Santa Eulália & Tropeço)',
+      rota: 'Rota 7 - Carro 7 (Santa Eulalia & Tropeco)',
       matricula: '76-MN-99',
       condutor: 'Carlos Moreira',
       baseDiaria: [
@@ -367,14 +376,14 @@ export function gerarPdfFolhaCargaCarrinhas(dataAmanhaStr: string): Buffer {
     // 1. BASE DIÁRIA
     p.drawRect(35, 680, 525, 16, '0.25 0.3 0.35', null);
     p.drawText('1. BASE DIARIA DE ABASTECIMENTO (PORTA-A-PORTA)', 40, 685, 8, true, '1 1 1');
-    p.drawText('QUANTIDADE', 480, 685, 8, true, '1 1 1');
+    p.drawText('QUANTIDADE', 485, 685, 8, true, '1 1 1');
 
     let currentY = 662;
     r.baseDiaria.forEach((b, bIdx) => {
       const bg = bIdx % 2 === 0 ? '1 1 1' : '0.98 0.98 0.98';
       p.drawRect(35, currentY - 5, 525, 18, bg, '0.9 0.9 0.9');
-      p.drawText(b.item, 45, currentY, 8, false);
-      p.drawText(`${b.qtd} un.`, 480, currentY, 8, true);
+      p.drawText(b.item, 45, currentY, 8, false, '0 0 0', 45);
+      p.drawText(`${b.qtd} un.`, 485, currentY, 8, true);
       currentY -= 20;
     });
 
@@ -382,7 +391,7 @@ export function gerarPdfFolhaCargaCarrinhas(dataAmanhaStr: string): Buffer {
     currentY -= 6;
     p.drawRect(35, currentY - 5, 525, 16, '0.2 0.35 0.25', null);
     p.drawText('2. CLIENTES EMPRESARIAIS (B2B) AFETOS A ROTA', 40, currentY, 8, true, '1 1 1');
-    p.drawText('CONFORMIDADE', 470, currentY, 8, true, '1 1 1');
+    p.drawText('CONFORMIDADE', 485, currentY, 8, true, '1 1 1');
     currentY -= 18;
 
     if (r.clientesB2B.length === 0) {
@@ -392,9 +401,9 @@ export function gerarPdfFolhaCargaCarrinhas(dataAmanhaStr: string): Buffer {
       r.clientesB2B.forEach((b2b, bIdx) => {
         const bg = bIdx % 2 === 0 ? '1 1 1' : '0.98 0.98 0.98';
         p.drawRect(35, currentY - 5, 525, 18, bg, '0.9 0.9 0.9');
-        p.drawText(b2b.nome, 45, currentY, 8, true, '0.1 0.2 0.4');
-        p.drawText(b2b.itens, 200, currentY, 8, false);
-        p.drawText('[ ] Entregue', 470, currentY, 8, true, '0.2 0.5 0.2');
+        p.drawText(b2b.nome, 45, currentY, 8, true, '0.1 0.2 0.4', 26);
+        p.drawText(b2b.itens, 210, currentY, 8, false, '0 0 0', 44);
+        p.drawText('[ ] Entregue', 485, currentY, 8, true, '0.2 0.5 0.2');
         currentY -= 20;
       });
     }
@@ -403,7 +412,7 @@ export function gerarPdfFolhaCargaCarrinhas(dataAmanhaStr: string): Buffer {
     currentY -= 6;
     p.drawRect(35, currentY - 5, 525, 16, '0.4 0.25 0.15', null);
     p.drawText('3. ENCOMENDAS ADICIONAIS AO DOMICILIO', 40, currentY, 8, true, '1 1 1');
-    p.drawText('ESTADO', 480, currentY, 8, true, '1 1 1');
+    p.drawText('ESTADO', 485, currentY, 8, true, '1 1 1');
     currentY -= 18;
 
     if (r.encomendasDomicilio.length === 0) {
@@ -413,9 +422,10 @@ export function gerarPdfFolhaCargaCarrinhas(dataAmanhaStr: string): Buffer {
       r.encomendasDomicilio.forEach((enc, eIdx) => {
         const bg = eIdx % 2 === 0 ? '1 1 1' : '0.98 0.98 0.98';
         p.drawRect(35, currentY - 5, 525, 18, bg, '0.9 0.9 0.9');
-        p.drawText(`${enc.cliente} - ${enc.morada}`, 45, currentY, 8, false);
-        p.drawText(enc.itens, 280, currentY, 8, true);
-        p.drawText('[ ] Entregue', 480, currentY, 8, true, '0.2 0.5 0.2');
+        const descr = `${enc.cliente} - ${enc.morada}`;
+        p.drawText(descr, 45, currentY, 8, false, '0 0 0', 38);
+        p.drawText(enc.itens, 280, currentY, 8, true, '0 0 0', 30);
+        p.drawText('[ ] Entregue', 485, currentY, 8, true, '0.2 0.5 0.2');
         currentY -= 20;
       });
     }
