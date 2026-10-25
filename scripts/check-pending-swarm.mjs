@@ -15,8 +15,9 @@ function readStdin() {
     }
 
     const timer = setTimeout(() => {
+      try { process.stdin.destroy(); } catch {}
       resolve(data ? tryParse(data) : {});
-    }, 150);
+    }, 100);
 
     process.stdin.setEncoding('utf-8');
     process.stdin.on('data', chunk => {
@@ -25,11 +26,13 @@ function readStdin() {
 
     process.stdin.on('end', () => {
       clearTimeout(timer);
+      try { process.stdin.destroy(); } catch {}
       resolve(tryParse(data));
     });
 
     process.stdin.on('error', () => {
       clearTimeout(timer);
+      try { process.stdin.destroy(); } catch {}
       resolve({});
     });
 
