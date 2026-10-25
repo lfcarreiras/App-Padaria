@@ -1,9 +1,9 @@
 ---
 title: "02 - Manual de Utilização, Jornadas por Perfil e Fluxos End-to-End de Pedidos"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.7.17"
+version: "2.7.18"
 date_saved: 2026-10-16
-updated: 2026-10-24
+updated: 2026-10-25
 status: "Em Produção (Live)"
 tags:
   - #Inprooval/ManualUtilizador
@@ -16,7 +16,7 @@ tags:
 
 **Entidade Tecnológica:** EyeQ Lda / Inprooval®  
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
-**Versão:** `v2.7.17` (24/10/2026)  
+**Versão:** `v2.7.18` (25/10/2026)  
 
 ---
 
@@ -62,8 +62,8 @@ flowchart TD
             P1 --> P2 --> P3 --> P4
         end
 
-        subgraph PostoCarrinhas ["🚚 Cockpit Carrinhas (1º ao 5º Carro)"]
-            D1["/entregas: Selecionar 1º a 4º Carro (Particulares)\nou 5º Carro (Clientes Empresariais B2B)"]
+        subgraph PostoCarrinhas ["🚚 Cockpit Carrinhas (Rotas 1 a 7)"]
+            D1["/entregas: Selecionar Rota 1 a 7 (Carrinhas)\n(Base Diária + Clientes B2B + Domicílios)"]
             D2["Exportar Excel Oficial «MAPA DIÁRIO»\n(Base Fixa + B2B + Pedidos Adicionais)"]
             D3["Executar Rota com GPS Google Maps\ne Marcar Entregue (Grava Data/Hora Real)"]
             D1 --> D2 --> D3
@@ -259,3 +259,38 @@ flowchart TD
 | **Cenário 3: Rota Fixa Diária de Particulares (Pão Quente Porta-a-Porta)** | Particular (Assinatura / Base Fixa) | 🔄 **Base Fixa Diária (`1.º ao 4.º Carro`)** | Parametrizado pela Gerência na grelha de Base Fixa em `/gestao`. | Entra automaticamente na **Pool Consolidada do Dia** e nos **3 Fornos** sem necessidade de criar encomenda manual. | Não aplicável (entrega diária contratada). | Compilado automaticamente nas linhas `1.º CARRO` a `4.º CARRO` do Excel **«MAPA DIÁRIO»** em `/entregas`. |
 | **Cenário 4: Fornecimento Regular a Clientes Empresariais (B2B)** | Empresarial / Institucional (13 Clientes) | 🏢 **Matriz Semanal B2B (`5.º Carro`)** | Parametrizado por dia da semana (`Seg` a `Dom`) ou via importação Excel em `/gestao`. | Entra automaticamente na **Pool Consolidada do Dia** para fabrico nos 3 Fornos. | Caso haja ajuste pontual, notificação direta por telefone/WhatsApp. | Compilado no **`5.º Carro`** em `/entregas` e desdobrado cliente a cliente no Excel **«MAPA DIÁRIO»**. |
 | **Cenário 5: Pedido Adicional / Extra de Cliente Empresarial (B2B)** | Empresarial / Institucional | 📞 **Telefone**<br/>💬 **WhatsApp** | Registado em `/encomendas` atribuído ao **`5.º Carro`** (ou adicionado na vista do 5.º Carro). | Se $\le 3\text{h}$, dispara **Alerta Urgente**; soma-se automaticamente às quantidades fixas do dia desse cliente B2B. | Confirmação total ou parcelar enviada via **Botão WhatsApp** na Produção. | Soma-se na linha do respetivo cliente empresarial no **`5.º Carro`** e no Excel **«MAPA DIÁRIO»**. |
+
+
+---
+
+## 4. Jornada de Salvaguarda e Continuidade de Negócio (BCP / Modo Degradado Offline)
+
+A plataforma integra um motor de **Continuidade de Negócio (Business Continuity Plan - BCP)** concebido para garantir que a operação da *Padaria da Vila* **nunca é interrompida**, mesmo perante cenários de falha catastrófica de internet, corte de telecomunicações, indisponibilidade de energia na fábrica ou quebra temporária dos serviços de nuvem durante a madrugada.
+
+### 4.1. O que acontece automaticamente todas as noites às 23h15
+1. **Gatilho de Contingência Automático:** Rigorosamente às **23h15** (15 minutos após o corte oficial das encomendas online às 23h00), o motor de contingência da Vercel gera de forma autónoma e imutável os dois cadernos operacionais completos do dia seguinte em formato PDF de alta resolução.
+2. **Envio Imediato para a Gerência e Responsáveis:** Os documentos são disparados pela infraestrutura da **Inprooval Sistemas** via Resend para as caixas de correio registadas em `EMAILS_CONTINUIDADE` (`luis.carreiras@inprooval.pt` e responsáveis de turno).
+3. **Conteúdo dos Documentos em Anexo:**
+   - **`Folha_Fabrico_Lojas_<DD-MM-YYYY>.pdf`:** Caderno de confeção organizado loja a loja (Matriz, Praça, Av. 25 de Abril, Carocha). Lista cada encomenda individual com hora combinada, nome e contacto do cliente, artigos exatos a produzir, notas especiais de fabrico e caixas de visto `[ ] Pronto`.
+   - **`Folha_Carga_7_Carrinhas_<DD-MM-YYYY>.pdf`:** Caderno de logística discriminado para as **7 Carrinhas / Rotas**. Inclui a Base Diária da rota, o desdobramento dos clientes empresariais B2B (ocultando entidades a 0 unidades), as entregas ao domicílio com morada completa e o resumo geral com volume de caixas e assinatura de conferência.
+
+### 4.2. Procedimento Operacional em Caso de Falha de Rede ou Sistemas (Modo Degradado)
+Se durante a madrugada ou manhã cedo a equipa detetar que a internet da fábrica caiu, que o router falhou ou que não há acesso ao sistema web:
+
+1. **No Centro de Produção (Mestre Padeiro e Pasteleiros):**
+   - Aceder ao e-mail no smartphone/tablet através de dados móveis ou imprimir o ficheiro `Folha_Fabrico_Lojas` recebido às 23h15.
+   - A produção arranca normalmente segundo a lista de encomendas de cada balcão.
+   - À medida que cada fornada e encomenda é concluída e embalada, o padeiro assinala fisicamente com caneta a caixa de visto `[X] Pronto`.
+2. **Na Expedição e Saída das 7 Carrinhas (Motoristas e Encarregado de Carga):**
+   - Cada condutor recebe a sua folha de rota correspondente da `Folha_Carga_7_Carrinhas`.
+   - O encarregado de expedição confere as caixas de pão saloio, carcaças e broas a carregar na viatura e assina o bloco inferior do documento.
+   - O motorista cumpre a sua rota rural ou urbana, entregando as quantidades contratuais nos clientes B2B (escolas, lares, restaurantes) e nos domicílios particulares, recolhendo ou assinalando `[X] Entregue`.
+3. **Reconciliação e Reposição Pós-Incidente:**
+   - Logo que a ligação à internet ou energia seja restabelecida, o encarregado acede ao Cockpit habitual (`/producao`, `/loja`, `/entregas`) e introduz os vistos registados no papel.
+   - Desta forma, a rastreabilidade digital e os indicadores de pontualidade (*% On-Time*) são integralmente preservados sem qualquer perda de dados.
+
+### 4.3. Linha Direta de Suporte e Emergência Operacional
+Em caso de dúvida técnica ou necessidade de reemissão urgente de planos:
+- **E-mail de Suporte:** `suporte@inprooval.pt` (ou resposta direta ao e-mail de contingência recebido).
+- **Linha Telefónica Direta / WhatsApp:** `935 241 876`
+- **Entidade Prestadora:** Inprooval® Sistemas Digitais (EyeQ Lda • NIF: 515075337)

@@ -1,9 +1,9 @@
 ---
 title: "04 - Dossier Mestre do Projeto: Cliente, Backlog, Orçamento, Bolsa de Horas, Sprints e Oportunidades"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.7.17"
+version: "2.7.18"
 date_saved: 2026-10-16
-updated: 2026-10-24
+updated: 2026-10-25
 status: "Em Produção / Fase de Adjudicação & Go-Live"
 tags:
   - #Inprooval/DossierProjeto
@@ -19,7 +19,7 @@ tags:
 **Consultor Responsável:** Luís Carreiras  
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
 **Data de Início do Projeto:** 07/09/2026  
-**Última Atualização:** 24/10/2026 (`v2.7.17`)  
+**Última Atualização:** 24/10/2026 (`v2.7.18`)  
 
 ---
 
@@ -74,6 +74,7 @@ A tabela seguinte apresenta o **Backlog Integral do Produto**, discriminando o q
 | **REQ-21** | Produção: Folha de Fabrico de Encomendas por Loja | No Cockpit de Produção (`filtroTipologia === 'encomendas'`), emissão de Folha de Fabrico com pedidos discriminados encomenda a encomenda, agrupados por loja com quebra de página A4 e conferência de embalamento. | Base | ✅ **Desenvolvido** | `v2.7.15` |
 | **REQ-22** | Produção KDS: Conclusão Incondicional | Estabilização KDS com alerta sonoro/visual permanente, resolução de erros React e botão incondicional de conclusão de produção acessível a qualquer operador de turno. | Base | ✅ **Desenvolvido** | `v2.7.15` |
 | **REQ-23** | Arquitetura: Consumo Direto Supabase | Eliminação definitiva de dicionários estáticos de tradução no cliente (`normalizarNomeArtigoCanonico`), consumindo diretamente os 57 artigos canónicos da base de dados. | Base | ✅ **Desenvolvido** | `v2.7.17` |
+| **REQ-24** | Continuidade de Negócio & Resiliência BCP | Motor nativo de PDFs 1.4 em memória com auto-wrap dinâmico, envio noturno automático diário às 23h15 via Vercel Cron e Resend REST API com autenticação criptográfica `CRON_SECRET` e 2 cadernos anexos (`Folha_Fabrico_Lojas` e `Folha_Carga_7_Carrinhas`). | Base | ✅ **Desenvolvido** | `v2.7.18` |
 | **REQ-14** | Integração Faturação Certificada AT | Emissão automática de Fatura-Recibo / Guia de Transporte via API (Moloni / InvoiceXpress / PHC) no ato da entrega. | Fase 2 (Upsell) | ⏳ **Em Backlog** | Planeado |
 | **REQ-15** | WhatsApp Business API 100% Silencioso (Webhook Cloud) | Disparo de mensagens WhatsApp em background via Meta Cloud API / Twilio sem necessidade de o operador clicar em «Enviar» na janela do WhatsApp. | Fase 2 (Upsell) | ⏳ **Em Backlog** | Planeado |
 | **REQ-16** | Pagamentos Online MB WAY / Multibanco | Integração de gateway Ifthenpay / Easypay no portal `/encomendar` para pré-pagamento de encomendas especiais. | Fase 2 (Upsell) | ⏳ **Em Backlog** | Planeado |
@@ -151,11 +152,11 @@ flowchart TD
 | Indicador da Bolsa de Horas | Pacote Global Turn-Key (`5.500,00 € + IVA`) | Valor a Preço de Tabela Mercado (@ 150 €/h) |
 | :--- | :---: | :---: |
 | **Plafond Total de Horas Orçamentadas** | **110,00 horas (`5.500,00 €`)** | 16.500,00 € |
-| **Horas Consumidas em Engenharia (Sprints 1 a 10 — `v2.7.17`)** | 30,00 horas (`1.500,00 €`) | 4.500,00 € |
+| **Horas Consumidas em Engenharia (Sprints 1 a 10 — `v2.7.18`)** | 30,00 horas (`1.500,00 €`) | 4.500,00 € |
 | **Horas Consumidas em Consultoria Externa & Reuniões de Terreno** | 4,50 horas (`225,00 €`) | 675,00 € |
-| **TOTAL DE HORAS CONSUMIDAS (até 24/10/2026 — `v2.7.17`)** | **34,50 horas (`1.725,00 €`)** | **5.175,00 €** |
+| **TOTAL DE HORAS CONSUMIDAS (até 24/10/2026 — `v2.7.18`)** | **34,50 horas (`1.725,00 €`)** | **5.175,00 €** |
 | **SALDO REMANESCENTE NA BOLSA DE HORAS (p/ Formação & Go-Live)** | **🟢 + 75,50 horas (`+ 3.775,00 €`)** | **+ 11.325,00 €** |
-| **Percentagem de Execução & Readiness Score (Bulletproof Swarm)** | **100% Concluído — Score 99,6% (`v2.7.17`)** | **BULLETPROOF GOLD** |
+| **Percentagem de Execução & Readiness Score (Bulletproof Swarm)** | **100% Concluído — Score 99,6% (`v2.7.18`)** | **BULLETPROOF GOLD** |
 
 ### 6.2. Discriminação Cronológica de Horas Consumidas por Sprint
 
@@ -172,7 +173,7 @@ flowchart TD
 | **Sprint 7 (`v2.4.0`–`v2.5.7`)** | 18/10 – 22/10 | Engenharia & Refinamento UI | Unificação de rotas, calibração 68mm TM-T20, base diária semanal, matriz B2B e PDFs A4 | 4,15 h | 207,50 € |
 | **Sprint 8 (`v2.6.0`)** | 22/10/2026 | Engenharia & Cibersegurança | Subdomínio `app.padariadavila.com`, chaves criptográficas por ecrã, proteção middleware e bloqueio total anti-indexação | 1,10 h | 55,00 € |
 | **Sprint 9 (`v2.7.0`–`v2.7.7`)** | 23/10 – 24/10 | Engenharia & Omnichannel | Estabilização das 7 rotas, arquitetura omnichannel B2B/particulares e motor de Modo Férias em tempo real | 2,75 h | 137,50 € |
-| **Sprint 10 (`v2.7.8`–`v2.7.17`)** | 24/10/2026 | Engenharia & Resiliência | Normalização canónica (57 artigos), segregação estrita da Folha de Carga, Fabrico por loja, KDS sem bloqueios, tolerância B2B e consumo direto Supabase | 2,25 h | 112,50 € |
+| **Sprint 10 (`v2.7.8`–`v2.7.18`)** | 24/10/2026 | Engenharia & Resiliência | Normalização canónica (57 artigos), segregação estrita da Folha de Carga, Fabrico por loja, KDS sem bloqueios, tolerância B2B e consumo direto Supabase | 2,25 h | 112,50 € |
 | **TOTAL ACUMULADO** | **07/09 – 24/10** | **Híbrido (AGY + Terreno)** | **Solução Integral `v2.7.17` em Produção no Subdomínio Oficial** | **34,50 h** | **1.725,00 €** |
 
 ### 6.3. Cláusula de Sucesso & Escalação de Valor Hora para Novos Desenvolvimentos

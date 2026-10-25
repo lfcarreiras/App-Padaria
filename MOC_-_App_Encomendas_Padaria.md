@@ -27,6 +27,7 @@ updated: 2026-09-14
 | **Hosting & CI/CD** | **Vercel** | Deploys automáticos a cada push na `main`, com Instant Rollback |
 | **Impressão** | **Thermal Receipt (CSS Paged Media)** | Suporte a impressoras térmicas ESC/POS de 80mm e 58mm |
 | **Internacionalização** | **LanguageProvider (Contexto React)** | Suporte completo bilingue: 🇵🇹 Português (PT-PT) e 🇬🇧 English |
+| **Continuidade BCP** | **Vercel Cron + Resend REST API + PDF 1.4 Nativo** | Envio diário às 23h15 das Folhas de Fabrico e Carga em PDF com formatação auto-wrap dinâmico |
 
 ---
 
@@ -72,6 +73,8 @@ Consulte o histórico detalhado em `[[CHANGELOG]]`.
 
 | Versão | Tag Git | Commit | Data | Marco Funcional Principal |
 | :--- | :--- | :--- | :--- | :--- |
+| **v2.7.18** | 2.7.18 | HEAD | 2026-10-25 | Mecanismo de Salvaguarda BCP (Business Continuity Plan): disparo diário às 23h15 via Vercel Cron e Resend API com geração em memória de PDFs nativos com auto-wrap para as 4 Lojas e 7 Carrinhas, autenticação por CRON_SECRET e parametrizações validadas |
+| **v2.7.17** | 2.7.17 | c5bd03 | 2026-10-24 | Eliminação integral de dicionários estáticos (normalizarNomeArtigoCanonico) e consumo direto de nomes canónicos do Supabase |
 | **v2.3.3** | `v2.3.3` | `HEAD` | 2026-10-18 | Error Boundaries nativos Next.js (`src/app/gestao/error.tsx` e `src/app/error.tsx`) com diagnóstico no ecrã e botão de limpeza de cache local, blindagem de ordenação (`sortConsolidada`), `calcularDesvioMinutos` e `try/catch` no `useEffect` |
 | **v2.3.2** | `v2.3.2` | `e016421` | 2026-10-18 | Resolução definitiva da exceção de cliente em `/gestao`: blindagem total de `curr.itens.reduce`, `enc.cliente?.nome`, `telefone`, filtros, ordenações, exportação Excel, sanitização de cache offline e talão térmico |
 | **v2.3.1** | `v2.3.1` | `9d8616e` | 2026-10-18 | Hotfix de robustez defensiva: proteção contra valores nulos/indefinidos em `OriginBadge`, `SectorBadge` e `StatusBadge`, harden de ordenação e agregações seguras no Cockpit de Gestão (`/gestao`) |

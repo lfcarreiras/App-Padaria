@@ -42,6 +42,20 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.18] - 2026-10-25
+
+### Added (Mecanismo Oficial de Salvaguarda BCP - Continuidade de Negócio & Disparo Noturno Vercel Cron)
+- **Motor Nativo de Continuidade de Negócio (BCP / Modo Degradado Offline)**:
+  - Criação de gerador nativo em memória de ficheiros binários PDF 1.4 (`src/lib/pdfContinuidadeBuilder.ts`), ultra-leve e sem dependências pesadas de Chromium/Puppeteer (< 50ms de execução na Vercel).
+  - Implementação de formatação adaptativa com algoritmo inteligente de quebra de linhas (`wrapText`) e cálculo dinâmico de altura de linha (`rowHeight`), garantindo zero corte com reticências (`..`) e zero sobreposição gráfica de colunas.
+  - Geração dos dois cadernos oficiais de contingência:
+    1. `Folha_Fabrico_Lojas_<DD-MM-YYYY>.pdf` (discriminado encomenda a encomenda para as 4 Lojas: Matriz/Fábrica, Praça, Av. 25 de Abril, Carocha).
+    2. `Folha_Carga_7_Carrinhas_<DD-MM-YYYY>.pdf` (guia oficial das 7 Carrinhas / Rotas 1 a 7, com segregação de Base Diária, B2B com supressão de clientes a 0 un., e Encomendas ao Domicílio com estimativa de caixas).
+  - Configuração do agendamento automático noturno no `vercel.json` para as **23h15** (`15 23 * * *`), 15 minutos após o corte oficial de encomendas online.
+  - Endpoint de contingência seguro `/api/cron/continuidade-negocio` com validação estrita de autorização (`CRON_SECRET`).
+  - Integração com a API REST oficial da Resend via `fetch` nativo com templates HTML e texto plano (`src/lib/emailContinuidadeTemplate.ts`), remetente `Inprooval Sistemas <sistema@inprooval.pt>`, resposta para `Inprooval Suporte <suporte@inprooval.pt>`, linha direta `935 241 876` e aviso de confidencialidade/BCP.
+  - Parametrizações de ambiente documentadas e validadas: `RESEND_API_KEY`, `EMAILS_CONTINUIDADE`, `CRON_SECRET`.
+
 ## [v2.7.17] - 2026-10-24
 
 ### Refactor & Simplification (Eliminação Integral de Camadas de Tradução Legada de Artigos)

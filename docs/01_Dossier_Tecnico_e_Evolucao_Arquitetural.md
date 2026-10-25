@@ -1,22 +1,23 @@
 ---
 title: "01 - Dossier Técnico e Evolução Arquitetural da Solução"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.7.17"
+version: "2.7.18"
 date_saved: 2026-10-16
-updated: 2026-10-24
+updated: 2026-10-25
 status: "Em Produção (Live)"
 tags:
   - #Inprooval/DossierTecnico
   - #Projetos/PadariaDaVila
   - #Arquitetura/NextJS
   - #Arquitetura/Supabase
+  - #BCP/ContinuidadeDeNegocio
 ---
 
 # 🛠️ Dossier Técnico & Passo-a-Passo do Desenvolvimento da Solução
 
 **Entidade Tecnológica:** EyeQ Lda / Inprooval®  
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
-**Versão Atual em Produção:** `v2.7.17` (24/10/2026)  
+**Versão Atual em Produção:** `v2.7.18` (25/10/2026)  
 **Repositório & CI/CD:** GitHub (`lfcarreiras/App-Padaria`) $\to$ Vercel Production  
 
 ---
@@ -67,7 +68,15 @@ flowchart TB
     EncService <--> SupabaseDB
     EncService <--> LocalFallback
     AuthCtx <--> SupabaseDB
-```
+
+    subgraph BCPLayer ["🛡️ Camada de Salvaguarda BCP / Modo Degradado (Vercel Cron & Resend API)"]
+        VercelCron["⏰ Vercel Cron Trigger (15 23 * * *)\nDisparo diário automático às 23h15"]
+        CronEndpoint["/api/cron/continuidade-negocio\nValidação CRON_SECRET + Orquestração"]
+        PdfBuilder["pdfContinuidadeBuilder.ts\nMotor Nativo PDF 1.4 em Memória (Auto-Wrap Dinâmico)"]
+        EmailTemplate["emailContinuidadeTemplate.ts\nTemplate Institucional BCP (HTML + Plain-Text)"]
+        ResendService["Resend REST API (fetch nativo)\nsistema@inprooval.pt -> EMAILS_CONTINUIDADE"]
+        VercelCron --> CronEndpoint --> PdfBuilder --> EmailTemplate --> ResendService
+    end```
 
 ### 1.1. Stack Tecnológica Oficial
 
@@ -81,6 +90,9 @@ flowchart TB
 | **Motor de Impressão Térmica** | **CSS `@media print` Calibrado** | Impressão direta sem cortes na impressora térmica **Epson M249A TM-T20** (rolo 80mm / largura útil 72mm). |
 | **Notificações & Comunicação** | **Motor Deep-Link WhatsApp (`wa.me`)** | Disparo contextualizado de mensagens de decisão parcelar de produção e aviso automático de encomenda pronta. |
 | **CMS Institucional** | **Studio CMS Nativo (`/cms` Git-Backed)** | Gestão visual integrada de configurações da marca e textos institucionais sincronizados via GitHub API, sem dependências externas pesadas. |
+| **Envio Transacional & BCP** | **Resend REST API (`https://api.resend.com/emails`)** | Disparo automático diário às 23h15 com planos de contingência em anexo, remetente `sistema@inprooval.pt`, resposta para `suporte@inprooval.pt` e linha de apoio `935 241 876`. |
+| **Agendamento Cron Serverless** | **Vercel Cron (`vercel.json`)** | Invocação periódica noturna às 23h15 (`schedule: "15 23 * * *"`) com autenticação por segredo criptográfico `CRON_SECRET`. |
+| **Motor Nativo de PDFs em Memória** | **PDF 1.4 Nativo (`pdfContinuidadeBuilder.ts`)** | Geração ultra-rápida de ficheiros binários em memória (`Buffer`) sem dependência de navegador, com formatação dinâmica adaptável (*Auto-Wrap* e *Multi-line* sem cortes) para as Folhas de Fabrico das 4 Lojas e Folhas de Carga das 7 Carrinhas. |
 
 ---
 
@@ -197,6 +209,19 @@ Após a sessão de trabalho presencial com a gerência em Arouca (10/10/2026), a
    - Documento PDF com detalhe encomenda a encomenda (código, hora, cliente, notas de personalização, checkbox `[ ] Pronto / Embalado`), subtotais por loja e quebra de página por loja (`break-before: page`).
 3. **KDS Operacional & Resiliência:**
    - Botão «Concluir Produção • Marcar como Pronta» incondicional para todos os utilizadores, eliminação do erro React #310 e resolução de `totalPaoUnidades`.
+
+### Passo 11 — Mecanismo de Salvaguarda de Continuidade de Negócio (BCP / Modo Degradado) & Motor Nativo de PDFs (`v2.7.18` | 25/10/2026)
+1. **Garantia de Continuidade Noturna (Agendamento às 23h15 via Vercel Cron):**
+   - Parametrização em `vercel.json` da rota `/api/cron/continuidade-negocio` com agendamento diário pontual às 23h15 (`15 23 * * *`), rigorosamente 15 minutos após o fecho/corte oficial das encomendas do dia seguinte.
+   - Validação de segurança criptográfica obrigatória via cabeçalho `Authorization: Bearer <CRON_SECRET>` em produção.
+2. **Motor Nativo de Geração de PDFs em Memória (`pdfContinuidadeBuilder.ts`):**
+   - Criação de um gerador binário nativo compatível com PDF 1.4 que compila diretamente em memória (`Buffer`) sem invocar navegadores headless pesados (Puppeteer/Playwright), com execução instantânea (< 50ms) e consumo residual de recursos na Vercel.
+   - Implementação de algoritmo inteligente de quebra de linhas (`wrapText`) e altura de linha dinâmica (`rowHeight` adaptativo), eliminando qualquer truncagem (`..`) ou sobreposição de texto em nomes de clientes, moradas extensas ou listas longas de artigos.
+3. **Dois Cadernos Oficiais de Contingência em Anexo:**
+   - **Documento 1 (`Folha_Fabrico_Lojas_<data>.pdf`):** Planeamento discriminado encomenda a encomenda para as 4 Lojas físicas (*Matriz/Fábrica, Praça, Av. 25 de Abril, Carocha*), com dados de cliente, horários, artigos a fabricar, observações da produção e vistos manuais `[ ] Pronto`.
+   - **Documento 2 (`Folha_Carga_7_Carrinhas_<data>.pdf`):** Guia oficial de carga das 7 Carrinhas / Rotas (1 a 7), segregada em Base Diária porta-a-porta, Clientes B2B (suprimindo entidades a 0 un.), Encomendas ao Domicílio com morada completa e Resumo Geral com volume estimado de caixas e assinatura do motorista.
+4. **Disparo e Notificação Segura via Resend REST API:**
+   - Envio automático através de `fetch` nativo para os e-mails definidos em `EMAILS_CONTINUIDADE`, utilizando o remetente oficial `Inprooval Sistemas <sistema@inprooval.pt>`, canal de resposta para `suporte@inprooval.pt`, rodapé com salvaguarda BCP detalhada, linha telefónica de emergência (`935 241 876`) e cláusula de confidencialidade de dados.
 
 ---
 

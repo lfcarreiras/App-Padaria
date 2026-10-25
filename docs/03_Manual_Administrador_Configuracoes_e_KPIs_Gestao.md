@@ -1,9 +1,9 @@
 ---
 title: "03 - Manual do Administrador, Parametrizações e Fórmulas de Indicadores do Cockpit de Gestão"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.7.17"
+version: "2.7.18"
 date_saved: 2026-10-18
-updated: 2026-10-24
+updated: 2026-10-25
 status: "Em Produção (Live)"
 tags:
   - #Inprooval/ManualAdmin
@@ -17,7 +17,7 @@ tags:
 **Entidade Tecnológica:** EyeQ Lda / Inprooval®  
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
 **Rota de Acesso:** `/gestao` (Exclusivo para Perfil **Administrador / Gerência**)  
-**Versão:** `v2.7.17` (24/10/2026)  
+**Versão:** `v2.7.18` (25/10/2026)  
 
 ---
 
@@ -199,3 +199,47 @@ Permite ao Administrador gerir toda a equipa e controlar o que cada colaborador 
   - **`🚫 Sem Acesso` (`sem_acesso`):** O menu não aparece na barra de navegação e a rota está bloqueada por *Route Guard* automático.
   - **`👁️ Apenas Leitura` (`leitura`):** O utilizador pode consultar o ecrã, mas todos os botões de ação/gravação ficam desativados.
   - **`✏️ Edição Total` (`edicao`):** O utilizador pode executar todas as operações daquele painel.
+
+
+---
+
+## 8. Salvaguarda BCP (Business Continuity Plan / Plano de Continuidade de Negócio) e Parametrizações de Sistema
+
+O módulo **BCP (Business Continuity Plan)** assegura a emissão diária automatizada de planos de fabrico e logística para mitigação de risco operacional e conformidade com normas de continuidade de negócio.
+
+### 8.1. Matriz de Variáveis de Ambiente e Parametrizações Técnicas
+As parametrizações do motor BCP encontram-se configuradas na Vercel (*Settings* $\to$ *Environment Variables*) e replicadas no ficheiro `.env.local` para testes em ambiente de engenharia:
+
+| Variável de Ambiente | Descrição Funcional | Valor / Exemplo Oficial | Requisito de Segurança |
+| :--- | :--- | :--- | :--- |
+| `RESEND_API_KEY` | Chave de autorização de envio via API REST da Resend. | `re_9wbov9MB_...` | Confidencial. Domínio verificado: `inprooval.pt` com registos SPF, DKIM e DMARC ativos. |
+| `EMAILS_CONTINUIDADE` | Lista de caixas de correio de destino dos PDFs de contingência, separadas por vírgula. | `luis.carreiras@inprooval.pt` | Apenas e-mails corporativos da gerência e responsáveis operacionais. |
+| `CRON_SECRET` | Segredo criptográfico de 32 bytes hexadecimais para validação de invocação da Vercel. | `e221d39ab1e8364b2b4b843d352746ba73c4544d4d9a9873738e0b30b62a489c` | Obrigatório em produção. A rota rejeita chamadas externas sem `Authorization: Bearer <CRON_SECRET>` com `401 Unauthorized`. |
+| `NEXT_PUBLIC_SITE_URL` | URL canónico de produção da aplicação. | `https://app.padariadavila.com` | Utilizado na montagem dos links de suporte e contexto da comunicação. |
+
+### 8.2. Como Adicionar ou Alterar Destinatários de E-mail de Contingência
+Para incluir novos responsáveis da Padaria da Vila na lista de receção dos planos noturnos:
+1. Aceder ao painel de administração da **Vercel** no projeto `app-encomendas-padaria`.
+2. Navegar para **Settings** $\to$ **Environment Variables**.
+3. Localizar a variável `EMAILS_CONTINUIDADE` e clicar em **Edit**.
+4. Adicionar os novos e-mails separados por vírgula (Ex.: `luis.carreiras@inprooval.pt, gerencia@padariadavila.pt, producao@padariadavila.pt`).
+5. Guardar as alterações. As alterações tornam-se ativas no ciclo de deploy seguinte ou no próximo agendamento cron das 23h15.
+
+### 8.3. Disparo Manual e Teste Operacional de Contingência
+Sempre que o Administrador pretenda forçar a emissão imediata dos planos de amanhã (por exemplo, para simulação ou teste de contingência):
+
+* **Via Terminal de Engenharia (PowerShell / Node.js):**
+  ```powershell
+  $env:RESEND_API_KEY="re_..."; node --experimental-strip-types scripts/test-continuidade-email.mjs
+  ```
+* **Via Chamada HTTP Autenticada (cURL):**
+  ```bash
+  curl -X GET "https://app.padariadavila.com/api/cron/continuidade-negocio" \
+       -H "Authorization: Bearer e221d39ab1e8364b2b4b843d352746ba73c4544d4d9a9873738e0b30b62a489c"
+  ```
+
+### 8.4. Especificação Técnica dos Documentos PDF Gerados
+* **Formatação Dinâmica Auto-Wrap:** Algoritmo `wrapText` calibrado que impede corte de texto em nomes de clientes, moradas rurais e artigos compósitos, adaptando dinamicamente a altura de cada linha (`rowHeight` dinâmico).
+* **Folha de Fabrico por Loja:** Agrupa os pedidos por balcão de levantamento (`Loja 1`, `Loja 2`, `Loja 3`, `Loja 4`), com subtotais de unidades, caixas de vistos de embalamento e bloco de validação pelo Mestre Padeiro.
+* **Folha de Carga Carrinhas:** Estruturada em 4 secções estanques: Base Diária (abastecimento rota), Clientes Empresariais B2B (com supressão de clientes a 0 un.), Encomendas ao Domicílio e Resumo Consolidado com volume estimado de caixas e assinatura do condutor.
+* **Canal e Rodapé de Suporte Oficial:** Remetente `sistema@inprooval.pt`, canal de resposta para `suporte@inprooval.pt`, contacto telefónico direto `935 241 876` e identificação fiscal da EyeQ Lda (`NIF: 515075337`).
