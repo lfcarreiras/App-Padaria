@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { gerarEmailContinuidadeHTML, gerarEmailContinuidadeTexto } from '@/lib/emailContinuidadeTemplate';
+import { gerarPdfFolhaFabricoLojas, gerarPdfFolhaCargaCarrinhas } from '@/lib/pdfContinuidadeBuilder';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -44,15 +45,22 @@ export async function GET(request: Request) {
       .map((e) => e.trim())
       .filter(Boolean);
 
+    // 3. Geração dos dois documentos oficiais em formato PDF (Buffer em memória)
+    const bufferFabrico = gerarPdfFolhaFabricoLojas(dataAmanhaStr);
+    const bufferCargas = gerarPdfFolhaCargaCarrinhas(dataAmanhaStr);
+
     const resumo = `
-      • Salvaguarda programada das 4 Lojas e 7 Carrinhas.<br />
-      • Envio automático diário de contingência gerado às 23h15.<br />
-      • Destinatários oficiais: ${emailsDestino.join(', ')}
+      • <strong>Folha de Fabrico por Loja:</strong> 4 Lojas Interligadas (Matriz/Fábrica, Praça, Av. 25 de Abril, Carocha).<br />
+      • <strong>Folha de Carga das Carrinhas:</strong> 7 Rotas discriminadas (Base Diária, B2B e Domicílios).<br />
+      • <strong>Salvaguarda BCP:</strong> Documentos oficiais em anexo para impressão manual ou consulta móvel offline.
     `;
 
-    const resumoTexto = `• Salvaguarda programada das 4 Lojas e 7 Carrinhas.\n• Envio automático diário de contingência gerado às 23h15.\n• Destinatários: ${emailsDestino.join(', ')}`;
+    const resumoTexto = `• Folha de Fabrico por Loja: 4 Lojas Interligadas.\n• Folha de Carga das Carrinhas: 7 Rotas discriminadas.\n• Salvaguarda BCP: Documentos anexos para impressão ou consulta móvel.`;
 
-    // 3. Disparo através da API REST oficial da Resend (sem necessidade de SDK pesado)
+    const nomeFicheiroFabrico = `Folha_Fabrico_Lojas_${dataAmanhaStr.replace(/\//g, '-')}.pdf`;
+    const nomeFicheiroCarga = `Folha_Carga_7_Carrinhas_${dataAmanhaStr.replace(/\//g, '-')}.pdf`;
+
+    // 4. Disparo através da API REST oficial da Resend com os dois PDFs em anexo
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -66,6 +74,16 @@ export async function GET(request: Request) {
         subject: `[Continuidade de Negócio] Planos de Produção e Carga - Padaria da Vila (${dataAmanhaStr})`,
         html: gerarEmailContinuidadeHTML(dataAmanhaStr, resumo),
         text: gerarEmailContinuidadeTexto(dataAmanhaStr, resumoTexto),
+        attachments: [
+          {
+            filename: nomeFicheiroFabrico,
+            content: bufferFabrico.toString('base64'),
+          },
+          {
+            filename: nomeFicheiroCarga,
+            content: bufferCargas.toString('base64'),
+          },
+        ],
       }),
     });
 
@@ -78,10 +96,11 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       sucesso: true,
-      mensagem: 'E-mail de continuidade de negócio disparado com sucesso.',
+      mensagem: 'E-mail de continuidade de negócio disparado com sucesso com 2 anexos PDF.',
       resendId: data.id,
       destinatarios: emailsDestino,
       dataOperacao: dataAmanhaStr,
+      anexos: [nomeFicheiroFabrico, nomeFicheiroCarga],
       timestamp: new Date().toISOString(),
     });
   } catch (error: any) {
