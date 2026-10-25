@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/continuidade-negocio",
+      "schedule": "15 23 * * *"
+    }
+  ]
+}
