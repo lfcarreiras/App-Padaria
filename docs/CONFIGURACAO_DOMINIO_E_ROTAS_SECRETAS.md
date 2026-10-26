@@ -97,3 +97,20 @@ Se alguém tentar digitar diretamente no browser nomes previsíveis como:
 - `app.padariadavila.com/entregas`
 
 O middleware do Next.js **interceta imediatamente o pedido e redireciona para a raiz de login secreto**, impedindo qualquer descoberta ou acesso não autorizado por enumeração de caminhos.
+
+
+---
+
+## 6. Infraestrutura de Email Transacional & Continuidade BCP (Resend)
+
+A aplicação de gestão e encomendas da Padaria da Vila utiliza a plataforma **Resend** para o disparo automático noturno dos cadernos de continuidade de negócio (BCP) às 23h15:
+
+* **Plataforma / Fornecedor:** Resend (`https://resend.com`)
+* **Conta / Workspace:** `lffcarreiras`
+* **Nome Exato da Chave de API:** `Email Continuidade Padaria da Vila`
+* **Variável de Ambiente na Vercel:** `RESEND_API_KEY`
+* **Domínio de Envio Autorizado:** `inprooval.pt` (com SPF, DKIM e DMARC ativos)
+* **Endereço de Envio (From):** `Inprooval Sistemas <sistema@inprooval.pt>`
+* **Endereço de Resposta (Reply-To):** `Inprooval Suporte <suporte@inprooval.pt>`
+* **Destinatários Configurados (`EMAILS_CONTINUIDADE`):** `luis.carreiras@inprooval.pt` (configurável no painel da Vercel)
+* **Anexos Transmitidos:** `Folha_Fabrico_Lojas_<data>.pdf` e `Folha_Carga_7_Carrinhas_<data>.pdf` gerados nativamente em memória.

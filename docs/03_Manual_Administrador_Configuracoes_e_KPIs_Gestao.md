@@ -212,7 +212,7 @@ As parametrizações do motor BCP encontram-se configuradas na Vercel (*Settings
 
 | Variável de Ambiente | Descrição Funcional | Valor / Exemplo Oficial | Requisito de Segurança |
 | :--- | :--- | :--- | :--- |
-| `RESEND_API_KEY` | Chave de autorização de envio via API REST da Resend. | `re_9wbov9MB_...` | Confidencial. Domínio verificado: `inprooval.pt` com registos SPF, DKIM e DMARC ativos. |
+| `RESEND_API_KEY` | Chave de envio API REST da Resend (Identificador oficial no painel: `Email Continuidade Padaria da Vila` sob a conta `lffcarreiras`). | `re_9wbov9MB_...` | Confidencial. Domínio verificado: `inprooval.pt` com registos SPF, DKIM e DMARC ativos. |
 | `EMAILS_CONTINUIDADE` | Lista de caixas de correio de destino dos PDFs de contingência, separadas por vírgula. | `luis.carreiras@inprooval.pt` | Apenas e-mails corporativos da gerência e responsáveis operacionais. |
 | `CRON_SECRET` | Segredo criptográfico de 32 bytes hexadecimais para validação de invocação da Vercel. | `e221d39ab1e8364b2b4b843d352746ba73c4544d4d9a9873738e0b30b62a489c` | Obrigatório em produção. A rota rejeita chamadas externas sem `Authorization: Bearer <CRON_SECRET>` com `401 Unauthorized`. |
 | `NEXT_PUBLIC_SITE_URL` | URL canónico de produção da aplicação. | `https://app.padariadavila.com` | Utilizado na montagem dos links de suporte e contexto da comunicação. |
