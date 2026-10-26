@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/continuidade-negocio",
-      "schedule": "15 23 * * *"
+      "schedule": "15 0 * * *"
     }
   ]
 }

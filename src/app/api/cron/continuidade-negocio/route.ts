@@ -21,11 +21,9 @@ export async function GET(request: Request) {
       }
     }
 
-    // 2. Determinar a data da operação de amanhã (Fuso horário Portugal Continental)
+    // 2. Determinar a data da operação de hoje (Disparo diário às 00h15 - Fuso horário Portugal Continental)
     const agora = new Date();
-    const amanha = new Date(agora);
-    amanha.setDate(agora.getDate() + 1);
-    const dataAmanhaStr = amanha.toLocaleDateString('pt-PT', {
+    const dataHojeStr = agora.toLocaleDateString('pt-PT', {
       timeZone: 'Europe/Lisbon',
       year: 'numeric',
       month: '2-digit',
@@ -45,20 +43,12 @@ export async function GET(request: Request) {
       .map((e) => e.trim())
       .filter(Boolean);
 
-    // 3. Geração dos dois documentos oficiais em formato PDF (Buffer em memória)
-    const bufferFabrico = gerarPdfFolhaFabricoLojas(dataAmanhaStr);
-    const bufferCargas = gerarPdfFolhaCargaCarrinhas(dataAmanhaStr);
+    // 3. Geração dos dois cadernos oficiais em formato PDF (Buffer em memória com auto-wrap)
+    const bufferFabrico = gerarPdfFolhaFabricoLojas(dataHojeStr);
+    const bufferCargas = gerarPdfFolhaCargaCarrinhas(dataHojeStr);
 
-    const resumo = `
-      • <strong>Folha de Fabrico por Loja:</strong> 4 Lojas Interligadas (Matriz/Fábrica, Praça, Av. 25 de Abril, Carocha).<br />
-      • <strong>Folha de Carga das Carrinhas:</strong> 7 Rotas discriminadas (Base Diária, B2B e Domicílios).<br />
-      • <strong>Salvaguarda BCP:</strong> Documentos oficiais em anexo para impressão manual ou consulta móvel offline.
-    `;
-
-    const resumoTexto = `• Folha de Fabrico por Loja: 4 Lojas Interligadas.\n• Folha de Carga das Carrinhas: 7 Rotas discriminadas.\n• Salvaguarda BCP: Documentos anexos para impressão ou consulta móvel.`;
-
-    const nomeFicheiroFabrico = `Folha_Fabrico_Lojas_${dataAmanhaStr.replace(/\//g, '-')}.pdf`;
-    const nomeFicheiroCarga = `Folha_Carga_7_Carrinhas_${dataAmanhaStr.replace(/\//g, '-')}.pdf`;
+    const nomeFicheiroFabrico = `Folha_Fabrico_Lojas_${dataHojeStr.replace(/\//g, '-')}.pdf`;
+    const nomeFicheiroCarga = `Folha_Carga_7_Carrinhas_${dataHojeStr.replace(/\//g, '-')}.pdf`;
 
     // 4. Disparo através da API REST oficial da Resend com os dois PDFs em anexo
     const resendResponse = await fetch('https://api.resend.com/emails', {
@@ -71,9 +61,9 @@ export async function GET(request: Request) {
         from: 'Inprooval Sistemas <sistema@inprooval.pt>',
         to: emailsDestino,
         reply_to: 'Inprooval Suporte <suporte@inprooval.pt>',
-        subject: `[Continuidade de Negócio] Planos de Produção e Carga - Padaria da Vila (${dataAmanhaStr})`,
-        html: gerarEmailContinuidadeHTML(dataAmanhaStr, resumo),
-        text: gerarEmailContinuidadeTexto(dataAmanhaStr, resumoTexto),
+        subject: `[Continuidade de Negócio] Planos de Fabrico & Carga • Dia atual - Padaria da Vila (${dataHojeStr})`,
+        html: gerarEmailContinuidadeHTML(dataHojeStr),
+        text: gerarEmailContinuidadeTexto(dataHojeStr),
         attachments: [
           {
             filename: nomeFicheiroFabrico,
@@ -96,18 +86,14 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       sucesso: true,
-      mensagem: 'E-mail de continuidade de negócio disparado com sucesso com 2 anexos PDF.',
+      mensagem: `E-mail de continuidade de negócio disparado com sucesso às 00h15 com 2 anexos PDF para a data ${dataHojeStr}.`,
       resendId: data.id,
       destinatarios: emailsDestino,
-      dataOperacao: dataAmanhaStr,
+      dataOperacao: dataHojeStr,
       anexos: [nomeFicheiroFabrico, nomeFicheiroCarga],
-      timestamp: new Date().toISOString(),
     });
   } catch (error: any) {
-    console.error('[Cron Continuidade Fatal Error]:', error);
-    return NextResponse.json(
-      { sucesso: false, erro: error.message || 'Erro interno no disparo' },
-      { status: 500 }
-    );
+    console.error('[Continuidade Cron Fatal Error]:', error);
+    return NextResponse.json({ sucesso: false, erro: error.message || 'Erro interno no cron' }, { status: 500 });
   }
 }

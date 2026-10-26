@@ -1,7 +1,7 @@
 ---
 title: "03 - Manual do Administrador, Parametrizações e Fórmulas de Indicadores do Cockpit de Gestão"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.7.18"
+version: "2.7.19"
 date_saved: 2026-10-18
 updated: 2026-10-25
 status: "Em Produção (Live)"
@@ -17,7 +17,7 @@ tags:
 **Entidade Tecnológica:** EyeQ Lda / Inprooval®  
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
 **Rota de Acesso:** `/gestao` (Exclusivo para Perfil **Administrador / Gerência**)  
-**Versão:** `v2.7.18` (25/10/2026)  
+**Versão:** `v2.7.19` (25/10/2026)  
 
 ---
 
@@ -223,10 +223,10 @@ Para incluir novos responsáveis da Padaria da Vila na lista de receção dos pl
 2. Navegar para **Settings** $\to$ **Environment Variables**.
 3. Localizar a variável `EMAILS_CONTINUIDADE` e clicar em **Edit**.
 4. Adicionar os novos e-mails separados por vírgula (Ex.: `luis.carreiras@inprooval.pt, gerencia@padariadavila.pt, producao@padariadavila.pt`).
-5. Guardar as alterações. As alterações tornam-se ativas no ciclo de deploy seguinte ou no próximo agendamento cron das 23h15.
+5. Guardar as alterações. As alterações tornam-se ativas no ciclo de deploy seguinte ou no próximo agendamento cron das 00h15.
 
 ### 8.3. Disparo Manual e Teste Operacional de Contingência
-Sempre que o Administrador pretenda forçar a emissão imediata dos planos de amanhã (por exemplo, para simulação ou teste de contingência):
+Sempre que o Administrador pretenda forçar a emissão imediata dos planos do dia atual (por exemplo, para simulação ou teste de contingência):
 
 * **Via Terminal de Engenharia (PowerShell / Node.js):**
   ```powershell

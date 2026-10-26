@@ -42,6 +42,17 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.19] - 2026-10-26
+
+### Changed (Ajuste de Horário do Trigger BCP para as 00h15 & Enriquecimento Visual dos Emails)
+- **Migração do Trigger de Contingência para as 00h15**:
+  - Agendamento no `vercel.json` reconfigurado para `"15 0 * * *"` (00h15 diário).
+  - A geração dos cadernos de produção (`Folha_Fabrico_Lojas`) e expedição (`Folha_Carga_7_Carrinhas`) passa a visar diretamente o **dia atual (operação de hoje)** em vez de amanhã.
+- **Identidade Visual e Layout Oficial do Email BCP (`emailContinuidadeTemplate.ts`)**:
+  - **Cabeçalho:** Adicionado o logótipo oficial da Padaria da Vila (`logo-padaria.jpg`) seguido do selo `Salvaguarda Operacional Noturna (00h15)`, título principal `Planos de Fabrico & Carga • Dia atual` e subtítulo `Padaria da Vila • Lojas, Fabrico e Distribuição`.
+  - **Corpo:** Texto simplificado e padronizado: saudação oficial à equipa da Padaria da Vila, enquadramento BCP e resumo em destaque (`Folha de Fabrico por Loja` e `Folhas de Carga de cada Rota`).
+  - **Assinatura:** Incorporação do logótipo oficial da Inprooval® (`inprooval_logo.jpg`) junto aos dados institucionais da EyeQ Lda, mantendo a caixa destacada de BCP, contactos de emergência (`935 241 876` / `suporte@inprooval.pt`) e aviso de confidencialidade.
+
 ## [v2.7.18] - 2026-10-25
 
 ### Added (Mecanismo Oficial de Salvaguarda BCP - Continuidade de Negócio & Disparo Noturno Vercel Cron)

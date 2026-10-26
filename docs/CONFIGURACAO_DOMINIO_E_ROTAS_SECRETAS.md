@@ -103,7 +103,7 @@ O middleware do Next.js **interceta imediatamente o pedido e redireciona para a 
 
 ## 6. Infraestrutura de Email Transacional & Continuidade BCP (Resend)
 
-A aplicação de gestão e encomendas da Padaria da Vila utiliza a plataforma **Resend** para o disparo automático noturno dos cadernos de continuidade de negócio (BCP) às 23h15:
+A aplicação de gestão e encomendas da Padaria da Vila utiliza a plataforma **Resend** para o disparo automático noturno dos cadernos de continuidade de negócio (BCP) às 00h15:
 
 * **Plataforma / Fornecedor:** Resend (`https://resend.com`)
 * **Conta / Workspace:** `lffcarreiras`

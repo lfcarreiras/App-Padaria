@@ -1,7 +1,7 @@
 ---
 title: "02 - Manual de Utilização, Jornadas por Perfil e Fluxos End-to-End de Pedidos"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.7.18"
+version: "2.7.19"
 date_saved: 2026-10-16
 updated: 2026-10-25
 status: "Em Produção (Live)"
@@ -16,7 +16,7 @@ tags:
 
 **Entidade Tecnológica:** EyeQ Lda / Inprooval®  
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
-**Versão:** `v2.7.18` (25/10/2026)  
+**Versão:** `v2.7.19` (25/10/2026)  
 
 ---
 
@@ -267,8 +267,8 @@ flowchart TD
 
 A plataforma integra um motor de **Continuidade de Negócio (Business Continuity Plan - BCP)** concebido para garantir que a operação da *Padaria da Vila* **nunca é interrompida**, mesmo perante cenários de falha catastrófica de internet, corte de telecomunicações, indisponibilidade de energia na fábrica ou quebra temporária dos serviços de nuvem durante a madrugada.
 
-### 4.1. O que acontece automaticamente todas as noites às 23h15
-1. **Gatilho de Contingência Automático:** Rigorosamente às **23h15** (15 minutos após o corte oficial das encomendas online às 23h00), o motor de contingência da Vercel gera de forma autónoma e imutável os dois cadernos operacionais completos do dia seguinte em formato PDF de alta resolução.
+### 4.1. O que acontece automaticamente todas as noites às 00h15
+1. **Gatilho de Contingência Automático:** Rigorosamente às **00h15** (15 minutos após o corte oficial das encomendas online às 23h00), o motor de contingência da Vercel gera de forma autónoma e imutável os dois cadernos operacionais completos do dia seguinte em formato PDF de alta resolução.
 2. **Envio Imediato para a Gerência e Responsáveis:** Os documentos são disparados pela infraestrutura da **Inprooval Sistemas** via Resend para as caixas de correio registadas em `EMAILS_CONTINUIDADE` (`luis.carreiras@inprooval.pt` e responsáveis de turno).
 3. **Conteúdo dos Documentos em Anexo:**
    - **`Folha_Fabrico_Lojas_<DD-MM-YYYY>.pdf`:** Caderno de confeção organizado loja a loja (Matriz, Praça, Av. 25 de Abril, Carocha). Lista cada encomenda individual com hora combinada, nome e contacto do cliente, artigos exatos a produzir, notas especiais de fabrico e caixas de visto `[ ] Pronto`.
@@ -278,7 +278,7 @@ A plataforma integra um motor de **Continuidade de Negócio (Business Continuity
 Se durante a madrugada ou manhã cedo a equipa detetar que a internet da fábrica caiu, que o router falhou ou que não há acesso ao sistema web:
 
 1. **No Centro de Produção (Mestre Padeiro e Pasteleiros):**
-   - Aceder ao e-mail no smartphone/tablet através de dados móveis ou imprimir o ficheiro `Folha_Fabrico_Lojas` recebido às 23h15.
+   - Aceder ao e-mail no smartphone/tablet através de dados móveis ou imprimir o ficheiro `Folha_Fabrico_Lojas` recebido às 00h15.
    - A produção arranca normalmente segundo a lista de encomendas de cada balcão.
    - À medida que cada fornada e encomenda é concluída e embalada, o padeiro assinala fisicamente com caneta a caixa de visto `[X] Pronto`.
 2. **Na Expedição e Saída das 7 Carrinhas (Motoristas e Encarregado de Carga):**
