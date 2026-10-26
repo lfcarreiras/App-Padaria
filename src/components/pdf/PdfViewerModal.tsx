@@ -1457,7 +1457,7 @@ export function PdfViewerModal({
                     Fabrico Próprio de Pão Tradicional e Pastelaria Fina • Arouca
                   </p>
                   <p className="text-[11px] font-mono text-stone-500 mt-0.5">
-                    Centro de Produção & Unidade Fabril Central • KDS Fabrico Diário
+                    Centro de Produção & Unidade Fabril Central • Fabrico Diário
                   </p>
                 </div>
                 <div className="text-left sm:text-right">

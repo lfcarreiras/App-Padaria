@@ -72,7 +72,7 @@ A tabela seguinte apresenta o **Backlog Integral do Produto**, discriminando o q
 | **REQ-19** | Gestão: Normalização Canónica de Artigos | Reconciliação canónica de sinónimos (57 produtos canónicos, fusão de Pão da Avó em Pão Saloio, Broas Amarelas) e renomeação em cascata com migração de histórico. | Base | ✅ **Desenvolvido** | `v2.7.9` |
 | **REQ-20** | Logística: Folha de Carga Segregada em PDF A4 | Emissão oficial da Folha de Carga segregada em 4 níveis estanques: 1. Base Diária / Abastecimento, 2. B2B (suprimindo entidades a 0 un.), 3. Encomendas Adicionais e 4. Resumo Geral com caixas estimadas. | Base | ✅ **Desenvolvido** | `v2.7.15` |
 | **REQ-21** | Produção: Folha de Fabrico de Encomendas por Loja | No Cockpit de Produção (`filtroTipologia === 'encomendas'`), emissão de Folha de Fabrico com pedidos discriminados encomenda a encomenda, agrupados por loja com quebra de página A4 e conferência de embalamento. | Base | ✅ **Desenvolvido** | `v2.7.15` |
-| **REQ-22** | Produção KDS: Conclusão Incondicional | Estabilização KDS com alerta sonoro/visual permanente, resolução de erros React e botão incondicional de conclusão de produção acessível a qualquer operador de turno. | Base | ✅ **Desenvolvido** | `v2.7.15` |
+| **REQ-22** | Centro de Produção: Conclusão Incondicional | Estabilização Produção com alerta sonoro/visual permanente, resolução de erros React e botão incondicional de conclusão de produção acessível a qualquer operador de turno. | Base | ✅ **Desenvolvido** | `v2.7.15` |
 | **REQ-23** | Arquitetura: Consumo Direto Supabase | Eliminação definitiva de dicionários estáticos de tradução no cliente (`normalizarNomeArtigoCanonico`), consumindo diretamente os 57 artigos canónicos da base de dados. | Base | ✅ **Desenvolvido** | `v2.7.17` |
 | **REQ-24** | Continuidade de Negócio & Resiliência BCP | Motor nativo de PDFs 1.4 em memória com auto-wrap dinâmico, envio noturno automático diário às 00h15 via Vercel Cron e Resend REST API com autenticação criptográfica `CRON_SECRET` e 2 cadernos anexos (`Folha_Fabrico` e `Folha_Carga_Rotas`). | Base | ✅ **Desenvolvido** | `v2.7.19` |
 | **REQ-14** | Integração Faturação Certificada AT | Emissão automática de Fatura-Recibo / Guia de Transporte via API (Moloni / InvoiceXpress / PHC) no ato da entrega. | Fase 2 (Upsell) | ⏳ **Em Backlog** | Planeado |
@@ -98,7 +98,7 @@ Em conformidade com a governação do Agente 7 do Inprooval Swarm, todos os iten
    - *Motivo:* Substituído pelo subdomínio corporativo oficial `app.padariadavila.com` com Route Guards ativos e bloqueio anti-indexação.
 5. **Fecho Automático Noturno Trigger.dev:**
    - *Estado:* ❌ **Eliminado** em `v2.7.0`.
-   - *Motivo:* Fecho robotizado às 20h colidia com os turnos da fábrica. O fecho de produção é agora efetuado sob demanda no KDS pelos chefes de turno.
+   - *Motivo:* Fecho robotizado às 20h colidia com os turnos da fábrica. O fecho de produção é agora efetuado sob demanda na Produção pelos chefes de turno.
 6. **Coluna de Caixas e Bloco de Assinaturas nas Folhas de Carga:**
    - *Estado:* ❌ **Eliminado** em `v2.5.2`.
    - *Motivo:* Simplificação da interface física para os motoristas, focando em quantidades reais (`un.`) e visto de conformidade `[ ] Entregue Conforme`.
@@ -109,7 +109,7 @@ Em conformidade com a governação do Agente 7 do Inprooval Swarm, todos os iten
 
 | Parcela do Orçamento | Valor Orçamentado (s/ IVA) | Condições de Pagamento | Discriminação Exata do que Está Incluído |
 | :--- | :---: | :---: | :--- |
-| **1. Pacote Operacional Turn-Key — Setup, Implementação & Bolsa de Horas** | **5.500,00 €** | 50% na Adjudicação (`2.750,00 €`)<br/>50% no Go-Live (`2.750,00 €`) | • **Plafond Global de 110 Horas** de Engenharia, Consultoria e Suporte (taxa bonificada de `50,00 €/h`).<br/>• Configuração completa das **4 Lojas Físicas** (*Matriz/Fábrica, Praça, Mercado, Centro*), **Centro de Produção (3 Fornos)** e **7 Carrinhas / Rotas (1 a 7)**.<br/>• Login da equipa por Cockpit com isolamento de postos e subdomínio oficial `app.padariadavila.com`.<br/>• KDS de Produção com Alerta Urgente ($\le 3\text{h}$), triagem parcelar, botão incondicional de conclusão e **Folha de Fabrico de Encomendas discriminada por loja**.<br/>• Logística de Distribuição com **Folha de Carga Segregada em PDF A4** (Base Diária, 21 Clientes B2B sem 0 un., Encomendas ao Domicílio e Resumo Consolidado com caixas estimadas).<br/>• Base Semanal (`quantidades_semanais` 7 dias), Modo Férias em tempo real e Normalização Canónica de 57 artigos.<br/>• Calibração da impressora térmica **Epson M249A TM-T20 (80mm / 68mm úteis)** e App de Pedidos Diretos do Cliente (`/encomendar`).<br/>• Cockpit de Gestão executivo (KPIs On-Time, Logs, RBAC) + Formação prática à equipa e acompanhamento de Go-Live. |
+| **1. Pacote Operacional Turn-Key — Setup, Implementação & Bolsa de Horas** | **5.500,00 €** | 50% na Adjudicação (`2.750,00 €`)<br/>50% no Go-Live (`2.750,00 €`) | • **Plafond Global de 110 Horas** de Engenharia, Consultoria e Suporte (taxa bonificada de `50,00 €/h`).<br/>• Configuração completa das **4 Lojas Físicas** (*Matriz/Fábrica, Praça, Mercado, Centro*), **Centro de Produção (3 Fornos)** e **7 Carrinhas / Rotas (1 a 7)**.<br/>• Login da equipa por Cockpit com isolamento de postos e subdomínio oficial `app.padariadavila.com`.<br/>• Centro de Produção com Alerta Urgente ($\le 3\text{h}$), triagem parcelar, botão incondicional de conclusão e **Folha de Fabrico de Encomendas discriminada por loja**.<br/>• Logística de Distribuição com **Folha de Carga Segregada em PDF A4** (Base Diária, 21 Clientes B2B sem 0 un., Encomendas ao Domicílio e Resumo Consolidado com caixas estimadas).<br/>• Base Semanal (`quantidades_semanais` 7 dias), Modo Férias em tempo real e Normalização Canónica de 57 artigos.<br/>• Calibração da impressora térmica **Epson M249A TM-T20 (80mm / 68mm úteis)** e App de Pedidos Diretos do Cliente (`/encomendar`).<br/>• Cockpit de Gestão executivo (KPIs On-Time, Logs, RBAC) + Formação prática à equipa e acompanhamento de Go-Live. |
 | **2. Manutenção Mensal, Cloud & Suporte Operacional** | **250,00 € / mês**<br/>*(ou 300,00 €/mês com Portal de Clientes)* | Mensal | • Infraestrutura Cloud de alta disponibilidade (Vercel + Supabase PostgreSQL em tempo real).<br/>• Backups automáticos diários, monitorização de segurança, auditoria contínua e conformidade RGPD.<br/>• Suporte técnico prioritário, correções preventivas e manutenção evolutiva do ecossistema. |
 
 ---
@@ -120,7 +120,7 @@ Em conformidade com a governação do Agente 7 do Inprooval Swarm, todos os iten
 flowchart TD
     subgraph Concluidos ["✅ SPRINTS CONCLUÍDOS (07/09/2026 a 24/10/2026)"]
         SP1["Sprint 1 (07/09 – 15/09)\nFundação, Supabase PostgreSQL, Autenticação & RBAC (v1.0 – v1.3)"]
-        SP2["Sprint 2 (16/09 – 22/09)\nBalcão, KDS Produção, Rotas GPS, On-Time & Auditoria (v1.4 – v1.8)"]
+        SP2["Sprint 2 (16/09 – 22/09)\nBalcão, Produção Produção, Rotas GPS, On-Time & Auditoria (v1.4 – v1.8)"]
         SP3["Sprint 3 (23/09 – 08/10)\nMulti-Loja, Talão Térmico 80mm, Excel & Studio CMS (v1.9)"]
         SP4["Sprint 4 (09/10 – 10/10)\nBlindagem Cenário A, Portal Cliente v1 & Rastreio Canais"]
         SP5["Sprint 5 (10/10 – 11/10)\nReunião Arouca + Implementação dos 22 Requisitos Oficiais (v2.0.0)"]
@@ -128,7 +128,7 @@ flowchart TD
         SP7["Sprint 7 (18/10 – 20/10)\nUnificação das 8 Rotas, Calibração 68mm TM-T20, Base Semanal & Matriz B2B (v2.3.0 – v2.4.1)"]
         SP8["Sprint 8 (21/10 – 22/10)\nPDFs Guias de Carga, Orama Search, Subdomínio app.padariadavila.com & Segurança (v2.5.0 – v2.6.0)"]
         SP9["Sprint 9 (23/10 – 24/10)\n7 Rotas Oficiais, Omnichannel B2B/Particulares & Modo Férias Realtime (v2.7.0 – v2.7.7)"]
-        SP10["Sprint 10 (24/10/2026)\nNormalização Canónica 57 Artigos, Folha Carga Segregada, Fabrico por Loja, KDS & Consumo Direto Supabase (v2.7.8 – v2.7.17)"]
+        SP10["Sprint 10 (24/10/2026)\nNormalização Canónica 57 Artigos, Folha Carga Segregada, Fabrico por Loja, Produção & Consumo Direto Supabase (v2.7.8 – v2.7.17)"]
         SP1 --> SP2 --> SP3 --> SP4 --> SP5 --> SP6 --> SP7 --> SP8 --> SP9 --> SP10
     end
 
@@ -164,7 +164,7 @@ flowchart TD
 | :--- | :---: | :---: | :--- | :---: | :---: |
 | **Kick-off Inicial** | 07/09/2026 | Consultoria Externa (Online) | Levantamento inicial de requisitos operacionais | 1,00 h | 50,00 € |
 | **Sprint 1** | 07/09 – 15/09 | Engenharia Antigravity | Arquitetura Next.js, Supabase PostgreSQL e RBAC (`v1.0`–`v1.3.1`) | 3,80 h | 190,00 € |
-| **Sprint 2** | 16/09 – 22/09 | Engenharia Antigravity | Balcão, KDS Fabrico, Rotas GPS, On-Time e Logs (`v1.4`–`v1.8`) | 4,25 h | 212,50 € |
+| **Sprint 2** | 16/09 – 22/09 | Engenharia Antigravity | Balcão, Fabrico, Rotas GPS, On-Time e Logs (`v1.4`–`v1.8`) | 4,25 h | 212,50 € |
 | **Sprint 3** | 23/09 – 02/10 | Engenharia Antigravity | Multi-Loja, Talão Térmico 80mm e Exportação Excel | 3,15 h | 157,50 € |
 | **Sprint 4** | 03/10 – 10/10 | Engenharia Antigravity | Studio CMS Nativo (`/cms`), Blindagem Cenário A, Portal Cliente v1 e Canais | 5,44 h | 272,00 € |
 | **Reunião Arouca** | 10/10/2026 | Consultoria Externa (Presencial) | Demonstração ao vivo à gerência, recolha de 22 requisitos e proposta | 1,75 h | 87,50 € |
@@ -173,13 +173,13 @@ flowchart TD
 | **Sprint 7 (`v2.4.0`–`v2.5.7`)** | 18/10 – 22/10 | Engenharia & Refinamento UI | Unificação de rotas, calibração 68mm TM-T20, base diária semanal, matriz B2B e PDFs A4 | 4,15 h | 207,50 € |
 | **Sprint 8 (`v2.6.0`)** | 22/10/2026 | Engenharia & Cibersegurança | Subdomínio `app.padariadavila.com`, chaves criptográficas por ecrã, proteção middleware e bloqueio total anti-indexação | 1,10 h | 55,00 € |
 | **Sprint 9 (`v2.7.0`–`v2.7.7`)** | 23/10 – 24/10 | Engenharia & Omnichannel | Estabilização das 7 rotas, arquitetura omnichannel B2B/particulares e motor de Modo Férias em tempo real | 2,75 h | 137,50 € |
-| **Sprint 10 (`v2.7.8`–`v2.7.19`)** | 24/10/2026 | Engenharia & Resiliência | Normalização canónica (57 artigos), segregação estrita da Folha de Carga, Fabrico por loja, KDS sem bloqueios, tolerância B2B e consumo direto Supabase | 2,25 h | 112,50 € |
+| **Sprint 10 (`v2.7.8`–`v2.7.19`)** | 24/10/2026 | Engenharia & Resiliência | Normalização canónica (57 artigos), segregação estrita da Folha de Carga, Fabrico por loja, Produção sem bloqueios, tolerância B2B e consumo direto Supabase | 2,25 h | 112,50 € |
 | **TOTAL ACUMULADO** | **07/09 – 24/10** | **Híbrido (AGY + Terreno)** | **Solução Integral `v2.7.17` em Produção no Subdomínio Oficial** | **34,50 h** | **1.725,00 €** |
 
 ### 6.3. Cláusula de Sucesso & Escalação de Valor Hora para Novos Desenvolvimentos
 
 * **Valor Hora Bonificado no Pacote de Arranque:** **50,00 € / hora + IVA** (válido para o plafond contratado de 110 horas de setup e acompanhamento de Go-Live).
-* **Gatilho de Sucesso:** Entrada oficial em exploração operacional (Go-Live) na Padaria da Vila e validação das 7 rotas, das 4 lojas e do KDS no terreno.
+* **Gatilho de Sucesso:** Entrada oficial em exploração operacional (Go-Live) na Padaria da Vila e validação das 7 rotas, das 4 lojas e da Produção no terreno.
 * **Escalação de Valor Hora Institucional Pós-Sucesso:** Em caso de sucesso, o valor hora de referência passa para **150,00 € / hora + IVA** para:
   1. **Novos desenvolvimentos da Padaria da Vila:** Faturação Certificada AT via API (Fase 2), WhatsApp Business Cloud API silencioso, Pagamentos Online MB WAY e Fichas Técnicas/MRP (Fase 3), bem como pacotes adicionais de suporte/desenvolvimento fora do contrato mensal.
   2. **Novos Projetos & Novos Clientes Inprooval®:** Adoção institucional de **150,00 € / hora + IVA** como taxa padrão de tabela para novas propostas comerciais e orçamentação de soluções digitais.

@@ -5,7 +5,7 @@ Sempre que um `git commit` for realizado (quer internamente pelo Antigravity que
 
 ## 2. Protocolo de Auditoria Contínua do Swarm (7 Agentes)
 1. **Agente 1 - E2E Journey & Chaos Simulator**:
-   - Valida o fluxo operacional ponta a ponta: Cockpit de Loja, KDS de Produção, Cockpit de Carrinhas / Entregas.
+   - Valida o fluxo operacional ponta a ponta: Cockpit de Loja, Centro de Produção, Cockpit de Carrinhas / Entregas.
    - Garante que a Folha de Produção com filtro "encomendas" lista pedidos loja a loja individualmente.
    - Garante que a Folha de Carga segrega Base Diária, B2B e Domicílios com supressão de entidades a 0 unidades.
 2. **Agente 2 - Supabase DBA & Data Integrity**:

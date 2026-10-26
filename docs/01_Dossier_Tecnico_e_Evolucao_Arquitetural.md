@@ -31,7 +31,7 @@ flowchart TB
     subgraph ClientLayer ["🖥️ Camada de Apresentação & Postos de Trabalho (Next.js 14 App Router)"]
         LoginEquipa["🔒 /login\nAutenticação Equipa + Seleção de Cockpit\n(4 Lojas, Produção, Carrinhas, Gestão)"]
         Balcao["📦 /encomendas\nBalcão Digital Multicanal\n(Presencial, Telefone, WhatsApp)"]
-        Producao["👨‍🍳 /producao\nCentro de Produção KDS\n(Pools, Fabrico por Loja, Alerta <3h & 3 Fornos)"]
+        Producao["👨‍🍳 /producao\nCentro de Produção\n(Pools, Fabrico por Loja, Alerta <3h & 3 Fornos)"]
         ExpedicaoLoja["🏪 /loja\nBalcão de Levantamento\n(WhatsApp Automático 'Pronta' + Talão 80mm)"]
         Logistica["🚚 /entregas\nFrota 7 Carrinhas / Rotas 1 a 7\n(Base Diária + Desdobramento B2B + Encomendas)"]
         CockpitGestao["📊 /gestao\nCockpit Executivo & Admin\n(KPIs On-Time, Base Semanal, B2B, RBAC, Logs)"]
@@ -102,7 +102,7 @@ O desenvolvimento técnico seguiu uma metodologia iterativa em **6 Sprints princ
 
 ```mermaid
 flowchart LR
-    S1["Sprint 1 (07–15 Set)\nv1.0.0 – v1.3.1\nFundação, Supabase & RBAC"] --> S2["Sprint 2 (16–22 Set)\nv1.4.0 – v1.8.0\nKDS, Talão 80mm, On-Time & Logs"]
+    S1["Sprint 1 (07–15 Set)\nv1.0.0 – v1.3.1\nFundação, Supabase & RBAC"] --> S2["Sprint 2 (16–22 Set)\nv1.4.0 – v1.8.0\nProdução, Talão 80mm, On-Time & Logs"]
     S2 --> S3["Sprint 3 (21 Set – 08 Out)\nv1.9.0\nStudio CMS & Refinamento UX"]
     S3 --> S4["Sprint 4 (09–10 Out)\nv1.9.5\nCenário A, Portal Cliente & Canais"]
     S4 --> S5["Sprint 5 (10–11 Out)\nv2.0.0\n22 Requisitos Reunião Arouca"]
@@ -117,7 +117,7 @@ flowchart LR
    - Implementação de matriz de permissões por utilizador com **3 níveis granulares** (`sem_acesso`, `leitura`, `edicao`) para cada um dos 5 módulos operacionais (`encomendas`, `producao`, `loja`, `entregas`, `gestao`).
 4. **Hardening de Produção:** Remoção de dados fictícios de arranque e proteção de rotas para garantir que utilizadores não autenticados são redirecionados para `/login`.
 
-### Passo 2 — KDS de Produção, Impressão Térmica, Métricas On-Time e Auditoria (`v1.4.0` a `v1.8.0` | 16/09 a 22/09/2026)
+### Passo 2 — Centro de Produção, Impressão Térmica, Métricas On-Time e Auditoria (`v1.4.0` a `v1.8.0` | 16/09 a 22/09/2026)
 1. **Personalização para a Realidade de Arouca (`v1.4.0` – `v1.5.0`):**
    - Carregamento do catálogo real de artigos de padaria e pastelaria da *Padaria da Vila*.
    - Remoção da obrigatoriedade de preços nos fluxos operacionais (foco 100% em quantidades e cumprimento de prazos).
@@ -182,12 +182,12 @@ Após a sessão de trabalho presencial com a gerência em Arouca (10/10/2026), a
 
 ### Passo 8 — Adoção Integral da Norma Técnica de Iconografia, Estados e Design de Interação Inprooval® (`v2.2.0` | 16/10/2026)
 1. **Eliminação Integral de Emojis Operacionais (Zero Emojis):**
-   - Varredura e higienização total de 100% da interface de utilizador, cabeçalhos de secção, botões táteis de KDS, crachás de estado e templates de texto, abolindo representações informais e emojis OS-dependentes em prol de um design corporativo e técnico.
+   - Varredura e higienização total de 100% da interface de utilizador, cabeçalhos de secção, botões táteis de Produção, crachás de estado e templates de texto, abolindo representações informais e emojis OS-dependentes em prol de um design corporativo e técnico.
 2. **Componentes Canónicos de Design System Inprooval:**
    - Criação de `StatusBadge.tsx` (Micro-ponto semafórico 6px, borda fina, cores semânticas esmeralda, ciano, âmbar, vermelho e ardósia com suporte a micro-animações de pulso para processos em curso).
    - Criação de `InproovalBadges.tsx` (`OriginBadge` para canais de entrada, `SectorBadge` com ícones vetoriais de Padaria e Pastelaria, e `SkuTag`).
 3. **Higienização de Todos os Cockpits:**
-   - Refatoração dos ecrãs de Loja (`/loja`), Produção KDS (`/producao`), Carrinhas (`/entregas`), Encomendas (`/encomendas`), Gestão Executiva (`/gestao`), Portal de Clientes (`/encomendar`), Studio CMS (`/cms`) e Navbar global com ícones lineares vetoriais normalizados (`lucide-react`, stroke 1.75px–2px).
+   - Refatoração dos ecrãs de Loja (`/loja`), Centro de Produção (`/producao`), Carrinhas (`/entregas`), Encomendas (`/encomendas`), Gestão Executiva (`/gestao`), Portal de Clientes (`/encomendar`), Studio CMS (`/cms`) e Navbar global com ícones lineares vetoriais normalizados (`lucide-react`, stroke 1.75px–2px).
 
 ### Passo 9 — Base Diária e Semanal Configurável, Modo Férias e Normalização Canónica (`v2.7.0` a `v2.7.10` | 24/10/2026)
 1. **Quantidades Semanais por Dia da Semana (`quantidades_semanais`):**
@@ -207,7 +207,7 @@ Após a sessão de trabalho presencial com a gerência em Arouca (10/10/2026), a
 2. **Folha de Fabrico de Encomendas Discriminada por Loja (`/producao`):**
    - Quando `filtroTipologia === 'encomendas'` na Pool de Produção, o botão de impressão adapta-se para «Imprimir Encomendas por Loja» e é ativado um banner com botões de impressão rápida de todas as lojas ou loja individual.
    - Documento PDF com detalhe encomenda a encomenda (código, hora, cliente, notas de personalização, checkbox `[ ] Pronto / Embalado`), subtotais por loja e quebra de página por loja (`break-before: page`).
-3. **KDS Operacional & Resiliência:**
+3. **Produção Operacional & Resiliência:**
    - Botão «Concluir Produção • Marcar como Pronta» incondicional para todos os utilizadores, eliminação do erro React #310 e resolução de `totalPaoUnidades`.
 
 ### Passo 11 — Mecanismo de Salvaguarda de Continuidade de Negócio (BCP / Modo Degradado) & Motor Nativo de PDFs (`v2.7.19` | 25/10/2026)
@@ -269,7 +269,7 @@ Como parte da disciplina de **Living Documentation** mantida pelo Agente 7 do In
 | :--- | :---: | :---: | :--- | :--- |
 | **Camada de Tradução Estática (`normalizarNomeArtigoCanonico`)** | ❌ **Eliminada** | `v2.7.17` | Dicionários estáticos no cliente geravam `ReferenceError`, divergência semântica e complexidade desnecessária. | Consumo 100% direto dos 57 nomes canónicos consolidados na base de dados Supabase com higienização elementar (`.trim()`). |
 | **Rotas Secretas Ofuscadas (`/g9d0e2f...`)** | ❌ **Eliminada** | `v2.7.2` | Criavam atrito de navegação, incompatibilidade com atalhos e falsa sensação de segurança por obscuridade. | Implantação do subdomínio oficial `app.padariadavila.com` com cabeçalhos HTTP OWASP, bloqueio anti-indexação e Route Guards por sessão. |
-| **Fecho Noturno Automático Trigger.dev** | ❌ **Eliminada** | `v2.7.0` | O fecho rígido robotizado às 20h colidia com o horário real dos padeiros e turnos noturnos da fábrica de Arouca. | Compilação contínua e fecho de produção sob demanda executado pelos mestres padeiros no KDS. |
+| **Fecho Noturno Automático Trigger.dev** | ❌ **Eliminada** | `v2.7.0` | O fecho rígido robotizado às 20h colidia com o horário real dos padeiros e turnos noturnos da fábrica de Arouca. | Compilação contínua e fecho de produção sob demanda executado pelos mestres padeiros na Produção. |
 | **Rotas 8 e 9 na Frota de Distribuição** | ❌ **Eliminada** | `v2.7.0` | Inexistência de viaturas físicas correspondentes em Arouca. Poluíam as tabelas e ecrãs de logística. | Frota estabilizada e consolidada nas 7 Carrinhas / Rotas reais (`Rota 1` a `Rota 7` / `Carro 1` a `Carro 7`). |
 | **Download de Excel Legado («MAPA DIÁRIO»)** | 🔄 **Retrofitted** | `v2.7.8` | Folha de cálculo manual no balcão apresentava risco de corrupção acidental de fórmulas e desvios de quantidades. | Folha de Carga oficial em PDF A4 de alta resolução via portal DOM, segregada em 4 níveis estanques. |
 | **Coluna de Caixas e Assinaturas nas Guias** | ❌ **Eliminada** | `v2.5.2` | Complexidade visual desnecessária na cabine das carrinhas; motoristas preferem conferir unidades reais (`un.`). | Foco exclusivo nas quantidades reais por produto com visto rápido de conformidade `[ ] Entregue Conforme`. |

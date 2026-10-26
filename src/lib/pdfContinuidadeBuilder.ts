@@ -222,7 +222,7 @@ export function gerarPdfFolhaFabricoLojas(dataAmanhaStr: string): Buffer {
 
     // Header Principal da Loja
     p.drawRect(35, 745, 525, 55, '0.1 0.1 0.1', null);
-    p.drawText('PADARIA DA VILA - CENTRO DE PRODUÇÃO & KDS', 45, 782, 12, true, '1 1 1');
+    p.drawText('PADARIA DA VILA - CENTRO DE PRODUÇÃO', 45, 782, 12, true, '1 1 1');
     p.drawText(`FOLHA DE FABRICO DE ENCOMENDAS • OPERAÇÃO DE ${dataAmanhaStr}`, 45, 767, 9, false, '0.95 0.7 0.1');
 
     // Subcabeçalho da Loja

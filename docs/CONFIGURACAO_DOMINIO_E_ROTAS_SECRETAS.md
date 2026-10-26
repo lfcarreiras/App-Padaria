@@ -49,7 +49,7 @@ Em conformidade com o seu pedido, cada ecrã dispõe agora de uma **chave alfanu
 | :--- | :--- | :--- | :--- |
 | **Login / Acesso Geral** | `/login` | `a8f1b94d2e7c056384a1e9d2b704c8f1` | `https://app.padariadavila.com/a8f1b94d2e7c056384a1e9d2b704c8f1` |
 | **Registo & Consulta Encomendas** | `/encomendas` | `k9x4m7b1w8q2e5t0z3a6c9d2f1j8v4p7` | `https://app.padariadavila.com/k9x4m7b1w8q2e5t0z3a6c9d2f1j8v4p7` |
-| **KDS Fabrico & Pastelaria** | `/producao` | `f2b8c9d1e4a7m0w5q3x6z8k1j9p2t4v7` | `https://app.padariadavila.com/f2b8c9d1e4a7m0w5q3x6z8k1j9p2t4v7` |
+| **Fabrico & Pastelaria** | `/producao` | `f2b8c9d1e4a7m0w5q3x6z8k1j9p2t4v7` | `https://app.padariadavila.com/f2b8c9d1e4a7m0w5q3x6z8k1j9p2t4v7` |
 | **Cockpit Balcão / Loja Física** | `/loja` | `b7c4d1e9f2a0385a6e81d74c82b14e90` | `https://app.padariadavila.com/b7c4d1e9f2a0385a6e81d74c82b14e90` |
 | **Cockpit Carrinhas & Entregas** | `/entregas` | `r3e81a9f0b2c457d6e19034af58c19d2` | `https://app.padariadavila.com/r3e81a9f0b2c457d6e19034af58c19d2` |
 | **Cockpit Gestão & Admin** | `/gestao` | `g9d0e2f4a6b8c1357e9204b7f61c38e4` | `https://app.padariadavila.com/g9d0e2f4a6b8c1357e9204b7f61c38e4` |

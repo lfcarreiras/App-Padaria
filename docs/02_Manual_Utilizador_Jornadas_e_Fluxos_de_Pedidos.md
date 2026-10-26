@@ -143,8 +143,8 @@ flowchart TD
    - Em cada artigo da Pool, selecionar a quantidade a enviar e escolher **`Forno 1`**, **`Forno 2`** ou **`Forno 3`**.
    - Clicar em **`🔥 Iniciar Preparação`**: Ativa o cronómetro em tempo real no respetivo forno.
    - Clicar em **`✅ Pronto`**: Conclui a fornada, regista a duração exata no **Histórico de Fornadas Concluídas Hoje** e liberta o forno.
-5. **KDS de Encomendas & Conclusão de Produção:**
-   - Cada cartão de encomenda no KDS disponibiliza o botão incondicional **`Concluir Produção • Marcar como Pronta`** para rápida transição de estado pelos operadores.
+5. **Fila de Produção & Conclusão de Produção:**
+   - Cada cartão de encomenda na Produção disponibiliza o botão incondicional **`Concluir Produção • Marcar como Pronta`** para rápida transição de estado pelos operadores.
 
 ---
 

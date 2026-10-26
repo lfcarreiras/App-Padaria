@@ -94,7 +94,7 @@ async function main() {
       ``,
       `PROTOCOLO MANDATÓRIO INPROOVAL:`,
       `O Swarm de Agentes Bulletproof foi ativado automaticamente para este commit. O assistente Antigravity deve:`,
-      `1. Validar impactos funcionais (Agente 1: KDS / Produção por Loja / Carrinhas; Agente 5: Epson TM-T20 & Offline).`,
+      `1. Validar impactos funcionais (Agente 1: Produção por Loja / Carrinhas; Agente 5: Epson TM-T20 & Offline).`,
       `2. Validar integridade e segurança (Agente 2: Supabase; Agente 3: OWASP Headers; Agente 4: RGPD).`,
       `3. Rastrear retrofits no Deprecation Ledger e sincronizar a documentação viva (Agente 6: FinOps; Agente 7: Living Docs em docs/01 a docs/06).`,
       `4. Executar 'node scripts/bulletproof-complete.mjs' (ou 'npm run swarm:done') para registar a auditoria como concluída com sucesso.`

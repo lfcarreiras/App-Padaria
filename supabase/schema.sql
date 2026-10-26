@@ -165,7 +165,7 @@ grant all on all tables in schema public to anon, authenticated;
 grant all on all sequences in schema public to anon, authenticated;
 grant all on all routines in schema public to anon, authenticated;
 
--- Desativar RLS para permitir operações livres de balcão e KDS
+-- Desativar RLS para permitir operações livres de balcão e produção
 alter table public.lojas disable row level security;
 alter table public.clientes disable row level security;
 alter table public.produtos disable row level security;

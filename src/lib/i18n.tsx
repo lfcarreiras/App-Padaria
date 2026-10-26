@@ -331,7 +331,7 @@ const translations: Record<Language, Translations> = {
     noClientsFound: 'Nenhum cliente encontrado.',
     noOrdersFound: 'Nenhuma encomenda registada com estes filtros.',
 
-    productionTitle: 'Ecrã de Produção (KDS)',
+    productionTitle: 'Ecrã de Produção',
     productionSubtitle: 'Fila tátil de fabrico em tempo real para os padeiros e pasteleiros da loja.',
     allDepartments: 'Todos os Setores',
     bakeryTab: 'Padaria (Pão & Forno)',
@@ -558,7 +558,7 @@ const translations: Record<Language, Translations> = {
     noClientsFound: 'No customers found.',
     noOrdersFound: 'No orders recorded matching these filters.',
 
-    productionTitle: 'Production Display (KDS)',
+    productionTitle: 'Production Display',
     productionSubtitle: 'Real-time touch queue for bakery and pastry shop floor staff.',
     allDepartments: 'All Departments',
     bakeryTab: 'Bakery (Breads & Oven)',

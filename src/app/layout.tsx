@@ -5,7 +5,7 @@ import { AuthProvider } from '../lib/authContext';
 
 export const metadata: Metadata = {
   title: 'Painel Operacional | Padaria da Vila',
-  description: 'Sistema integrado de gestão de encomendas, KDS de padaria/pastelaria e rotas de entrega.',
+  description: 'Sistema integrado de gestão de encomendas, produção de padaria/pastelaria e rotas de entrega.',
   robots: {
     index: false,
     follow: false,

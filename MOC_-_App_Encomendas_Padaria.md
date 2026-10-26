@@ -1,10 +1,10 @@
 ---
-title: "MOC - App Gestão de Encomendas, Produção (KDS) & Carrinhas"
+title: "MOC - App Gestão de Encomendas, Produção & Carrinhas"
 type: moc
 tags:
   - #Projetos/Padaria
   - #Software/NextJS
-  - #Operacoes/KDS
+  - #Operacoes/Producao
   - #Obsidian/MOC
   - #Solucoes/Versionamento
 date_saved: 2026-09-14
@@ -13,7 +13,7 @@ updated: 2026-09-14
 
 # 🥖 MOC - App Gestão de Encomendas & Produção de Padaria (4 Lojas)
 
-> Plataforma centralizada com operação local para rede de **4 Lojas de Padaria e Pastelaria Interligadas**, integrando receção de encomendas ao balcão, ecrãs KDS de fabrico (padaria/pastelaria), gestão de levantamentos em loja, rotas GPS para carrinhas de entrega ao domicílio e painel executivo de gestão.
+> Plataforma centralizada com operação local para rede de **4 Lojas de Padaria e Pastelaria Interligadas**, integrando receção de encomendas ao balcão, ecrãs de produção de fabrico (padaria/pastelaria), gestão de levantamentos em loja, rotas GPS para carrinhas de entrega ao domicílio e painel executivo de gestão.
 
 ---
 
@@ -37,7 +37,7 @@ updated: 2026-09-14
    - Criação rápida de pedidos ao balcão com carrinho dinâmico, notas de personalização de bolos e cálculo automático de totais.
    - Gestão integrada de clientes com pesquisa instantânea e edição direta.
 2. **👨‍🍳 Produção (`/producao`)**:
-   - Ecrã KDS de cozinha dividido por abas setoriais (**Padaria** vs **Pastelaria**).
+   - Ecrã de Produção de cozinha dividido por abas setoriais (**Padaria** vs **Pastelaria**).
    - Botões táteis de transição de estado (*Pendente*, *Em Preparo*, *Pronto*).
 3. **🏪 Entrega em Loja (`/loja`)**:
    - Gestão de levantamentos ao balcão, reimpressão de talão e conversão rápida para entrega ao domicílio.
@@ -78,7 +78,7 @@ Consulte o histórico detalhado em `[[CHANGELOG]]`.
 | **v2.3.3** | `v2.3.3` | `HEAD` | 2026-10-18 | Error Boundaries nativos Next.js (`src/app/gestao/error.tsx` e `src/app/error.tsx`) com diagnóstico no ecrã e botão de limpeza de cache local, blindagem de ordenação (`sortConsolidada`), `calcularDesvioMinutos` e `try/catch` no `useEffect` |
 | **v2.3.2** | `v2.3.2` | `e016421` | 2026-10-18 | Resolução definitiva da exceção de cliente em `/gestao`: blindagem total de `curr.itens.reduce`, `enc.cliente?.nome`, `telefone`, filtros, ordenações, exportação Excel, sanitização de cache offline e talão térmico |
 | **v2.3.1** | `v2.3.1` | `9d8616e` | 2026-10-18 | Hotfix de robustez defensiva: proteção contra valores nulos/indefinidos em `OriginBadge`, `SectorBadge` e `StatusBadge`, harden de ordenação e agregações seguras no Cockpit de Gestão (`/gestao`) |
-| **v2.3.0** | `v2.3.0` | `9438e1a` | 2026-10-18 | Simplificação KDS Produção (ação única tátil, filtro rigoroso levantamento loja), Matriz Semanal de Base Fixa Diária por Carrinha com exportações Excel consolidadas/individuais, neutralidade da frota (Carrinhas 1 a 5 sem duplicados nem afetações rígidas), Auditoria transversal com histórico de todos os utilizadores da última semana, simplificação de estados na App Cliente com regras de edição/cancelamento e foco exclusivo das entregas em encomendas ao domicílio |
+| **v2.3.0** | `v2.3.0` | `9438e1a` | 2026-10-18 | Simplificação Produção Produção (ação única tátil, filtro rigoroso levantamento loja), Matriz Semanal de Base Fixa Diária por Carrinha com exportações Excel consolidadas/individuais, neutralidade da frota (Carrinhas 1 a 5 sem duplicados nem afetações rígidas), Auditoria transversal com histórico de todos os utilizadores da última semana, simplificação de estados na App Cliente com regras de edição/cancelamento e foco exclusivo das entregas em encomendas ao domicílio |
 | **v2.2.0** | `v2.2.0` | `80d2d7a` | 2026-10-16 | Adoção integral da Norma Técnica de Iconografia, Estados e Design de Interação Inprooval® (Zero Emojis, `StatusBadge` com micro-ponto semafórico 6px, `OriginBadge`, `SectorBadge` e higienização vetorial de todos os cockpits) |
 | **v2.1.3** | `v2.1.3` | `e99f6aa` | 2026-10-12 | Autenticação no Portal Direto de Clientes (`/encomendar`) com Password definida pelo utilizador, E-mail obrigatório e Recuperação por E-mail via Supabase Auth + Hardening RLS Supabase + Remoção do pacote externo TinaCMS |
 | **v2.1.2** | `v2.1.2` | `a36c995` | 2026-10-12 | Edição/correção e eliminação de artigos na Base Fixa Diária de Clientes Particulares (1.º ao 4.º Carro) + Extração e Importação Excel (`.xlsx`) tal como no B2B |
@@ -91,7 +91,7 @@ Consulte o histórico detalhado em `[[CHANGELOG]]`.
 | **v1.7.0** | `v1.7.0` | `cdadbf7` | 2026-09-16 | Tabela réplica do Supabase, filtros consolidada, restrição criação lojas/carrinhas, Title Case e 100 encomendas |
 | **v1.6.1** | `v1.6.1` | `751663f` | 2026-09-16 | Correção sintaxe JSX no modal de impressão térmica (ThermalReceipt) para compilação Vercel |
 | **v1.6.0** | `v1.6.0` | `81fd67d` | 2026-09-16 | Talão sem páginas em branco, drag & drop de entregas, otimizador de rota, eliminação de clientes/encomendas, Kanban produção e métricas On-Time |
-| **v1.5.0** | `v1.5.0` | `5ff5f99` | 2026-09-14 | Novo branding, header limpo sem scroll, Excel (.xlsx/.xls), 98 artigos de Arouca e botões KDS |
+| **v1.5.0** | `v1.5.0` | `5ff5f99` | 2026-09-14 | Novo branding, header limpo sem scroll, Excel (.xlsx/.xls), 98 artigos de Arouca e botões de produção |
 | **v1.4.0** | `v1.4.0` | `7388889` | 2026-09-14 | Personalização Padaria da Vila (Arouca), remoção de preços, WhatsApp e rotas GPS |
 | **v1.3.1** | `v1.3.1` | `9d6f825` | 2026-09-13 | Remoção dos atalhos de teste no login e hardening para produção limpa |
 | **v1.3.0** | `v1.3.0` | `ccace91` | 2026-09-13 | Ecrã de login inicial, 3 níveis de acesso (Sem Acesso/Leitura/Edição) e proteção total |
@@ -99,7 +99,7 @@ Consulte o histórico detalhado em `[[CHANGELOG]]`.
 | **v1.1.0** | `v1.1.0` | `b4e4aaa` | 2026-09-12 | 5 painéis, entrega em loja, alternância de entrega, talão, lojas/carrinhas e Excel |
 | **v1.0.2** | `v1.0.2` | `125e479` | 2026-09-12 | Sincronização em tempo real de moradas de clientes nas entregas |
 | **v1.0.1** | `v1.0.1` | `3727410` | 2026-09-12 | Conexão real Supabase, eliminação de dados dummy e ajuste de talão |
-| **v1.0.0** | `v1.0.0` | `878df99` | 2026-09-12 | Solução base integrada (4 lojas, Balcão, KDS e Carrinhas GPS) |
+| **v1.0.0** | `v1.0.0` | `878df99` | 2026-09-12 | Solução base integrada (4 lojas, Balcão, Produção e Carrinhas GPS) |
 
 ---
 

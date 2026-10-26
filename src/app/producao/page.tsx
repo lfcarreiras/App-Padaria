@@ -86,8 +86,6 @@ import EntregaLojaPage from '../loja/page';
 import { 
   executarCompilacaoPoolNoturna, 
   obterUltimoFechoNoturno, 
-  verificarAlertaKDSNoturno, 
-  silenciarAlertaKDSNoturno,
   ResultadoFechoNoturno 
 } from '../../lib/poolNoturnaService';
 
@@ -95,11 +93,11 @@ export default function ProducaoPage() {
   const { t } = useTranslation();
   const { podeEditar, usuario } = useAuth();
   const currentUser = usuario || { id: 'user-padeiro', nome: 'Carlos Ferreira (Chefe Padeiro)', role: 'operador_padaria' };
-  const temPermissaoEdicao = true; // No Cockpit de Produção KDS, a operação de concluir fabrico está sempre disponível aos operadores
+  const temPermissaoEdicao = true; // No Cockpit de Produção, a operação de concluir fabrico está sempre disponível aos operadores
   const configMarca = obterConfiguracaoMarca();
 
   // Navegação entre ecrãs no Cockpit de Produção
-  const [abaAtiva, setAbaAtiva] = useState<'kds' | 'encomendas' | 'balcao' | 'guias_carga'>('kds');
+  const [abaAtiva, setAbaAtiva] = useState<'fabrico' | 'encomendas' | 'balcao' | 'guias_carga'>('fabrico');
   const [dataGuiasCarga, setDataGuiasCarga] = useState<'hoje' | 'amanha'>('hoje');
 
   // Dados Globais
@@ -113,7 +111,7 @@ export default function ProducaoPage() {
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
   const [encomendaParaImprimir, setEncomendaParaImprimir] = useState<Encomenda | null>(null);
 
-  // Estados do Ecrã KDS Fabrico
+  // Estados do Ecrã de Fabrico
   const [setorAtivo, setSetorAtivo] = useState<SetorProducao | 'todos'>('todos');
   const [filtroTipologia, setFiltroTipologia] = useState<'todas' | 'bases_diarias' | 'clientes_b2b' | 'encomendas'>('todas');
   const [mostrarAjustesPontuais, setMostrarAjustesPontuais] = useState<boolean>(false);
@@ -125,7 +123,7 @@ export default function ProducaoPage() {
   const [nowTick, setNowTick] = useState<number>(Date.now());
   const audioIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Filtro de Calendário KDS
+  // Filtro de Calendário de Produção
   const [filtroPeriodo, setFiltroPeriodo] = useState<'hoje' | 'amanha' | 'todos' | 'personalizado'>('hoje');
   const [dataInicioPersonalizada, setDataInicioPersonalizada] = useState('');
   const [dataFimPersonalizada, setDataFimPersonalizada] = useState('');
@@ -246,7 +244,7 @@ export default function ProducaoPage() {
     dom: 'Domingo',
   };
 
-  // 1. Filtrar encomendas para Levantamento em Loja (Fila KDS)
+  // 1. Filtrar encomendas para Levantamento em Loja (Fila de Fabrico)
   const encomendasLevantamentoLoja = useMemo(() => {
     return encomendas.filter((e) => e.tipo === 'levantamento_loja');
   }, [encomendas]);
@@ -346,7 +344,7 @@ export default function ProducaoPage() {
     };
   }, [somAlertaAtivo, encomendasUrgentes.length]);
 
-  // Pool Consolidada de Fabrico por Artigo para a Fila KDS (Bases Diárias + Clientes Empresariais + Encomendas)
+  // Pool Consolidada de Fabrico por Artigo para a Fila de Produção (Bases Diárias + Clientes Empresariais + Encomendas)
   const poolArtigosConsolidada = useMemo(() => {
     const mapa: Record<string, {
       produto_nome: string;
@@ -539,8 +537,8 @@ export default function ProducaoPage() {
     versaoDados
   ]);
 
-  // Lista de Encomendas Filtradas para o ecrã KDS
-  const encomendasFiltradasKds = useMemo(() => {
+  // Lista de Encomendas Filtradas para o ecrã de Produção
+  const encomendasFiltradasProducao = useMemo(() => {
     return encomendasLevantamentoLoja.filter((e) => {
       const matchLoja = selectedLojaId === 'todas' || e.loja_id === selectedLojaId;
       const temItensDoSetor = setorAtivo === 'todos' || e.itens.some((i) => i.setor === setorAtivo);
@@ -699,7 +697,7 @@ export default function ProducaoPage() {
     setPdfModalOpen(true);
   };
 
-  // Ação KDS: Marcar encomenda inteira como pronta
+  // Ação: Marcar encomenda inteira como pronta
   const handleMarcarComoPronta = async (encomendaId: string) => {
     const encAlvo = encomendas.find((e) => e.id === encomendaId);
     if (!encAlvo) return;
@@ -854,7 +852,7 @@ export default function ProducaoPage() {
 
   // Exportar Excel da Folha de Produção
   const exportarFolhaProducaoExcel = async () => {
-    if (encomendasFiltradasKds.length === 0) {
+    if (encomendasFiltradasProducao.length === 0) {
       alert('Não existem encomendas para a data e loja selecionadas.');
       return;
     }
@@ -879,7 +877,7 @@ export default function ProducaoPage() {
     const linhasPastelaria: (string | number)[][] = [];
     const totaisMap: Record<string, { setor: string; produto: string; totalQtd: number; encs: Set<string> }> = {};
 
-    encomendasFiltradasKds.forEach((enc) => {
+    encomendasFiltradasProducao.forEach((enc) => {
       enc.itens.forEach((item) => {
         const keyTotais = `${item.setor || 'padaria'}_${item.produto_nome}`;
         if (!totaisMap[keyTotais]) {
@@ -960,7 +958,7 @@ export default function ProducaoPage() {
       loja_nome: selectedLojaId === 'todas' ? 'Todas as Lojas' : lojaAtual.nome,
       painel: 'producao',
       acao: 'Exportação Folha de Fabrico (Excel)',
-      detalhes: `Exportada folha de produção com ${encomendasFiltradasKds.length} encomendas e ${Object.keys(totaisMap).length} artigos consolidados.`,
+      detalhes: `Exportada folha de produção com ${encomendasFiltradasProducao.length} encomendas e ${Object.keys(totaisMap).length} artigos consolidados.`,
     });
   };
 
@@ -1025,15 +1023,15 @@ export default function ProducaoPage() {
         <div className="flex items-center gap-2 p-1.5 bg-stone-200/90 rounded-2xl mb-6 shadow-inner overflow-x-auto">
           <button
             type="button"
-            onClick={() => setAbaAtiva('kds')}
+            onClick={() => setAbaAtiva('fabrico')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${
-              abaAtiva === 'kds'
+              abaAtiva === 'fabrico'
                 ? 'bg-amber-600 text-white shadow-sm'
                 : 'text-stone-700 hover:bg-stone-300/60'
             }`}
           >
             <ChefHat className="h-4 w-4" />
-            <span>Fabrico (KDS Produção)</span>
+            <span>Fabrico (Produção)</span>
           </button>
 
           <button
@@ -1104,9 +1102,9 @@ export default function ProducaoPage() {
         </div>
 
         {/* ========================================================================= */}
-        {/* ECRÃ 1: FABRICO (KDS)                                                     */}
+        {/* ECRÃ 1: FABRICO (PRODUÇÃO)                                                */}
         {/* ========================================================================= */}
-        {abaAtiva === 'kds' && (
+        {abaAtiva === 'fabrico' && (
           <div className="space-y-6">
             {/* ALERTA SONORO E VISUAL DE ENCOMENDAS URGENTES (<= 3 HORAS) */}
             {encomendasUrgentes.length > 0 && (
@@ -1186,7 +1184,7 @@ export default function ProducaoPage() {
               </div>
             )}
 
-            {/* Barra de Filtros e Controlos do KDS */}
+            {/* Barra de Filtros e Controlos de Produção */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-2xl bg-amber-500 text-white shadow-xs">
@@ -1326,7 +1324,7 @@ export default function ProducaoPage() {
                       filtroConclusao === 'nao_concluidas' ? 'bg-amber-600 text-white shadow-xs' : 'text-stone-500'
                     }`}
                   >
-                    A Produzir ({encomendasFiltradasKds.filter(e => e.estado !== 'pronto_loja' && e.estado !== 'entregue').length})
+                    A Produzir ({encomendasFiltradasProducao.filter(e => e.estado !== 'pronto_loja' && e.estado !== 'entregue').length})
                   </button>
                   <button
                     type="button"
@@ -1534,8 +1532,8 @@ export default function ProducaoPage() {
               )}
             </div>
 
-            {/* LISTA DE ENCOMENDAS KDS */}
-            {encomendasFiltradasKds.length === 0 ? (
+            {/* LISTA DE ENCOMENDAS DE PRODUÇÃO */}
+            {encomendasFiltradasProducao.length === 0 ? (
               <div className="rounded-2xl bg-white border border-gray-200 p-12 text-center">
                 <ChefHat className="h-12 w-12 text-gray-400 mx-auto mb-3" />
                 <h3 className="text-sm font-bold text-gray-800">Sem encomendas na fila de produção</h3>
@@ -1545,7 +1543,7 @@ export default function ProducaoPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {encomendasFiltradasKds.map((enc) => {
+                {encomendasFiltradasProducao.map((enc) => {
                   const isPronta = enc.estado === 'pronto_loja' || enc.estado === 'entregue';
                   const obsAtual = obsProducaoPorEncomenda[enc.id] ?? enc.observacoes_producao ?? '';
 

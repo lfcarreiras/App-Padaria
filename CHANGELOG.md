@@ -53,6 +53,9 @@ git push origin main
   - Atualizados todos os textos e descrições dos cadernos de contingência com a ortografia portuguesa correta (ex: *Produção, Operação, Praça, Pão Saloio, Carcaças, Almoço, Expedição, Domicílio, Diária*).
 - **Remoção de Menção Obsoleta do Cabeçalho da Folha de Fabrico**:
   - Eliminado o texto *"Salvo-Conduto BCP de Continuidade • Emitido as 23h15"* do cabeçalho do documento de produção, mantendo a folha limpa e focada na operação.
+- **Eliminação Integral da Menção KDS na App e no Plano BCP**:
+  - Removido o termo "KDS" de todo o código da aplicação e dos documentos gerados: no PDF da Folha de Fabrico do BCP o cabeçalho passa a ostentar estritamente *"PADARIA DA VILA - CENTRO DE PRODUÇÃO"*.
+  - Na aplicação, o separador foi renomeado para *"Fabrico (Produção)"*, e todas as menções em rotas secretas, metadados de layout, ecrãs de impressão e dicionários de internacionalização foram substituídas por terminologia canónica de fabrico e confeção.
 - **Padronização Simplificada dos Nomes dos Documentos e Anexos**:
   - Folha de Fabrico: `Folha_Fabrico_<Data>.pdf` (substitui `Folha_Fabrico_Lojas_...`).
   - Folha de Carga: `Folha_Carga_Rotas_<Data>.pdf` (substitui `Folha_Carga_7_Carrinhas_...`).

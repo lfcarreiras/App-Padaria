@@ -17,7 +17,7 @@ Esta auditoria incidiu sobre a totalidade das novas capacidades introduzidas nos
 2. **Frota de 7 Carrinhas / Rotas Operacionais (1 a 7):** Unificação logística de rotas de abastecimento e entrega ao domicílio (com a descontinuação formal das antigas Rotas 8 e 9).
 3. **Folha de Carga Segregada em PDF A4:** Segregação estrita em 4 camadas estanques: 1. Base Diária / Abastecimento, 2. Desdobramento dos 21 Clientes B2B (**com supressão inteligente de entidades a 0 unidades**), 3. Encomendas Adicionais ao Domicílio e 4. Resumo Geral Consolidado com cálculo de caixas estimadas.
 4. **Folha de Fabrico de Encomendas Discriminada por Loja:** No Cockpit de Produção (`filtroTipologia === 'encomendas'`), visualização e impressão PDF encomenda a encomenda com contactos, horários, notas e vistos de embalamento, agrupada por balcão com quebras de página A4 limpas.
-5. **KDS Produção sem Barreiras:** Botão incondicional `Concluir Produção • Marcar como Pronta` operacional em todos os perfis de turno, com alertas sonoros e visuais contínuos para encomendas urgentes ($\le 3\text{h}$).
+5. **Produção Produção sem Barreiras:** Botão incondicional `Concluir Produção • Marcar como Pronta` operacional em todos os perfis de turno, com alertas sonoros e visuais contínuos para encomendas urgentes ($\le 3\text{h}$).
 6. **Base Semanal (`quantidades_semanais` 7 dias) & Modo Férias:** Parametrização dinâmica de seg a dom e gestão de pausas letivas/férias de entidades empresariais.
 7. **Consumo Direto de Nomes Canónicos do Supabase (`v2.7.19`):** Eliminação de dicionários estáticos de tradução no cliente (`normalizarNomeArtigoCanonico`), consumindo diretamente os 57 artigos canónicos consolidados na base de dados com tolerância e higienização direta.
 8. **Resolução Definitiva de Erros:** Erro React #310 eliminado em `PdfViewerModal.tsx`, variável residual `totalPaoUnidades` 100% substituída por `totalBaseDiaria` e `totalGeralCarga`, e compilação TypeScript limpa (`0 erros`).
@@ -38,7 +38,7 @@ flowchart LR
 
 | # | Agente Especialista do Swarm | Âmbito de Auditoria | Score Ronda 1 (`v2.1.3`) | Score Certificado (`v2.7.15`) | Estado de Prontidão |
 | :-: | :--- | :--- | :---: | :---: | :---: |
-| **1** | **E2E Journey & Chaos Simulator** | 5 Cockpits, KDS, Folha Fabrico por Loja, Folha Carga Segregada | 99,0% | **99,5%** | ✅ **Certificado** |
+| **1** | **E2E Journey & Chaos Simulator** | 5 Cockpits, Produção, Folha Fabrico por Loja, Folha Carga Segregada | 99,0% | **99,5%** | ✅ **Certificado** |
 | **2** | **Supabase DBA & Data Integrity** | Integridade Relacional, 21 B2B, Bases Recorrentes, Índices e RLS | 99,0% | **99,0%** | ✅ **Certificado** |
 | **3** | **Cybersecurity Red-Team (OWASP)** | Cabeçalhos HTTP, Subdomínio Oficial, Route Guards, Chaves Criptográficas | 98,5% | **98,5%** | ✅ **Certificado** |
 | **4** | **Data Protection & Privacy Auditor** | Conformidade RGPD, Minimização de Dados e Avisos Transparentes | 100,0% | **99,0%** | ✅ **Certificado** |
@@ -55,7 +55,7 @@ flowchart LR
 * **Cockpit de Produção (`/producao`):**
   - **Folha de Fabrico de Encomendas por Loja:** Quando o operador ativa `filtroTipologia === 'encomendas'`, o sistema renderiza o banner com contagem de encomendas ativas e atalhos rápidos de impressão (*«Imprimir Todas as Lojas»* ou atalho por balcão: *Loja Matriz, Praça, Mercado, Centro*).
   - O modal PDF agrupa os pedidos loja a loja, exibe dados completos do cliente, morada, notas de cliente e de produção, notas de personalização de bolos e caixas de vistos `[ ] Pronto / Embalado` para cada linha, concluindo com quebras de página A4 limpas (`break-before: page`).
-  - **KDS Conclusão Incondicional:** O botão `Concluir Produção • Marcar como Pronta` funciona para qualquer colaborador autenticado sem restrições de permissão de role, gravando `pronto_loja` no pedido, `pronto` em todos os itens válidos e gerando log de auditoria instantâneo.
+  - **Produção Conclusão Incondicional:** O botão `Concluir Produção • Marcar como Pronta` funciona para qualquer colaborador autenticado sem restrições de permissão de role, gravando `pronto_loja` no pedido, `pronto` em todos os itens válidos e gerando log de auditoria instantâneo.
 * **Cockpit de Carrinhas & Distribuição (`/entregas`):**
   - **Frota Oficial de 7 Carrinhas (`Rota 1` a `Rota 7`):** Viatura e motorista atribuídos com visualização clara da carga do dia.
   - **Segregação Estrita em 4 Níveis:**
@@ -158,7 +158,7 @@ A plataforma digital da **Padaria da Vila (*União Panificadora Central Arouquen
 
 A solução encontra-se **integralmente aprovada e certificada para entrada em exploração comercial e operacional**, suportando:
 * **4 Lojas Físicas de Balcão e Expedição**;
-* **Centro de Produção com 3 Fornos e KDS sem restrições**;
+* **Centro de Produção com 3 Fornos e Produção sem restrições**;
 * **Frota de 7 Carrinhas de Distribuição com Folha de Carga Segregada**;
 * **21 Clientes Empresariais e Institucionais B2B com Modo Férias**;
 * **Catálogo Canónico Consolidado de 57 Artigos com Consumo Direto Supabase**;

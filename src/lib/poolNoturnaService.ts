@@ -38,12 +38,12 @@ export interface ResultadoFechoNoturno {
   rotasConsolidadasCount: number;
   clientesB2BConsolidadosCount: number;
   itens: ItemPoolNoturna[];
-  mensagemKDS: string;
+  mensagemProducao?: string;
   erro?: string;
 }
 
 const STORAGE_KEY_ULTIMO_FECHO = 'padaria_ultimo_fecho_noturno_v1';
-const STORAGE_KEY_ALERTA_KDS = 'padaria_alerta_kds_noturno_v1';
+const STORAGE_KEY_ALERTA_PRODUCAO = 'padaria_alerta_producao_noturno_v1';
 
 /**
  * Função de retry com backoff exponencial para resistir a oscilações noturnas no Supabase
@@ -185,7 +185,7 @@ export async function compilarPoolNoturnaAutomatica(dataReferencia?: string): Pr
     const totalCaixasEstimadas = itensDetalhados.reduce((acc, it) => acc + it.caixasEstimadas, 0);
 
     const executadoEm = new Date().toISOString();
-    const mensagemKDS = `Turno da Madrugada Ativo: Fecho Noturno às 22h00 concluído com sucesso. Pool de ${totalUnidadesGeral} peças (${totalPadaria} padaria / ${totalPastelaria} pastelaria) para ${dataAlvo} pronta para fabrico.`;
+    const mensagemProducao = `Turno da Madrugada Ativo: Fecho Noturno às 22h00 concluído com sucesso. Pool de ${totalUnidadesGeral} peças (${totalPadaria} padaria / ${totalPastelaria} pastelaria) para ${dataAlvo} pronta para fabrico.`;
 
     const resultado: ResultadoFechoNoturno = {
       sucesso: true,
@@ -201,17 +201,17 @@ export async function compilarPoolNoturnaAutomatica(dataReferencia?: string): Pr
       rotasConsolidadasCount: 8,
       clientesB2BConsolidadosCount: clientesB2B.filter((c) => c.ativo).length,
       itens: itensDetalhados,
-      mensagemKDS,
+      mensagemProducao,
     };
 
-    // 5. Guardar no localStorage para sincronização no KDS e persistência local
+    // 5. Guardar no localStorage para sincronização no ecrã de produção e persistência local
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem(STORAGE_KEY_ULTIMO_FECHO, JSON.stringify(resultado));
-        localStorage.setItem(STORAGE_KEY_ALERTA_KDS, JSON.stringify({
+        localStorage.setItem(STORAGE_KEY_ALERTA_PRODUCAO, JSON.stringify({
           ativo: true,
           timestamp: Date.now(),
-          mensagem: mensagemKDS,
+          mensagem: mensagemProducao,
           totalUnidades: totalUnidadesGeral,
         }));
       } catch {}
@@ -224,7 +224,7 @@ export async function compilarPoolNoturnaAutomatica(dataReferencia?: string): Pr
       utilizador_role: 'admin',
       painel: 'producao',
       acao: 'Fecho Noturno 22h00 - Pool de Fabrico Gerada',
-      detalhes: `Pool de fabrico gerada para ${dataAlvo}: ${totalUnidadesGeral} unidades (${totalPadaria} padaria, ${totalPastelaria} pastelaria) a partir de ${encomendasDoDia.length} encomendas aceites, 7 rotas operacionais e ${clientesB2B.length} clientes B2B. Alerta KDS ativado para o turno das 23h00.`,
+      detalhes: `Pool de fabrico gerada para ${dataAlvo}: ${totalUnidadesGeral} unidades (${totalPadaria} padaria, ${totalPastelaria} pastelaria) a partir de ${encomendasDoDia.length} encomendas aceites, 7 rotas operacionais e ${clientesB2B.length} clientes B2B. Alerta de produção ativado para o turno das 23h00.`,
     });
 
     return resultado;
@@ -244,7 +244,7 @@ export async function compilarPoolNoturnaAutomatica(dataReferencia?: string): Pr
       rotasConsolidadasCount: 8,
       clientesB2BConsolidadosCount: 0,
       itens: [],
-      mensagemKDS: 'Falha ao compilar a pool noturna.',
+      mensagemProducao: 'Falha ao compilar a pool noturna.',
       erro: error.message || 'Erro desconhecido',
     };
   }
@@ -274,12 +274,12 @@ export function obterUltimoFechoNoturno(): ResultadoFechoNoturno | null {
 }
 
 /**
- * Obter e limpar alarme do KDS (quando o padeiro confirma o alerta sonoro e visual)
+ * Obter e limpar alarme da produção (quando o padeiro confirma o alerta sonoro e visual)
  */
-export function verificarAlertaKDSNoturno(): { ativo: boolean; mensagem: string; totalUnidades: number } | null {
+export function verificarAlertaProducaoNoturna(): { ativo: boolean; mensagem: string; totalUnidades: number } | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY_ALERTA_KDS);
+    const raw = localStorage.getItem(STORAGE_KEY_ALERTA_PRODUCAO);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return parsed.ativo ? parsed : null;
@@ -288,13 +288,13 @@ export function verificarAlertaKDSNoturno(): { ativo: boolean; mensagem: string;
   }
 }
 
-export function silenciarAlertaKDSNoturno(): void {
+export function silenciarAlertaProducaoNoturna(): void {
   if (typeof window === 'undefined') return;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY_ALERTA_KDS);
+    const raw = localStorage.getItem(STORAGE_KEY_ALERTA_PRODUCAO);
     if (raw) {
       const parsed = JSON.parse(raw);
-      localStorage.setItem(STORAGE_KEY_ALERTA_KDS, JSON.stringify({ ...parsed, ativo: false }));
+      localStorage.setItem(STORAGE_KEY_ALERTA_PRODUCAO, JSON.stringify({ ...parsed, ativo: false }));
     }
   } catch {}
 }

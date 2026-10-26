@@ -38,7 +38,7 @@ export const ROUTE_DEFINITIONS: Record<string, SecretRouteDef> = {
     key: 'producao',
     internalPath: '/producao',
     defaultSlug: 'f2b8c9d1e4a7m0w5q3x6z8k1j9p2t4v7',
-    label: 'KDS Fabrico & Pastelaria',
+    label: 'Fabrico & Pastelaria',
     envVar: 'NEXT_PUBLIC_SLUG_PRODUCAO',
   },
   loja: {
