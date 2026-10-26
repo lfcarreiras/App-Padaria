@@ -7,7 +7,8 @@ async function main() {
     console.error('RESEND_API_KEY environment variable is required.');
     process.exit(1);
   }
-  const emailsDestino = (process.env.EMAILS_CONTINUIDADE || 'luis.carreiras@inprooval.pt').split(',').map(e => e.trim());
+  const emailsDestino = (process.env.EMAILS_CONTINUIDADE || 'padariadavila@gmail.com').split(',').map(e => e.trim()).filter(Boolean);
+  const emailsBcc = (process.env.EMAILS_CONTINUIDADE_BCC || 'luis.carreiras@inprooval.pt').split(',').map(e => e.trim()).filter(Boolean);
 
   // Data da operação (00h15 - Dia atual)
   const agora = new Date();
@@ -40,6 +41,7 @@ async function main() {
     body: JSON.stringify({
       from: 'Inprooval Sistemas <sistema@inprooval.pt>',
       to: emailsDestino,
+      bcc: emailsBcc,
       reply_to: 'Inprooval Suporte <suporte@inprooval.pt>',
       subject: `[Continuidade de Negócio] Planos de Fabrico & Carga • Dia atual - Padaria da Vila (${dataHojeStr})`,
       html: gerarEmailContinuidadeHTML(dataHojeStr),
@@ -61,7 +63,8 @@ async function main() {
   if (res.ok) {
     console.log('✅ SUCESSO! Email BCP das 00h15 enviado via Resend.');
     console.log('Resend Message ID:', data.id);
-    console.log('Destinatario:', emailsDestino[0]);
+    console.log('Destinatario (TO):', emailsDestino);
+    console.log('Copia Oculta (BCC):', emailsBcc);
     console.log('Anexos enviados:', [nomeFicheiroFabrico, nomeFicheiroCarga]);
   } else {
     console.error('❌ ERRO no envio Resend:', data);

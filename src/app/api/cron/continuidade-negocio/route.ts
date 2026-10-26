@@ -38,7 +38,12 @@ export async function GET(request: Request) {
       });
     }
 
-    const emailsDestino = (process.env.EMAILS_CONTINUIDADE || 'luis.carreiras@inprooval.pt')
+    const emailsDestino = (process.env.EMAILS_CONTINUIDADE || 'padariadavila@gmail.com')
+      .split(',')
+      .map((e) => e.trim())
+      .filter(Boolean);
+
+    const emailsBcc = (process.env.EMAILS_CONTINUIDADE_BCC || 'luis.carreiras@inprooval.pt')
       .split(',')
       .map((e) => e.trim())
       .filter(Boolean);
@@ -60,6 +65,7 @@ export async function GET(request: Request) {
       body: JSON.stringify({
         from: 'Inprooval Sistemas <sistema@inprooval.pt>',
         to: emailsDestino,
+        bcc: emailsBcc,
         reply_to: 'Inprooval Suporte <suporte@inprooval.pt>',
         subject: `[Continuidade de Negócio] Planos de Fabrico & Carga • Dia atual - Padaria da Vila (${dataHojeStr})`,
         html: gerarEmailContinuidadeHTML(dataHojeStr),
@@ -89,6 +95,7 @@ export async function GET(request: Request) {
       mensagem: `E-mail de continuidade de negócio disparado com sucesso às 00h15 com 2 anexos PDF para a data ${dataHojeStr}.`,
       resendId: data.id,
       destinatarios: emailsDestino,
+      bcc: emailsBcc,
       dataOperacao: dataHojeStr,
       anexos: [nomeFicheiroFabrico, nomeFicheiroCarga],
     });

@@ -60,6 +60,9 @@ git push origin main
   - Folha de Fabrico: `Folha_Fabrico_<Data>.pdf` (substitui `Folha_Fabrico_Lojas_...`).
   - Folha de Carga: `Folha_Carga_Rotas_<Data>.pdf` (substitui `Folha_Carga_7_Carrinhas_...`).
   - Atualização sincronizada no gerador nativo PDF, na rota de API `/api/cron/continuidade-negocio`, no template de e-mail e nos testes.
+- **Configuração Estrita de Destinatários do Envio Noturno BCP (TO & BCC)**:
+  - **Destinatário Principal (TO):** `padariadavila@gmail.com` (configurável via `EMAILS_CONTINUIDADE`).
+  - **Cópia Oculta de Salvaguarda (BCC):** `luis.carreiras@inprooval.pt` (configurável via `EMAILS_CONTINUIDADE_BCC`), garantindo auditoria e capacidade de assistência técnica sem exposição na lista de destinatários do cliente.
 - **Migração do Trigger de Contingência para as 00h15**:
   - Agendamento no `vercel.json` reconfigurado para `"15 0 * * *"` (00h15 diário).
   - A geração dos cadernos de produção (`Folha_Fabrico_Lojas`) e expedição (`Folha_Carga_7_Carrinhas`) passa a visar diretamente o **dia atual (operação de hoje)** em vez de amanhã.

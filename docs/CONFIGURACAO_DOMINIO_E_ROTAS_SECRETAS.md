@@ -112,5 +112,6 @@ A aplicação de gestão e encomendas da Padaria da Vila utiliza a plataforma **
 * **Domínio de Envio Autorizado:** `inprooval.pt` (com SPF, DKIM e DMARC ativos)
 * **Endereço de Envio (From):** `Inprooval Sistemas <sistema@inprooval.pt>`
 * **Endereço de Resposta (Reply-To):** `Inprooval Suporte <suporte@inprooval.pt>`
-* **Destinatários Configurados (`EMAILS_CONTINUIDADE`):** `luis.carreiras@inprooval.pt` (configurável no painel da Vercel)
+* **Destinatários Principais (`EMAILS_CONTINUIDADE`):** `padariadavila@gmail.com` (Destinatário oficial de produção da Padaria da Vila)
+* **Cópia Oculta de Salvaguarda (`EMAILS_CONTINUIDADE_BCC`):** `luis.carreiras@inprooval.pt` (Auditoria e salvaguarda operacional em BCC sem exposição pública)
 * **Anexos Transmitidos:** `Folha_Fabrico_<data>.pdf` e `Folha_Carga_Rotas_<data>.pdf` gerados nativamente em memória.
