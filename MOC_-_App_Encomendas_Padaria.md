@@ -27,7 +27,7 @@ updated: 2026-09-14
 | **Hosting & CI/CD** | **Vercel** | Deploys automáticos a cada push na `main`, com Instant Rollback |
 | **Impressão** | **Thermal Receipt (CSS Paged Media)** | Suporte a impressoras térmicas ESC/POS de 80mm e 58mm |
 | **Internacionalização** | **LanguageProvider (Contexto React)** | Suporte completo bilingue: 🇵🇹 Português (PT-PT) e 🇬🇧 English |
-| **Continuidade BCP** | **Vercel Cron + Resend REST API + PDF 1.4 Nativo** | Envio diário às 23h15 das Folhas de Fabrico e Carga em PDF com formatação auto-wrap dinâmico |
+| **Continuidade BCP** | **Vercel Cron + Resend REST API + PDF 1.4 Nativo** | Envio diário às 00h15 das Folhas de Fabrico e Carga em PDF com formatação auto-wrap dinâmico |
 
 ---
 

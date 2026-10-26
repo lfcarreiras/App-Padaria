@@ -113,4 +113,4 @@ A aplicação de gestão e encomendas da Padaria da Vila utiliza a plataforma **
 * **Endereço de Envio (From):** `Inprooval Sistemas <sistema@inprooval.pt>`
 * **Endereço de Resposta (Reply-To):** `Inprooval Suporte <suporte@inprooval.pt>`
 * **Destinatários Configurados (`EMAILS_CONTINUIDADE`):** `luis.carreiras@inprooval.pt` (configurável no painel da Vercel)
-* **Anexos Transmitidos:** `Folha_Fabrico_Lojas_<data>.pdf` e `Folha_Carga_7_Carrinhas_<data>.pdf` gerados nativamente em memória.
+* **Anexos Transmitidos:** `Folha_Fabrico_<data>.pdf` e `Folha_Carga_Rotas_<data>.pdf` gerados nativamente em memória.

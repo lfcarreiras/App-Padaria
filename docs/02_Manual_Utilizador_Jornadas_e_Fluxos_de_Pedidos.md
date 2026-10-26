@@ -271,18 +271,18 @@ A plataforma integra um motor de **Continuidade de Negócio (Business Continuity
 1. **Gatilho de Contingência Automático:** Rigorosamente às **00h15** (15 minutos após o corte oficial das encomendas online às 23h00), o motor de contingência da Vercel gera de forma autónoma e imutável os dois cadernos operacionais completos do dia seguinte em formato PDF de alta resolução.
 2. **Envio Imediato para a Gerência e Responsáveis:** Os documentos são disparados pela infraestrutura da **Inprooval Sistemas** via Resend para as caixas de correio registadas em `EMAILS_CONTINUIDADE` (`luis.carreiras@inprooval.pt` e responsáveis de turno).
 3. **Conteúdo dos Documentos em Anexo:**
-   - **`Folha_Fabrico_Lojas_<DD-MM-YYYY>.pdf`:** Caderno de confeção organizado loja a loja (Matriz, Praça, Av. 25 de Abril, Carocha). Lista cada encomenda individual com hora combinada, nome e contacto do cliente, artigos exatos a produzir, notas especiais de fabrico e caixas de visto `[ ] Pronto`.
-   - **`Folha_Carga_7_Carrinhas_<DD-MM-YYYY>.pdf`:** Caderno de logística discriminado para as **7 Carrinhas / Rotas**. Inclui a Base Diária da rota, o desdobramento dos clientes empresariais B2B (ocultando entidades a 0 unidades), as entregas ao domicílio com morada completa e o resumo geral com volume de caixas e assinatura de conferência.
+   - **`Folha_Fabrico_<DD-MM-YYYY>.pdf`:** Caderno de confeção organizado loja a loja (Matriz, Praça, Av. 25 de Abril, Carocha). Lista cada encomenda individual com hora combinada, nome e contacto do cliente, artigos exatos a produzir, notas especiais de fabrico e caixas de visto `[ ] Pronto`.
+   - **`Folha_Carga_Rotas_<DD-MM-YYYY>.pdf`:** Caderno de logística discriminado para as **7 Carrinhas / Rotas**. Inclui a Base Diária da rota, o desdobramento dos clientes empresariais B2B (ocultando entidades a 0 unidades), as entregas ao domicílio com morada completa e o resumo geral com volume de caixas e assinatura de conferência.
 
 ### 4.2. Procedimento Operacional em Caso de Falha de Rede ou Sistemas (Modo Degradado)
 Se durante a madrugada ou manhã cedo a equipa detetar que a internet da fábrica caiu, que o router falhou ou que não há acesso ao sistema web:
 
 1. **No Centro de Produção (Mestre Padeiro e Pasteleiros):**
-   - Aceder ao e-mail no smartphone/tablet através de dados móveis ou imprimir o ficheiro `Folha_Fabrico_Lojas` recebido às 00h15.
+   - Aceder ao e-mail no smartphone/tablet através de dados móveis ou imprimir o ficheiro `Folha_Fabrico` recebido às 00h15.
    - A produção arranca normalmente segundo a lista de encomendas de cada balcão.
    - À medida que cada fornada e encomenda é concluída e embalada, o padeiro assinala fisicamente com caneta a caixa de visto `[X] Pronto`.
 2. **Na Expedição e Saída das 7 Carrinhas (Motoristas e Encarregado de Carga):**
-   - Cada condutor recebe a sua folha de rota correspondente da `Folha_Carga_7_Carrinhas`.
+   - Cada condutor recebe a sua folha de rota correspondente da `Folha_Carga_Rotas`.
    - O encarregado de expedição confere as caixas de pão saloio, carcaças e broas a carregar na viatura e assina o bloco inferior do documento.
    - O motorista cumpre a sua rota rural ou urbana, entregando as quantidades contratuais nos clientes B2B (escolas, lares, restaurantes) e nos domicílios particulares, recolhendo ou assinalando `[X] Entregue`.
 3. **Reconciliação e Reposição Pós-Incidente:**

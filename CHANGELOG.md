@@ -44,7 +44,19 @@ git push origin main
 
 ## [v2.7.19] - 2026-10-26
 
-### Changed (Ajuste de Horário do Trigger BCP para as 00h15 & Enriquecimento Visual dos Emails)
+### Fixed & Enhanced (Refinamento BCP: Acentuação Nativa nos PDFs, Correção de Layout e Padronização de Nomes)
+- **Correção da Geometria e Eliminação de Corte no Campo de Domicílios (`pdfContinuidadeBuilder.ts`)**:
+  - Resolvida a sobreposição da caixa de "TOTAL GERAL A BORDO" sobre o texto de "Sem encomendas adicionais ao domicílio para esta data" (seção 3) através de reestruturação do sistema de coordenadas do motor PDF, garantindo espaçamento vertical seguro (35pt) e desenho estrito de blocos abaixo de `currentY`.
+  - Aplicada a mesma proteção geométrica de retângulos ao bloco de subtotais e validações da Folha de Fabrico.
+- **Suporte Nativo Integral a Acentuação e Cedilhas em Português nos PDFs**:
+  - Implementado mapeamento e escape octal padrão `/WinAnsiEncoding` (`\341`, `\347`, `\343`, `\351`, `\307`, etc.) no método `drawText`, assegurando renderização perfeita de acentos e cedilhas (`á, à, ã, â, é, ê, í, ó, õ, ô, ú, ç, Á, À, Ã, Â, É, Ê, Í, Ó, Õ, Ô, Ú, Ç`) em qualquer visualizador PDF (Adobe Acrobat, Preview, Chrome, mobile).
+  - Atualizados todos os textos e descrições dos cadernos de contingência com a ortografia portuguesa correta (ex: *Produção, Operação, Praça, Pão Saloio, Carcaças, Almoço, Expedição, Domicílio, Diária*).
+- **Remoção de Menção Obsoleta do Cabeçalho da Folha de Fabrico**:
+  - Eliminado o texto *"Salvo-Conduto BCP de Continuidade • Emitido as 23h15"* do cabeçalho do documento de produção, mantendo a folha limpa e focada na operação.
+- **Padronização Simplificada dos Nomes dos Documentos e Anexos**:
+  - Folha de Fabrico: `Folha_Fabrico_<Data>.pdf` (substitui `Folha_Fabrico_Lojas_...`).
+  - Folha de Carga: `Folha_Carga_Rotas_<Data>.pdf` (substitui `Folha_Carga_7_Carrinhas_...`).
+  - Atualização sincronizada no gerador nativo PDF, na rota de API `/api/cron/continuidade-negocio`, no template de e-mail e nos testes.
 - **Migração do Trigger de Contingência para as 00h15**:
   - Agendamento no `vercel.json` reconfigurado para `"15 0 * * *"` (00h15 diário).
   - A geração dos cadernos de produção (`Folha_Fabrico_Lojas`) e expedição (`Folha_Carga_7_Carrinhas`) passa a visar diretamente o **dia atual (operação de hoje)** em vez de amanhã.

@@ -26,8 +26,8 @@ async function main() {
   console.log(`[Teste] Folha de Fabrico PDF gerada: ${bufferFabrico.length} bytes`);
   console.log(`[Teste] Folha de Carga Carrinhas PDF gerada: ${bufferCargas.length} bytes`);
 
-  const nomeFicheiroFabrico = `Folha_Fabrico_Lojas_${dataHojeStr.replace(/\//g, '-')}.pdf`;
-  const nomeFicheiroCarga = `Folha_Carga_7_Carrinhas_${dataHojeStr.replace(/\//g, '-')}.pdf`;
+  const nomeFicheiroFabrico = `Folha_Fabrico_${dataHojeStr.replace(/\//g, '-')}.pdf`;
+  const nomeFicheiroCarga = `Folha_Carga_Rotas_${dataHojeStr.replace(/\//g, '-')}.pdf`;
 
   console.log('[Teste] Enviando email com logos oficiais e 2 anexos PDF via Resend API...');
 

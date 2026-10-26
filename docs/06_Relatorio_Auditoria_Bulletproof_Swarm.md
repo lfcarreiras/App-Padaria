@@ -21,7 +21,7 @@ Esta auditoria incidiu sobre a totalidade das novas capacidades introduzidas nos
 6. **Base Semanal (`quantidades_semanais` 7 dias) & Modo Férias:** Parametrização dinâmica de seg a dom e gestão de pausas letivas/férias de entidades empresariais.
 7. **Consumo Direto de Nomes Canónicos do Supabase (`v2.7.19`):** Eliminação de dicionários estáticos de tradução no cliente (`normalizarNomeArtigoCanonico`), consumindo diretamente os 57 artigos canónicos consolidados na base de dados com tolerância e higienização direta.
 8. **Resolução Definitiva de Erros:** Erro React #310 eliminado em `PdfViewerModal.tsx`, variável residual `totalPaoUnidades` 100% substituída por `totalBaseDiaria` e `totalGeralCarga`, e compilação TypeScript limpa (`0 erros`).
-9. **Mecanismo de Continuidade de Negócio (BCP / Modo Degradado):** Auditoria e certificação do motor serverless noturno às 00h15 via Vercel Cron e Resend API com geração em memória de PDFs nativos 1.4 (`Folha_Fabrico_Lojas` e `Folha_Carga_7_Carrinhas`) com formatação adaptativa (*Auto-Wrap* dinâmico) e autenticação criptográfica por `CRON_SECRET`.
+9. **Mecanismo de Continuidade de Negócio (BCP / Modo Degradado):** Auditoria e certificação do motor serverless noturno às 00h15 via Vercel Cron e Resend API com geração em memória de PDFs nativos 1.4 (`Folha_Fabrico` e `Folha_Carga_Rotas`) com formatação adaptativa (*Auto-Wrap* dinâmico) e autenticação criptográfica por `CRON_SECRET`.
 
 ```mermaid
 flowchart LR

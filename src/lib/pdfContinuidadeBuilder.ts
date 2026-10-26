@@ -46,18 +46,30 @@ class PdfPageWriter {
 
   drawText(text: string, x: number, y: number, size: number = 8, isBold: boolean = false, color: string = '0 0 0') {
     const font = isBold ? '/F2' : '/F1';
-    const clean = text
+    let clean = text
       .replace(/\\/g, '\\\\')
       .replace(/\(/g, '\\(')
-      .replace(/\)/g, '\\)')
-      .replace(/[\u0080-\uffff]/g, (c) => {
-        const map: Record<string, string> = {
-          'á': 'a', 'à': 'a', 'ã': 'a', 'â': 'a', 'é': 'e', 'ê': 'e', 'í': 'i', 'ó': 'o', 'õ': 'o', 'ô': 'o', 'ú': 'u', 'ç': 'c',
-          'Á': 'A', 'À': 'A', 'Ã': 'A', 'Â': 'A', 'É': 'E', 'Ê': 'E', 'Í': 'I', 'Ó': 'O', 'Õ': 'O', 'Ô': 'O', 'Ú': 'U', 'Ç': 'C',
-          '•': '-', '—': '-', '–': '-', '€': 'EUR', '✓': 'V', '✕': 'X', 'º': 'o', 'ª': 'a'
-        };
-        return map[c] || '';
-      });
+      .replace(/\)/g, '\\)');
+
+    const winAnsiMap: Record<string, string> = {
+      'á': '\\341', 'à': '\\340', 'ã': '\\343', 'â': '\\342', 'ä': '\\344',
+      'é': '\\351', 'è': '\\350', 'ê': '\\352', 'ë': '\\353',
+      'í': '\\355', 'ì': '\\354', 'î': '\\356', 'ï': '\\357',
+      'ó': '\\363', 'ò': '\\362', 'õ': '\\365', 'ô': '\\364', 'ö': '\\366',
+      'ú': '\\372', 'ù': '\\371', 'û': '\\373', 'ü': '\\374',
+      'ç': '\\347', 'ñ': '\\361',
+      'Á': '\\301', 'À': '\\300', 'Ã': '\\303', 'Â': '\\302', 'Ä': '\\304',
+      'É': '\\311', 'È': '\\310', 'Ê': '\\312', 'Ë': '\\313',
+      'Í': '\\315', 'Ì': '\\314', 'Î': '\\316', 'Ï': '\\317',
+      'Ó': '\\323', 'Ò': '\\322', 'Õ': '\\325', 'Ô': '\\324', 'Ö': '\\326',
+      'Ú': '\\332', 'Ù': '\\331', 'Û': '\\332', 'Ü': '\\334',
+      'Ç': '\\307', 'Ñ': '\\321',
+      'º': '\\272', 'ª': '\\252',
+      '•': '\\225', '–': '\\226', '—': '\\227', '€': '\\200',
+      '✓': 'V', '✕': 'X'
+    };
+
+    clean = clean.replace(/[\u0080-\uffff]/g, (c) => winAnsiMap[c] || '');
 
     this.content += `q ${color} rg BT ${font} ${size} Tf 1 0 0 1 ${x} ${y} Tm (${clean}) Tj ET Q\n`;
   }
@@ -118,7 +130,7 @@ export class NativePdfDocument {
 
     for (let i = 0; i < this.pages.length; i++) {
       const p = this.pages[i];
-      const footer = `Folha de Contingencia - Padaria da Vila | Pagina ${i + 1} de ${this.pages.length} | Inprooval Sistemas`;
+      const footer = `Folha de Contingência - Padaria da Vila | Página ${i + 1} de ${this.pages.length} | Inprooval Sistemas`;
       p.drawText(footer, 160, 20, 7, false, '0.5 0.5 0.5');
 
       const streamLen = Buffer.byteLength(p.content, 'utf-8');
@@ -162,16 +174,16 @@ export class NativePdfDocument {
  * Layout dinâmico que se molda automaticamente à extensão dos textos.
  */
 export function gerarPdfFolhaFabricoLojas(dataAmanhaStr: string): Buffer {
-  const doc = new NativePdfDocument(`Folha_Fabrico_Lojas_${dataAmanhaStr}`);
+  const doc = new NativePdfDocument(`Folha_Fabrico_${dataAmanhaStr}`);
 
   const lojas = [
     {
-      nome: 'Loja 1: Padaria da Vila I (Praca)',
-      morada: 'Praca Brandao de Vasconcelos, Arouca',
+      nome: 'Loja 1: Padaria da Vila I (Praça)',
+      morada: 'Praça Brandão de Vasconcelos, Arouca',
       encomendas: [
-        { hora: '08:00', codigo: '#ENC-2041', cliente: 'Maria Ribeiro (912 345 678)', itens: '15x Pao Saloio, 2x Broa Amarela', obs: 'Pao bem cozido com casca rija' },
-        { hora: '09:30', codigo: '#ENC-2042', cliente: 'Carlos Ferreira (964 112 233)', itens: '1x Bolo de Aniversario Chantilly e Frutas (1.5kg)', obs: 'Dizer no topo: Parabens Sofia' },
-        { hora: '11:00', codigo: '#ENC-2045', cliente: 'Restaurante O Pedrogao (918 223 344)', itens: '40x Carcacas de Trigo, 10x Pao de Centeio Tradicional', obs: 'Entregar ensacado em papel kraft' },
+        { hora: '08:00', codigo: '#ENC-2041', cliente: 'Maria Ribeiro (912 345 678)', itens: '15x Pão Saloio, 2x Broa Amarela', obs: 'Pão bem cozido com casca rija' },
+        { hora: '09:30', codigo: '#ENC-2042', cliente: 'Carlos Ferreira (964 112 233)', itens: '1x Bolo de Aniversário Chantilly e Frutas (1.5kg)', obs: 'Dizer no topo: Parabéns Sofia' },
+        { hora: '11:00', codigo: '#ENC-2045', cliente: 'Restaurante O Pedrogão (918 223 344)', itens: '40x Carcaças de Trigo, 10x Pão de Centeio Tradicional', obs: 'Entregar ensacado em papel kraft' },
       ],
       totalUnidades: 68
     },
@@ -179,8 +191,8 @@ export function gerarPdfFolhaFabricoLojas(dataAmanhaStr: string): Buffer {
       nome: 'Loja 2: Padaria da Vila II (Av. 25 de Abril)',
       morada: 'Av. 25 de Abril, Arouca',
       encomendas: [
-        { hora: '07:30', codigo: '#ENC-2046', cliente: 'Ana Paula Silva (933 445 566)', itens: '10x Pao de Cereais, 4x Merendas Mistas da Padaria', obs: 'Sair da primeira fornada bem quentes' },
-        { hora: '10:00', codigo: '#ENC-2048', cliente: 'Joao Pedro Martins (915 667 788)', itens: '12x Pasteis de Nata Especiais, 6x Bolas de Berlim com Creme', obs: 'Acondicionar em caixa de pastelaria de transporte' },
+        { hora: '07:30', codigo: '#ENC-2046', cliente: 'Ana Paula Silva (933 445 566)', itens: '10x Pão de Cereais, 4x Merendas Mistas da Padaria', obs: 'Sair da primeira fornada bem quentes' },
+        { hora: '10:00', codigo: '#ENC-2048', cliente: 'João Pedro Martins (915 667 788)', itens: '12x Pastéis de Nata Especiais, 6x Bolas de Berlim com Creme', obs: 'Acondicionar em caixa de pastelaria de transporte' },
       ],
       totalUnidades: 32
     },
@@ -188,16 +200,16 @@ export function gerarPdfFolhaFabricoLojas(dataAmanhaStr: string): Buffer {
       nome: 'Loja 3: Padaria da Vila III (Loja Carocha)',
       morada: 'Ponto de Venda Carocha, Arouca',
       encomendas: [
-        { hora: '08:15', codigo: '#ENC-2051', cliente: 'Fernanda Gomes (917 889 900)', itens: '20x Pao Alentejano Redondo, 5x Broa de Avintes Regional', obs: 'Cortar e fatiar no balcao antes de embalar' },
-        { hora: '12:00', codigo: '#ENC-2053', cliente: 'Sociedade Recreativa e Cultural (961 223 344)', itens: '50x Carcacas de Trigo, 2x Pao de Lo Tradicional de Arouca', obs: 'Encomenda reservada para o almoco do evento cultural' },
+        { hora: '08:15', codigo: '#ENC-2051', cliente: 'Fernanda Gomes (917 889 900)', itens: '20x Pão Alentejano Redondo, 5x Broa de Avintes Regional', obs: 'Cortar e fatiar no balcão antes de embalar' },
+        { hora: '12:00', codigo: '#ENC-2053', cliente: 'Sociedade Recreativa e Cultural (961 223 344)', itens: '50x Carcaças de Trigo, 2x Pão de Ló Tradicional de Arouca', obs: 'Encomenda reservada para o almoço do evento cultural' },
       ],
       totalUnidades: 77
     },
     {
-      nome: 'Loja 4: Padaria da Vila Matriz / Fabrica',
+      nome: 'Loja 4: Padaria da Vila Matriz / Fábrica',
       morada: 'Centro Industrial e Fabrico, Arouca',
       encomendas: [
-        { hora: '07:00', codigo: '#ENC-2055', cliente: 'Antonio Manuel Sousa (919 001 122)', itens: '30x Pao Saloio Tradicional, 4x Broas Amarelas de Milho', obs: 'Carregamento prioritario logo as primeiras horas' },
+        { hora: '07:00', codigo: '#ENC-2055', cliente: 'António Manuel Sousa (919 001 122)', itens: '30x Pão Saloio Tradicional, 4x Broas Amarelas de Milho', obs: 'Carregamento prioritário logo às primeiras horas' },
         { hora: '08:45', codigo: '#ENC-2058', cliente: 'Confeitaria Central de Arouca (935 112 233)', itens: '25x Croissants Franceses Manteiga, 20x Folhados Mistos', obs: 'Massa folhada fresca acabada de sair' },
       ],
       totalUnidades: 79
@@ -210,9 +222,8 @@ export function gerarPdfFolhaFabricoLojas(dataAmanhaStr: string): Buffer {
 
     // Header Principal da Loja
     p.drawRect(35, 745, 525, 55, '0.1 0.1 0.1', null);
-    p.drawText('PADARIA DA VILA - CENTRO DE PRODUCAO & KDS', 45, 782, 12, true, '1 1 1');
-    p.drawText(`FOLHA DE FABRICO DE ENCOMENDAS • OPERACAO DE ${dataAmanhaStr}`, 45, 767, 9, false, '0.95 0.7 0.1');
-    p.drawText(`Salvo-Conduto BCP de Continuidade • Emitido as 23h15`, 345, 767, 8, false, '0.8 0.8 0.8');
+    p.drawText('PADARIA DA VILA - CENTRO DE PRODUÇÃO & KDS', 45, 782, 12, true, '1 1 1');
+    p.drawText(`FOLHA DE FABRICO DE ENCOMENDAS • OPERAÇÃO DE ${dataAmanhaStr}`, 45, 767, 9, false, '0.95 0.7 0.1');
 
     // Subcabeçalho da Loja
     p.drawRect(35, 705, 525, 32, '0.96 0.96 0.96', '0.85 0.85 0.85');
@@ -223,10 +234,10 @@ export function gerarPdfFolhaFabricoLojas(dataAmanhaStr: string): Buffer {
     // Tabela Header
     p.drawRect(35, 680, 525, 18, '0.2 0.2 0.25', null);
     p.drawText('HORA', 40, 685, 8, true, '1 1 1');
-    p.drawText('CODIGO', 74, 685, 8, true, '1 1 1');
+    p.drawText('CÓDIGO', 74, 685, 8, true, '1 1 1');
     p.drawText('CLIENTE / CONTACTO', 126, 685, 8, true, '1 1 1');
     p.drawText('ARTIGOS A FABRICAR', 246, 685, 8, true, '1 1 1');
-    p.drawText('OBSERVACOES DE PRODUCAO', 386, 685, 8, true, '1 1 1');
+    p.drawText('OBSERVAÇÕES DE PRODUÇÃO', 386, 685, 8, true, '1 1 1');
     p.drawText('VISTO', 500, 685, 8, true, '1 1 1');
 
     let currentY = 660;
@@ -274,15 +285,17 @@ export function gerarPdfFolhaFabricoLojas(dataAmanhaStr: string): Buffer {
     });
 
     // Bloco de Totais e Assinatura
-    currentY -= 15;
-    if (currentY < 70) {
+    currentY -= 20;
+    const boxHeight = 48;
+    if (currentY - boxHeight < 60) {
       p = doc.addPage();
       currentY = 780;
     }
-    p.drawRect(35, currentY - 10, 525, 45, '0.98 0.98 0.96', '0.85 0.85 0.8');
-    p.drawText(`SUBTOTAL DA LOJA: ${loja.encomendas.length} Encomendas | ${loja.totalUnidades} Unidades a Produzir`, 45, currentY + 18, 9, true, '0.1 0.1 0.1');
-    p.drawText('Validado pelo Mestre Padeiro: ________________________', 45, currentY, 8, false, '0.3 0.3 0.3');
-    p.drawText('Conferencia de Embalamento: ________________________', 320, currentY, 8, false, '0.3 0.3 0.3');
+    p.drawRect(35, currentY - boxHeight, 525, boxHeight, '0.98 0.98 0.96', '0.85 0.85 0.8');
+    p.drawText(`SUBTOTAL DA LOJA: ${loja.encomendas.length} Encomendas | ${loja.totalUnidades} Unidades a Produzir`, 45, currentY - 16, 9, true, '0.1 0.1 0.1');
+    p.drawText('Validado pelo Mestre Padeiro: ________________________', 45, currentY - 34, 8, false, '0.3 0.3 0.3');
+    p.drawText('Conferência de Embalamento: ________________________', 320, currentY - 34, 8, false, '0.3 0.3 0.3');
+    currentY -= boxHeight;
   });
 
   return doc.toBuffer();
@@ -293,7 +306,7 @@ export function gerarPdfFolhaFabricoLojas(dataAmanhaStr: string): Buffer {
  * Layout dinâmico com auto-wrap de moradas e descrições completas.
  */
 export function gerarPdfFolhaCargaCarrinhas(dataAmanhaStr: string): Buffer {
-  const doc = new NativePdfDocument(`Folha_Carga_7_Carrinhas_${dataAmanhaStr}`);
+  const doc = new NativePdfDocument(`Folha_Carga_Rotas_${dataAmanhaStr}`);
 
   const rotas = [
     {
@@ -301,18 +314,18 @@ export function gerarPdfFolhaCargaCarrinhas(dataAmanhaStr: string): Buffer {
       matricula: '42-AB-90',
       condutor: 'Manuel Silva',
       baseDiaria: [
-        { item: 'Pao Saloio Tradicional', qtd: 140 },
-        { item: 'Carcacas de Trigo', qtd: 200 },
+        { item: 'Pão Saloio Tradicional', qtd: 140 },
+        { item: 'Carcaças de Trigo', qtd: 200 },
         { item: 'Broa de Milho Amarela', qtd: 35 },
-        { item: 'Pao de Centeio', qtd: 25 },
+        { item: 'Pão de Centeio', qtd: 25 },
       ],
       clientesB2B: [
-        { nome: 'Restaurante Gamarao', itens: '30x Carcacas, 5x Broas' },
+        { nome: 'Restaurante Gamarão', itens: '30x Carcaças, 5x Broas' },
         { nome: 'Lar Terceira Idade Cambra', itens: '60x Saloio Fatiado, 20x Regueifas' },
-        { nome: 'Hospital da Misericordia', itens: '80x Carcacas s/ Sal, 15x Integral' }
+        { nome: 'Hospital da Misericórdia', itens: '80x Carcaças s/ Sal, 15x Integral' }
       ],
       encomendasDomicilio: [
-        { morada: 'Rua das Flores 12, Vale de Cambra', cliente: 'Antonio Dias (914 111 222)', itens: '4x Broas Amarelas de Milho Tradicional' }
+        { morada: 'Rua das Flores 12, Vale de Cambra', cliente: 'António Dias (914 111 222)', itens: '4x Broas Amarelas de Milho Tradicional' }
       ],
       totalUnidades: 614,
       caixasEstimadas: 18
@@ -322,33 +335,33 @@ export function gerarPdfFolhaCargaCarrinhas(dataAmanhaStr: string): Buffer {
       matricula: '18-XT-34',
       condutor: 'Joaquim Oliveira',
       baseDiaria: [
-        { item: 'Pao Saloio Tradicional', qtd: 120 },
-        { item: 'Carcacas de Trigo', qtd: 160 },
+        { item: 'Pão Saloio Tradicional', qtd: 120 },
+        { item: 'Carcaças de Trigo', qtd: 160 },
         { item: 'Broa de Avintes', qtd: 20 },
       ],
       clientesB2B: [
-        { nome: 'Pacheco Moldes (Refeitorio Industrial)', itens: '50x Carcacas, 10x Saloios' },
-        { nome: 'Centro Social do Burgo', itens: '40x Carcacas, 10x Pao de Leite' }
+        { nome: 'Pacheco Moldes (Refeitório Industrial)', itens: '50x Carcaças, 10x Saloios' },
+        { nome: 'Centro Social do Burgo', itens: '40x Carcaças, 10x Pão de Leite' }
       ],
       encomendasDomicilio: [],
       totalUnidades: 410,
       caixasEstimadas: 12
     },
     {
-      rota: 'Rota 3 - Carro 3 (Alvarenga & Passadicos)',
+      rota: 'Rota 3 - Carro 3 (Alvarenga & Passadiços)',
       matricula: '65-QZ-12',
       condutor: 'Rui Fernandes',
       baseDiaria: [
-        { item: 'Pao Saloio Tradicional', qtd: 180 },
-        { item: 'Carcacas de Trigo', qtd: 220 },
+        { item: 'Pão Saloio Tradicional', qtd: 180 },
+        { item: 'Carcaças de Trigo', qtd: 220 },
         { item: 'Broa de Milho', qtd: 45 },
       ],
       clientesB2B: [
         { nome: 'Restaurante Ponte de Telhe', itens: '40x Broas de Milho, 30x Saloios' },
-        { nome: 'Cafe Ribeiro (Alvarenga)', itens: '25x Carcacas, 5x Broas' }
+        { nome: 'Café Ribeiro (Alvarenga)', itens: '25x Carcaças, 5x Broas' }
       ],
       encomendasDomicilio: [
-        { morada: 'Lugar de Paradinha, Passadicos do Paiva', cliente: 'Casa Turistica Paiva (962 334 455)', itens: '10x Saloio, 4x Broas de Milho' }
+        { morada: 'Lugar de Paradinha, Passadiços do Paiva', cliente: 'Casa Turística Paiva (962 334 455)', itens: '10x Saloio, 4x Broas de Milho' }
       ],
       totalUnidades: 569,
       caixasEstimadas: 16
@@ -358,12 +371,12 @@ export function gerarPdfFolhaCargaCarrinhas(dataAmanhaStr: string): Buffer {
       matricula: '33-LP-77',
       condutor: 'Fernando Santos',
       baseDiaria: [
-        { item: 'Pao Saloio Tradicional', qtd: 110 },
-        { item: 'Carcacas de Trigo', qtd: 150 },
+        { item: 'Pão Saloio Tradicional', qtd: 110 },
+        { item: 'Carcaças de Trigo', qtd: 150 },
         { item: 'Broa Amarela', qtd: 30 },
       ],
       clientesB2B: [
-        { nome: 'Escola Basica de Escariz (Cantina Escolar)', itens: '80x Carcacas, 15x Pao de Forma' }
+        { nome: 'Escola Básica de Escariz (Cantina Escolar)', itens: '80x Carcaças, 15x Pão de Forma' }
       ],
       encomendasDomicilio: [],
       totalUnidades: 385,
@@ -374,44 +387,44 @@ export function gerarPdfFolhaCargaCarrinhas(dataAmanhaStr: string): Buffer {
       matricula: '89-GH-55',
       condutor: 'Alberto Costa',
       baseDiaria: [
-        { item: 'Pao Saloio Tradicional', qtd: 130 },
-        { item: 'Carcacas de Trigo', qtd: 170 },
+        { item: 'Pão Saloio Tradicional', qtd: 130 },
+        { item: 'Carcaças de Trigo', qtd: 170 },
         { item: 'Broa de Milho', qtd: 30 },
       ],
       clientesB2B: [
-        { nome: 'Mercearia Central de Chave', itens: '35x Saloio, 20x Carcacas' }
+        { nome: 'Mercearia Central de Chave', itens: '35x Saloio, 20x Carcaças' }
       ],
       encomendasDomicilio: [],
       totalUnidades: 385,
       caixasEstimadas: 11
     },
     {
-      rota: 'Rota 6 - Carro 6 (Urro & Varzea)',
+      rota: 'Rota 6 - Carro 6 (Urro & Várzea)',
       matricula: '51-VC-28',
       condutor: 'Tiago Rocha',
       baseDiaria: [
-        { item: 'Pao Saloio Tradicional', qtd: 95 },
-        { item: 'Carcacas de Trigo', qtd: 140 },
+        { item: 'Pão Saloio Tradicional', qtd: 95 },
+        { item: 'Carcaças de Trigo', qtd: 140 },
         { item: 'Broa Amarela', qtd: 20 },
       ],
       clientesB2B: [
-        { nome: 'Centro Paroquial D. Urro', itens: '30x Pao Saloio, 10x Broas' }
+        { nome: 'Centro Paroquial D. Urro', itens: '30x Pão Saloio, 10x Broas' }
       ],
       encomendasDomicilio: [],
       totalUnidades: 295,
       caixasEstimadas: 9
     },
     {
-      rota: 'Rota 7 - Carro 7 (Santa Eulalia & Tropeco)',
+      rota: 'Rota 7 - Carro 7 (Santa Eulália & Tropeço)',
       matricula: '76-MN-99',
       condutor: 'Carlos Moreira',
       baseDiaria: [
-        { item: 'Pao Saloio Tradicional', qtd: 105 },
-        { item: 'Carcacas de Trigo', qtd: 155 },
+        { item: 'Pão Saloio Tradicional', qtd: 105 },
+        { item: 'Carcaças de Trigo', qtd: 155 },
         { item: 'Broa de Milho', qtd: 25 },
       ],
       clientesB2B: [
-        { nome: 'Patronato de Santa Eulalia', itens: '40x Carcacas, 10x Pao Integral' }
+        { nome: 'Patronato de Santa Eulália', itens: '40x Carcaças, 10x Pão Integral' }
       ],
       encomendasDomicilio: [],
       totalUnidades: 335,
@@ -425,19 +438,19 @@ export function gerarPdfFolhaCargaCarrinhas(dataAmanhaStr: string): Buffer {
 
     // Header da Carrinha
     p.drawRect(35, 745, 525, 55, '0.1 0.2 0.35', null);
-    p.drawText('PADARIA DA VILA - EXPEDICAO E LOGISTICA DE ROTAS', 45, 782, 12, true, '1 1 1');
-    p.drawText(`GUIA OFICIAL DE CARGA • OPERACAO DE ${dataAmanhaStr}`, 45, 767, 9, false, '0.3 0.8 1');
+    p.drawText('PADARIA DA VILA - EXPEDIÇÃO E LOGÍSTICA DE ROTAS', 45, 782, 12, true, '1 1 1');
+    p.drawText(`GUIA OFICIAL DE CARGA • OPERAÇÃO DE ${dataAmanhaStr}`, 45, 767, 9, false, '0.3 0.8 1');
     p.drawText(`Viatura: ${r.matricula} | Condutor: ${r.condutor}`, 350, 767, 8, false, '0.85 0.85 0.85');
 
     // Identificação da Rota
     p.drawRect(35, 705, 525, 32, '0.96 0.97 0.99', '0.8 0.85 0.9');
     p.drawText(r.rota, 45, 723, 11, true, '0.1 0.2 0.4');
     p.drawText(`Total a Bordo: ${r.totalUnidades} un. | Estimativa de Volume: ~${r.caixasEstimadas} Caixas`, 45, 712, 8, true, '0.2 0.4 0.2');
-    p.drawText('Visto Expedicao: [ ] Conforme', 420, 716, 8, true, '0.2 0.2 0.2');
+    p.drawText('Visto Expedição: [ ] Conforme', 420, 716, 8, true, '0.2 0.2 0.2');
 
     // 1. BASE DIÁRIA
     p.drawRect(35, 680, 525, 16, '0.25 0.3 0.35', null);
-    p.drawText('1. BASE DIARIA DE ABASTECIMENTO (PORTA-A-PORTA)', 40, 685, 8, true, '1 1 1');
+    p.drawText('1. BASE DIÁRIA DE ABASTECIMENTO (PORTA-A-PORTA)', 40, 685, 8, true, '1 1 1');
     p.drawText('QUANTIDADE', 485, 685, 8, true, '1 1 1');
 
     let currentY = 662;
@@ -452,7 +465,7 @@ export function gerarPdfFolhaCargaCarrinhas(dataAmanhaStr: string): Buffer {
     // 2. CLIENTES B2B
     currentY -= 6;
     p.drawRect(35, currentY - 5, 525, 16, '0.2 0.35 0.25', null);
-    p.drawText('2. CLIENTES EMPRESARIAIS (B2B) AFETOS A ROTA', 40, currentY, 8, true, '1 1 1');
+    p.drawText('2. CLIENTES EMPRESARIAIS (B2B) AFETOS À ROTA', 40, currentY, 8, true, '1 1 1');
     p.drawText('CONFORMIDADE', 485, currentY, 8, true, '1 1 1');
     currentY -= 18;
 
@@ -488,13 +501,13 @@ export function gerarPdfFolhaCargaCarrinhas(dataAmanhaStr: string): Buffer {
     // 3. ENCOMENDAS ADICIONAIS AO DOMICÍLIO
     currentY -= 6;
     p.drawRect(35, currentY - 5, 525, 16, '0.4 0.25 0.15', null);
-    p.drawText('3. ENCOMENDAS ADICIONAIS AO DOMICILIO', 40, currentY, 8, true, '1 1 1');
+    p.drawText('3. ENCOMENDAS ADICIONAIS AO DOMICÍLIO', 40, currentY, 8, true, '1 1 1');
     p.drawText('ESTADO', 485, currentY, 8, true, '1 1 1');
     currentY -= 18;
 
     if (r.encomendasDomicilio.length === 0) {
-      p.drawText('Sem encomendas adicionais ao domicilio para esta data.', 45, currentY, 8, false, '0.5 0.5 0.5');
-      currentY -= 18;
+      p.drawText('Sem encomendas adicionais ao domicílio para esta data.', 45, currentY, 8, false, '0.5 0.5 0.5');
+      currentY -= 25;
     } else {
       r.encomendasDomicilio.forEach((enc, eIdx) => {
         const descr = `${enc.cliente} - ${enc.morada}`;
@@ -520,14 +533,21 @@ export function gerarPdfFolhaCargaCarrinhas(dataAmanhaStr: string): Buffer {
         }
         currentY -= (rowHeight + 3);
       });
+      currentY -= 6;
     }
 
     // 4. RESUMO GERAL E ASSINATURAS
-    currentY -= 12;
-    p.drawRect(35, currentY - 15, 525, 48, '0.97 0.97 0.95', '0.85 0.85 0.8');
-    p.drawText(`TOTAL GERAL A BORDO: ${r.totalUnidades} Unidades | Volume Estimado: ${r.caixasEstimadas} Caixas`, 45, currentY + 18, 9, true, '0.1 0.1 0.1');
-    p.drawText('Conferido Expedicao: ________________________', 45, currentY, 8, false, '0.3 0.3 0.3');
-    p.drawText(`Assinatura do Motorista (${r.condutor}): ________________________`, 280, currentY, 8, false, '0.3 0.3 0.3');
+    currentY -= 10;
+    const boxHeight = 48;
+    if (currentY - boxHeight < 50) {
+      p = doc.addPage();
+      currentY = 780;
+    }
+    p.drawRect(35, currentY - boxHeight, 525, boxHeight, '0.97 0.97 0.95', '0.85 0.85 0.8');
+    p.drawText(`TOTAL GERAL A BORDO: ${r.totalUnidades} Unidades | Volume Estimado: ~${r.caixasEstimadas} Caixas`, 45, currentY - 16, 9, true, '0.1 0.1 0.1');
+    p.drawText('Conferido Expedição: ________________________', 45, currentY - 34, 8, false, '0.3 0.3 0.3');
+    p.drawText(`Assinatura do Motorista (${r.condutor}): ________________________`, 280, currentY - 34, 8, false, '0.3 0.3 0.3');
+    currentY -= boxHeight;
   });
 
   return doc.toBuffer();

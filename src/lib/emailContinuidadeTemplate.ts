@@ -62,8 +62,8 @@ export function gerarEmailContinuidadeHTML(dataHoje: string, resumoOperacional?:
 
       <p style="font-size: 13px; color: #4b5563; line-height: 1.5;">
         <strong>Documentos Oficiais em Anexo:</strong><br />
-        📄 <code>Folha_Fabrico_Lojas_${dataHoje.replace(/\//g, '-')}.pdf</code> (Folha de Encomendas discriminada por loja)<br />
-        🚚 <code>Folha_Carga_7_Carrinhas_${dataHoje.replace(/\//g, '-')}.pdf</code> (Folha de Carga com Base Diária, B2B e Domicílios)
+        📄 <code>Folha_Fabrico_${dataHoje.replace(/\//g, '-')}.pdf</code> (Folha de Encomendas discriminada por loja)<br />
+        🚚 <code>Folha_Carga_Rotas_${dataHoje.replace(/\//g, '-')}.pdf</code> (Folha de Carga com Base Diária, B2B e Domicílios)
       </p>
 
       <!-- RODAPÉ APROVADO COM SALVAGUARDA BCP 00h15 -->
@@ -131,8 +131,8 @@ Resumo da Operação Agendada:
 ${resumoTexto}
 
 Documentos Oficiais em Anexo:
-- Folha_Fabrico_Lojas_${dataHoje.replace(/\//g, '-')}.pdf (Folha de Encomendas discriminada por loja)
-- Folha_Carga_7_Carrinhas_${dataHoje.replace(/\//g, '-')}.pdf (Folha de Carga com Base Diária, B2B e Domicílios)
+- Folha_Fabrico_${dataHoje.replace(/\//g, '-')}.pdf (Folha de Encomendas discriminada por loja)
+- Folha_Carga_Rotas_${dataHoje.replace(/\//g, '-')}.pdf (Folha de Carga com Base Diária, B2B e Domicílios)
 
 ____________________________________________________________________
 

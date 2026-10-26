@@ -47,8 +47,8 @@ export async function GET(request: Request) {
     const bufferFabrico = gerarPdfFolhaFabricoLojas(dataHojeStr);
     const bufferCargas = gerarPdfFolhaCargaCarrinhas(dataHojeStr);
 
-    const nomeFicheiroFabrico = `Folha_Fabrico_Lojas_${dataHojeStr.replace(/\//g, '-')}.pdf`;
-    const nomeFicheiroCarga = `Folha_Carga_7_Carrinhas_${dataHojeStr.replace(/\//g, '-')}.pdf`;
+    const nomeFicheiroFabrico = `Folha_Fabrico_${dataHojeStr.replace(/\//g, '-')}.pdf`;
+    const nomeFicheiroCarga = `Folha_Carga_Rotas_${dataHojeStr.replace(/\//g, '-')}.pdf`;
 
     // 4. Disparo através da API REST oficial da Resend com os dois PDFs em anexo
     const resendResponse = await fetch('https://api.resend.com/emails', {
