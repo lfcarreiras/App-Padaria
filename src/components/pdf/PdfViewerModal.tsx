@@ -411,9 +411,21 @@ export function PdfViewerModal({
         overflow: visible !important;
         max-height: none !important;
         box-shadow: none !important;
+        background-color: transparent !important;
+        background-image: none !important;
+        color: #000000 !important;
+        -webkit-print-color-adjust: economy !important;
+        print-color-adjust: economy !important;
       }
       #pdf-print-root .print\\:hidden {
         display: none !important;
+      }
+      #pdf-print-root table,
+      #pdf-print-root th,
+      #pdf-print-root td,
+      #pdf-print-root div,
+      #pdf-print-root span {
+        border-color: #555555 !important;
       }
     `;
     document.head.appendChild(styleEl);
@@ -707,7 +719,7 @@ export function PdfViewerModal({
                   </p>
                 </div>
                 <div className="text-left sm:text-right">
-                  <span className="inline-block px-3 py-1 rounded-lg bg-gray-900 text-white font-black text-xs uppercase tracking-wider">
+                  <span className="inline-block px-3 py-1 rounded-lg border-2 border-stone-800 text-stone-900 bg-white font-black text-xs uppercase tracking-wider">
                     Guia de Carga de Expedição
                   </span>
                   <p className="text-xs font-bold text-gray-700 mt-1">Data: {dataFormatada}</p>
@@ -715,10 +727,10 @@ export function PdfViewerModal({
               </div>
 
               {/* Informações da Rota e Viatura */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-gray-50 p-4 rounded-2xl border border-gray-200 text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white p-4 rounded-2xl border border-stone-300 text-xs">
                 <div>
                   <span className="block font-bold text-gray-500 uppercase text-[10px]">Identificação da Rota</span>
-                  <span className="font-black text-base text-blue-900">
+                  <span className="font-black text-base text-stone-900">
                     {carrinha?.rota || carrinha?.identificador || 'Rota'}
                   </span>
                 </div>
@@ -730,7 +742,7 @@ export function PdfViewerModal({
                 </div>
                 <div>
                   <span className="block font-bold text-gray-500 uppercase text-[10px]">Matrícula</span>
-                  <span className="font-mono font-black text-gray-900 bg-white px-2 py-0.5 rounded border border-gray-300 inline-block">
+                  <span className="font-mono font-black text-gray-900 bg-white px-2 py-0.5 rounded border border-stone-400 inline-block">
                     {carrinha?.matricula || '00-00-00'}
                   </span>
                 </div>
@@ -742,51 +754,51 @@ export function PdfViewerModal({
                 </div>
               </div>
 
-              {/* Resumo de Carga Total da Viatura */}
+              {/* Resumo de Carga Total da Viatura (Economia de Tinteiro - Sem Fundo de Preenchimento) */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200">
-                  <span className="text-[10px] font-bold text-blue-900 uppercase block">1. Base Diária Rota</span>
-                  <span className="text-2xl font-black text-blue-950 font-mono">{totalBaseDiaria} un.</span>
-                  <span className="text-[10px] text-blue-700 block mt-0.5">~ {totalBaseCaixas} caixas est.</span>
+                <div className="p-3.5 rounded-xl bg-white border border-stone-300">
+                  <span className="text-[10px] font-bold text-stone-600 uppercase block">1. Base Diária Rota</span>
+                  <span className="text-2xl font-black text-stone-950 font-mono">{totalBaseDiaria} un.</span>
+                  <span className="text-[10px] text-stone-500 block mt-0.5">~ {totalBaseCaixas} caixas est.</span>
                 </div>
-                <div className="p-3.5 rounded-xl bg-purple-50 border border-purple-200">
-                  <span className="text-[10px] font-bold text-purple-900 uppercase block">2. Clientes B2B</span>
-                  <span className="text-2xl font-black text-purple-950 font-mono">{totalB2B} un.</span>
-                  <span className="text-[10px] text-purple-700 block mt-0.5">{clientesB2BComCarga.length} paragens com carga</span>
+                <div className="p-3.5 rounded-xl bg-white border border-stone-300">
+                  <span className="text-[10px] font-bold text-stone-600 uppercase block">2. Clientes B2B</span>
+                  <span className="text-2xl font-black text-stone-950 font-mono">{totalB2B} un.</span>
+                  <span className="text-[10px] text-stone-500 block mt-0.5">{clientesB2BComCarga.length} paragens com carga</span>
                 </div>
-                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200">
-                  <span className="text-[10px] font-bold text-amber-900 uppercase block">3. Encomendas</span>
-                  <span className="text-2xl font-black text-amber-950 font-mono">{totalEncomendas} un.</span>
-                  <span className="text-[10px] text-amber-700 block mt-0.5">{encomendasComCarga.length} entregas domicílio</span>
+                <div className="p-3.5 rounded-xl bg-white border border-stone-300">
+                  <span className="text-[10px] font-bold text-stone-600 uppercase block">3. Encomendas</span>
+                  <span className="text-2xl font-black text-stone-950 font-mono">{totalEncomendas} un.</span>
+                  <span className="text-[10px] text-stone-500 block mt-0.5">{encomendasComCarga.length} entregas domicílio</span>
                 </div>
-                <div className="p-3.5 rounded-xl bg-gray-900 text-white border border-gray-800">
-                  <span className="text-[10px] font-bold text-amber-400 uppercase block">Total Geral a Bordo</span>
-                  <span className="text-2xl font-black text-white font-mono">{totalGeralCarga} un.</span>
-                  <span className="text-[10px] text-gray-300 block mt-0.5">~ {totalGeralCaixasEstimadas} caixas total</span>
+                <div className="p-3.5 rounded-xl bg-white border-2 border-stone-900 text-stone-900">
+                  <span className="text-[10px] font-bold text-stone-600 uppercase block">Total Geral a Bordo</span>
+                  <span className="text-2xl font-black text-stone-950 font-mono">{totalGeralCarga} un.</span>
+                  <span className="text-[10px] text-stone-500 block mt-0.5">~ {totalGeralCaixasEstimadas} caixas total</span>
                 </div>
               </div>
 
               {/* Tabela de Artigos Carregados (Quantidades Consolidadas da Base Diária) */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-xs font-black uppercase text-gray-700 flex items-center gap-1.5">
-                    <Package className="h-4 w-4 text-blue-600" />
+                  <h3 className="text-xs font-black uppercase text-stone-900 flex items-center gap-1.5">
+                    <Package className="h-4 w-4 text-stone-700" />
                     1. Quantidades da Base Diária Carregadas na Viatura (Abastecimento Rota + Particulares)
                   </h3>
-                  <span className="text-[11px] text-gray-500 font-bold">
+                  <span className="text-[11px] text-stone-600 font-bold">
                     {itensCarga.length} artigos na rota
                   </span>
                 </div>
-                <table className="w-full text-xs border border-gray-300 border-collapse">
+                <table className="w-full text-xs border border-stone-300 border-collapse">
                   <thead>
-                    <tr className="bg-gray-100 text-gray-800 border-b border-gray-300 font-black">
+                    <tr className="bg-white text-stone-900 border-b-2 border-stone-800 font-black">
                       <th className="py-2.5 px-4 text-left">Artigo / Produto</th>
                       <th className="py-2.5 px-3 text-center w-28">Setor</th>
                       <th className="py-2.5 px-4 text-right w-36">Quantidade Base</th>
                       <th className="py-2.5 px-4 text-left w-48">Conferência / Visto</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-stone-200">
                     {itensCarga.length === 0 ? (
                       <tr>
                         <td colSpan={4} className="py-4 text-center text-gray-400">
@@ -795,12 +807,12 @@ export function PdfViewerModal({
                       </tr>
                     ) : (
                       itensCarga.map((item, idx) => (
-                        <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
+                        <tr key={idx} className="bg-white border-b border-stone-150">
                           <td className="py-2.5 px-4 font-bold text-gray-900">{item.nome}</td>
                           <td className="py-2.5 px-3 text-center capitalize text-gray-600 font-medium">
                             {item.categoria}
                           </td>
-                          <td className="py-2.5 px-4 text-right font-mono font-black text-blue-900">
+                          <td className="py-2.5 px-4 text-right font-mono font-black text-stone-900">
                             {item.quantidade} {normalizarUnidade(item.unidade)}
                           </td>
                           <td className="py-2.5 px-4 text-gray-500">
@@ -811,10 +823,10 @@ export function PdfViewerModal({
                     )}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-gray-100 font-black border-t-2 border-gray-400">
+                    <tr className="bg-white font-black border-t-2 border-stone-900">
                       <td className="py-2.5 px-4">SUBTOTAL BASE DIÁRIA (ROTA)</td>
                       <td className="py-2.5 px-3 text-center">-</td>
-                      <td className="py-2.5 px-4 text-right font-mono text-sm text-blue-950">
+                      <td className="py-2.5 px-4 text-right font-mono text-sm text-stone-950">
                         {totalBaseDiaria} un.
                       </td>
                       <td className="py-2.5 px-4 text-gray-600">Conforme padrão de saída</td>
@@ -826,8 +838,8 @@ export function PdfViewerModal({
               {/* NO FIM DA TABELA: DESDOBRAMENTO DAS QUANTIDADES DIVIDIDAS POR CLIENTE EMPRESARIAL */}
               <div className="pt-4 border-t-2 border-gray-300 space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-black uppercase text-purple-950 flex items-center gap-1.5">
-                    <Building2 className="h-4 w-4 text-purple-700" />
+                  <h3 className="text-xs font-black uppercase text-stone-900 flex items-center gap-1.5">
+                    <Building2 className="h-4 w-4 text-stone-700" />
                     2. Desdobramento de Entregas por Cliente Empresarial (B2B)
                   </h3>
                   <span className="text-[11px] font-bold text-gray-500">
@@ -836,28 +848,28 @@ export function PdfViewerModal({
                 </div>
 
                 {clientesB2BComCarga.length === 0 ? (
-                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-500 text-center">
+                  <div className="p-3 rounded-xl bg-white border border-stone-300 text-xs text-gray-500 text-center">
                     Esta rota não tem entregas de clientes empresariais (B2B) agendadas para {diaSemana.toUpperCase()}. Distribuição porta-a-porta e particulares.
                   </div>
                 ) : (
                   <div className="space-y-4">
                     {clientesB2BComCarga.map((cli) => (
-                      <div key={cli.id} className="border border-purple-200 rounded-xl overflow-hidden bg-white shadow-2xs">
-                        <div className="bg-purple-50/80 px-3 py-2 border-b border-purple-200 flex flex-wrap items-center justify-between gap-2">
+                      <div key={cli.id} className="border border-stone-300 rounded-xl overflow-hidden bg-white shadow-2xs">
+                        <div className="bg-white px-3 py-2 border-b border-stone-300 flex flex-wrap items-center justify-between gap-2">
                           <div>
-                            <span className="font-black text-xs text-purple-950">{cli.nome}</span>
+                            <span className="font-black text-xs text-stone-950">{cli.nome}</span>
                             <span className="text-[10px] text-gray-600 block">
                               {cli.morada || 'Arouca'} {cli.telefone ? `• Tel: ${cli.telefone}` : ''} {cli.nif ? `• NIF: ${cli.nif}` : ''}
                             </span>
                           </div>
-                          <span className="font-mono font-black text-xs bg-purple-600 text-white px-2.5 py-0.5 rounded-full">
+                          <span className="font-mono font-black text-xs bg-white border border-stone-800 text-stone-900 px-2.5 py-0.5 rounded-full">
                             Total Cliente: {cli.totalCli} un.
                           </span>
                         </div>
 
                         <table className="w-full text-xs border-collapse">
                           <thead>
-                            <tr className="bg-gray-50 text-gray-700 border-b border-gray-200 font-bold text-[11px]">
+                            <tr className="bg-white text-stone-900 border-b border-stone-300 font-bold text-[11px]">
                               <th className="py-1.5 px-3 text-left">Artigo / Produto</th>
                               <th className="py-1.5 px-3 text-right w-28">Quantidade</th>
                               <th className="py-1.5 px-3 text-center w-36">Conferência de Entrega</th>
@@ -865,9 +877,9 @@ export function PdfViewerModal({
                           </thead>
                           <tbody className="divide-y divide-gray-100">
                             {cli.itensDoCli.map((item: any, i: number) => (
-                              <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}>
+                              <tr key={i} className="bg-white border-b border-stone-100">
                                 <td className="py-1.5 px-3 font-semibold text-gray-900">{item.artigo}</td>
-                                <td className="py-1.5 px-3 text-right font-mono font-black text-purple-950">
+                                <td className="py-1.5 px-3 text-right font-mono font-black text-stone-900">
                                   {item.quantidade} un.
                                 </td>
                                 <td className="py-1.5 px-3 text-center text-gray-400 text-[11px]">
@@ -881,7 +893,7 @@ export function PdfViewerModal({
                     ))}
 
                     {/* Subtotal Clientes B2B */}
-                    <div className="p-2.5 bg-purple-50 border border-purple-200 rounded-xl flex items-center justify-between text-xs font-black text-purple-950">
+                    <div className="p-2.5 bg-white border border-stone-400 rounded-xl flex items-center justify-between text-xs font-black text-stone-950">
                       <span>SUBTOTAL CLIENTES B2B</span>
                       <span className="font-mono">{totalB2B} un. ({clientesB2BComCarga.length} paragens)</span>
                     </div>
@@ -892,8 +904,8 @@ export function PdfViewerModal({
               {/* NO FIM DA TABELA: DESDOBRAMENTO DE ENCOMENDAS ADICIONAIS DA ROTA */}
               <div className="pt-4 border-t-2 border-gray-300 space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-black uppercase text-amber-950 flex items-center gap-1.5">
-                    <ShoppingBag className="h-4 w-4 text-amber-700" />
+                  <h3 className="text-xs font-black uppercase text-stone-900 flex items-center gap-1.5">
+                    <ShoppingBag className="h-4 w-4 text-stone-700" />
                     3. Desdobramento de Encomendas Adicionais ao Domicílio
                   </h3>
                   <span className="text-[11px] font-bold text-gray-500">
@@ -902,16 +914,16 @@ export function PdfViewerModal({
                 </div>
 
                 {encomendasComCarga.length === 0 ? (
-                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-500 text-center">
+                  <div className="p-3 rounded-xl bg-white border border-stone-300 text-xs text-gray-500 text-center">
                     Nenhuma encomenda adicional ao domicílio afeta a esta viatura para a data selecionada.
                   </div>
                 ) : (
                   <div className="space-y-4">
                     {encomendasComCarga.map((enc: any, i: number) => (
-                      <div key={enc.id || i} className="border border-amber-200 rounded-xl overflow-hidden bg-white shadow-2xs">
-                        <div className="bg-amber-50/80 px-3 py-2 border-b border-amber-200 flex flex-wrap items-center justify-between gap-2">
+                      <div key={enc.id || i} className="border border-stone-300 rounded-xl overflow-hidden bg-white shadow-2xs">
+                        <div className="bg-white px-3 py-2 border-b border-stone-300 flex flex-wrap items-center justify-between gap-2">
                           <div className="flex flex-wrap items-center gap-2 text-xs">
-                            <span className="font-mono font-black text-amber-950 bg-white px-2 py-0.5 rounded border border-amber-300">
+                            <span className="font-mono font-black text-stone-950 bg-white px-2 py-0.5 rounded border border-stone-400">
                               {enc.codigo || `#ENC-${i + 1}`}
                             </span>
                             <span className="font-bold text-gray-900">{enc.cliente?.nome || 'Cliente Particular'}</span>
@@ -919,16 +931,16 @@ export function PdfViewerModal({
                               <span className="text-gray-500 text-[11px]">Tel: {enc.cliente.telefone}</span>
                             )}
                             {enc.hora_agendamento && (
-                              <span className="text-amber-800 text-[11px] font-bold">⏰ {enc.hora_agendamento}</span>
+                              <span className="text-stone-800 text-[11px] font-bold">⏰ {enc.hora_agendamento}</span>
                             )}
                           </div>
-                          <span className="font-mono font-black text-xs bg-amber-600 text-white px-2.5 py-0.5 rounded-full">
+                          <span className="font-mono font-black text-xs bg-white border border-stone-800 text-stone-900 px-2.5 py-0.5 rounded-full">
                             Total Encomenda: {enc.totalEnc} un.
                           </span>
                         </div>
 
                         {(enc.cliente?.morada || enc.notas_cliente || enc.observacoes_producao) && (
-                          <div className="px-3 py-1 bg-amber-50/40 border-b border-amber-100 text-[11px] text-amber-900 space-x-2">
+                          <div className="px-3 py-1 bg-white border-b border-stone-200 text-[11px] text-stone-800 space-x-2">
                             {enc.cliente?.morada && <span><b>Morada:</b> {enc.cliente.morada}</span>}
                             {enc.notas_cliente && <span>• <b>Obs:</b> {enc.notas_cliente}</span>}
                           </div>
@@ -936,7 +948,7 @@ export function PdfViewerModal({
 
                         <table className="w-full text-xs border-collapse">
                           <thead>
-                            <tr className="bg-gray-50 text-gray-700 border-b border-gray-200 font-bold text-[11px]">
+                            <tr className="bg-white text-stone-900 border-b border-stone-300 font-bold text-[11px]">
                               <th className="py-1.5 px-3 text-left">Artigo / Encomenda</th>
                               <th className="py-1.5 px-3 text-right w-28">Quantidade</th>
                               <th className="py-1.5 px-3 text-center w-36">Conferência de Entrega</th>
@@ -944,9 +956,9 @@ export function PdfViewerModal({
                           </thead>
                           <tbody className="divide-y divide-gray-100">
                             {enc.itensValidos.map((item: any, itIdx: number) => (
-                              <tr key={itIdx} className={itIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}>
+                              <tr key={itIdx} className="bg-white border-b border-stone-100">
                                 <td className="py-1.5 px-3 font-semibold text-gray-900">{item.produto_nome}</td>
-                                <td className="py-1.5 px-3 text-right font-mono font-black text-amber-950">
+                                <td className="py-1.5 px-3 text-right font-mono font-black text-stone-900">
                                   {item.quantidade} {item.unidade}
                                 </td>
                                 <td className="py-1.5 px-3 text-center text-gray-400 text-[11px]">
@@ -960,7 +972,7 @@ export function PdfViewerModal({
                     ))}
 
                     {/* Subtotal Encomendas Adicionais */}
-                    <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between text-xs font-black text-amber-950">
+                    <div className="p-2.5 bg-white border border-stone-400 rounded-xl flex items-center justify-between text-xs font-black text-stone-950">
                       <span>SUBTOTAL ENCOMENDAS ADICIONAIS</span>
                       <span className="font-mono">{totalEncomendas} un. ({encomendasComCarga.length} entregas)</span>
                     </div>
@@ -968,11 +980,11 @@ export function PdfViewerModal({
                 )}
               </div>
 
-              {/* RESUMO GERAL CONSOLIDADO DA GUIA DE CARGA */}
-              <div className="p-4 bg-gray-900 text-white rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+              {/* RESUMO GERAL CONSOLIDADO DA GUIA DE CARGA (SEM FUNDO PREENCHIDO) */}
+              <div className="p-4 bg-white border-2 border-stone-900 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-stone-900">
                 <div className="space-y-1">
-                  <span className="text-[10px] uppercase text-gray-400 font-bold block">Resumo Consolidado de Carga</span>
-                  <div className="text-gray-300 text-[11px] space-x-3">
+                  <span className="text-[10px] uppercase text-stone-600 font-bold block">Resumo Consolidado de Carga</span>
+                  <div className="text-stone-800 text-[11px] space-x-3">
                     <span>1. Base Diária: <b>{totalBaseDiaria} un.</b></span>
                     <span>•</span>
                     <span>2. B2B: <b>{totalB2B} un.</b></span>
@@ -981,9 +993,9 @@ export function PdfViewerModal({
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] uppercase text-amber-400 font-bold block">Total Geral a Bordo</span>
-                  <span className="text-xl font-black text-amber-400">{totalGeralCarga} un.</span>
-                  <span className="text-[10px] text-gray-400 block mt-0.5">~ {totalGeralCaixasEstimadas} caixas estimadas</span>
+                  <span className="text-[10px] uppercase text-stone-600 font-bold block">Total Geral a Bordo</span>
+                  <span className="text-xl font-black text-stone-950">{totalGeralCarga} un.</span>
+                  <span className="text-[10px] text-stone-500 block mt-0.5">~ {totalGeralCaixasEstimadas} caixas estimadas</span>
                 </div>
               </div>
 
@@ -991,14 +1003,14 @@ export function PdfViewerModal({
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200 text-xs">
                 <div>
                   <span className="font-bold text-gray-600 block mb-1">Responsável pelo Carregamento:</span>
-                  <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-200">
+                  <div className="p-2.5 rounded-xl bg-white border border-stone-300">
                     <p className="font-bold text-gray-900">{carrinha?.nome_condutor || 'Condutor Responsável'}</p>
                     <p className="text-[10px] text-gray-500 font-mono mt-0.5">Viatura: {carrinha?.matricula || 'Frota'}</p>
                   </div>
                 </div>
                 <div>
                   <span className="font-bold text-gray-600 block mb-1">Conferência da Expedição:</span>
-                  <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-200 text-center text-gray-400 py-3">
+                  <div className="p-2.5 rounded-xl bg-white border border-stone-300 text-center text-gray-500 py-3">
                     Visto do Centro de Expedição [ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ]
                   </div>
                 </div>
@@ -1012,7 +1024,7 @@ export function PdfViewerModal({
           {tipo === 'comprovativo_b2b' && (
             <div className="space-y-6">
               {/* Cabeçalho */}
-              <div className="border-b-2 border-indigo-900 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="border-b-2 border-stone-800 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h1 className="text-xl sm:text-2xl font-black tracking-tight text-gray-900 uppercase">
                     Padaria da Vila
@@ -1025,7 +1037,7 @@ export function PdfViewerModal({
                   </p>
                 </div>
                 <div className="text-left sm:text-right">
-                  <span className="inline-block px-3 py-1 rounded-lg bg-indigo-900 text-white font-black text-xs uppercase tracking-wider">
+                  <span className="inline-block px-3 py-1 rounded-lg border-2 border-stone-800 text-stone-900 bg-white font-black text-xs uppercase tracking-wider">
                     Comprovativo de Entrega B2B
                   </span>
                   <p className="text-xs font-bold text-gray-700 mt-1">Guia Nº: B2B-{clienteB2B?.id?.substring(0, 8).toUpperCase()}</p>
@@ -1035,8 +1047,8 @@ export function PdfViewerModal({
 
               {/* Dados do Cliente Empresarial e Transporte */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-200 text-xs space-y-1">
-                  <span className="font-black text-indigo-950 uppercase text-[10px] block">
+                <div className="p-4 rounded-2xl bg-white border border-stone-300 text-xs space-y-1">
+                  <span className="font-black text-stone-900 uppercase text-[10px] block">
                     Entidade / Destinatário
                   </span>
                   <h2 className="text-base font-black text-gray-900">{clienteB2B?.nome}</h2>
@@ -1045,8 +1057,8 @@ export function PdfViewerModal({
                   <p className="text-gray-600"><span className="font-bold">Telefone:</span> {clienteB2B?.telemovel || clienteB2B?.telefone || 'N/A'}</p>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 text-xs space-y-1">
-                  <span className="font-black text-gray-700 uppercase text-[10px] block">
+                <div className="p-4 rounded-2xl bg-white border border-stone-300 text-xs space-y-1">
+                  <span className="font-black text-stone-900 uppercase text-[10px] block">
                     Logística & Transporte
                   </span>
                   <p className="text-gray-700"><span className="font-bold">Rota:</span> {carrinha?.rota || 'Rota de Entrega'}</p>
@@ -1061,16 +1073,16 @@ export function PdfViewerModal({
                 <h3 className="text-xs font-black uppercase text-gray-700 mb-2">
                   Artigos Entregues Conformes
                 </h3>
-                <table className="w-full text-xs border border-gray-300 border-collapse">
+                <table className="w-full text-xs border border-stone-300 border-collapse">
                   <thead>
-                    <tr className="bg-indigo-950 text-white border-b border-indigo-900">
+                    <tr className="bg-white text-stone-900 border-b-2 border-stone-800">
                       <th className="py-2.5 px-3 text-left font-black">Produto / Artigo</th>
                       <th className="py-2.5 px-3 text-right font-black w-28">Quantidade</th>
                       <th className="py-2.5 px-3 text-center font-black w-24">Unidade</th>
                       <th className="py-2.5 px-3 text-center font-black w-28">Estado</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-stone-200">
                     {(() => {
                       const semana = (clienteB2B?.quantidades_semanais || clienteB2B?.quantidades_semana || {}) as Record<string, Record<string, number>>;
                       const mapa = semana[diaSemana] || {};
@@ -1107,14 +1119,14 @@ export function PdfViewerModal({
                       }
 
                       return linhas.map(([artigo, qtd], i) => (
-                        <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
+                        <tr key={i} className="bg-white border-b border-stone-200">
                           <td className="py-2 px-3 font-bold text-gray-900">{artigo}</td>
-                          <td className="py-2 px-3 text-right font-mono font-black text-indigo-950 text-sm">
+                          <td className="py-2 px-3 text-right font-mono font-black text-stone-900 text-sm">
                             {qtd}
                           </td>
                           <td className="py-2 px-3 text-center text-gray-600">un.</td>
                           <td className="py-2 px-3 text-center">
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-stone-800 bg-white px-2 py-0.5 rounded-full border border-stone-400">
                               <CheckCircle2 className="h-3 w-3 text-emerald-600" /> Conforme
                             </span>
                           </td>
@@ -1123,9 +1135,9 @@ export function PdfViewerModal({
                     })()}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-gray-100 font-black border-t-2 border-gray-400">
+                    <tr className="bg-white font-black border-t-2 border-stone-800 text-stone-950">
                       <td className="py-2.5 px-3">TOTAL DE ARTIGOS RECEPCIONADOS</td>
-                      <td className="py-2.5 px-3 text-right font-mono text-base text-indigo-950">
+                      <td className="py-2.5 px-3 text-right font-mono text-base text-stone-950">
                         {(() => {
                           const semana = (clienteB2B?.quantidades_semanais || clienteB2B?.quantidades_semana || {}) as Record<string, Record<string, number>>;
                           const mapa = semana[diaSemana] || {};
@@ -1153,21 +1165,21 @@ export function PdfViewerModal({
                         })()} un.
                       </td>
                       <td className="py-2.5 px-3 text-center">un.</td>
-                      <td className="py-2.5 px-3 text-center text-emerald-700 font-bold">100% Entregue</td>
+                      <td className="py-2.5 px-3 text-center text-stone-800 font-bold">100% Entregue</td>
                     </tr>
                   </tfoot>
                 </table>
               </div>
 
               {/* Área de Validação e Assinatura Digital */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 border-t-2 border-gray-200 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 border-t-2 border-stone-300 text-xs">
                 <div>
                   <span className="font-bold text-gray-600 block mb-1">Entregue por (Padaria da Vila):</span>
                   <p className="text-gray-800 font-bold">{nomeCondutor || carrinha?.nome_condutor || 'Motorista de Serviço'}</p>
                   <p className="text-[11px] text-gray-500 font-mono mt-0.5">Viatura: {carrinha?.rota} ({matriculaCarro || 'Matrícula Oficial'})</p>
                 </div>
 
-                <div className="border border-gray-300 rounded-2xl p-4 bg-gray-50/70 text-center space-y-2">
+                <div className="border border-stone-300 rounded-2xl p-4 bg-white text-center space-y-2">
                   <span className="font-bold text-gray-700 block text-left">Recebido por (Cliente Institucional):</span>
                   
                   {assinaturaDataUrl ? (
@@ -1177,7 +1189,7 @@ export function PdfViewerModal({
                         alt="Assinatura Digital do Cliente"
                         className="max-h-20 mx-auto object-contain border-b border-gray-300 pb-1"
                       />
-                      <p className="font-bold text-indigo-950 text-xs">{nomeRecebedor || 'Responsável pela Receção'}</p>
+                      <p className="font-bold text-stone-950 text-xs">{nomeRecebedor || 'Responsável pela Receção'}</p>
                       <p className="text-[10px] text-gray-500 font-mono">Assinado Digitalmente no Telemóvel às {horaAtual}</p>
                     </div>
                   ) : (
@@ -1218,7 +1230,7 @@ export function PdfViewerModal({
                   </p>
                 </div>
                 <div className="text-left sm:text-right">
-                  <span className="inline-block px-3 py-1 rounded-lg bg-blue-700 text-white font-black text-xs uppercase tracking-wider">
+                  <span className="inline-block px-3 py-1 rounded-lg border-2 border-stone-850 text-stone-900 bg-white font-black text-xs uppercase tracking-wider">
                     Encomendas por Loja
                   </span>
                   <p className="text-xs font-bold text-stone-900 mt-1">Data: {dataFormatada}</p>
@@ -1229,40 +1241,40 @@ export function PdfViewerModal({
                 </div>
               </div>
 
-              {/* Cartões Resumo Totais de Encomendas */}
+              {/* Cartões Resumo Totais de Encomendas (Sem Fundo Preenchido) */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200">
-                  <span className="text-[10px] font-bold text-blue-900 uppercase block">Total Encomendas</span>
-                  <span className="text-2xl font-black text-blue-950 font-mono">{totalGeralEncsCount}</span>
-                  <span className="text-[10px] text-blue-700 block mt-0.5">{lojasComEncomendas.length} loja(s) ativa(s)</span>
+                <div className="p-3.5 rounded-xl bg-white border border-stone-300">
+                  <span className="text-[10px] font-bold text-stone-600 uppercase block">Total Encomendas</span>
+                  <span className="text-2xl font-black text-stone-950 font-mono">{totalGeralEncsCount}</span>
+                  <span className="text-[10px] text-stone-500 block mt-0.5">{lojasComEncomendas.length} loja(s) ativa(s)</span>
                 </div>
-                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200">
-                  <span className="text-[10px] font-bold text-amber-900 uppercase block">Total a Produzir</span>
-                  <span className="text-2xl font-black text-amber-950 font-mono">{totalGeralFabricoEncs} un.</span>
-                  <span className="text-[10px] text-amber-700 block mt-0.5">artigos encomendados</span>
+                <div className="p-3.5 rounded-xl bg-white border border-stone-300">
+                  <span className="text-[10px] font-bold text-stone-600 uppercase block">Total a Produzir</span>
+                  <span className="text-2xl font-black text-stone-950 font-mono">{totalGeralFabricoEncs} un.</span>
+                  <span className="text-[10px] text-stone-500 block mt-0.5">artigos encomendados</span>
                 </div>
-                <div className="p-3.5 rounded-xl bg-amber-100/60 border border-amber-300">
-                  <span className="text-[10px] font-bold text-amber-900 uppercase block">🥖 Padaria</span>
+                <div className="p-3.5 rounded-xl bg-white border border-stone-300">
+                  <span className="text-[10px] font-bold text-stone-600 uppercase block">🥖 Padaria</span>
                   <span className="text-2xl font-black text-stone-950 font-mono">
                     {lojasComEncomendas.reduce((acc, g) => acc + g.totalLojaPadaria, 0)} un.
                   </span>
-                  <span className="text-[10px] text-amber-800 block mt-0.5">pães e broas</span>
+                  <span className="text-[10px] text-stone-500 block mt-0.5">pães e broas</span>
                 </div>
-                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200">
-                  <span className="text-[10px] font-bold text-rose-900 uppercase block">🧁 Pastelaria</span>
-                  <span className="text-2xl font-black text-rose-950 font-mono">
+                <div className="p-3.5 rounded-xl bg-white border border-stone-300">
+                  <span className="text-[10px] font-bold text-stone-600 uppercase block">🧁 Pastelaria</span>
+                  <span className="text-2xl font-black text-stone-950 font-mono">
                     {lojasComEncomendas.reduce((acc, g) => acc + g.totalLojaPastelaria, 0)} un.
                   </span>
-                  <span className="text-[10px] text-rose-700 block mt-0.5">pastelaria e doçaria</span>
+                  <span className="text-[10px] text-stone-500 block mt-0.5">pastelaria e doçaria</span>
                 </div>
               </div>
 
               {/* Se não houver encomendas com os filtros */}
               {lojasComEncomendas.length === 0 ? (
-                <div className="p-10 text-center border-2 border-dashed border-gray-300 rounded-2xl text-gray-500">
-                  <ShoppingBag className="h-10 w-10 text-gray-400 mx-auto mb-2" />
+                <div className="p-10 text-center border-2 border-dashed border-stone-300 rounded-2xl text-stone-500 bg-white">
+                  <ShoppingBag className="h-10 w-10 text-stone-400 mx-auto mb-2" />
                   <p className="font-bold text-sm">Nenhuma encomenda encontrada para produção com os filtros selecionados.</p>
-                  <p className="text-xs text-gray-400 mt-1">Verifique a data ou altere o filtro de setor/loja.</p>
+                  <p className="text-xs text-stone-400 mt-1">Verifique a data ou altere o filtro de setor/loja.</p>
                 </div>
               ) : (
                 /* Agrupamento por Loja com quebra de página limpa */
@@ -1270,31 +1282,31 @@ export function PdfViewerModal({
                   {lojasComEncomendas.map((grupoLoja, idxLoja) => (
                     <div
                       key={grupoLoja.loja.id}
-                      className={`space-y-4 ${idxLoja > 0 ? 'print:break-before-page pt-6 border-t-2 border-dashed border-gray-300 print:pt-0 print:border-none' : ''}`}
+                      className={`space-y-4 ${idxLoja > 0 ? 'print:break-before-page pt-6 border-t-2 border-dashed border-stone-300 print:pt-0 print:border-none' : ''}`}
                     >
-                      {/* Banner da Loja */}
-                      <div className="bg-stone-900 text-white p-3.5 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-xs">
+                      {/* Banner da Loja (Sem Fundo Preenchido) */}
+                      <div className="bg-white text-stone-900 border-2 border-stone-850 p-3.5 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-none">
                         <div className="flex items-center gap-2.5">
-                          <div className="p-2 bg-amber-500 text-stone-950 rounded-xl font-black">
+                          <div className="p-2 bg-white border border-stone-400 text-stone-900 rounded-xl font-black">
                             <Store className="h-5 w-5" />
                           </div>
                           <div>
-                            <h2 className="text-base font-black uppercase tracking-tight text-white flex items-center gap-2">
+                            <h2 className="text-base font-black uppercase tracking-tight text-stone-900 flex items-center gap-2">
                               <span>{grupoLoja.loja.nome}</span>
-                              <span className="text-xs font-mono font-normal text-stone-300">({grupoLoja.encomendas.length} encomendas)</span>
+                              <span className="text-xs font-mono font-normal text-stone-500">({grupoLoja.encomendas.length} encomendas)</span>
                             </h2>
-                            <p className="text-xs text-stone-300">
+                            <p className="text-xs text-stone-600">
                               {grupoLoja.loja.morada || 'Balcão de Atendimento'} {grupoLoja.loja.telefone ? `• Tel: ${grupoLoja.loja.telefone}` : ''}
                             </p>
                           </div>
                         </div>
 
                         <div className="text-right">
-                          <span className="text-xs text-stone-400 uppercase font-bold block">Total a Produzir na Loja</span>
-                          <span className="text-xl font-black font-mono text-amber-400">
+                          <span className="text-xs text-stone-500 uppercase font-bold block">Total a Produzir na Loja</span>
+                          <span className="text-xl font-black font-mono text-stone-950">
                             {grupoLoja.totalLojaUnidades} un.
                           </span>
-                          <div className="text-[11px] text-stone-300 space-x-2 mt-0.5">
+                          <div className="text-[11px] text-stone-600 space-x-2 mt-0.5">
                             <span>🥖 {grupoLoja.totalLojaPadaria} un.</span>
                             <span>•</span>
                             <span>🧁 {grupoLoja.totalLojaPastelaria} un.</span>
@@ -1307,25 +1319,21 @@ export function PdfViewerModal({
                         {grupoLoja.encomendas.map((enc: any, idxEnc: number) => (
                           <div
                             key={enc.id || idxEnc}
-                            className="border border-stone-300 rounded-2xl overflow-hidden bg-white shadow-xs print:shadow-none print:break-inside-avoid"
+                            className="border border-stone-300 rounded-2xl overflow-hidden bg-white shadow-none print:shadow-none print:break-inside-avoid"
                           >
                             {/* Cabeçalho da Encomenda */}
-                            <div className="bg-stone-100 p-2.5 px-3.5 border-b border-stone-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+                            <div className="bg-white p-2.5 px-3.5 border-b border-stone-300 flex flex-wrap items-center justify-between gap-2 text-xs">
                               <div className="flex flex-wrap items-center gap-2">
-                                <span className="font-mono font-black text-stone-950 bg-stone-200/80 px-2.5 py-0.5 rounded-lg border border-stone-300">
+                                <span className="font-mono font-black text-stone-950 bg-white px-2.5 py-0.5 rounded-lg border border-stone-400">
                                   {enc.codigo || `#${idxEnc + 1}`}
                                 </span>
 
                                 <span className="flex items-center gap-1 font-bold text-stone-700 bg-white px-2 py-0.5 rounded-lg border border-stone-300">
-                                  <Clock className="h-3 w-3 text-amber-600" />
+                                  <Clock className="h-3 w-3 text-stone-700" />
                                   <span>{enc.hora_agendamento || '10:00'}</span>
                                 </span>
 
-                                <span className={`px-2 py-0.5 rounded-lg font-bold text-[11px] border ${
-                                  enc.tipo === 'entrega_domicilio'
-                                    ? 'bg-purple-50 text-purple-800 border-purple-200'
-                                    : 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                }`}>
+                                <span className="px-2 py-0.5 rounded-lg font-bold text-[11px] border border-stone-400 bg-white text-stone-900">
                                   {enc.tipo === 'entrega_domicilio' ? '🚚 Domicílio' : '🏪 Balcão'}
                                 </span>
                               </div>
@@ -1346,7 +1354,7 @@ export function PdfViewerModal({
 
                             {/* Observações da Encomenda se existirem */}
                             {(enc.notas_cliente || enc.observacoes_producao || (enc.tipo === 'entrega_domicilio' && enc.cliente?.morada)) && (
-                              <div className="px-3.5 py-1.5 bg-amber-50/60 border-b border-amber-200 text-xs text-amber-950 flex flex-wrap items-center gap-3">
+                              <div className="px-3.5 py-1.5 bg-white border-b border-stone-300 text-xs text-stone-900 flex flex-wrap items-center gap-3">
                                 {enc.notas_cliente && (
                                   <div>
                                     <span className="font-bold">Nota do Cliente:</span> {enc.notas_cliente}
@@ -1354,11 +1362,11 @@ export function PdfViewerModal({
                                 )}
                                 {enc.observacoes_producao && (
                                   <div>
-                                    <span className="font-bold text-amber-900">⚠️ Obs Produção:</span> {enc.observacoes_producao}
+                                    <span className="font-bold text-stone-900">⚠️ Obs Produção:</span> {enc.observacoes_producao}
                                   </div>
                                 )}
                                 {enc.tipo === 'entrega_domicilio' && enc.cliente?.morada && (
-                                  <div className="text-[11px] text-purple-900">
+                                  <div className="text-[11px] text-stone-900">
                                     <span className="font-bold">Morada Entrega:</span> {enc.cliente.morada}
                                   </div>
                                 )}
@@ -1368,7 +1376,7 @@ export function PdfViewerModal({
                             {/* Tabela de Artigos desta Encomenda */}
                             <table className="w-full text-xs border-collapse">
                               <thead>
-                                <tr className="bg-stone-50 text-stone-600 border-b border-stone-200 text-[11px] font-bold">
+                                <tr className="bg-white text-stone-800 border-b-2 border-stone-800 text-[11px] font-bold">
                                   <th className="py-1.5 px-3.5 text-left">Artigo / Produto a Produzir</th>
                                   <th className="py-1.5 px-2 text-center w-24">Setor</th>
                                   <th className="py-1.5 px-3 text-right w-24">Quantidade</th>
@@ -1376,18 +1384,14 @@ export function PdfViewerModal({
                                   <th className="py-1.5 px-3 text-center w-36">Fabrico [  ]</th>
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-stone-150">
+                              <tbody className="divide-y divide-stone-200">
                                 {enc.itensFiltrados.map((it: any, itIdx: number) => (
-                                  <tr key={it.id || itIdx} className={itIdx % 2 === 0 ? 'bg-white' : 'bg-stone-50/40'}>
+                                  <tr key={it.id || itIdx} className="bg-white border-b border-stone-100">
                                     <td className="py-2 px-3.5 font-black text-stone-900">
                                       {it.produto_nome}
                                     </td>
                                     <td className="py-2 px-2 text-center">
-                                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                        it.setor === 'pastelaria'
-                                          ? 'bg-rose-100 text-rose-800'
-                                          : 'bg-amber-100 text-amber-800'
-                                      }`}>
+                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold border border-stone-300 bg-white text-stone-800">
                                         {it.setor === 'pastelaria' ? 'Pastelaria' : 'Padaria'}
                                       </span>
                                     </td>
@@ -1396,28 +1400,28 @@ export function PdfViewerModal({
                                     </td>
                                     <td className="py-2 px-3 text-stone-700 text-[11px]">
                                       {it.notas_personalizacao ? (
-                                        <span className="font-bold text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 block">
+                                        <span className="font-bold text-stone-900 bg-white px-2 py-0.5 rounded border border-stone-300 block">
                                           {it.notas_personalizacao}
                                         </span>
                                       ) : (
                                         <span className="text-stone-400">Padrão da receita</span>
                                       )}
                                     </td>
-                                    <td className="py-2 px-3 text-center text-stone-400 font-medium whitespace-nowrap">
+                                    <td className="py-2 px-3 text-center text-stone-500 font-medium whitespace-nowrap">
                                       [ &nbsp; ] Pronto / Embalado
                                     </td>
                                   </tr>
                                 ))}
                               </tbody>
                               <tfoot>
-                                <tr className="bg-stone-100/70 border-t border-stone-200 text-stone-800 text-[11px] font-bold">
+                                <tr className="bg-white border-t border-stone-300 text-stone-800 text-[11px] font-bold">
                                   <td colSpan={2} className="py-1.5 px-3.5 text-stone-500">
                                     {enc.itensFiltrados.length} artigo(s) nesta encomenda
                                   </td>
                                   <td className="py-1.5 px-3 text-right font-mono font-black text-stone-900">
                                     {enc.totalEnc} un.
                                   </td>
-                                  <td colSpan={2} className="py-1.5 px-3 text-stone-400 text-right">
+                                  <td colSpan={2} className="py-1.5 px-3 text-stone-500 text-right">
                                     Conferência de embalamento [ &nbsp; ]
                                   </td>
                                 </tr>
@@ -1428,13 +1432,13 @@ export function PdfViewerModal({
                       </div>
 
                       {/* Subtotal da Loja */}
-                      <div className="bg-stone-100 border border-stone-300 p-2.5 px-4 rounded-xl flex flex-wrap items-center justify-between text-xs font-black text-stone-900 gap-2">
+                      <div className="bg-white border-2 border-stone-850 p-2.5 px-4 rounded-xl flex flex-wrap items-center justify-between text-xs font-black text-stone-900 gap-2">
                         <span>SUBTOTAL {grupoLoja.loja.nome.toUpperCase()}</span>
                         <div className="flex items-center gap-3 font-mono">
                           <span>{grupoLoja.encomendas.length} Encomendas</span>
-                          <span className="text-amber-800">🥖 Padaria: {grupoLoja.totalLojaPadaria} un.</span>
-                          <span className="text-rose-800">🧁 Pastelaria: {grupoLoja.totalLojaPastelaria} un.</span>
-                          <span className="text-sm bg-stone-900 text-white px-2.5 py-1 rounded-lg">
+                          <span className="text-stone-800">🥖 Padaria: {grupoLoja.totalLojaPadaria} un.</span>
+                          <span className="text-stone-800">🧁 Pastelaria: {grupoLoja.totalLojaPastelaria} un.</span>
+                          <span className="text-sm bg-white border-2 border-stone-850 text-stone-950 px-2.5 py-1 rounded-lg">
                             Total: {grupoLoja.totalLojaUnidades} un.
                           </span>
                         </div>
@@ -1444,14 +1448,14 @@ export function PdfViewerModal({
 
                   {/* Resumo Geral de Todas as Lojas (quando há mais de uma) */}
                   {lojasComEncomendas.length > 1 && (
-                    <div className="p-4 bg-stone-900 text-white rounded-2xl flex flex-wrap items-center justify-between gap-3 font-mono">
+                    <div className="p-4 bg-white border-2 border-stone-850 text-stone-900 rounded-2xl flex flex-wrap items-center justify-between gap-3 font-mono">
                       <div>
-                        <span className="text-xs uppercase text-stone-400 font-bold block">Resumo Global de Expedição</span>
+                        <span className="text-xs uppercase text-stone-500 font-bold block">Resumo Global de Expedição</span>
                         <span className="text-lg font-black">{totalGeralEncsCount} Encomendas em {lojasComEncomendas.length} Lojas</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-xs uppercase text-amber-400 font-bold block">Total Global a Produzir</span>
-                        <span className="text-2xl font-black text-amber-400">{totalGeralFabricoEncs} un.</span>
+                        <span className="text-xs uppercase text-stone-500 font-bold block">Total Global a Produzir</span>
+                        <span className="text-2xl font-black text-stone-950">{totalGeralFabricoEncs} un.</span>
                       </div>
                     </div>
                   )}
@@ -1460,13 +1464,13 @@ export function PdfViewerModal({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 border-t-2 border-stone-300 text-xs">
                     <div>
                       <span className="font-bold text-stone-600 block mb-1">Chefe de Turno de Fabrico:</span>
-                      <div className="p-3 rounded-xl bg-stone-50 border border-stone-200">
+                      <div className="p-3 rounded-xl bg-white border border-stone-300">
                         <p className="font-bold text-stone-900">Mestre Padeiro / Responsável da Pastelaria</p>
                         <p className="text-[11px] text-stone-500 mt-1">Conformidade e Embalamento HACCP</p>
                       </div>
                     </div>
 
-                    <div className="border border-stone-300 rounded-xl p-3 bg-stone-50/70 text-center space-y-1">
+                    <div className="border border-stone-300 rounded-xl p-3 bg-white text-center space-y-1">
                       <span className="font-bold text-stone-700 block text-left">Conferência de Expedição para Lojas:</span>
                       <div className="py-3 border-b border-dashed border-stone-400 text-stone-400 text-xs">
                         Assinatura / Visto do Centro de Expedição
@@ -1498,7 +1502,7 @@ export function PdfViewerModal({
                   </p>
                 </div>
                 <div className="text-left sm:text-right">
-                  <span className="inline-block px-3 py-1 rounded-lg bg-amber-600 text-white font-black text-xs uppercase tracking-wider">
+                  <span className="inline-block px-3 py-1 rounded-lg border-2 border-stone-850 text-stone-900 bg-white font-black text-xs uppercase tracking-wider">
                     Folha Diária de Fabrico
                   </span>
                   <p className="text-xs font-bold text-stone-900 mt-1">Data: {dataFormatada}</p>
@@ -1506,42 +1510,42 @@ export function PdfViewerModal({
                 </div>
               </div>
 
-              {/* Cartões Resumo Totais de Fabrico */}
+              {/* Cartões Resumo Totais de Fabrico (Sem Fundo Preenchido) */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200">
-                  <span className="text-[10px] font-bold text-amber-900 uppercase block">Total a Produzir</span>
-                  <span className="text-2xl font-black text-amber-950 font-mono">{totalFabricoUnidades} un.</span>
-                  <span className="text-[10px] text-amber-700 block mt-0.5">unidades globais</span>
+                <div className="p-3.5 rounded-xl bg-white border border-stone-300">
+                  <span className="text-[10px] font-bold text-stone-600 uppercase block">Total a Produzir</span>
+                  <span className="text-2xl font-black text-stone-950 font-mono">{totalFabricoUnidades} un.</span>
+                  <span className="text-[10px] text-stone-500 block mt-0.5">unidades globais</span>
                 </div>
-                <div className="p-3.5 rounded-xl bg-amber-100/60 border border-amber-300">
-                  <span className="text-[10px] font-bold text-amber-900 uppercase block">Setor Padaria</span>
+                <div className="p-3.5 rounded-xl bg-white border border-stone-300">
+                  <span className="text-[10px] font-bold text-stone-600 uppercase block">Setor Padaria</span>
                   <span className="text-2xl font-black text-stone-950 font-mono">{totalFabricoPadaria} un.</span>
-                  <span className="text-[10px] text-amber-800 block mt-0.5">pães e broas</span>
+                  <span className="text-[10px] text-stone-500 block mt-0.5">pães e broas</span>
                 </div>
-                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200">
-                  <span className="text-[10px] font-bold text-rose-900 uppercase block">Setor Pastelaria</span>
-                  <span className="text-2xl font-black text-rose-950 font-mono">{totalFabricoPastelaria} un.</span>
-                  <span className="text-[10px] text-rose-700 block mt-0.5">pastelaria e doçaria</span>
+                <div className="p-3.5 rounded-xl bg-white border border-stone-300">
+                  <span className="text-[10px] font-bold text-stone-600 uppercase block">Setor Pastelaria</span>
+                  <span className="text-2xl font-black text-stone-950 font-mono">{totalFabricoPastelaria} un.</span>
+                  <span className="text-[10px] text-stone-500 block mt-0.5">pastelaria e doçaria</span>
                 </div>
-                <div className="p-3.5 rounded-xl bg-stone-100 border border-stone-200">
-                  <span className="text-[10px] font-bold text-stone-700 uppercase block">Linhas de Fabrico</span>
+                <div className="p-3.5 rounded-xl bg-white border border-stone-300">
+                  <span className="text-[10px] font-bold text-stone-600 uppercase block">Linhas de Fabrico</span>
                   <span className="text-2xl font-black text-stone-900 font-mono">{itensFabrico.length}</span>
-                  <span className="text-[10px] text-stone-600 block mt-0.5">artigos distintos</span>
+                  <span className="text-[10px] text-stone-500 block mt-0.5">artigos distintos</span>
                 </div>
               </div>
 
               {/* Tabela de Padaria */}
               {itensPadaria.length > 0 && (
                 <div>
-                  <h3 className="text-xs font-black uppercase text-amber-955 mb-2 flex items-center justify-between border-b-2 border-amber-500 pb-1.5">
+                  <h3 className="text-xs font-black uppercase text-stone-900 mb-2 flex items-center justify-between border-b-2 border-stone-800 pb-1.5">
                     <span className="flex items-center gap-1.5">
                       <span>🥖</span> Setor de Padaria & Pão Tradicional
                     </span>
-                    <span className="font-mono font-bold text-amber-900">Subtotal: {totalFabricoPadaria} un.</span>
+                    <span className="font-mono font-bold text-stone-900">Subtotal: {totalFabricoPadaria} un.</span>
                   </h3>
                   <table className="w-full text-xs border border-stone-300 border-collapse mb-4">
                     <thead>
-                      <tr className="bg-amber-100/80 text-amber-950 border-b border-stone-300 font-black">
+                      <tr className="bg-white text-stone-900 border-b-2 border-stone-800 font-black">
                         <th className="py-2 px-3 text-left">Artigo / Pão</th>
                         <th className="py-2 px-3 text-right w-28">Quantidade</th>
                         <th className="py-2 px-3 text-center w-28">Encomendas</th>
@@ -1551,9 +1555,9 @@ export function PdfViewerModal({
                     </thead>
                     <tbody className="divide-y divide-stone-200">
                       {itensPadaria.map((it, idx) => (
-                        <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-amber-50/30'}>
+                        <tr key={idx} className="bg-white border-b border-stone-100">
                           <td className="py-2 px-3 font-bold text-stone-950">{it.produto_nome}</td>
-                          <td className="py-2 px-3 text-right font-mono font-black text-amber-900 text-sm">
+                          <td className="py-2 px-3 text-right font-mono font-black text-stone-950 text-sm">
                             {it.quantidade_total} {normalizarUnidade(it.unidade)}
                           </td>
                           <td className="py-2 px-3 text-center font-mono font-bold text-stone-700">
@@ -1566,7 +1570,7 @@ export function PdfViewerModal({
                                   Base: {it.qtd_bases_diarias || 0} • B2B: {it.qtd_clientes_b2b || 0} • Enc: {it.qtd_encomendas || 0}
                                 </div>
                                 {it.personalizacoes && it.personalizacoes.length > 0 && (
-                                  <div className="text-amber-800 font-medium">{it.personalizacoes.join(' • ')}</div>
+                                  <div className="text-stone-800 font-medium">{it.personalizacoes.join(' • ')}</div>
                                 )}
                               </div>
                             ) : it.personalizacoes && it.personalizacoes.length > 0 ? (
@@ -1584,7 +1588,7 @@ export function PdfViewerModal({
                       ))}
                     </tbody>
                     <tfoot>
-                      <tr className="bg-amber-100 font-black border-t-2 border-stone-400">
+                      <tr className="bg-white font-black border-t-2 border-stone-800 text-stone-950">
                         <td className="py-2 px-3">SUBTOTAL PADARIA</td>
                         <td className="py-2 px-3 text-right font-mono text-stone-950">{totalFabricoPadaria} un.</td>
                         <td colSpan={3} className="py-2 px-3"></td>
@@ -1597,15 +1601,15 @@ export function PdfViewerModal({
               {/* Tabela de Pastelaria */}
               {itensPastelaria.length > 0 && (
                 <div>
-                  <h3 className="text-xs font-black uppercase text-rose-950 mb-2 flex items-center justify-between border-b-2 border-rose-500 pb-1.5">
+                  <h3 className="text-xs font-black uppercase text-stone-900 mb-2 flex items-center justify-between border-b-2 border-stone-800 pb-1.5">
                     <span className="flex items-center gap-1.5">
                       <span>🧁</span> Setor de Pastelaria Fina & Confeitaria
                     </span>
-                    <span className="font-mono font-bold text-rose-900">Subtotal: {totalFabricoPastelaria} un.</span>
+                    <span className="font-mono font-bold text-stone-900">Subtotal: {totalFabricoPastelaria} un.</span>
                   </h3>
                   <table className="w-full text-xs border border-stone-300 border-collapse mb-4">
                     <thead>
-                      <tr className="bg-rose-100/80 text-rose-950 border-b border-stone-300 font-black">
+                      <tr className="bg-white text-stone-900 border-b-2 border-stone-800 font-black">
                         <th className="py-2 px-3 text-left">Artigo / Doce</th>
                         <th className="py-2 px-3 text-right w-28">Quantidade</th>
                         <th className="py-2 px-3 text-center w-28">Encomendas</th>
@@ -1615,9 +1619,9 @@ export function PdfViewerModal({
                     </thead>
                     <tbody className="divide-y divide-stone-200">
                       {itensPastelaria.map((it, idx) => (
-                        <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-rose-50/30'}>
+                        <tr key={idx} className="bg-white border-b border-stone-100">
                           <td className="py-2 px-3 font-bold text-stone-950">{it.produto_nome}</td>
-                          <td className="py-2 px-3 text-right font-mono font-black text-rose-900 text-sm">
+                          <td className="py-2 px-3 text-right font-mono font-black text-stone-950 text-sm">
                             {it.quantidade_total} {normalizarUnidade(it.unidade)}
                           </td>
                           <td className="py-2 px-3 text-center font-mono font-bold text-stone-700">
@@ -1630,7 +1634,7 @@ export function PdfViewerModal({
                                   Base: {it.qtd_bases_diarias || 0} • B2B: {it.qtd_clientes_b2b || 0} • Enc: {it.qtd_encomendas || 0}
                                 </div>
                                 {it.personalizacoes && it.personalizacoes.length > 0 && (
-                                  <div className="text-amber-800 font-medium">{it.personalizacoes.join(' • ')}</div>
+                                  <div className="text-stone-800 font-medium">{it.personalizacoes.join(' • ')}</div>
                                 )}
                               </div>
                             ) : it.personalizacoes && it.personalizacoes.length > 0 ? (
@@ -1648,7 +1652,7 @@ export function PdfViewerModal({
                       ))}
                     </tbody>
                     <tfoot>
-                      <tr className="bg-rose-100 font-black border-t-2 border-stone-400">
+                      <tr className="bg-white font-black border-t-2 border-stone-800 text-stone-950">
                         <td className="py-2 px-3">SUBTOTAL PASTELARIA</td>
                         <td className="py-2 px-3 text-right font-mono text-stone-950">{totalFabricoPastelaria} un.</td>
                         <td colSpan={3} className="py-2 px-3"></td>
@@ -1662,13 +1666,13 @@ export function PdfViewerModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 border-t-2 border-stone-300 text-xs">
                 <div>
                   <span className="font-bold text-stone-600 block mb-1">Chefe de Turno de Fabrico:</span>
-                  <div className="p-3 rounded-xl bg-stone-50 border border-stone-200">
+                  <div className="p-3 rounded-xl bg-white border border-stone-300">
                     <p className="font-bold text-stone-900">Mestre Padeiro / Responsável da Produção</p>
                     <p className="text-[11px] text-stone-500 mt-1">Conforme Normas HACCP</p>
                   </div>
                 </div>
 
-                <div className="border border-stone-300 rounded-xl p-3 bg-stone-50/70 text-center space-y-1">
+                <div className="border border-stone-300 rounded-xl p-3 bg-white text-center space-y-1">
                   <span className="font-bold text-stone-700 block text-left">Validação de Saída das Fornadas:</span>
                   <div className="py-3 border-b border-dashed border-stone-400 text-stone-400 text-xs">
                     Assinatura / Visto do Chefe de Produção

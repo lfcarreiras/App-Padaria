@@ -2,7 +2,34 @@
  * Construtor Nativo de PDFs de Continuidade de Negócio (BCP)
  * Gera ficheiros binários PDF 1.4 em memória para envio como anexos no Resend.
  * Formatação dinâmica (Auto-Wrap / Multi-line) que se molda ao tamanho do texto sem qualquer corte.
+ * Economia de Tinteiro: Layout Wireframe sem fundos preenchidos (100% fundo branco e linhas de contorno finas).
  */
+
+import {
+  Loja,
+  Carrinha,
+  Produto,
+  Encomenda,
+  ClienteEmpresarialB2B,
+  BaseDiariaRecorrente,
+  BaseFixaCarrinha,
+  DiaSemana,
+} from '@/types';
+import {
+  obterQuantidadeEfetivaBaseRota,
+  obterQuantidadeEfetivaClienteB2B,
+  obterArtigosAjustadosBaseRota,
+  obterArtigosAjustadosClienteB2B,
+  clienteEmModoFerias,
+} from '@/lib/encomendasService';
+import {
+  LOJAS_MOCK,
+  CARRINHAS_MOCK,
+  BASE_FIXA_CARRINHAS_INICIAL,
+  CLIENTES_EMPRESARIAIS_B2B_INICIAIS,
+  PRODUTOS_MOCK,
+  ENCOMENDAS_MOCK,
+} from '@/lib/mockData';
 
 export function wrapText(text: string, maxCharsPerLine: number): string[] {
   if (!text) return [''];
@@ -40,7 +67,7 @@ export function wrapText(text: string, maxCharsPerLine: number): string[] {
   return lines.length > 0 ? lines : [''];
 }
 
-class PdfPageWriter {
+export class PdfPageWriter {
   content: string = '';
   y: number = 780;
 
@@ -131,7 +158,7 @@ export class NativePdfDocument {
     for (let i = 0; i < this.pages.length; i++) {
       const p = this.pages[i];
       const footer = `Folha de Contingência - Padaria da Vila | Página ${i + 1} de ${this.pages.length} | Inprooval Sistemas`;
-      p.drawText(footer, 160, 20, 7, false, '0.5 0.5 0.5');
+      p.drawText(footer, 160, 20, 7, false, '0.4 0.4 0.4');
 
       const streamLen = Buffer.byteLength(p.content, 'utf-8');
       const cId = addObj(`<< /Length ${streamLen} >>\nstream\n${p.content}\nendstream`);
@@ -169,385 +196,593 @@ export class NativePdfDocument {
   }
 }
 
+// Parâmetros para geração da Folha de Fabrico
+export interface ParametrosFolhaFabricoPdf {
+  dataOperacao: string; // YYYY-MM-DD
+  dataFormatada: string; // DD/MM/YYYY
+  lojas: Loja[];
+  encomendas: Encomenda[];
+}
+
+// Parâmetros para geração da Folha de Carga
+export interface ParametrosFolhaCargaPdf {
+  dataOperacao: string; // YYYY-MM-DD
+  dataFormatada: string; // DD/MM/YYYY
+  diaSemana: DiaSemana;
+  carrinhas: Carrinha[];
+  baseFixaCarrinhas: BaseFixaCarrinha[];
+  clientesB2B: ClienteEmpresarialB2B[];
+  basesRecorrentes: BaseDiariaRecorrente[];
+  encomendas: Encomenda[];
+  produtos: Produto[];
+}
+
 /**
  * Constrói o PDF Oficial: Folha de Fabrico de Encomendas por Loja
- * Layout dinâmico que se molda automaticamente à extensão dos textos.
+ * Réplica exata dos dados reais e layout da app, sem caixas preenchidas a tinta (Wireframe puro).
  */
-export function gerarPdfFolhaFabricoLojas(dataAmanhaStr: string): Buffer {
-  const doc = new NativePdfDocument(`Folha_Fabrico_${dataAmanhaStr}`);
+export function gerarPdfFolhaFabricoLojas(params: ParametrosFolhaFabricoPdf | string): Buffer {
+  let dataOperacao = '';
+  let dataFormatada = '';
+  let lojas: Loja[] = [];
+  let encomendas: Encomenda[] = [];
 
-  const lojas = [
-    {
-      nome: 'Loja 1: Padaria da Vila I (Praça)',
-      morada: 'Praça Brandão de Vasconcelos, Arouca',
-      encomendas: [
-        { hora: '08:00', codigo: '#ENC-2041', cliente: 'Maria Ribeiro (912 345 678)', itens: '15x Pão Saloio, 2x Broa Amarela', obs: 'Pão bem cozido com casca rija' },
-        { hora: '09:30', codigo: '#ENC-2042', cliente: 'Carlos Ferreira (964 112 233)', itens: '1x Bolo de Aniversário Chantilly e Frutas (1.5kg)', obs: 'Dizer no topo: Parabéns Sofia' },
-        { hora: '11:00', codigo: '#ENC-2045', cliente: 'Restaurante O Pedrogão (918 223 344)', itens: '40x Carcaças de Trigo, 10x Pão de Centeio Tradicional', obs: 'Entregar ensacado em papel kraft' },
-      ],
-      totalUnidades: 68
-    },
-    {
-      nome: 'Loja 2: Padaria da Vila II (Av. 25 de Abril)',
-      morada: 'Av. 25 de Abril, Arouca',
-      encomendas: [
-        { hora: '07:30', codigo: '#ENC-2046', cliente: 'Ana Paula Silva (933 445 566)', itens: '10x Pão de Cereais, 4x Merendas Mistas da Padaria', obs: 'Sair da primeira fornada bem quentes' },
-        { hora: '10:00', codigo: '#ENC-2048', cliente: 'João Pedro Martins (915 667 788)', itens: '12x Pastéis de Nata Especiais, 6x Bolas de Berlim com Creme', obs: 'Acondicionar em caixa de pastelaria de transporte' },
-      ],
-      totalUnidades: 32
-    },
-    {
-      nome: 'Loja 3: Padaria da Vila III (Loja Carocha)',
-      morada: 'Ponto de Venda Carocha, Arouca',
-      encomendas: [
-        { hora: '08:15', codigo: '#ENC-2051', cliente: 'Fernanda Gomes (917 889 900)', itens: '20x Pão Alentejano Redondo, 5x Broa de Avintes Regional', obs: 'Cortar e fatiar no balcão antes de embalar' },
-        { hora: '12:00', codigo: '#ENC-2053', cliente: 'Sociedade Recreativa e Cultural (961 223 344)', itens: '50x Carcaças de Trigo, 2x Pão de Ló Tradicional de Arouca', obs: 'Encomenda reservada para o almoço do evento cultural' },
-      ],
-      totalUnidades: 77
-    },
-    {
-      nome: 'Loja 4: Padaria da Vila Matriz / Fábrica',
-      morada: 'Centro Industrial e Fabrico, Arouca',
-      encomendas: [
-        { hora: '07:00', codigo: '#ENC-2055', cliente: 'António Manuel Sousa (919 001 122)', itens: '30x Pão Saloio Tradicional, 4x Broas Amarelas de Milho', obs: 'Carregamento prioritário logo às primeiras horas' },
-        { hora: '08:45', codigo: '#ENC-2058', cliente: 'Confeitaria Central de Arouca (935 112 233)', itens: '25x Croissants Franceses Manteiga, 20x Folhados Mistos', obs: 'Massa folhada fresca acabada de sair' },
-      ],
-      totalUnidades: 79
-    }
-  ];
+  if (typeof params === 'string') {
+    dataOperacao = new Date().toISOString().split('T')[0];
+    dataFormatada = params;
+    lojas = LOJAS_MOCK;
+    encomendas = ENCOMENDAS_MOCK;
+  } else {
+    dataOperacao = params.dataOperacao;
+    dataFormatada = params.dataFormatada;
+    lojas = params.lojas && params.lojas.length > 0 ? params.lojas : LOJAS_MOCK;
+    encomendas = params.encomendas || [];
+  }
 
-  lojas.forEach((loja, idx) => {
+  const doc = new NativePdfDocument(`Folha_Fabrico_${dataFormatada.replace(/\//g, '-')}`);
+
+  // Filtrar apenas lojas ativas (Lojas 1 a 4)
+  const lojasAtivas = lojas.filter((l) => l.ativo !== false);
+
+  lojasAtivas.forEach((loja, idx) => {
     if (idx > 0) doc.addPage();
     let p = doc.currentPage;
 
-    // Header Principal da Loja
-    p.drawRect(35, 745, 525, 55, '0.1 0.1 0.1', null);
-    p.drawText('PADARIA DA VILA - CENTRO DE PRODUÇÃO', 45, 782, 12, true, '1 1 1');
-    p.drawText(`FOLHA DE FABRICO DE ENCOMENDAS • OPERAÇÃO DE ${dataAmanhaStr}`, 45, 767, 9, false, '0.95 0.7 0.1');
+    // Encomendas ativas para esta loja na data da operação
+    const encsLoja = encomendas
+      .filter((enc) => {
+        const matchesLoja = enc.loja_id === loja.id || (!enc.loja_id && loja.codigo === 'loja-1');
+        const matchesData = enc.data_agendamento === dataOperacao;
+        const naoCancelada = enc.estado !== 'cancelado';
+        return matchesLoja && matchesData && naoCancelada;
+      })
+      .map((enc) => {
+        const itensValidos = (enc.itens || [])
+          .filter((it) => it.estado_producao !== 'recusado' && Number(it.quantidade) > 0)
+          .map((it) => ({
+            ...it,
+            quantidade: Number(it.quantidade),
+            produto_nome: String(it.produto_nome || '').trim(),
+          }));
+        const totalEnc = itensValidos.reduce((acc, it) => acc + it.quantidade, 0);
+        return {
+          ...enc,
+          itensValidos,
+          totalEnc,
+        };
+      })
+      .filter((enc) => enc.totalEnc > 0)
+      .sort((a, b) => (a.hora_agendamento || '10:00').localeCompare(b.hora_agendamento || '10:00'));
 
-    // Subcabeçalho da Loja
-    p.drawRect(35, 705, 525, 32, '0.96 0.96 0.96', '0.85 0.85 0.85');
-    p.drawText(loja.nome, 45, 723, 11, true, '0.1 0.2 0.4');
-    p.drawText(loja.morada, 45, 712, 8, false, '0.4 0.4 0.4');
-    p.drawText(`Total Programado: ${loja.totalUnidades} un.`, 430, 716, 9, true, '0.1 0.4 0.2');
+    const totalEncsLoja = encsLoja.length;
+    const totalUnidadesLoja = encsLoja.reduce((acc, e) => acc + e.totalEnc, 0);
+    const totalPadariaLoja = encsLoja.reduce(
+      (acc, e) => acc + e.itensValidos.filter((i) => i.setor === 'padaria').reduce((s, i) => s + i.quantidade, 0),
+      0
+    );
+    const totalPastelariaLoja = encsLoja.reduce(
+      (acc, e) => acc + e.itensValidos.filter((i) => i.setor === 'pastelaria' || i.setor !== 'padaria').reduce((s, i) => s + i.quantidade, 0),
+      0
+    );
 
-    // Tabela Header
-    p.drawRect(35, 680, 525, 18, '0.2 0.2 0.25', null);
-    p.drawText('HORA', 40, 685, 8, true, '1 1 1');
-    p.drawText('CÓDIGO', 74, 685, 8, true, '1 1 1');
-    p.drawText('CLIENTE / CONTACTO', 126, 685, 8, true, '1 1 1');
-    p.drawText('ARTIGOS A FABRICAR', 246, 685, 8, true, '1 1 1');
-    p.drawText('OBSERVAÇÕES DE PRODUÇÃO', 386, 685, 8, true, '1 1 1');
-    p.drawText('VISTO', 500, 685, 8, true, '1 1 1');
+    // Header Principal da Loja (Wireframe sem fundo preenchido)
+    p.drawRect(35, 745, 525, 52, null, '0.2 0.2 0.2');
+    p.drawText('PADARIA DA VILA - CENTRO DE PRODUÇÃO', 45, 778, 11, true, '0 0 0');
+    p.drawText(`FOLHA DE FABRICO DE ENCOMENDAS POR LOJA • OPERAÇÃO DE ${dataFormatada}`, 45, 765, 8.5, false, '0.2 0.2 0.2');
+    p.drawText(
+      `${loja.nome} • ${loja.morada || 'Arouca'}${loja.telefone ? ` • Tel: ${loja.telefone}` : ''}`,
+      45,
+      753,
+      7.5,
+      false,
+      '0.3 0.3 0.3'
+    );
+
+    // Cartões de Resumo Wireframe (4 caixas sem fundo preenchido)
+    p.drawRect(35, 706, 125, 30, null, '0.3 0.3 0.3');
+    p.drawText('TOTAL ENCOMENDAS', 42, 725, 7, true, '0.4 0.4 0.4');
+    p.drawText(`${totalEncsLoja}`, 42, 712, 11, true, '0 0 0');
+
+    p.drawRect(168, 706, 125, 30, null, '0.3 0.3 0.3');
+    p.drawText('TOTAL A PRODUZIR', 175, 725, 7, true, '0.4 0.4 0.4');
+    p.drawText(`${totalUnidadesLoja} un.`, 175, 712, 11, true, '0 0 0');
+
+    p.drawRect(301, 706, 125, 30, null, '0.3 0.3 0.3');
+    p.drawText('PADARIA (PÃES)', 308, 725, 7, true, '0.4 0.4 0.4');
+    p.drawText(`${totalPadariaLoja} un.`, 308, 712, 11, true, '0 0 0');
+
+    p.drawRect(434, 706, 126, 30, null, '0.3 0.3 0.3');
+    p.drawText('PASTELARIA (DOCES)', 441, 725, 7, true, '0.4 0.4 0.4');
+    p.drawText(`${totalPastelariaLoja} un.`, 441, 712, 11, true, '0 0 0');
+
+    // Tabela Header (Wireframe puro)
+    p.drawRect(35, 680, 525, 18, null, '0.2 0.2 0.2');
+    p.drawText('HORA', 40, 685, 7.5, true, '0 0 0');
+    p.drawText('CÓDIGO', 75, 685, 7.5, true, '0 0 0');
+    p.drawText('CLIENTE / CONTACTO', 130, 685, 7.5, true, '0 0 0');
+    p.drawText('ARTIGOS A FABRICAR', 245, 685, 7.5, true, '0 0 0');
+    p.drawText('ESPECIFICAÇÕES / OBS.', 395, 685, 7.5, true, '0 0 0');
+    p.drawText('VISTO', 505, 685, 7.5, true, '0 0 0');
 
     let currentY = 660;
 
-    loja.encomendas.forEach((enc, encIdx) => {
-      // Cálculo de quebras de linha dinâmicas por coluna
-      const clienteLines = wrapText(enc.cliente, 22);
-      const itensLines = wrapText(enc.itens, 26);
-      const obsLines = wrapText(enc.obs, 21);
+    if (encsLoja.length === 0) {
+      p.drawRect(35, currentY - 14, 525, 24, null, '0.4 0.4 0.4');
+      p.drawText('Sem encomendas agendadas para esta loja na data indicada.', 150, currentY - 4, 8.5, false, '0.4 0.4 0.4');
+      currentY -= 34;
+    } else {
+      encsLoja.forEach((enc) => {
+        // Montar descritivos de cliente, artigos e observações
+        const clienteTexto = `${enc.cliente?.nome || 'Cliente'}${enc.cliente?.telefone ? ` (${enc.cliente.telefone})` : ''}${enc.tipo === 'entrega_domicilio' ? ' [Domicílio]' : ''}`;
+        const itensTexto = enc.itensValidos
+          .map((it) => `${it.quantidade}x ${it.produto_nome}`)
+          .join(', ');
+        const obsList: string[] = [];
+        if (enc.notas_cliente) obsList.push(`Nota: ${enc.notas_cliente}`);
+        if (enc.observacoes_producao) obsList.push(`Obs: ${enc.observacoes_producao}`);
+        if (enc.tipo === 'entrega_domicilio' && enc.cliente?.morada) obsList.push(`Morada: ${enc.cliente.morada}`);
+        enc.itensValidos.forEach((it) => {
+          if (it.notas_personalizacao) obsList.push(`${it.produto_nome}: ${it.notas_personalizacao}`);
+        });
+        const obsTexto = obsList.length > 0 ? obsList.join(' | ') : 'Padrão da receita';
 
-      const maxLines = Math.max(clienteLines.length, itensLines.length, obsLines.length, 1);
-      const lineHeight = 11;
-      const rowHeight = Math.max(26, maxLines * lineHeight + 10);
+        const clienteLines = wrapText(clienteTexto, 20);
+        const itensLines = wrapText(itensTexto, 28);
+        const obsLines = wrapText(obsTexto, 22);
 
-      // Verificação de quebra de página
-      if (currentY - rowHeight < 80) {
-        p = doc.addPage();
-        currentY = 780;
-      }
+        const maxLines = Math.max(clienteLines.length, itensLines.length, obsLines.length, 1);
+        const lineHeight = 10.5;
+        const rowHeight = Math.max(22, maxLines * lineHeight + 8);
 
-      const bg = encIdx % 2 === 0 ? '1 1 1' : '0.98 0.98 0.98';
-      p.drawRect(35, currentY - rowHeight + 16, 525, rowHeight, bg, '0.9 0.9 0.9');
-
-      // Desenhar coluna fixa (Hora, Código, Visto)
-      p.drawText(enc.hora, 40, currentY + 4, 8, true);
-      p.drawText(enc.codigo, 74, currentY + 4, 8, true, '0.1 0.3 0.6');
-      p.drawText('[ ] Pronto', 500, currentY + 4, 8, true, '0.2 0.5 0.2');
-
-      // Desenhar linhas dinâmicas de cada coluna
-      for (let i = 0; i < maxLines; i++) {
-        const yPos = currentY + 4 - (i * lineHeight);
-
-        if (i < clienteLines.length) {
-          p.drawText(clienteLines[i], 126, yPos, 8, false, '0 0 0');
+        // Verificação de quebra de página
+        if (currentY - rowHeight < 75) {
+          p = doc.addPage();
+          currentY = 790;
+          // Cabeçalho de continuação
+          p.drawRect(35, currentY - 14, 525, 20, null, '0.3 0.3 0.3');
+          p.drawText(`${loja.nome} (Continuação) • ${dataFormatada}`, 45, currentY - 6, 8, true, '0.2 0.2 0.2');
+          currentY -= 28;
         }
-        if (i < itensLines.length) {
-          p.drawText(itensLines[i], 246, yPos, 8, true, '0.1 0.1 0.1');
-        }
-        if (i < obsLines.length) {
-          p.drawText(obsLines[i], 386, yPos, 7.5, false, '0.35 0.35 0.35');
-        }
-      }
 
-      currentY -= (rowHeight + 4);
-    });
+        // Desenhar contorno da linha (Sem Fundo Preenchido)
+        p.drawRect(35, currentY - rowHeight + 14, 525, rowHeight, null, '0.5 0.5 0.5');
 
-    // Bloco de Totais e Assinatura
-    currentY -= 20;
-    const boxHeight = 48;
-    if (currentY - boxHeight < 60) {
+        // Colunas fixas
+        p.drawText(enc.hora_agendamento || '10:00', 40, currentY + 3, 7.5, true, '0 0 0');
+        p.drawText(enc.codigo || '#ENC', 75, currentY + 3, 7.5, true, '0 0 0');
+        p.drawText('[ ] Pronto', 505, currentY + 3, 7.5, false, '0 0 0');
+
+        // Linhas de texto dinâmicas
+        for (let i = 0; i < maxLines; i++) {
+          const yPos = currentY + 3 - (i * lineHeight);
+          if (i < clienteLines.length) {
+            p.drawText(clienteLines[i], 130, yPos, 7.5, false, '0 0 0');
+          }
+          if (i < itensLines.length) {
+            p.drawText(itensLines[i], 245, yPos, 7.5, true, '0 0 0');
+          }
+          if (i < obsLines.length) {
+            p.drawText(obsLines[i], 395, yPos, 7, false, '0.2 0.2 0.2');
+          }
+        }
+
+        currentY -= (rowHeight + 2);
+      });
+    }
+
+    // Bloco de Subtotal e Assinaturas (Sem preenchimento a tinta)
+    currentY -= 14;
+    const boxHeight = 44;
+    if (currentY - boxHeight < 50) {
       p = doc.addPage();
       currentY = 780;
     }
-    p.drawRect(35, currentY - boxHeight, 525, boxHeight, '0.98 0.98 0.96', '0.85 0.85 0.8');
-    p.drawText(`SUBTOTAL DA LOJA: ${loja.encomendas.length} Encomendas | ${loja.totalUnidades} Unidades a Produzir`, 45, currentY - 16, 9, true, '0.1 0.1 0.1');
-    p.drawText('Validado pelo Mestre Padeiro: ________________________', 45, currentY - 34, 8, false, '0.3 0.3 0.3');
-    p.drawText('Conferência de Embalamento: ________________________', 320, currentY - 34, 8, false, '0.3 0.3 0.3');
-    currentY -= boxHeight;
+    p.drawRect(35, currentY - boxHeight, 525, boxHeight, null, '0.2 0.2 0.2');
+    p.drawText(`SUBTOTAL ${loja.nome.toUpperCase()}: ${totalEncsLoja} Encomendas | ${totalUnidadesLoja} Unidades a Produzir`, 45, currentY - 15, 8.5, true, '0 0 0');
+    p.drawText('Validado pelo Mestre Padeiro: ________________________', 45, currentY - 32, 7.5, false, '0.3 0.3 0.3');
+    p.drawText('Conferência de Embalamento: ________________________', 320, currentY - 32, 7.5, false, '0.3 0.3 0.3');
   });
 
   return doc.toBuffer();
 }
 
 /**
- * Constrói o PDF Oficial: Folha de Carga Segregada das 7 Carrinhas
- * Layout dinâmico com auto-wrap de moradas e descrições completas.
+ * Constrói o PDF Oficial: Folha de Carga Segregada das Rotas 1 a 7
+ * Réplica exata dos dados reais e layout da app, sem caixas preenchidas a tinta (Wireframe puro).
  */
-export function gerarPdfFolhaCargaCarrinhas(dataAmanhaStr: string): Buffer {
-  const doc = new NativePdfDocument(`Folha_Carga_Rotas_${dataAmanhaStr}`);
+export function gerarPdfFolhaCargaCarrinhas(params: ParametrosFolhaCargaPdf | string): Buffer {
+  let dataOperacao = '';
+  let dataFormatada = '';
+  let diaSemana: DiaSemana = 'seg';
+  let carrinhas: Carrinha[] = [];
+  let baseFixaCarrinhas: BaseFixaCarrinha[] = [];
+  let clientesB2B: ClienteEmpresarialB2B[] = [];
+  let basesRecorrentes: BaseDiariaRecorrente[] = [];
+  let encomendas: Encomenda[] = [];
+  let produtos: Produto[] = [];
 
-  const rotas = [
-    {
-      rota: 'Rota 1 - Carro 1 (Centro & Vale de Cambra)',
-      matricula: '42-AB-90',
-      condutor: 'Manuel Silva',
-      baseDiaria: [
-        { item: 'Pão Saloio Tradicional', qtd: 140 },
-        { item: 'Carcaças de Trigo', qtd: 200 },
-        { item: 'Broa de Milho Amarela', qtd: 35 },
-        { item: 'Pão de Centeio', qtd: 25 },
-      ],
-      clientesB2B: [
-        { nome: 'Restaurante Gamarão', itens: '30x Carcaças, 5x Broas' },
-        { nome: 'Lar Terceira Idade Cambra', itens: '60x Saloio Fatiado, 20x Regueifas' },
-        { nome: 'Hospital da Misericórdia', itens: '80x Carcaças s/ Sal, 15x Integral' }
-      ],
-      encomendasDomicilio: [
-        { morada: 'Rua das Flores 12, Vale de Cambra', cliente: 'António Dias (914 111 222)', itens: '4x Broas Amarelas de Milho Tradicional' }
-      ],
-      totalUnidades: 614,
-      caixasEstimadas: 18
-    },
-    {
-      rota: 'Rota 2 - Carro 2 (Moldes & Serra)',
-      matricula: '18-XT-34',
-      condutor: 'Joaquim Oliveira',
-      baseDiaria: [
-        { item: 'Pão Saloio Tradicional', qtd: 120 },
-        { item: 'Carcaças de Trigo', qtd: 160 },
-        { item: 'Broa de Avintes', qtd: 20 },
-      ],
-      clientesB2B: [
-        { nome: 'Pacheco Moldes (Refeitório Industrial)', itens: '50x Carcaças, 10x Saloios' },
-        { nome: 'Centro Social do Burgo', itens: '40x Carcaças, 10x Pão de Leite' }
-      ],
-      encomendasDomicilio: [],
-      totalUnidades: 410,
-      caixasEstimadas: 12
-    },
-    {
-      rota: 'Rota 3 - Carro 3 (Alvarenga & Passadiços)',
-      matricula: '65-QZ-12',
-      condutor: 'Rui Fernandes',
-      baseDiaria: [
-        { item: 'Pão Saloio Tradicional', qtd: 180 },
-        { item: 'Carcaças de Trigo', qtd: 220 },
-        { item: 'Broa de Milho', qtd: 45 },
-      ],
-      clientesB2B: [
-        { nome: 'Restaurante Ponte de Telhe', itens: '40x Broas de Milho, 30x Saloios' },
-        { nome: 'Café Ribeiro (Alvarenga)', itens: '25x Carcaças, 5x Broas' }
-      ],
-      encomendasDomicilio: [
-        { morada: 'Lugar de Paradinha, Passadiços do Paiva', cliente: 'Casa Turística Paiva (962 334 455)', itens: '10x Saloio, 4x Broas de Milho' }
-      ],
-      totalUnidades: 569,
-      caixasEstimadas: 16
-    },
-    {
-      rota: 'Rota 4 - Carro 4 (Escariz & Mansores)',
-      matricula: '33-LP-77',
-      condutor: 'Fernando Santos',
-      baseDiaria: [
-        { item: 'Pão Saloio Tradicional', qtd: 110 },
-        { item: 'Carcaças de Trigo', qtd: 150 },
-        { item: 'Broa Amarela', qtd: 30 },
-      ],
-      clientesB2B: [
-        { nome: 'Escola Básica de Escariz (Cantina Escolar)', itens: '80x Carcaças, 15x Pão de Forma' }
-      ],
-      encomendasDomicilio: [],
-      totalUnidades: 385,
-      caixasEstimadas: 11
-    },
-    {
-      rota: 'Rota 5 - Carro 5 (Chave & Fermedo)',
-      matricula: '89-GH-55',
-      condutor: 'Alberto Costa',
-      baseDiaria: [
-        { item: 'Pão Saloio Tradicional', qtd: 130 },
-        { item: 'Carcaças de Trigo', qtd: 170 },
-        { item: 'Broa de Milho', qtd: 30 },
-      ],
-      clientesB2B: [
-        { nome: 'Mercearia Central de Chave', itens: '35x Saloio, 20x Carcaças' }
-      ],
-      encomendasDomicilio: [],
-      totalUnidades: 385,
-      caixasEstimadas: 11
-    },
-    {
-      rota: 'Rota 6 - Carro 6 (Urro & Várzea)',
-      matricula: '51-VC-28',
-      condutor: 'Tiago Rocha',
-      baseDiaria: [
-        { item: 'Pão Saloio Tradicional', qtd: 95 },
-        { item: 'Carcaças de Trigo', qtd: 140 },
-        { item: 'Broa Amarela', qtd: 20 },
-      ],
-      clientesB2B: [
-        { nome: 'Centro Paroquial D. Urro', itens: '30x Pão Saloio, 10x Broas' }
-      ],
-      encomendasDomicilio: [],
-      totalUnidades: 295,
-      caixasEstimadas: 9
-    },
-    {
-      rota: 'Rota 7 - Carro 7 (Santa Eulália & Tropeço)',
-      matricula: '76-MN-99',
-      condutor: 'Carlos Moreira',
-      baseDiaria: [
-        { item: 'Pão Saloio Tradicional', qtd: 105 },
-        { item: 'Carcaças de Trigo', qtd: 155 },
-        { item: 'Broa de Milho', qtd: 25 },
-      ],
-      clientesB2B: [
-        { nome: 'Patronato de Santa Eulália', itens: '40x Carcaças, 10x Pão Integral' }
-      ],
-      encomendasDomicilio: [],
-      totalUnidades: 335,
-      caixasEstimadas: 10
-    }
-  ];
+  if (typeof params === 'string') {
+    dataOperacao = new Date().toISOString().split('T')[0];
+    dataFormatada = params;
+    carrinhas = CARRINHAS_MOCK;
+    baseFixaCarrinhas = BASE_FIXA_CARRINHAS_INICIAL;
+    clientesB2B = CLIENTES_EMPRESARIAIS_B2B_INICIAIS;
+    produtos = PRODUTOS_MOCK;
+    encomendas = ENCOMENDAS_MOCK;
+  } else {
+    dataOperacao = params.dataOperacao;
+    dataFormatada = params.dataFormatada;
+    diaSemana = params.diaSemana || 'seg';
+    carrinhas = params.carrinhas && params.carrinhas.length > 0 ? params.carrinhas : CARRINHAS_MOCK;
+    baseFixaCarrinhas = params.baseFixaCarrinhas || BASE_FIXA_CARRINHAS_INICIAL;
+    clientesB2B = params.clientesB2B || CLIENTES_EMPRESARIAIS_B2B_INICIAIS;
+    basesRecorrentes = params.basesRecorrentes || [];
+    encomendas = params.encomendas || [];
+    produtos = params.produtos && params.produtos.length > 0 ? params.produtos : PRODUTOS_MOCK;
+  }
 
-  rotas.forEach((r, idx) => {
+  const doc = new NativePdfDocument(`Folha_Carga_Rotas_${dataFormatada.replace(/\//g, '-')}`);
+
+  // Filtrar apenas viaturas de entrega (Rotas 1 a 7, excluindo Rota 8 / Fábrica)
+  const carrinhasRotas = carrinhas.filter(
+    (c) =>
+      c.ativo !== false &&
+      c.identificador !== 'Rota 8' &&
+      c.id !== 'carrinha-8' &&
+      c.id !== 'e888db95-c427-4ed5-83fc-01403bd24cf8'
+  );
+
+  carrinhasRotas.forEach((car, idx) => {
     if (idx > 0) doc.addPage();
     let p = doc.currentPage;
 
-    // Header da Carrinha
-    p.drawRect(35, 745, 525, 55, '0.1 0.2 0.35', null);
-    p.drawText('PADARIA DA VILA - EXPEDIÇÃO E LOGÍSTICA DE ROTAS', 45, 782, 12, true, '1 1 1');
-    p.drawText(`GUIA OFICIAL DE CARGA • OPERAÇÃO DE ${dataAmanhaStr}`, 45, 767, 9, false, '0.3 0.8 1');
-    p.drawText(`Viatura: ${r.matricula} | Condutor: ${r.condutor}`, 350, 767, 8, false, '0.85 0.85 0.85');
+    // 1. CÁLCULO REAL DA BASE DIÁRIA DA CARRINHA
+    const bf = baseFixaCarrinhas.find((b) => b.carrinha_id === car.id);
+    const semana = (bf?.quantidades_semanais || bf?.quantidades_semana || {}) as Record<string, Record<string, number>>;
+    const mapaDia = semana?.[diaSemana] || bf?.quantidades_por_produto || {};
 
-    // Identificação da Rota
-    p.drawRect(35, 705, 525, 32, '0.96 0.97 0.99', '0.8 0.85 0.9');
-    p.drawText(r.rota, 45, 723, 11, true, '0.1 0.2 0.4');
-    p.drawText(`Total a Bordo: ${r.totalUnidades} un. | Estimativa de Volume: ~${r.caixasEstimadas} Caixas`, 45, 712, 8, true, '0.2 0.4 0.2');
-    p.drawText('Visto Expedição: [ ] Conforme', 420, 716, 8, true, '0.2 0.2 0.2');
+    const mapaItens = new Map<string, { quantidade: number; categoria: 'padaria' | 'pastelaria'; unidade: string }>();
 
-    // 1. BASE DIÁRIA
-    p.drawRect(35, 680, 525, 16, '0.25 0.3 0.35', null);
-    p.drawText('1. BASE DIÁRIA DE ABASTECIMENTO (PORTA-A-PORTA)', 40, 685, 8, true, '1 1 1');
-    p.drawText('QUANTIDADE', 485, 685, 8, true, '1 1 1');
+    const candidatos = new Set<string>();
+    Object.keys(mapaDia).forEach((a) => candidatos.add(a.trim()));
+    if (bf?.quantidades_semanais) {
+      Object.values(bf.quantidades_semanais).forEach((m) => {
+        Object.keys(m || {}).forEach((a) => candidatos.add(a.trim()));
+      });
+    }
+    if (bf?.quantidades_por_produto) {
+      Object.keys(bf.quantidades_por_produto).forEach((a) => candidatos.add(a.trim()));
+    }
+    obterArtigosAjustadosBaseRota(dataOperacao, car.id).forEach((a) => candidatos.add(a.trim()));
 
-    let currentY = 662;
-    r.baseDiaria.forEach((b, bIdx) => {
-      const bg = bIdx % 2 === 0 ? '1 1 1' : '0.98 0.98 0.98';
-      p.drawRect(35, currentY - 5, 525, 18, bg, '0.9 0.9 0.9');
-      p.drawText(b.item, 45, currentY, 8, false);
-      p.drawText(`${b.qtd} un.`, 485, currentY, 8, true);
-      currentY -= 20;
+    candidatos.forEach((artigo) => {
+      const { quantidade } = obterQuantidadeEfetivaBaseRota(dataOperacao, car.id, artigo, semana, diaSemana);
+      if (quantidade > 0) {
+        const prodRef = produtos.find((pr) => pr.nome.toLowerCase() === artigo.toLowerCase());
+        const cat: 'padaria' | 'pastelaria' =
+          prodRef?.categoria ||
+          (artigo.toLowerCase().includes('bolo') || artigo.toLowerCase().includes('croissant') ? 'pastelaria' : 'padaria');
+        const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
+        mapaItens.set(artigo.trim(), { quantidade, categoria: cat, unidade: unid });
+      }
     });
 
-    // 2. CLIENTES B2B
-    currentY -= 6;
-    p.drawRect(35, currentY - 5, 525, 16, '0.2 0.35 0.25', null);
-    p.drawText('2. CLIENTES EMPRESARIAIS (B2B) AFETOS À ROTA', 40, currentY, 8, true, '1 1 1');
-    p.drawText('CONFORMIDADE', 485, currentY, 8, true, '1 1 1');
+    // 1.1 Quantidades das Bases Diárias Recorrentes desta rota (excluindo clientes em Modo Férias)
+    basesRecorrentes
+      .filter((b) => b.ativo && b.carrinha_id === car.id && !clienteEmModoFerias(b, dataOperacao))
+      .forEach((b) => {
+        const mapaRec = b.quantidades_semanais?.[diaSemana] || {};
+        Object.entries(mapaRec).forEach(([artigo, qtd]) => {
+          const quantidade = Number(qtd) || 0;
+          if (quantidade > 0) {
+            const prodRef = produtos.find((pr) => pr.nome.toLowerCase() === artigo.toLowerCase());
+            const cat =
+              prodRef?.categoria ||
+              (artigo.toLowerCase().includes('bolo') || artigo.toLowerCase().includes('croissant') ? 'pastelaria' : 'padaria');
+            const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
+            const atual = mapaItens.get(artigo.trim());
+            if (atual) {
+              atual.quantidade += quantidade;
+            } else {
+              mapaItens.set(artigo.trim(), { quantidade, categoria: cat, unidade: unid });
+            }
+          }
+        });
+      });
+
+    const itensBaseDiaria: { nome: string; categoria: string; unidade: string; quantidade: number; caixas: number }[] = [];
+    mapaItens.forEach((val, nome) => {
+      const fatorCaixa = val.categoria === 'pastelaria' ? 20 : 30;
+      itensBaseDiaria.push({
+        nome,
+        categoria: val.categoria,
+        unidade: val.unidade,
+        quantidade: val.quantidade,
+        caixas: Math.ceil(val.quantidade / fatorCaixa),
+      });
+    });
+    itensBaseDiaria.sort((a, b) => a.nome.localeCompare(b.nome));
+
+    const totalBaseDiaria = itensBaseDiaria.reduce((acc, it) => acc + it.quantidade, 0);
+    const totalBaseCaixas = itensBaseDiaria.reduce((acc, it) => acc + it.caixas, 0);
+
+    // 2. CÁLCULO REAL DOS CLIENTES B2B DESTA ROTA
+    const clientesB2BRota = clientesB2B
+      .filter((cli) => cli.ativo && cli.carrinha_id === car.id)
+      .map((cli) => {
+        const semanaCli = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
+        const mapaDiaCli = semanaCli[diaSemana] || {};
+        const candidatosCli = new Set<string>();
+        Object.keys(mapaDiaCli).forEach((a) => candidatosCli.add(a.trim()));
+        if (cli.quantidades_semanais) {
+          Object.values(cli.quantidades_semanais).forEach((m) => {
+            Object.keys(m || {}).forEach((a) => candidatosCli.add(a.trim()));
+          });
+        }
+        if (cli.produtos_predefinidos) {
+          Object.keys(cli.produtos_predefinidos).forEach((a) => candidatosCli.add(a.trim()));
+        }
+        obterArtigosAjustadosClienteB2B(dataOperacao, cli.id).forEach((a) => candidatosCli.add(a.trim()));
+
+        const itensDoCli = Array.from(candidatosCli)
+          .map((artigo) => {
+            let qtd = Number(mapaDiaCli[artigo] || 0);
+            const { quantidade } = obterQuantidadeEfetivaClienteB2B(dataOperacao, cli.id, artigo, semanaCli, diaSemana);
+            qtd = quantidade;
+            return {
+              artigo: String(artigo || '').trim(),
+              quantidade: qtd,
+            };
+          })
+          .filter((it) => it.quantidade > 0);
+
+        const totalCli = itensDoCli.reduce((acc, it) => acc + it.quantidade, 0);
+        return {
+          ...cli,
+          itensDoCli,
+          totalCli,
+        };
+      })
+      .filter((cli) => cli.totalCli > 0);
+
+    const totalB2B = clientesB2BRota.reduce((acc, cli) => acc + cli.totalCli, 0);
+
+    // 3. CÁLCULO REAL DAS ENCOMENDAS ADICIONAIS AO DOMICÍLIO
+    const encomendasDomicilio = encomendas
+      .filter((enc) => {
+        const matchesCar = enc.carrinha_id === car.id;
+        const matchesData = enc.data_agendamento === dataOperacao;
+        const matchesTipo = enc.tipo === 'entrega_domicilio';
+        const naoCancelada = enc.estado !== 'cancelado';
+        return matchesCar && matchesData && matchesTipo && naoCancelada;
+      })
+      .map((enc) => {
+        const itensValidos = (enc.itens || [])
+          .filter((it) => it.estado_producao !== 'recusado' && Number(it.quantidade) > 0)
+          .map((it) => ({
+            produto_nome: String(it.produto_nome || '').trim(),
+            quantidade: Number(it.quantidade),
+          }));
+        const totalEnc = itensValidos.reduce((acc, it) => acc + it.quantidade, 0);
+        return {
+          ...enc,
+          itensValidos,
+          totalEnc,
+        };
+      })
+      .filter((enc) => enc.totalEnc > 0);
+
+    const totalEncomendas = encomendasDomicilio.reduce((acc, enc) => acc + enc.totalEnc, 0);
+
+    const totalGeralCarga = totalBaseDiaria + totalB2B + totalEncomendas;
+    const totalGeralCaixasEstimadas = totalBaseCaixas + Math.ceil((totalB2B + totalEncomendas) / 30);
+
+    // Header Principal da Viatura (Wireframe sem preenchimento a tinta)
+    p.drawRect(35, 745, 525, 52, null, '0.2 0.2 0.2');
+    p.drawText('PADARIA DA VILA - EXPEDIÇÃO E LOGÍSTICA DE ROTAS', 45, 778, 11, true, '0 0 0');
+    p.drawText(`GUIA OFICIAL DE CARGA DE EXPEDIÇÃO • OPERAÇÃO DE ${dataFormatada}`, 45, 765, 8.5, false, '0.2 0.2 0.2');
+    p.drawText(
+      `Rota: ${car.rota || car.identificador} | Viatura: ${car.matricula || 'Frota'} | Condutor: ${car.nome_condutor || 'Motorista de Serviço'}`,
+      45,
+      753,
+      7.5,
+      false,
+      '0.3 0.3 0.3'
+    );
+
+    // Resumo de Carga Total da Viatura (4 Caixas Wireframe)
+    p.drawRect(35, 706, 125, 30, null, '0.3 0.3 0.3');
+    p.drawText('1. BASE DIÁRIA ROTA', 42, 725, 7, true, '0.4 0.4 0.4');
+    p.drawText(`${totalBaseDiaria} un. (~${totalBaseCaixas} cx)`, 42, 712, 10, true, '0 0 0');
+
+    p.drawRect(168, 706, 125, 30, null, '0.3 0.3 0.3');
+    p.drawText('2. CLIENTES B2B', 175, 725, 7, true, '0.4 0.4 0.4');
+    p.drawText(`${totalB2B} un. (${clientesB2BRota.length} paragens)`, 175, 712, 10, true, '0 0 0');
+
+    p.drawRect(301, 706, 125, 30, null, '0.3 0.3 0.3');
+    p.drawText('3. ENCOMENDAS DOMICÍLIO', 308, 725, 7, true, '0.4 0.4 0.4');
+    p.drawText(`${totalEncomendas} un. (${encomendasDomicilio.length} entregas)`, 308, 712, 10, true, '0 0 0');
+
+    p.drawRect(434, 706, 126, 30, null, '0.3 0.3 0.3');
+    p.drawText('TOTAL A BORDO', 441, 725, 7, true, '0.4 0.4 0.4');
+    p.drawText(`${totalGeralCarga} un. (~${totalGeralCaixasEstimadas} cx)`, 441, 712, 10, true, '0 0 0');
+
+    // 1. BASE DIÁRIA DE ABASTECIMENTO
+    let currentY = 686;
+    p.drawRect(35, currentY, 525, 16, null, '0.2 0.2 0.2');
+    p.drawText('1. BASE DIÁRIA DE ABASTECIMENTO (PORTA-A-PORTA & PARTICULARES)', 42, currentY + 4, 7.5, true, '0 0 0');
+    p.drawText('QUANTIDADE', 440, currentY + 4, 7.5, true, '0 0 0');
+    p.drawText('VISTO', 510, currentY + 4, 7.5, true, '0 0 0');
     currentY -= 18;
 
-    if (r.clientesB2B.length === 0) {
-      p.drawText('Sem clientes B2B agendados para este dia.', 45, currentY, 8, false, '0.5 0.5 0.5');
-      currentY -= 18;
+    if (itensBaseDiaria.length === 0) {
+      p.drawRect(35, currentY - 10, 525, 18, null, '0.5 0.5 0.5');
+      p.drawText('Sem artigos de base diária configurados para esta rota.', 45, currentY - 4, 7.5, false, '0.4 0.4 0.4');
+      currentY -= 22;
     } else {
-      r.clientesB2B.forEach((b2b, bIdx) => {
-        const nomeLines = wrapText(b2b.nome, 25);
-        const itensLines = wrapText(b2b.itens, 42);
+      itensBaseDiaria.forEach((it) => {
+        if (currentY < 75) {
+          p = doc.addPage();
+          currentY = 790;
+          p.drawRect(35, currentY - 14, 525, 20, null, '0.3 0.3 0.3');
+          p.drawText(`${car.rota || car.identificador} - Base Diária (Continuação) • ${dataFormatada}`, 45, currentY - 6, 8, true, '0.2 0.2 0.2');
+          currentY -= 28;
+        }
+
+        p.drawRect(35, currentY - 5, 525, 16, null, '0.5 0.5 0.5');
+        p.drawText(it.nome, 45, currentY, 7.5, false, '0 0 0');
+        p.drawText(`[${it.categoria === 'padaria' ? 'Padaria' : 'Pastelaria'}]`, 260, currentY, 7, false, '0.3 0.3 0.3');
+        p.drawText(`${it.quantidade} ${it.unidade} (~${it.caixas} cx)`, 440, currentY, 7.5, true, '0 0 0');
+        p.drawText('[ ] Carga', 510, currentY, 7.5, false, '0 0 0');
+        currentY -= 17;
+      });
+    }
+
+    // 2. CLIENTES EMPRESARIAIS (B2B) AFETOS À ROTA
+    currentY -= 6;
+    if (currentY < 90) {
+      p = doc.addPage();
+      currentY = 790;
+    }
+    p.drawRect(35, currentY, 525, 16, null, '0.2 0.2 0.2');
+    p.drawText('2. CLIENTES EMPRESARIAIS (B2B) AFETOS À ROTA', 42, currentY + 4, 7.5, true, '0 0 0');
+    p.drawText('CONFORMIDADE', 490, currentY + 4, 7.5, true, '0 0 0');
+    currentY -= 18;
+
+    if (clientesB2BRota.length === 0) {
+      p.drawRect(35, currentY - 10, 525, 18, null, '0.5 0.5 0.5');
+      p.drawText('Sem clientes B2B agendados para este dia nesta rota.', 45, currentY - 4, 7.5, false, '0.4 0.4 0.4');
+      currentY -= 22;
+    } else {
+      clientesB2BRota.forEach((cli) => {
+        const nomeTexto = `${cli.nome}${cli.morada ? ` • ${cli.morada}` : ''}`;
+        const itensTexto = cli.itensDoCli.map((it) => `${it.quantidade}x ${it.artigo}`).join(', ');
+
+        const nomeLines = wrapText(nomeTexto, 32);
+        const itensLines = wrapText(itensTexto, 45);
         const maxLines = Math.max(nomeLines.length, itensLines.length, 1);
-        const lineHeight = 11;
-        const rowHeight = Math.max(20, maxLines * lineHeight + 8);
+        const lineHeight = 10;
+        const rowHeight = Math.max(18, maxLines * lineHeight + 6);
 
-        const bg = bIdx % 2 === 0 ? '1 1 1' : '0.98 0.98 0.98';
-        p.drawRect(35, currentY - rowHeight + 14, 525, rowHeight, bg, '0.9 0.9 0.9');
+        if (currentY - rowHeight < 75) {
+          p = doc.addPage();
+          currentY = 790;
+          p.drawRect(35, currentY - 14, 525, 20, null, '0.3 0.3 0.3');
+          p.drawText(`${car.rota || car.identificador} - Clientes B2B (Continuação) • ${dataFormatada}`, 45, currentY - 6, 8, true, '0.2 0.2 0.2');
+          currentY -= 28;
+        }
 
-        p.drawText('[ ] Entregue', 485, currentY + 2, 8, true, '0.2 0.5 0.2');
+        p.drawRect(35, currentY - rowHeight + 12, 525, rowHeight, null, '0.5 0.5 0.5');
+        p.drawText('[ ] Entregue', 490, currentY + 2, 7.5, false, '0 0 0');
 
         for (let i = 0; i < maxLines; i++) {
           const yPos = currentY + 2 - (i * lineHeight);
           if (i < nomeLines.length) {
-            p.drawText(nomeLines[i], 45, yPos, 8, true, '0.1 0.2 0.4');
+            p.drawText(nomeLines[i], 45, yPos, 7.5, true, '0 0 0');
           }
           if (i < itensLines.length) {
-            p.drawText(itensLines[i], 205, yPos, 8, false, '0 0 0');
+            p.drawText(itensLines[i], 230, yPos, 7.5, false, '0 0 0');
           }
         }
-        currentY -= (rowHeight + 3);
+        currentY -= (rowHeight + 2);
       });
     }
 
     // 3. ENCOMENDAS ADICIONAIS AO DOMICÍLIO
     currentY -= 6;
-    p.drawRect(35, currentY - 5, 525, 16, '0.4 0.25 0.15', null);
-    p.drawText('3. ENCOMENDAS ADICIONAIS AO DOMICÍLIO', 40, currentY, 8, true, '1 1 1');
-    p.drawText('ESTADO', 485, currentY, 8, true, '1 1 1');
+    if (currentY < 90) {
+      p = doc.addPage();
+      currentY = 790;
+    }
+    p.drawRect(35, currentY, 525, 16, null, '0.2 0.2 0.2');
+    p.drawText('3. ENCOMENDAS ADICIONAIS AO DOMICÍLIO', 42, currentY + 4, 7.5, true, '0 0 0');
+    p.drawText('ESTADO', 505, currentY + 4, 7.5, true, '0 0 0');
     currentY -= 18;
 
-    if (r.encomendasDomicilio.length === 0) {
-      p.drawText('Sem encomendas adicionais ao domicílio para esta data.', 45, currentY, 8, false, '0.5 0.5 0.5');
-      currentY -= 25;
+    if (encomendasDomicilio.length === 0) {
+      p.drawRect(35, currentY - 10, 525, 18, null, '0.5 0.5 0.5');
+      p.drawText('Sem encomendas adicionais ao domicílio para esta data nesta rota.', 45, currentY - 4, 7.5, false, '0.4 0.4 0.4');
+      currentY -= 22;
     } else {
-      r.encomendasDomicilio.forEach((enc, eIdx) => {
-        const descr = `${enc.cliente} - ${enc.morada}`;
-        const descrLines = wrapText(descr, 36);
-        const itensLines = wrapText(enc.itens, 30);
+      encomendasDomicilio.forEach((enc) => {
+        const clienteTexto = `${enc.codigo || '#ENC'} • ${enc.cliente?.nome || 'Cliente'}${enc.cliente?.telefone ? ` (${enc.cliente.telefone})` : ''} - ${enc.cliente?.morada || 'Morada de entrega'}`;
+        const itensTexto = enc.itensValidos.map((it: any) => `${it.quantidade}x ${it.produto_nome}`).join(', ');
+
+        const descrLines = wrapText(clienteTexto, 38);
+        const itensLines = wrapText(itensTexto, 34);
         const maxLines = Math.max(descrLines.length, itensLines.length, 1);
-        const lineHeight = 11;
-        const rowHeight = Math.max(20, maxLines * lineHeight + 8);
+        const lineHeight = 10;
+        const rowHeight = Math.max(18, maxLines * lineHeight + 6);
 
-        const bg = eIdx % 2 === 0 ? '1 1 1' : '0.98 0.98 0.98';
-        p.drawRect(35, currentY - rowHeight + 14, 525, rowHeight, bg, '0.9 0.9 0.9');
+        if (currentY - rowHeight < 75) {
+          p = doc.addPage();
+          currentY = 790;
+          p.drawRect(35, currentY - 14, 525, 20, null, '0.3 0.3 0.3');
+          p.drawText(`${car.rota || car.identificador} - Encomendas (Continuação) • ${dataFormatada}`, 45, currentY - 6, 8, true, '0.2 0.2 0.2');
+          currentY -= 28;
+        }
 
-        p.drawText('[ ] Entregue', 485, currentY + 2, 8, true, '0.2 0.5 0.2');
+        p.drawRect(35, currentY - rowHeight + 12, 525, rowHeight, null, '0.5 0.5 0.5');
+        p.drawText('[ ] Entregue', 505, currentY + 2, 7.5, false, '0 0 0');
 
         for (let i = 0; i < maxLines; i++) {
           const yPos = currentY + 2 - (i * lineHeight);
           if (i < descrLines.length) {
-            p.drawText(descrLines[i], 45, yPos, 8, false, '0 0 0');
+            p.drawText(descrLines[i], 45, yPos, 7.5, false, '0 0 0');
           }
           if (i < itensLines.length) {
-            p.drawText(itensLines[i], 285, yPos, 8, true, '0 0 0');
+            p.drawText(itensLines[i], 285, yPos, 7.5, true, '0 0 0');
           }
         }
-        currentY -= (rowHeight + 3);
+        currentY -= (rowHeight + 2);
       });
-      currentY -= 6;
     }
 
-    // 4. RESUMO GERAL E ASSINATURAS
-    currentY -= 10;
-    const boxHeight = 48;
+    // 4. RESUMO GERAL CONSOLIDADO DA GUIA DE CARGA E ASSINATURAS
+    currentY -= 12;
+    const boxHeight = 44;
     if (currentY - boxHeight < 50) {
       p = doc.addPage();
       currentY = 780;
     }
-    p.drawRect(35, currentY - boxHeight, 525, boxHeight, '0.97 0.97 0.95', '0.85 0.85 0.8');
-    p.drawText(`TOTAL GERAL A BORDO: ${r.totalUnidades} Unidades | Volume Estimado: ~${r.caixasEstimadas} Caixas`, 45, currentY - 16, 9, true, '0.1 0.1 0.1');
-    p.drawText('Conferido Expedição: ________________________', 45, currentY - 34, 8, false, '0.3 0.3 0.3');
-    p.drawText(`Assinatura do Motorista (${r.condutor}): ________________________`, 280, currentY - 34, 8, false, '0.3 0.3 0.3');
-    currentY -= boxHeight;
+    p.drawRect(35, currentY - boxHeight, 525, boxHeight, null, '0.2 0.2 0.2');
+    p.drawText(
+      `TOTAL GERAL A BORDO: ${totalGeralCarga} Unidades | Volume Estimado: ~${totalGeralCaixasEstimadas} Caixas`,
+      45,
+      currentY - 15,
+      8.5,
+      true,
+      '0 0 0'
+    );
+    p.drawText('Conferência do Centro de Expedição: ________________________', 45, currentY - 32, 7.5, false, '0.3 0.3 0.3');
+    p.drawText(
+      `Assinatura do Motorista (${car.nome_condutor || 'Motorista'}): ________________________`,
+      310,
+      currentY - 32,
+      7.5,
+      false,
+      '0.3 0.3 0.3'
+    );
   });
 
   return doc.toBuffer();
