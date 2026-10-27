@@ -94,11 +94,14 @@ import {
   Globe,
   Flame,
   Copy,
+  Minus,
+  Package,
 } from 'lucide-react';
 import { StatusBadge } from '../../components/StatusBadge';
 import { OriginBadge, SectorBadge } from '../../components/InproovalBadges';
 import { PdfViewerModal, LinhaArtigoCarga } from '../../components/pdf/PdfViewerModal';
 import { FileText, Zap, Mail } from 'lucide-react';
+import { correspondePesquisaArtigo } from '../../lib/fuzzySearch';
 
 export default function AdminPage() {
   const { t, language } = useTranslation();
@@ -247,6 +250,8 @@ export default function AdminPage() {
   const [clientesB2B, setClientesB2B] = useState<ClienteEmpresarialB2B[]>([]);
   const [diaSemanaB2B, setDiaSemanaB2B] = useState<DiaSemana>('seg');
   const [clienteB2BEmEdicao, setClienteB2BEmEdicao] = useState<ClienteEmpresarialB2B | null>(null);
+  const [categoriaArtigoB2BModal, setCategoriaArtigoB2BModal] = useState<'todas' | 'padaria' | 'pastelaria' | 'selecionados'>('todas');
+  const [buscaArtigoB2BModal, setBuscaArtigoB2BModal] = useState<string>('');
   const [novoArtigoBaseFixa, setNovoArtigoBaseFixa] = useState<string>('');
   const [feedbackBaseFixa, setFeedbackBaseFixa] = useState<string | null>(null);
   const [feedbackB2B, setFeedbackB2B] = useState<string | null>(null);
@@ -427,6 +432,124 @@ export default function AdminPage() {
       return (a.nome || '').localeCompare(b.nome || '', 'pt');
     });
   }, [clientesB2B, filtroRotaB2B, filtroClienteB2B, filtroArtigoB2B, ordenacaoB2B, diaSemanaB2B, carrinhas]);
+
+  // Catálogo completo de artigos para o modal de configuração de Cliente B2B (estilo UX Encomendas)
+  const artigosCatalogoB2B = useMemo(() => {
+    const mapa = new Map<string, { nome: string; categoria: 'padaria' | 'pastelaria'; unidade: string }>();
+
+    // 1. Produtos do catálogo oficial da app
+    produtos.forEach((p) => {
+      const nomeLimpo = (p.nome || '').trim();
+      if (!nomeLimpo) return;
+      mapa.set(nomeLimpo.toLowerCase(), {
+        nome: nomeLimpo,
+        categoria: p.categoria === 'pastelaria' ? 'pastelaria' : 'padaria',
+        unidade: p.unidade || (nomeLimpo.toLowerCase().includes('kg') ? 'kg' : 'un.'),
+      });
+    });
+
+    // 2. Colunas do mapa diário oficial (garantir que todos os artigos base históricos existem)
+    COLUNAS_MAPA_DIARIO_OFICIAL.forEach((nome) => {
+      const nomeLimpo = nome.trim();
+      const chave = nomeLimpo.toLowerCase();
+      if (!mapa.has(chave)) {
+        const isPastelaria = chave.includes('croissant') || chave.includes('bolo') || chave.includes('pastel') || chave.includes('torta') || chave.includes('queque') || chave.includes('folhado');
+        mapa.set(chave, {
+          nome: nomeLimpo,
+          categoria: isPastelaria ? 'pastelaria' : 'padaria',
+          unidade: nomeLimpo.toLowerCase().includes('kg') ? 'kg' : 'un.',
+        });
+      }
+    });
+
+    // 3. Qualquer artigo já presente no cliente em edição
+    if (clienteB2BEmEdicao) {
+      const semana = (clienteB2BEmEdicao.quantidades_semanais || clienteB2BEmEdicao.quantidades_semana || {}) as Record<string, Record<string, number>>;
+      Object.values(semana).forEach((m) => {
+        Object.keys(m || {}).forEach((nome) => {
+          const nomeLimpo = nome.trim();
+          const chave = nomeLimpo.toLowerCase();
+          if (!mapa.has(chave)) {
+            const isPastelaria = chave.includes('croissant') || chave.includes('bolo') || chave.includes('pastel') || chave.includes('torta') || chave.includes('queque') || chave.includes('folhado');
+            mapa.set(chave, {
+              nome: nomeLimpo,
+              categoria: isPastelaria ? 'pastelaria' : 'padaria',
+              unidade: nomeLimpo.toLowerCase().includes('kg') ? 'kg' : 'un.',
+            });
+          }
+        });
+      });
+    }
+
+    return Array.from(mapa.values()).sort((a, b) => a.nome.localeCompare(b.nome, 'pt'));
+  }, [produtos, clienteB2BEmEdicao]);
+
+  // Artigos filtrados no Modal B2B por categoria ('todas' | 'padaria' | 'pastelaria' | 'selecionados') e pesquisa
+  const artigosFiltradosB2BModal = useMemo(() => {
+    if (!clienteB2BEmEdicao) return [];
+    const semanaModal = (clienteB2BEmEdicao.quantidades_semanais || clienteB2BEmEdicao.quantidades_semana || {}) as Record<string, Record<string, number>>;
+    const mapaDia = semanaModal[diaSemanaB2B] || {};
+
+    return artigosCatalogoB2B.filter((art) => {
+      const qtd = Number(mapaDia[art.nome] || 0);
+
+      if (categoriaArtigoB2BModal === 'selecionados' && qtd <= 0) return false;
+      if (categoriaArtigoB2BModal === 'padaria' && art.categoria !== 'padaria') return false;
+      if (categoriaArtigoB2BModal === 'pastelaria' && art.categoria !== 'pastelaria') return false;
+
+      if (buscaArtigoB2BModal.trim()) {
+        return correspondePesquisaArtigo(art.nome, buscaArtigoB2BModal);
+      }
+      return true;
+    });
+  }, [artigosCatalogoB2B, clienteB2BEmEdicao, diaSemanaB2B, categoriaArtigoB2BModal, buscaArtigoB2BModal]);
+
+  // Totais métricos do Modal B2B para o dia selecionado
+  const totaisB2BModalDia = useMemo(() => {
+    if (!clienteB2BEmEdicao) return { totalQtd: 0, totalItens: 0, padariaTotal: 0, pastelariaTotal: 0 };
+    const semanaModal = (clienteB2BEmEdicao.quantidades_semanais || clienteB2BEmEdicao.quantidades_semana || {}) as Record<string, Record<string, number>>;
+    const mapaDia = semanaModal[diaSemanaB2B] || {};
+    
+    let totalQtd = 0;
+    let totalItens = 0;
+    Object.entries(mapaDia).forEach(([_, qtd]) => {
+      const q = Number(qtd) || 0;
+      if (q > 0) {
+        totalQtd += q;
+        totalItens += 1;
+      }
+    });
+
+    const padariaTotal = artigosCatalogoB2B.filter((a) => a.categoria === 'padaria').length;
+    const pastelariaTotal = artigosCatalogoB2B.filter((a) => a.categoria === 'pastelaria').length;
+
+    return { totalQtd, totalItens, padariaTotal, pastelariaTotal };
+  }, [clienteB2BEmEdicao, diaSemanaB2B, artigosCatalogoB2B]);
+
+  // Handler para definir ou ajustar a quantidade de um artigo no Modal B2B
+  const handleDefinirQtdArtigoB2BModal = (prodNome: string, valor: number | string) => {
+    if (!clienteB2BEmEdicao) return;
+    const semanaModal = (clienteB2BEmEdicao.quantidades_semanais || clienteB2BEmEdicao.quantidades_semana || {}) as Record<string, Record<string, number>>;
+    const mapaDia = { ...(semanaModal[diaSemanaB2B] || {}) };
+    
+    const novoValor = typeof valor === 'string' ? parseInt(valor, 10) : valor;
+    if (isNaN(novoValor) || novoValor <= 0) {
+      delete mapaDia[prodNome];
+    } else {
+      mapaDia[prodNome] = Math.max(0, novoValor);
+    }
+
+    const novaSemana = {
+      ...semanaModal,
+      [diaSemanaB2B]: mapaDia,
+    };
+
+    setClienteB2BEmEdicao({
+      ...clienteB2BEmEdicao,
+      quantidades_semanais: novaSemana,
+      quantidades_semana: novaSemana,
+    });
+  };
 
   // Bases Recorrentes Filtradas (Porta-a-Porta & Modo Férias)
   const basesRecorrentesFiltradas = useMemo(() => {
@@ -5906,50 +6029,152 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Grelha dos 29 Artigos do Mapa Diário */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-72 overflow-y-auto p-1">
-                {COLUNAS_MAPA_DIARIO_OFICIAL.map((prodNome) => {
-                  const semanaModal = clienteB2BEmEdicao.quantidades_semanais || clienteB2BEmEdicao.quantidades_semana || ({} as Record<DiaSemana, Record<string, number>>);
-                  const qtdAtual = semanaModal[diaSemanaB2B]?.[prodNome] || 0;
-                  return (
-                    <div
-                      key={prodNome}
-                      className={`flex items-center justify-between p-2 rounded-xl border ${
-                        qtdAtual > 0 ? 'bg-indigo-50 border-indigo-300' : 'bg-gray-50 border-gray-200'
-                      }`}
-                    >
-                      <span className="font-bold text-gray-800 truncate pr-2" title={prodNome}>
-                        {prodNome}
-                      </span>
-                      <input
-                        type="number"
-                        min={0}
-                        value={qtdAtual === 0 ? '' : qtdAtual}
-                        placeholder="0"
-                        onChange={(e) => {
-                          const val = Math.max(0, Math.floor(Number(e.target.value) || 0));
-                          const mapaDia = { ...(semanaModal[diaSemanaB2B] || {}) };
-                          if (val <= 0) {
-                            delete mapaDia[prodNome];
-                          } else {
-                            mapaDia[prodNome] = val;
-                          }
-                          const novaSemana = {
-                            ...semanaModal,
-                            [diaSemanaB2B]: mapaDia,
-                          };
-                          setClienteB2BEmEdicao({
-                            ...clienteB2BEmEdicao,
-                            quantidades_semanais: novaSemana,
-                            quantidades_semana: novaSemana,
-                          });
-                        }}
-                        className="w-16 text-center py-1 px-1.5 rounded-lg border border-gray-300 bg-white font-mono font-black text-indigo-950"
-                      />
-                    </div>
-                  );
-                })}
+              {/* Barra de Filtros de Categoria & Pesquisa do Catálogo (Estilo UX Encomendas) */}
+              <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-2xs space-y-3">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5">
+                  {/* Seletor de Categorias */}
+                  <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+                    {[
+                      { id: 'todas', label: `Todos (${artigosCatalogoB2B.length})` },
+                      { id: 'padaria', label: `Padaria (${totaisB2BModalDia.padariaTotal})` },
+                      { id: 'pastelaria', label: `Pastelaria (${totaisB2BModalDia.pastelariaTotal})` },
+                      { 
+                        id: 'selecionados', 
+                        label: `Com Carga (${totaisB2BModalDia.totalItens})`,
+                        destaque: totaisB2BModalDia.totalItens > 0 
+                      },
+                    ].map((cat: any) => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setCategoriaArtigoB2BModal(cat.id)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${
+                          categoriaArtigoB2BModal === cat.id
+                            ? 'bg-indigo-600 text-white shadow-xs'
+                            : cat.destaque
+                            ? 'bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200'
+                            : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                        }`}
+                      >
+                        <span>{cat.label}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Campo de Pesquisa */}
+                  <div className="relative w-full sm:w-64">
+                    <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-stone-400" />
+                    <input
+                      type="text"
+                      value={buscaArtigoB2BModal}
+                      onChange={(e) => setBuscaArtigoB2BModal(e.target.value)}
+                      placeholder="Pesquisar pão, broa, bolo..."
+                      className="w-full pl-8 pr-7 py-1.5 text-xs rounded-xl border border-stone-200 bg-white focus:outline-hidden focus:border-indigo-500 font-medium text-stone-800"
+                    />
+                    {buscaArtigoB2BModal && (
+                      <button
+                        type="button"
+                        onClick={() => setBuscaArtigoB2BModal('')}
+                        className="absolute right-2 top-2 text-stone-400 hover:text-stone-700"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Resumo rápido do dia selecionado */}
+                <div className="flex items-center justify-between text-[11px] text-stone-500 font-semibold px-1 pt-1 border-t border-stone-100">
+                  <span>
+                    Artigos visíveis: <strong>{artigosFiltradosB2BModal.length}</strong>
+                  </span>
+                  <span>
+                    Total para <strong>{diaSemanaB2B.toUpperCase()}</strong>: <strong className="text-indigo-950 font-mono font-black">{totaisB2BModalDia.totalQtd} un.</strong> ({totaisB2BModalDia.totalItens} artigos com entrega)
+                  </span>
+                </div>
               </div>
+
+              {/* Grelha de Artigos do Catálogo B2B (Estilo UX Encomendas) */}
+              {artigosFiltradosB2BModal.length === 0 ? (
+                <div className="bg-stone-50 rounded-2xl p-8 text-center border border-dashed border-stone-200 space-y-2">
+                  <Package className="h-8 w-8 text-stone-300 mx-auto" />
+                  <p className="text-xs font-bold text-stone-700">Nenhum artigo encontrado</p>
+                  <p className="text-[11px] text-stone-400">
+                    {categoriaArtigoB2BModal === 'selecionados' 
+                      ? `Não existem artigos com quantidade definida para ${diaSemanaB2B.toUpperCase()}. Escolha 'Todos', 'Padaria' ou 'Pastelaria' para adicionar.`
+                      : 'Tente outro termo de pesquisa ou selecione outra categoria.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-80 overflow-y-auto p-1">
+                  {artigosFiltradosB2BModal.map((art) => {
+                    const semanaModal = (clienteB2BEmEdicao.quantidades_semanais || clienteB2BEmEdicao.quantidades_semana || {}) as Record<string, Record<string, number>>;
+                    const qtdAtual = Number(semanaModal[diaSemanaB2B]?.[art.nome] || 0);
+
+                    return (
+                      <div
+                        key={art.nome}
+                        className={`rounded-2xl border p-3 flex flex-col justify-between space-y-2 transition shadow-2xs ${
+                          qtdAtual > 0
+                            ? 'bg-indigo-50/70 border-indigo-300 ring-1 ring-indigo-200'
+                            : 'bg-white border-stone-200 hover:border-stone-300'
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <SectorBadge setor={art.categoria} />
+                            <span className="text-[10px] font-black text-amber-900 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md uppercase">
+                              {art.unidade}
+                            </span>
+                          </div>
+                          <h4 className="text-xs font-black text-stone-900 leading-snug line-clamp-2" title={art.nome}>
+                            {art.nome}
+                          </h4>
+                          <span className="text-[10px] text-stone-400 block mt-0.5">
+                            {art.categoria === 'pastelaria' ? 'Pastelaria Fina' : 'Padaria Tradicional'}
+                          </span>
+                        </div>
+
+                        {/* Controlo de Quantidade estilo UX encomendas */}
+                        <div className="pt-2 border-t border-stone-100 flex items-center justify-between gap-2">
+                          <span className="text-[10px] font-bold text-stone-500 uppercase">
+                            Qtd / Dia:
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleDefinirQtdArtigoB2BModal(art.nome, Math.max(0, qtdAtual - 1))}
+                              disabled={qtdAtual <= 0}
+                              className={`h-7 w-7 rounded-lg border flex items-center justify-center font-bold text-xs transition ${
+                                qtdAtual > 0
+                                  ? 'bg-white border-indigo-300 text-indigo-900 hover:bg-indigo-100 cursor-pointer'
+                                  : 'bg-stone-100 border-stone-200 text-stone-300 cursor-not-allowed'
+                              }`}
+                            >
+                              <Minus className="h-3 w-3" />
+                            </button>
+                            <input
+                              type="number"
+                              min={0}
+                              value={qtdAtual === 0 ? '' : qtdAtual}
+                              placeholder="0"
+                              onChange={(e) => handleDefinirQtdArtigoB2BModal(art.nome, e.target.value)}
+                              className="w-14 text-center py-1 px-1 rounded-lg border border-stone-300 bg-white font-mono font-black text-indigo-950 text-xs focus:border-indigo-500 focus:outline-hidden"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleDefinirQtdArtigoB2BModal(art.nome, qtdAtual + 1)}
+                              className="h-7 w-7 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center font-bold text-xs shadow-2xs transition cursor-pointer"
+                            >
+                              <Plus className="h-3 w-3" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
 
               <div className="flex items-center justify-between pt-3 border-t">
                 {clienteB2BEmEdicao.id && clientesB2B.some((c) => c.id === clienteB2BEmEdicao.id) ? (
@@ -6338,7 +6563,7 @@ export default function AdminPage() {
         onClose={() => setPdfModalOpen(false)}
         carrinha={pdfCarrinhaSelecionada}
         diaSemana={diaSemanaBaseFixa}
-        dataReferencia={new Date().toLocaleDateString('pt-PT')}
+        dataReferencia={new Date().toISOString().split('T')[0]}
         itensCarga={pdfItensCarga}
         clientesB2BRota={clientesB2B.filter((cli) => cli.ativo && cli.carrinha_id === pdfCarrinhaSelecionada?.id)}
         encomendasRota={encomendas.filter(

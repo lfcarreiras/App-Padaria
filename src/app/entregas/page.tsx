@@ -22,6 +22,7 @@ import {
   concluirEntregaComTimestampDb,
   obterQuantidadeEfetivaBaseRota,
   obterQuantidadeEfetivaClienteB2B,
+  obterArtigosAjustadosBaseRota,
   registarLogAuditoria,
   carregarBasesDiariasRecorrentes,
   salvarBaseDiariaRecorrente,
@@ -392,7 +393,19 @@ export default function EntregasPage() {
     const semana = (bf?.quantidades_semanais || bf?.quantidades_semana || {}) as Record<string, Record<string, number>>;
     const mapaHoje = semana?.[diaSemanaHoje] || bf?.quantidades_por_produto || {};
 
-    Object.entries(mapaHoje).forEach(([artigo, baselineQtd]) => {
+    const candidatos = new Set<string>();
+    Object.keys(mapaHoje).forEach((a) => candidatos.add(a.trim()));
+    if (bf?.quantidades_semanais) {
+      Object.values(bf.quantidades_semanais).forEach((m) => {
+        Object.keys(m || {}).forEach((a) => candidatos.add(a.trim()));
+      });
+    }
+    if (bf?.quantidades_por_produto) {
+      Object.keys(bf.quantidades_por_produto).forEach((a) => candidatos.add(a.trim()));
+    }
+    obterArtigosAjustadosBaseRota(hoje, car.id).forEach((a) => candidatos.add(a.trim()));
+
+    candidatos.forEach((artigo) => {
       const { quantidade } = obterQuantidadeEfetivaBaseRota(hoje, car.id, artigo, semana, diaSemanaHoje);
       if (quantidade > 0) {
         const qtd = quantidade;

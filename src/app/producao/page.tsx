@@ -19,6 +19,8 @@ import {
   obterDiaSemanaDeData,
   obterQuantidadeEfetivaBaseRota,
   obterQuantidadeEfetivaClienteB2B,
+  obterArtigosAjustadosBaseRota,
+  obterArtigosAjustadosClienteB2B,
   atualizarEstadoEncomendaDb,
   atualizarEstadoItemDb,
   salvarObservacoesProducaoDb,
@@ -399,7 +401,20 @@ export default function ProducaoPage() {
       const semana = (bf?.quantidades_semanais || bf?.quantidades_semana || {}) as Record<string, Record<string, number>>;
       const mapaDia = semana?.[diaSemanaAlvo] || bf?.quantidades_por_produto || {};
 
-      Object.keys(mapaDia).forEach((artigo) => {
+      // Coletar união de todos os artigos possíveis da carrinha + ajustes ad-hoc da data
+      const candidatos = new Set<string>();
+      Object.keys(mapaDia).forEach((a) => candidatos.add(a.trim()));
+      if (bf?.quantidades_semanais) {
+        Object.values(bf.quantidades_semanais).forEach((m) => {
+          Object.keys(m || {}).forEach((a) => candidatos.add(a.trim()));
+        });
+      }
+      if (bf?.quantidades_por_produto) {
+        Object.keys(bf.quantidades_por_produto).forEach((a) => candidatos.add(a.trim()));
+      }
+      obterArtigosAjustadosBaseRota(dataAlvo, car.id).forEach((a) => candidatos.add(a.trim()));
+
+      candidatos.forEach((artigo) => {
         const { quantidade } = obterQuantidadeEfetivaBaseRota(dataAlvo, car.id, artigo, semana, diaSemanaAlvo);
         if (quantidade > 0) {
           const artigoCanonico = artigo.trim();
@@ -439,7 +454,20 @@ export default function ProducaoPage() {
       const semana = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
       const mapaDia = semana?.[diaSemanaAlvo] || cli.produtos_predefinidos || {};
 
-      Object.keys(mapaDia).forEach((artigo) => {
+      // Coletar união de artigos do cliente B2B + ajustes ad-hoc da data
+      const candidatos = new Set<string>();
+      Object.keys(mapaDia).forEach((a) => candidatos.add(a.trim()));
+      if (cli.quantidades_semanais) {
+        Object.values(cli.quantidades_semanais).forEach((m) => {
+          Object.keys(m || {}).forEach((a) => candidatos.add(a.trim()));
+        });
+      }
+      if (cli.produtos_predefinidos) {
+        Object.keys(cli.produtos_predefinidos).forEach((a) => candidatos.add(a.trim()));
+      }
+      obterArtigosAjustadosClienteB2B(dataAlvo, cli.id).forEach((a) => candidatos.add(a.trim()));
+
+      candidatos.forEach((artigo) => {
         const { quantidade } = obterQuantidadeEfetivaClienteB2B(dataAlvo, cli.id, artigo, semana, diaSemanaAlvo);
         if (quantidade > 0) {
           const entry = registrarOuObter(artigo);
@@ -624,7 +652,20 @@ export default function ProducaoPage() {
     const semana = (bf?.quantidades_semanais || bf?.quantidades_semana || {}) as Record<string, Record<string, number>>;
     const mapaDia = semana?.[diaSemanaAlvo] || bf?.quantidades_por_produto || {};
 
-    Object.keys(mapaDia).forEach((artigo) => {
+    // Coletar todos os artigos possíveis da carrinha + ajustes ad-hoc da data
+    const candidatos = new Set<string>();
+    Object.keys(mapaDia).forEach((a) => candidatos.add(a.trim()));
+    if (bf?.quantidades_semanais) {
+      Object.values(bf.quantidades_semanais).forEach((m) => {
+        Object.keys(m || {}).forEach((a) => candidatos.add(a.trim()));
+      });
+    }
+    if (bf?.quantidades_por_produto) {
+      Object.keys(bf.quantidades_por_produto).forEach((a) => candidatos.add(a.trim()));
+    }
+    obterArtigosAjustadosBaseRota(dataAlvo, car.id).forEach((a) => candidatos.add(a.trim()));
+
+    candidatos.forEach((artigo) => {
       const { quantidade } = obterQuantidadeEfetivaBaseRota(dataAlvo, car.id, artigo, semana, diaSemanaAlvo);
       if (quantidade > 0) {
         const prodRef = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
@@ -1756,7 +1797,19 @@ export default function ProducaoPage() {
                   if (!cli.ativo || cli.carrinha_id !== car.id) return false;
                   const semCli = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
                   const mapaCli = semCli?.[diaSemanaAlvoGuia] || {};
-                  const totalCli = Object.keys(mapaCli).reduce((acc, art) => {
+                  const candidatosCli = new Set<string>();
+                  Object.keys(mapaCli).forEach((a) => candidatosCli.add(a.trim()));
+                  if (cli.quantidades_semanais) {
+                    Object.values(cli.quantidades_semanais).forEach((m) => {
+                      Object.keys(m || {}).forEach((a) => candidatosCli.add(a.trim()));
+                    });
+                  }
+                  if (cli.produtos_predefinidos) {
+                    Object.keys(cli.produtos_predefinidos).forEach((a) => candidatosCli.add(a.trim()));
+                  }
+                  obterArtigosAjustadosClienteB2B(dataAlvoGuia, cli.id).forEach((a) => candidatosCli.add(a.trim()));
+
+                  const totalCli = Array.from(candidatosCli).reduce((acc, art) => {
                     const { quantidade } = obterQuantidadeEfetivaClienteB2B(dataAlvoGuia, cli.id, art, semCli, diaSemanaAlvoGuia);
                     return acc + (quantidade > 0 ? quantidade : 0);
                   }, 0);

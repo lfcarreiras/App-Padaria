@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Carrinha, ClienteEmpresarialB2B, DiaSemana, Loja, Encomenda } from '../../types';
-import { obterQuantidadeEfetivaClienteB2B } from '../../lib/encomendasService';
+import { obterQuantidadeEfetivaClienteB2B, obterArtigosAjustadosClienteB2B } from '../../lib/encomendasService';
 import { 
   X, 
   Printer, 
@@ -224,8 +224,20 @@ export function PdfViewerModal({
       .map((cli) => {
         const semana = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
         const mapa = semana[diaSemana] || {};
-        const artigos = Array.from(new Set(Object.keys(mapa)));
-        const itensDoCli = artigos
+        const candidatos = new Set<string>();
+        Object.keys(mapa).forEach((a) => candidatos.add(a.trim()));
+        if (cli.quantidades_semanais) {
+          Object.values(cli.quantidades_semanais).forEach((m) => {
+            Object.keys(m || {}).forEach((a) => candidatos.add(a.trim()));
+          });
+        }
+        if (cli.produtos_predefinidos) {
+          Object.keys(cli.produtos_predefinidos).forEach((a) => candidatos.add(a.trim()));
+        }
+        if (dataReferencia) {
+          obterArtigosAjustadosClienteB2B(dataReferencia, cli.id).forEach((a) => candidatos.add(a.trim()));
+        }
+        const itensDoCli = Array.from(candidatos)
           .map((artigo) => {
             let qtd = Number(mapa[artigo] || 0);
             if (dataReferencia) {
@@ -1062,8 +1074,20 @@ export function PdfViewerModal({
                     {(() => {
                       const semana = (clienteB2B?.quantidades_semanais || clienteB2B?.quantidades_semana || {}) as Record<string, Record<string, number>>;
                       const mapa = semana[diaSemana] || {};
-                      const artigos = Array.from(new Set(Object.keys(mapa)));
-                      const linhas = artigos.map((artigo) => {
+                      const candidatos = new Set<string>();
+                      Object.keys(mapa).forEach((a) => candidatos.add(a.trim()));
+                      if (clienteB2B?.quantidades_semanais) {
+                        Object.values(clienteB2B.quantidades_semanais).forEach((m) => {
+                          Object.keys(m || {}).forEach((a) => candidatos.add(a.trim()));
+                        });
+                      }
+                      if (clienteB2B?.produtos_predefinidos) {
+                        Object.keys(clienteB2B.produtos_predefinidos).forEach((a) => candidatos.add(a.trim()));
+                      }
+                      if (dataReferencia && clienteB2B) {
+                        obterArtigosAjustadosClienteB2B(dataReferencia, clienteB2B.id).forEach((a) => candidatos.add(a.trim()));
+                      }
+                      const linhas = Array.from(candidatos).map((artigo) => {
                         let qtd = Number(mapa[artigo] || 0);
                         if (dataReferencia && clienteB2B) {
                           const { quantidade } = obterQuantidadeEfetivaClienteB2B(dataReferencia, clienteB2B.id, artigo, semana, diaSemana);
@@ -1105,7 +1129,20 @@ export function PdfViewerModal({
                         {(() => {
                           const semana = (clienteB2B?.quantidades_semanais || clienteB2B?.quantidades_semana || {}) as Record<string, Record<string, number>>;
                           const mapa = semana[diaSemana] || {};
-                          return Object.keys(mapa).reduce((acc, artigo) => {
+                          const candidatos = new Set<string>();
+                          Object.keys(mapa).forEach((a) => candidatos.add(a.trim()));
+                          if (clienteB2B?.quantidades_semanais) {
+                            Object.values(clienteB2B.quantidades_semanais).forEach((m) => {
+                              Object.keys(m || {}).forEach((a) => candidatos.add(a.trim()));
+                            });
+                          }
+                          if (clienteB2B?.produtos_predefinidos) {
+                            Object.keys(clienteB2B.produtos_predefinidos).forEach((a) => candidatos.add(a.trim()));
+                          }
+                          if (dataReferencia && clienteB2B) {
+                            obterArtigosAjustadosClienteB2B(dataReferencia, clienteB2B.id).forEach((a) => candidatos.add(a.trim()));
+                          }
+                          return Array.from(candidatos).reduce((acc, artigo) => {
                             let qtd = Number(mapa[artigo] || 0);
                             if (dataReferencia && clienteB2B) {
                               const { quantidade } = obterQuantidadeEfetivaClienteB2B(dataReferencia, clienteB2B.id, artigo, semana, diaSemana);

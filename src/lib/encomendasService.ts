@@ -2258,11 +2258,41 @@ export function removerAjusteAdhoc(chave: string): void {
 }
 
 export function getChaveAdhocBase(dataStr: string, carrinhaId: string, produtoNome: string): string {
-  return `base_${dataStr}_${carrinhaId}_${produtoNome}`;
+  return `base_${dataStr}_${carrinhaId}_${(produtoNome || '').trim()}`;
 }
 
 export function getChaveAdhocB2B(dataStr: string, clienteB2BId: string, produtoNome: string): string {
-  return `b2b_${dataStr}_${clienteB2BId}_${produtoNome}`;
+  return `b2b_${dataStr}_${clienteB2BId}_${(produtoNome || '').trim()}`;
+}
+
+export function obterArtigosAjustadosBaseRota(dataStr: string, carrinhaId: string): string[] {
+  const ajustes = carregarAjustesAdhoc();
+  const prefixo = `base_${dataStr}_${carrinhaId}_`;
+  const artigos: string[] = [];
+  Object.keys(ajustes).forEach((k) => {
+    if (k.startsWith(prefixo)) {
+      const art = k.slice(prefixo.length).trim();
+      if (art && !artigos.includes(art)) {
+        artigos.push(art);
+      }
+    }
+  });
+  return artigos;
+}
+
+export function obterArtigosAjustadosClienteB2B(dataStr: string, clienteB2BId: string): string[] {
+  const ajustes = carregarAjustesAdhoc();
+  const prefixo = `b2b_${dataStr}_${clienteB2BId}_`;
+  const artigos: string[] = [];
+  Object.keys(ajustes).forEach((k) => {
+    if (k.startsWith(prefixo)) {
+      const art = k.slice(prefixo.length).trim();
+      if (art && !artigos.includes(art)) {
+        artigos.push(art);
+      }
+    }
+  });
+  return artigos;
 }
 
 export function obterQuantidadeEfetivaBaseRota(
@@ -2278,8 +2308,24 @@ export function obterQuantidadeEfetivaBaseRota(
   if (ajustes[chave] !== undefined) {
     return { quantidade: Number(ajustes[chave]), isAdhoc: true };
   }
-  const baseline = (baseFixaSemanal?.[diaSemana]?.[nomeLimpo]) ?? 0;
-  return { quantidade: Number(baseline), isAdhoc: false };
+  // Fallback case-insensitive na chave adhoc
+  const prefixo = `base_${dataStr}_${carrinhaId}_`;
+  for (const [k, v] of Object.entries(ajustes)) {
+    if (k.startsWith(prefixo) && k.slice(prefixo.length).trim().toLowerCase() === nomeLimpo.toLowerCase()) {
+      return { quantidade: Number(v), isAdhoc: true };
+    }
+  }
+  // Baseline do mapa semanal
+  const mapaDia = baseFixaSemanal?.[diaSemana] || {};
+  if (mapaDia[nomeLimpo] !== undefined) {
+    return { quantidade: Number(mapaDia[nomeLimpo]), isAdhoc: false };
+  }
+  for (const [p, q] of Object.entries(mapaDia)) {
+    if (p.trim().toLowerCase() === nomeLimpo.toLowerCase()) {
+      return { quantidade: Number(q), isAdhoc: false };
+    }
+  }
+  return { quantidade: 0, isAdhoc: false };
 }
 
 export function obterQuantidadeEfetivaClienteB2B(
@@ -2295,6 +2341,22 @@ export function obterQuantidadeEfetivaClienteB2B(
   if (ajustes[chave] !== undefined) {
     return { quantidade: Number(ajustes[chave]), isAdhoc: true };
   }
-  const baseline = (quantidadesSemana?.[diaSemana]?.[nomeLimpo]) ?? 0;
-  return { quantidade: Number(baseline), isAdhoc: false };
+  // Fallback case-insensitive na chave adhoc
+  const prefixo = `b2b_${dataStr}_${clienteB2BId}_`;
+  for (const [k, v] of Object.entries(ajustes)) {
+    if (k.startsWith(prefixo) && k.slice(prefixo.length).trim().toLowerCase() === nomeLimpo.toLowerCase()) {
+      return { quantidade: Number(v), isAdhoc: true };
+    }
+  }
+  // Baseline do mapa semanal
+  const mapaDia = quantidadesSemana?.[diaSemana] || {};
+  if (mapaDia[nomeLimpo] !== undefined) {
+    return { quantidade: Number(mapaDia[nomeLimpo]), isAdhoc: false };
+  }
+  for (const [p, q] of Object.entries(mapaDia)) {
+    if (p.trim().toLowerCase() === nomeLimpo.toLowerCase()) {
+      return { quantidade: Number(q), isAdhoc: false };
+    }
+  }
+  return { quantidade: 0, isAdhoc: false };
 }
