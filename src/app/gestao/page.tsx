@@ -98,7 +98,7 @@ import {
 import { StatusBadge } from '../../components/StatusBadge';
 import { OriginBadge, SectorBadge } from '../../components/InproovalBadges';
 import { PdfViewerModal, LinhaArtigoCarga } from '../../components/pdf/PdfViewerModal';
-import { FileText, Zap } from 'lucide-react';
+import { FileText, Zap, Mail } from 'lucide-react';
 
 export default function AdminPage() {
   const { t, language } = useTranslation();

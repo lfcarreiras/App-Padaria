@@ -73,7 +73,9 @@ Consulte o histórico detalhado em `[[CHANGELOG]]`.
 
 | Versão | Tag Git | Commit | Data | Marco Funcional Principal |
 | :--- | :--- | :--- | :--- | :--- |
-| **v2.7.18** | 2.7.18 | HEAD | 2026-10-25 | Mecanismo de Salvaguarda BCP (Business Continuity Plan): disparo diário às 23h15 via Vercel Cron e Resend API com geração em memória de PDFs nativos com auto-wrap para as 4 Lojas e 7 Carrinhas, autenticação por CRON_SECRET e parametrizações validadas |
+| **v2.7.20** |  2.7.20 | HEAD | 2026-10-27 | Correção de ReferenceError Mail no Cockpit de Gestão ao editar clientes empresariais com e-mail |
+| **v2.7.19** |  2.7.19 | 1554b5c | 2026-10-26 | Refinamento BCP: disparo noturno às 00h15 com envio direto para padariadavila@gmail.com e BCC para Inprooval, acentuação nativa nos PDFs (WinAnsiEncoding), layout sem sobreposição, eliminação integral da menção KDS e nomenclatura canónica (Folha_Fabrico e Folha_Carga_Rotas) |
+| **v2.7.18** |  2.7.18 | 5ff5f99 | 2026-10-25 | Mecanismo de Salvaguarda BCP: envio noturno diário das Folhas de Fabrico e de Carga em PDF nativo |
 | **v2.7.17** | 2.7.17 | c5bd03 | 2026-10-24 | Eliminação integral de dicionários estáticos (normalizarNomeArtigoCanonico) e consumo direto de nomes canónicos do Supabase |
 | **v2.3.3** | `v2.3.3` | `HEAD` | 2026-10-18 | Error Boundaries nativos Next.js (`src/app/gestao/error.tsx` e `src/app/error.tsx`) com diagnóstico no ecrã e botão de limpeza de cache local, blindagem de ordenação (`sortConsolidada`), `calcularDesvioMinutos` e `try/catch` no `useEffect` |
 | **v2.3.2** | `v2.3.2` | `e016421` | 2026-10-18 | Resolução definitiva da exceção de cliente em `/gestao`: blindagem total de `curr.itens.reduce`, `enc.cliente?.nome`, `telefone`, filtros, ordenações, exportação Excel, sanitização de cache offline e talão térmico |

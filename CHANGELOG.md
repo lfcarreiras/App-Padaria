@@ -42,6 +42,13 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.20] - 2026-10-27
+
+### Fixed (Resolução de ReferenceError: Mail is not defined no Cockpit de Gestão)
+- **Importação em Falta de `Mail` em `gestao/page.tsx`**:
+  - Adicionado o ícone `Mail` ao import de `lucide-react` no Cockpit de Gestão (`src/app/gestao/page.tsx`).
+  - Eliminada a interceção de erro da aplicação (*ReferenceError: Mail is not defined*) que ocorria ao abrir o formulário modal de edição de clientes empresariais (B2B) que tivessem endereço de e-mail associado para o envio do link de recuperação ou primeiro acesso.
+
 ## [v2.7.19] - 2026-10-26
 
 ### Fixed & Enhanced (Refinamento BCP: Acentuação Nativa nos PDFs, Correção de Layout e Padronização de Nomes)
