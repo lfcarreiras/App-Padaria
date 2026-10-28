@@ -1422,30 +1422,6 @@ export function normalizarPerfil(p: any): PerfilUtilizador {
   };
 }
 
-  return {
-    id: p.id || `user-${Date.now()}`,
-    nome: p.nome || 'Colaborador',
-    telefone: p.telefone || '',
-    email: p.email || '',
-    password: p.password || (p.role === 'admin' ? 'admin' : '123'),
-    role,
-    loja_id: p.loja_id,
-    loja_nome: p.loja_nome,
-    acesso_encomendas: acessoEnc,
-    acesso_producao: acessoProd,
-    acesso_loja: acessoLoja,
-    acesso_entregas: acessoEnt,
-    acesso_gestao: acessoGest,
-    painel_encomendas: acessoEnc !== 'sem_acesso',
-    painel_producao: acessoProd !== 'sem_acesso',
-    painel_loja: acessoLoja !== 'sem_acesso',
-    painel_entregas: acessoEnt !== 'sem_acesso',
-    painel_gestao: acessoGest !== 'sem_acesso',
-    ativo: p.ativo !== undefined ? Boolean(p.ativo) : true,
-    atualizado_em: p.atualizado_em,
-  };
-}
-
 export const PERFIS_INICIAIS: PerfilUtilizador[] = [
   {
     id: 'user-admin',
@@ -1491,7 +1467,7 @@ export const PERFIS_INICIAIS: PerfilUtilizador[] = [
   },
   {
     id: 'user-balcao',
-    nome: 'Marta Santos (Atendente Balcão)',
+    nome: 'Marta Santos (Operador Balcão)',
     telefone: '910 000 003',
     email: 'marta.santos@padaria.pt',
     password: '123',
@@ -2035,11 +2011,85 @@ export function carregarBaseFixaCarrinhas(): BaseFixaCarrinha[] {
   return inicialNormalizado.filter(b => b.carrinha_nome !== 'Rota 8' && b.carrinha_id !== 'e888db95-c427-4ed5-83fc-01403bd24cf8');
 }
 
+export const CONFIG_BASE_FIXA_PHONE_KEY = '000000003';
+
+export async function carregarBaseFixaCarrinhasSupabase(): Promise<BaseFixaCarrinha[]> {
+  if (typeof window !== 'undefined') {
+    const cached = localStorage.getItem(BASE_FIXA_CARRINHAS_STORAGE_KEY);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed
+            .map(normalizarBaseFixaItem)
+            .filter((b) => b.carrinha_nome !== 'Rota 8' && b.carrinha_id !== 'e888db95-c427-4ed5-83fc-01403bd24cf8');
+        }
+      } catch (e) {}
+    }
+  }
+
+  if (supabase) {
+    try {
+      const { data } = await supabase
+        .from('clientes')
+        .select('notas_entrega')
+        .eq('telefone', CONFIG_BASE_FIXA_PHONE_KEY)
+        .maybeSingle();
+
+      if (data && data.notas_entrega) {
+        const parsed = JSON.parse(data.notas_entrega);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const normalizados = parsed
+            .map(normalizarBaseFixaItem)
+            .filter((b) => b.carrinha_nome !== 'Rota 8' && b.carrinha_id !== 'e888db95-c427-4ed5-83fc-01403bd24cf8');
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(BASE_FIXA_CARRINHAS_STORAGE_KEY, JSON.stringify(normalizados));
+          }
+          return normalizados;
+        }
+      }
+    } catch (err) {
+      console.warn('Erro ao carregar base fixa do Supabase:', err);
+    }
+  }
+
+  return carregarBaseFixaCarrinhas();
+}
+
 export function salvarBaseFixaCarrinhas(dados: BaseFixaCarrinha[]): void {
   const normalizados = (dados || []).map(normalizarBaseFixaItem);
   if (typeof window !== 'undefined') {
     localStorage.setItem(BASE_FIXA_CARRINHAS_STORAGE_KEY, JSON.stringify(normalizados));
     window.dispatchEvent(new Event('app_base_fixa_atualizada'));
+  }
+
+  if (supabase) {
+    const jsonStr = JSON.stringify(normalizados);
+    supabase
+      .from('clientes')
+      .select('id')
+      .eq('telefone', CONFIG_BASE_FIXA_PHONE_KEY)
+      .maybeSingle()
+      .then(({ data: existente }) => {
+        if (existente) {
+          return supabase
+            .from('clientes')
+            .update({
+              nome: '[SISTEMA_BASE_FIXA_CARRINHAS]',
+              notas_entrega: jsonStr,
+            })
+            .eq('id', existente.id);
+        } else {
+          return supabase
+            .from('clientes')
+            .insert({
+              nome: '[SISTEMA_BASE_FIXA_CARRINHAS]',
+              telefone: CONFIG_BASE_FIXA_PHONE_KEY,
+              notas_entrega: jsonStr,
+            });
+        }
+      })
+      .catch((err) => console.warn('Aviso sincronizacao Base Fixa Supabase:', err));
   }
 }
 
@@ -2418,6 +2468,7 @@ export function obterDiaSemanaDeData(dataStr: string): DiaSemana {
 // ---------------- AJUSTES AD-HOC DIÁRIOS (CALENDÁRIO 7 DIAS) ---------------- //
 
 export const AJUSTES_ADHOC_STORAGE_KEY = 'padaria_ajustes_adhoc_rotas_v1';
+export const CONFIG_AJUSTES_ADHOC_PHONE_KEY = '000000004';
 
 export function carregarAjustesAdhoc(): Record<string, number> {
   if (typeof window === 'undefined') return {};
@@ -2433,22 +2484,98 @@ export function carregarAjustesAdhoc(): Record<string, number> {
   return {};
 }
 
-export function salvarAjusteAdhoc(chave: string, quantidade: number | null): void {
-  if (typeof window === 'undefined') return;
-  try {
-    const todos = carregarAjustesAdhoc();
-    if (quantidade === null || isNaN(quantidade)) {
-      delete todos[chave];
-    } else {
-      todos[chave] = Math.max(0, quantidade);
+export async function carregarAjustesAdhocSupabase(): Promise<Record<string, number>> {
+  if (typeof window !== 'undefined') {
+    const cached = localStorage.getItem(AJUSTES_ADHOC_STORAGE_KEY);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (parsed && typeof parsed === 'object') {
+          return parsed.valores || {};
+        }
+      } catch (e) {}
     }
-    localStorage.setItem(AJUSTES_ADHOC_STORAGE_KEY, JSON.stringify({
+  }
+
+  if (supabase) {
+    try {
+      const { data } = await supabase
+        .from('clientes')
+        .select('notas_entrega')
+        .eq('telefone', CONFIG_AJUSTES_ADHOC_PHONE_KEY)
+        .maybeSingle();
+
+      if (data && data.notas_entrega) {
+        const parsed = JSON.parse(data.notas_entrega);
+        if (parsed && typeof parsed === 'object') {
+          const valores = parsed.valores || parsed;
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(AJUSTES_ADHOC_STORAGE_KEY, JSON.stringify({
+              valores,
+              atualizado_em: new Date().toISOString()
+            }));
+          }
+          return valores;
+        }
+      }
+    } catch (err) {
+      console.warn('Erro ao carregar ajustes ad-hoc do Supabase:', err);
+    }
+  }
+
+  return carregarAjustesAdhoc();
+}
+
+export function salvarAjusteAdhoc(chave: string, quantidade: number | null): void {
+  const todos = carregarAjustesAdhoc();
+  if (quantidade === null || isNaN(quantidade)) {
+    delete todos[chave];
+  } else {
+    todos[chave] = Math.max(0, quantidade);
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(AJUSTES_ADHOC_STORAGE_KEY, JSON.stringify({
+        valores: todos,
+        atualizado_em: new Date().toISOString()
+      }));
+      window.dispatchEvent(new Event('app_ajustes_adhoc_atualizados'));
+    } catch (e) {
+      console.error('Erro ao salvar ajuste ad-hoc:', e);
+    }
+  }
+
+  if (supabase) {
+    const jsonStr = JSON.stringify({
       valores: todos,
       atualizado_em: new Date().toISOString()
-    }));
-    window.dispatchEvent(new Event('app_ajustes_adhoc_atualizados'));
-  } catch (e) {
-    console.error('Erro ao salvar ajuste ad-hoc:', e);
+    });
+    supabase
+      .from('clientes')
+      .select('id')
+      .eq('telefone', CONFIG_AJUSTES_ADHOC_PHONE_KEY)
+      .maybeSingle()
+      .then(({ data: existente }) => {
+        if (existente) {
+          return supabase
+            .from('clientes')
+            .update({
+              nome: '[SISTEMA_AJUSTES_ADHOC_ROTAS]',
+              notas_entrega: jsonStr,
+            })
+            .eq('id', existente.id);
+        } else {
+          return supabase
+            .from('clientes')
+            .insert({
+              nome: '[SISTEMA_AJUSTES_ADHOC_ROTAS]',
+              telefone: CONFIG_AJUSTES_ADHOC_PHONE_KEY,
+              notas_entrega: jsonStr,
+            });
+        }
+      })
+      .catch((err) => console.warn('Aviso sincronizacao Ajustes Ad-hoc Supabase:', err));
   }
 }
 
@@ -2464,8 +2591,8 @@ export function getChaveAdhocB2B(dataStr: string, clienteB2BId: string, produtoN
   return `b2b_${dataStr}_${clienteB2BId}_${(produtoNome || '').trim()}`;
 }
 
-export function obterArtigosAjustadosBaseRota(dataStr: string, carrinhaId: string): string[] {
-  const ajustes = carregarAjustesAdhoc();
+export function obterArtigosAjustadosBaseRota(dataStr: string, carrinhaId: string, ajustesCustom?: Record<string, number>): string[] {
+  const ajustes = ajustesCustom || carregarAjustesAdhoc();
   const prefixo = `base_${dataStr}_${carrinhaId}_`;
   const artigos: string[] = [];
   Object.keys(ajustes).forEach((k) => {
@@ -2479,8 +2606,8 @@ export function obterArtigosAjustadosBaseRota(dataStr: string, carrinhaId: strin
   return artigos;
 }
 
-export function obterArtigosAjustadosClienteB2B(dataStr: string, clienteB2BId: string): string[] {
-  const ajustes = carregarAjustesAdhoc();
+export function obterArtigosAjustadosClienteB2B(dataStr: string, clienteB2BId: string, ajustesCustom?: Record<string, number>): string[] {
+  const ajustes = ajustesCustom || carregarAjustesAdhoc();
   const prefixo = `b2b_${dataStr}_${clienteB2BId}_`;
   const artigos: string[] = [];
   Object.keys(ajustes).forEach((k) => {
@@ -2499,9 +2626,10 @@ export function obterQuantidadeEfetivaBaseRota(
   carrinhaId: string,
   produtoNome: string,
   baseFixaSemanal?: Record<string, Record<string, number>>,
-  diaSemana: string = 'seg'
+  diaSemana: string = 'seg',
+  ajustesCustom?: Record<string, number>
 ): { quantidade: number; isAdhoc: boolean } {
-  const ajustes = carregarAjustesAdhoc();
+  const ajustes = ajustesCustom || carregarAjustesAdhoc();
   const nomeLimpo = (produtoNome || '').trim();
   const chave = getChaveAdhocBase(dataStr, carrinhaId, nomeLimpo);
   if (ajustes[chave] !== undefined) {
@@ -2532,9 +2660,10 @@ export function obterQuantidadeEfetivaClienteB2B(
   clienteB2BId: string,
   produtoNome: string,
   quantidadesSemana?: Record<string, Record<string, number>>,
-  diaSemana: string = 'seg'
+  diaSemana: string = 'seg',
+  ajustesCustom?: Record<string, number>
 ): { quantidade: number; isAdhoc: boolean } {
-  const ajustes = carregarAjustesAdhoc();
+  const ajustes = ajustesCustom || carregarAjustesAdhoc();
   const nomeLimpo = (produtoNome || '').trim();
   const chave = getChaveAdhocB2B(dataStr, clienteB2BId, nomeLimpo);
   if (ajustes[chave] !== undefined) {

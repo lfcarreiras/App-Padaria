@@ -1,7 +1,7 @@
 /**
  * Construtor Nativo de PDFs de Continuidade de Negócio (BCP)
  * Gera ficheiros binários PDF 1.4 em memória para envio como anexos no Resend.
- * Formatação dinâmica (Auto-Wrap / Multi-line) que se molda ao tamanho do texto sem qualquer corte.
+ * Réplica exata do layout e conteúdo oficial da aplicação (sem caixas e sem fundos preenchidos a tinta).
  * Economia de Tinteiro: Layout Wireframe sem fundos preenchidos (100% fundo branco e linhas de contorno finas).
  */
 
@@ -39,7 +39,6 @@ export function wrapText(text: string, maxCharsPerLine: number): string[] {
 
   for (const rawWord of words) {
     let word = rawWord;
-    // Se uma palavra isolada for maior que o limite da coluna, segmenta-a
     while (word.length > maxCharsPerLine) {
       const part = word.slice(0, maxCharsPerLine);
       word = word.slice(maxCharsPerLine);
@@ -93,7 +92,8 @@ export class PdfPageWriter {
       'Ç': '\\307', 'Ñ': '\\321',
       'º': '\\272', 'ª': '\\252',
       '•': '\\225', '–': '\\226', '—': '\\227', '€': '\\200',
-      '✓': 'V', '✕': 'X'
+      '✓': 'V', '✕': 'X',
+      '⏰': '', '🥖': '', '🧁': '', '🚚': '', '🏪': '', '🏬': '', '⚠️': 'Obs:'
     };
 
     clean = clean.replace(/[\u0080-\uffff]/g, (c) => winAnsiMap[c] || '');
@@ -157,7 +157,7 @@ export class NativePdfDocument {
 
     for (let i = 0; i < this.pages.length; i++) {
       const p = this.pages[i];
-      const footer = `Folha de Contingência - Padaria da Vila | Página ${i + 1} de ${this.pages.length} | Inprooval Sistemas`;
+      const footer = `Folha de Continuidade - Padaria da Vila | Página ${i + 1} de ${this.pages.length} | Inprooval Sistemas`;
       p.drawText(footer, 160, 20, 7, false, '0.4 0.4 0.4');
 
       const streamLen = Buffer.byteLength(p.content, 'utf-8');
@@ -215,11 +215,13 @@ export interface ParametrosFolhaCargaPdf {
   basesRecorrentes: BaseDiariaRecorrente[];
   encomendas: Encomenda[];
   produtos: Produto[];
+  ajustesAdhoc?: Record<string, number>;
 }
 
 /**
  * Constrói o PDF Oficial: Folha de Fabrico de Encomendas por Loja
- * Réplica exata dos dados reais e layout da app, sem caixas preenchidas a tinta (Wireframe puro).
+ * Réplica exata do layout e conteúdo da aplicação (agrupado por loja, card individual por encomenda,
+ * tabela de artigos discriminados e sem fundos preenchidos a tinta).
  */
 export function gerarPdfFolhaFabricoLojas(params: ParametrosFolhaFabricoPdf | string): Buffer {
   let dataOperacao = '';
@@ -241,7 +243,7 @@ export function gerarPdfFolhaFabricoLojas(params: ParametrosFolhaFabricoPdf | st
 
   const doc = new NativePdfDocument(`Folha_Fabrico_${dataFormatada.replace(/\//g, '-')}`);
 
-  // Filtrar apenas lojas ativas (Lojas 1 a 4)
+  // Filtrar apenas lojas ativas
   const lojasAtivas = lojas.filter((l) => l.ativo !== false);
 
   lojasAtivas.forEach((loja, idx) => {
@@ -285,122 +287,137 @@ export function gerarPdfFolhaFabricoLojas(params: ParametrosFolhaFabricoPdf | st
       0
     );
 
-    // Header Principal da Loja (Wireframe sem fundo preenchido)
-    p.drawRect(35, 745, 525, 52, null, '0.2 0.2 0.2');
-    p.drawText('PADARIA DA VILA - CENTRO DE PRODUÇÃO', 45, 778, 11, true, '0 0 0');
-    p.drawText(`FOLHA DE FABRICO DE ENCOMENDAS POR LOJA • OPERAÇÃO DE ${dataFormatada}`, 45, 765, 8.5, false, '0.2 0.2 0.2');
-    p.drawText(
-      `${loja.nome} • ${loja.morada || 'Arouca'}${loja.telefone ? ` • Tel: ${loja.telefone}` : ''}`,
-      45,
-      753,
-      7.5,
-      false,
-      '0.3 0.3 0.3'
-    );
+    // 1. Cabeçalho Oficial da Loja (Wireframe sem fundo preenchido)
+    p.drawRect(35, 750, 525, 42, null, '0.2 0.2 0.2');
+    p.drawText('PADARIA DA VILA - CENTRO DE PRODUÇÃO', 45, 776, 11, true, '0 0 0');
+    p.drawText(`FOLHA DE FABRICO DE ENCOMENDAS POR LOJA • OPERAÇÃO DE ${dataFormatada}`, 45, 764, 8, false, '0.2 0.2 0.2');
+    p.drawText(`${loja.nome} • ${loja.morada || 'Arouca'}${loja.telefone ? ` • Tel: ${loja.telefone}` : ''}`, 45, 754, 7, false, '0.3 0.3 0.3');
 
-    // Cartões de Resumo Wireframe (4 caixas sem fundo preenchido)
-    p.drawRect(35, 706, 125, 30, null, '0.3 0.3 0.3');
-    p.drawText('TOTAL ENCOMENDAS', 42, 725, 7, true, '0.4 0.4 0.4');
-    p.drawText(`${totalEncsLoja}`, 42, 712, 11, true, '0 0 0');
+    p.drawRect(435, 755, 115, 32, null, '0.3 0.3 0.3');
+    p.drawText('ENCOMENDAS POR LOJA', 442, 774, 6.5, true, '0 0 0');
+    p.drawText(`Data: ${dataFormatada}`, 442, 763, 7.5, true, '0 0 0');
 
-    p.drawRect(168, 706, 125, 30, null, '0.3 0.3 0.3');
-    p.drawText('TOTAL A PRODUZIR', 175, 725, 7, true, '0.4 0.4 0.4');
-    p.drawText(`${totalUnidadesLoja} un.`, 175, 712, 11, true, '0 0 0');
+    // 2. Cartões de Resumo Wireframe (4 caixas sem fundo preenchido a tinta)
+    p.drawRect(35, 714, 125, 28, null, '0.3 0.3 0.3');
+    p.drawText('TOTAL ENCOMENDAS', 42, 730, 6.5, true, '0.4 0.4 0.4');
+    p.drawText(`${totalEncsLoja}`, 42, 718, 10, true, '0 0 0');
+    p.drawText('encomendas ativas', 68, 718, 6.5, false, '0.4 0.4 0.4');
 
-    p.drawRect(301, 706, 125, 30, null, '0.3 0.3 0.3');
-    p.drawText('PADARIA (PÃES)', 308, 725, 7, true, '0.4 0.4 0.4');
-    p.drawText(`${totalPadariaLoja} un.`, 308, 712, 11, true, '0 0 0');
+    p.drawRect(168, 714, 125, 28, null, '0.3 0.3 0.3');
+    p.drawText('TOTAL A PRODUZIR', 175, 730, 6.5, true, '0.4 0.4 0.4');
+    p.drawText(`${totalUnidadesLoja} un.`, 175, 718, 10, true, '0 0 0');
+    p.drawText('artigos encomendados', 225, 718, 6.5, false, '0.4 0.4 0.4');
 
-    p.drawRect(434, 706, 126, 30, null, '0.3 0.3 0.3');
-    p.drawText('PASTELARIA (DOCES)', 441, 725, 7, true, '0.4 0.4 0.4');
-    p.drawText(`${totalPastelariaLoja} un.`, 441, 712, 11, true, '0 0 0');
+    p.drawRect(301, 714, 125, 28, null, '0.3 0.3 0.3');
+    p.drawText('PADARIA (PÃES)', 308, 730, 6.5, true, '0.4 0.4 0.4');
+    p.drawText(`${totalPadariaLoja} un.`, 308, 718, 10, true, '0 0 0');
+    p.drawText('pães e broas', 355, 718, 6.5, false, '0.4 0.4 0.4');
 
-    // Tabela Header (Wireframe puro)
-    p.drawRect(35, 680, 525, 18, null, '0.2 0.2 0.2');
-    p.drawText('HORA', 40, 685, 7.5, true, '0 0 0');
-    p.drawText('CÓDIGO', 75, 685, 7.5, true, '0 0 0');
-    p.drawText('CLIENTE / CONTACTO', 130, 685, 7.5, true, '0 0 0');
-    p.drawText('ARTIGOS A FABRICAR', 245, 685, 7.5, true, '0 0 0');
-    p.drawText('ESPECIFICAÇÕES / OBS.', 395, 685, 7.5, true, '0 0 0');
-    p.drawText('VISTO', 505, 685, 7.5, true, '0 0 0');
+    p.drawRect(434, 714, 126, 28, null, '0.3 0.3 0.3');
+    p.drawText('PASTELARIA (DOCES)', 441, 730, 6.5, true, '0.4 0.4 0.4');
+    p.drawText(`${totalPastelariaLoja} un.`, 441, 718, 10, true, '0 0 0');
+    p.drawText('pastelaria e doçaria', 495, 718, 6.5, false, '0.4 0.4 0.4');
 
-    let currentY = 660;
+    let currentY = 700;
 
     if (encsLoja.length === 0) {
-      p.drawRect(35, currentY - 14, 525, 24, null, '0.4 0.4 0.4');
-      p.drawText('Sem encomendas agendadas para esta loja na data indicada.', 150, currentY - 4, 8.5, false, '0.4 0.4 0.4');
-      currentY -= 34;
+      p.drawRect(35, currentY - 20, 525, 20, null, '0.4 0.4 0.4');
+      p.drawText('Sem encomendas agendadas para esta loja na data indicada.', 150, currentY - 12, 8, false, '0.4 0.4 0.4');
+      currentY -= 30;
     } else {
+      // 3. Renderização Encomenda a Encomenda (Card discriminado idêntico à app)
       encsLoja.forEach((enc) => {
-        // Montar descritivos de cliente, artigos e observações
-        const clienteTexto = `${enc.cliente?.nome || 'Cliente'}${enc.cliente?.telefone ? ` (${enc.cliente.telefone})` : ''}${enc.tipo === 'entrega_domicilio' ? ' [Domicílio]' : ''}`;
-        const itensTexto = enc.itensValidos
-          .map((it) => `${it.quantidade}x ${it.produto_nome}`)
-          .join(', ');
-        const obsList: string[] = [];
-        if (enc.notas_cliente) obsList.push(`Nota: ${enc.notas_cliente}`);
-        if (enc.observacoes_producao) obsList.push(`Obs: ${enc.observacoes_producao}`);
-        if (enc.tipo === 'entrega_domicilio' && enc.cliente?.morada) obsList.push(`Morada: ${enc.cliente.morada}`);
-        enc.itensValidos.forEach((it) => {
-          if (it.notas_personalizacao) obsList.push(`${it.produto_nome}: ${it.notas_personalizacao}`);
-        });
-        const obsTexto = obsList.length > 0 ? obsList.join(' | ') : 'Padrão da receita';
+        const hasNotes = Boolean(
+          enc.notas_cliente || enc.observacoes_producao || (enc.tipo === 'entrega_domicilio' && enc.cliente?.morada)
+        );
+        const itemRowsCount = enc.itensValidos.length;
+        const estimatedHeight = 15 + (hasNotes ? 11 : 0) + 12 + (itemRowsCount * 12) + 12 + 10;
 
-        const clienteLines = wrapText(clienteTexto, 20);
-        const itensLines = wrapText(itensTexto, 28);
-        const obsLines = wrapText(obsTexto, 22);
-
-        const maxLines = Math.max(clienteLines.length, itensLines.length, obsLines.length, 1);
-        const lineHeight = 10.5;
-        const rowHeight = Math.max(22, maxLines * lineHeight + 8);
-
-        // Verificação de quebra de página
-        if (currentY - rowHeight < 75) {
+        if (currentY - estimatedHeight < 65) {
           p = doc.addPage();
           currentY = 790;
-          // Cabeçalho de continuação
-          p.drawRect(35, currentY - 14, 525, 20, null, '0.3 0.3 0.3');
-          p.drawText(`${loja.nome} (Continuação) • ${dataFormatada}`, 45, currentY - 6, 8, true, '0.2 0.2 0.2');
-          currentY -= 28;
+          p.drawRect(35, currentY - 14, 525, 14, null, '0.3 0.3 0.3');
+          p.drawText(`${loja.nome} (Continuação) • ${dataFormatada}`, 45, currentY - 10, 7.5, true, '0.2 0.2 0.2');
+          currentY -= 20;
         }
 
-        // Desenhar contorno da linha (Sem Fundo Preenchido)
-        p.drawRect(35, currentY - rowHeight + 14, 525, rowHeight, null, '0.5 0.5 0.5');
+        // Cabeçalho da Encomenda (Código com espaço dedicado, Hora, Canal e Contacto)
+        p.drawRect(35, currentY - 14, 525, 14, null, '0.4 0.4 0.4');
+        p.drawText(enc.codigo || '#ENC', 42, currentY - 10, 7.5, true, '0 0 0');
+        p.drawText(enc.hora_agendamento || '10:00', 145, currentY - 10, 7.5, true, '0 0 0');
+        p.drawText(enc.tipo === 'entrega_domicilio' ? '[Domicílio]' : '[Balcão]', 185, currentY - 10, 7, false, '0.2 0.2 0.2');
+        p.drawText((enc.cliente?.nome || 'Cliente').slice(0, 32), 245, currentY - 10, 7.5, true, '0 0 0');
+        if (enc.cliente?.telefone) {
+          p.drawText(`Tel: ${enc.cliente.telefone}`, 440, currentY - 10, 7, false, '0.3 0.3 0.3');
+        }
+        currentY -= 14;
 
-        // Colunas fixas
-        p.drawText(enc.hora_agendamento || '10:00', 40, currentY + 3, 7.5, true, '0 0 0');
-        p.drawText(enc.codigo || '#ENC', 75, currentY + 3, 7.5, true, '0 0 0');
-        p.drawText('[ ] Pronto', 505, currentY + 3, 7.5, false, '0 0 0');
+        // Notas / Observações / Morada
+        if (hasNotes) {
+          const notesParts: string[] = [];
+          if (enc.notas_cliente) notesParts.push(`Nota: ${enc.notas_cliente}`);
+          if (enc.observacoes_producao) notesParts.push(`Obs Produção: ${enc.observacoes_producao}`);
+          if (enc.tipo === 'entrega_domicilio' && enc.cliente?.morada) notesParts.push(`Morada: ${enc.cliente.morada}`);
+          const notesStr = notesParts.join(' • ');
 
-        // Linhas de texto dinâmicas
-        for (let i = 0; i < maxLines; i++) {
-          const yPos = currentY + 3 - (i * lineHeight);
-          if (i < clienteLines.length) {
-            p.drawText(clienteLines[i], 130, yPos, 7.5, false, '0 0 0');
-          }
-          if (i < itensLines.length) {
-            p.drawText(itensLines[i], 245, yPos, 7.5, true, '0 0 0');
-          }
-          if (i < obsLines.length) {
-            p.drawText(obsLines[i], 395, yPos, 7, false, '0.2 0.2 0.2');
-          }
+          p.drawRect(35, currentY - 11, 525, 11, null, '0.5 0.5 0.5');
+          p.drawText(notesStr.slice(0, 95), 42, currentY - 8, 6.5, false, '0.2 0.2 0.2');
+          currentY -= 11;
         }
 
-        currentY -= (rowHeight + 2);
+        // Tabela de Artigos desta Encomenda
+        p.drawRect(35, currentY - 12, 525, 12, null, '0.3 0.3 0.3');
+        p.drawText('Artigo / Produto a Produzir', 42, currentY - 9, 6.5, true, '0 0 0');
+        p.drawText('Setor', 240, currentY - 9, 6.5, true, '0 0 0');
+        p.drawText('Quantidade', 300, currentY - 9, 6.5, true, '0 0 0');
+        p.drawText('Personalização / Especificações', 370, currentY - 9, 6.5, true, '0 0 0');
+        p.drawText('Fabrico [  ]', 485, currentY - 9, 6.5, true, '0 0 0');
+        currentY -= 12;
+
+        enc.itensValidos.forEach((it) => {
+          p.drawRect(35, currentY - 12, 525, 12, null, '0.6 0.6 0.6');
+          p.drawText(it.produto_nome.slice(0, 36), 42, currentY - 9, 7, true, '0 0 0');
+          p.drawText(it.setor === 'pastelaria' ? 'Pastelaria' : 'Padaria', 240, currentY - 9, 6.5, false, '0.3 0.3 0.3');
+          p.drawText(`${it.quantidade} un.`, 300, currentY - 9, 7.5, true, '0 0 0');
+          p.drawText((it.notas_personalizacao || 'Padrão da receita').slice(0, 32), 370, currentY - 9, 6.5, false, '0.3 0.3 0.3');
+          p.drawText('[ ] Pronto / Emb.', 485, currentY - 9, 6.5, false, '0 0 0');
+          currentY -= 12;
+        });
+
+        // Rodapé da Encomenda
+        p.drawRect(35, currentY - 12, 525, 12, null, '0.4 0.4 0.4');
+        p.drawText(`${enc.itensValidos.length} artigo(s) nesta encomenda`, 42, currentY - 9, 6.5, false, '0.4 0.4 0.4');
+        p.drawText(`Total: ${enc.totalEnc} un.`, 300, currentY - 9, 7.5, true, '0 0 0');
+        p.drawText('Conferência de embalamento [ ]', 415, currentY - 9, 6.5, false, '0.4 0.4 0.4');
+        currentY -= 18; // Espaçamento entre encomendas
       });
     }
 
-    // Bloco de Subtotal e Assinaturas (Sem preenchimento a tinta)
-    currentY -= 14;
-    const boxHeight = 44;
-    if (currentY - boxHeight < 50) {
+    // 4. Subtotal da Loja
+    if (currentY - 20 < 55) {
       p = doc.addPage();
-      currentY = 780;
+      currentY = 790;
     }
-    p.drawRect(35, currentY - boxHeight, 525, boxHeight, null, '0.2 0.2 0.2');
-    p.drawText(`SUBTOTAL ${loja.nome.toUpperCase()}: ${totalEncsLoja} Encomendas | ${totalUnidadesLoja} Unidades a Produzir`, 45, currentY - 15, 8.5, true, '0 0 0');
-    p.drawText('Validado pelo Mestre Padeiro: ________________________', 45, currentY - 32, 7.5, false, '0.3 0.3 0.3');
-    p.drawText('Conferência de Embalamento: ________________________', 320, currentY - 32, 7.5, false, '0.3 0.3 0.3');
+    p.drawRect(35, currentY - 16, 525, 16, null, '0.2 0.2 0.2');
+    p.drawText(`SUBTOTAL ${loja.nome.toUpperCase()}`, 45, currentY - 11, 7.5, true, '0 0 0');
+    p.drawText(
+      `${encsLoja.length} Encomendas • Padaria: ${totalPadariaLoja} un. • Pastelaria: ${totalPastelariaLoja} un. • Total a Produzir: ${totalUnidadesLoja} un.`,
+      170,
+      currentY - 11,
+      7.5,
+      true,
+      '0 0 0'
+    );
+    currentY -= 24;
+
+    // 5. Bloco de Assinaturas (Sem preenchimento a tinta)
+    if (currentY - 26 < 45) {
+      p = doc.addPage();
+      currentY = 790;
+    }
+    p.drawRect(35, currentY - 24, 525, 24, null, '0.3 0.3 0.3');
+    p.drawText('Chefe de Turno de Fabrico: ________________________', 45, currentY - 15, 7, false, '0.3 0.3 0.3');
+    p.drawText('Conferência de Expedição: ________________________', 310, currentY - 15, 7, false, '0.3 0.3 0.3');
   });
 
   return doc.toBuffer();
@@ -408,7 +425,8 @@ export function gerarPdfFolhaFabricoLojas(params: ParametrosFolhaFabricoPdf | st
 
 /**
  * Constrói o PDF Oficial: Folha de Carga Segregada das Rotas 1 a 7
- * Réplica exata dos dados reais e layout da app, sem caixas preenchidas a tinta (Wireframe puro).
+ * Réplica exata do layout e conteúdo da aplicação (tabela da Base Diária sem caixas,
+ * desdobramento de cada cliente B2B em sub-tabela própria e desdobramento de encomendas ao domicílio).
  */
 export function gerarPdfFolhaCargaCarrinhas(params: ParametrosFolhaCargaPdf | string): Buffer {
   let dataOperacao = '';
@@ -420,6 +438,7 @@ export function gerarPdfFolhaCargaCarrinhas(params: ParametrosFolhaCargaPdf | st
   let basesRecorrentes: BaseDiariaRecorrente[] = [];
   let encomendas: Encomenda[] = [];
   let produtos: Produto[] = [];
+  let ajustesAdhoc: Record<string, number> | undefined;
 
   if (typeof params === 'string') {
     dataOperacao = new Date().toISOString().split('T')[0];
@@ -439,18 +458,23 @@ export function gerarPdfFolhaCargaCarrinhas(params: ParametrosFolhaCargaPdf | st
     basesRecorrentes = params.basesRecorrentes || [];
     encomendas = params.encomendas || [];
     produtos = params.produtos && params.produtos.length > 0 ? params.produtos : PRODUTOS_MOCK;
+    ajustesAdhoc = params.ajustesAdhoc;
   }
 
   const doc = new NativePdfDocument(`Folha_Carga_Rotas_${dataFormatada.replace(/\//g, '-')}`);
 
-  // Filtrar apenas viaturas de entrega (Rotas 1 a 7, excluindo Rota 8 / Fábrica)
-  const carrinhasRotas = carrinhas.filter(
-    (c) =>
-      c.ativo !== false &&
-      c.identificador !== 'Rota 8' &&
-      c.id !== 'carrinha-8' &&
-      c.id !== 'e888db95-c427-4ed5-83fc-01403bd24cf8'
-  );
+  // Filtrar apenas viaturas de entrega (Rotas 1 a 7, excluindo Rota 8 / Fábrica), ordenadas por número
+  const carrinhasRotas = carrinhas
+    .filter(
+      (c) =>
+        c.ativo !== false &&
+        c.identificador !== 'Rota 8' &&
+        c.id !== 'carrinha-8' &&
+        c.id !== 'e888db95-c427-4ed5-83fc-01403bd24cf8' &&
+        c.numero !== 8 &&
+        c.rota !== 'Rota 8'
+    )
+    .sort((a, b) => (a.numero || 0) - (b.numero || 0));
 
   carrinhasRotas.forEach((car, idx) => {
     if (idx > 0) doc.addPage();
@@ -473,10 +497,10 @@ export function gerarPdfFolhaCargaCarrinhas(params: ParametrosFolhaCargaPdf | st
     if (bf?.quantidades_por_produto) {
       Object.keys(bf.quantidades_por_produto).forEach((a) => candidatos.add(a.trim()));
     }
-    obterArtigosAjustadosBaseRota(dataOperacao, car.id).forEach((a) => candidatos.add(a.trim()));
+    obterArtigosAjustadosBaseRota(dataOperacao, car.id, ajustesAdhoc).forEach((a) => candidatos.add(a.trim()));
 
     candidatos.forEach((artigo) => {
-      const { quantidade } = obterQuantidadeEfetivaBaseRota(dataOperacao, car.id, artigo, semana, diaSemana);
+      const { quantidade } = obterQuantidadeEfetivaBaseRota(dataOperacao, car.id, artigo, semana, diaSemana, ajustesAdhoc);
       if (quantidade > 0) {
         const prodRef = produtos.find((pr) => pr.nome.toLowerCase() === artigo.toLowerCase());
         const cat: 'padaria' | 'pastelaria' =
@@ -510,21 +534,21 @@ export function gerarPdfFolhaCargaCarrinhas(params: ParametrosFolhaCargaPdf | st
         });
       });
 
-    const itensBaseDiaria: { nome: string; categoria: string; unidade: string; quantidade: number; caixas: number }[] = [];
+    const itensBaseDiaria: { nome: string; categoria: string; unidade: string; quantidade: number }[] = [];
     mapaItens.forEach((val, nome) => {
-      const fatorCaixa = val.categoria === 'pastelaria' ? 20 : 30;
       itensBaseDiaria.push({
         nome,
         categoria: val.categoria,
         unidade: val.unidade,
         quantidade: val.quantidade,
-        caixas: Math.ceil(val.quantidade / fatorCaixa),
       });
     });
-    itensBaseDiaria.sort((a, b) => a.nome.localeCompare(b.nome));
+    itensBaseDiaria.sort((a, b) => {
+      if (a.categoria !== b.categoria) return a.categoria.localeCompare(b.categoria);
+      return a.nome.localeCompare(b.nome);
+    });
 
     const totalBaseDiaria = itensBaseDiaria.reduce((acc, it) => acc + it.quantidade, 0);
-    const totalBaseCaixas = itensBaseDiaria.reduce((acc, it) => acc + it.caixas, 0);
 
     // 2. CÁLCULO REAL DOS CLIENTES B2B DESTA ROTA
     const clientesB2BRota = clientesB2B
@@ -542,12 +566,12 @@ export function gerarPdfFolhaCargaCarrinhas(params: ParametrosFolhaCargaPdf | st
         if (cli.produtos_predefinidos) {
           Object.keys(cli.produtos_predefinidos).forEach((a) => candidatosCli.add(a.trim()));
         }
-        obterArtigosAjustadosClienteB2B(dataOperacao, cli.id).forEach((a) => candidatosCli.add(a.trim()));
+        obterArtigosAjustadosClienteB2B(dataOperacao, cli.id, ajustesAdhoc).forEach((a) => candidatosCli.add(a.trim()));
 
         const itensDoCli = Array.from(candidatosCli)
           .map((artigo) => {
             let qtd = Number(mapaDiaCli[artigo] || 0);
-            const { quantidade } = obterQuantidadeEfetivaClienteB2B(dataOperacao, cli.id, artigo, semanaCli, diaSemana);
+            const { quantidade } = obterQuantidadeEfetivaClienteB2B(dataOperacao, cli.id, artigo, semanaCli, diaSemana, ajustesAdhoc);
             qtd = quantidade;
             return {
               artigo: String(artigo || '').trim(),
@@ -593,196 +617,235 @@ export function gerarPdfFolhaCargaCarrinhas(params: ParametrosFolhaCargaPdf | st
       .filter((enc) => enc.totalEnc > 0);
 
     const totalEncomendas = encomendasDomicilio.reduce((acc, enc) => acc + enc.totalEnc, 0);
-
     const totalGeralCarga = totalBaseDiaria + totalB2B + totalEncomendas;
-    const totalGeralCaixasEstimadas = totalBaseCaixas + Math.ceil((totalB2B + totalEncomendas) / 30);
 
     // Header Principal da Viatura (Wireframe sem preenchimento a tinta)
-    p.drawRect(35, 745, 525, 52, null, '0.2 0.2 0.2');
-    p.drawText('PADARIA DA VILA - EXPEDIÇÃO E LOGÍSTICA DE ROTAS', 45, 778, 11, true, '0 0 0');
-    p.drawText(`GUIA OFICIAL DE CARGA DE EXPEDIÇÃO • OPERAÇÃO DE ${dataFormatada}`, 45, 765, 8.5, false, '0.2 0.2 0.2');
-    p.drawText(
-      `Rota: ${car.rota || car.identificador} | Viatura: ${car.matricula || 'Frota'} | Condutor: ${car.nome_condutor || 'Motorista de Serviço'}`,
-      45,
-      753,
-      7.5,
-      false,
-      '0.3 0.3 0.3'
-    );
+    p.drawRect(35, 750, 525, 42, null, '0.2 0.2 0.2');
+    p.drawText('PADARIA DA VILA - EXPEDIÇÃO E LOGÍSTICA DE ROTAS', 45, 776, 11, true, '0 0 0');
+    p.drawText(`GUIA OFICIAL DE CARGA DE EXPEDIÇÃO • OPERAÇÃO DE ${dataFormatada}`, 45, 764, 8, false, '0.2 0.2 0.2');
+    p.drawText('Centro de Expedição e Logística • Padaria da Vila Arouca', 45, 754, 7, false, '0.3 0.3 0.3');
 
-    // Resumo de Carga Total da Viatura (4 Caixas Wireframe)
-    p.drawRect(35, 706, 125, 30, null, '0.3 0.3 0.3');
-    p.drawText('1. BASE DIÁRIA ROTA', 42, 725, 7, true, '0.4 0.4 0.4');
-    p.drawText(`${totalBaseDiaria} un. (~${totalBaseCaixas} cx)`, 42, 712, 10, true, '0 0 0');
+    p.drawRect(435, 755, 115, 32, null, '0.3 0.3 0.3');
+    p.drawText('GUIA DE CARGA', 442, 774, 6.5, true, '0 0 0');
+    p.drawText(`Data: ${dataFormatada}`, 442, 763, 7.5, true, '0 0 0');
 
-    p.drawRect(168, 706, 125, 30, null, '0.3 0.3 0.3');
-    p.drawText('2. CLIENTES B2B', 175, 725, 7, true, '0.4 0.4 0.4');
-    p.drawText(`${totalB2B} un. (${clientesB2BRota.length} paragens)`, 175, 712, 10, true, '0 0 0');
+    // Identificação da Rota (Box Wireframe)
+    p.drawRect(35, 720, 525, 22, null, '0.3 0.3 0.3');
+    p.drawText(`Rota: ${car.rota || car.identificador}`, 45, 727, 8, true, '0 0 0');
+    p.drawText(`Viatura: ${car.nome_carro || 'Viatura'}`, 180, 727, 7.5, false, '0 0 0');
+    p.drawText(`Matrícula: ${car.matricula || '00-00-00'}`, 305, 727, 8, true, '0 0 0');
+    p.drawText(`Condutor: ${car.nome_condutor || 'Manuel Silva'}`, 415, 727, 8, true, '0 0 0');
 
-    p.drawRect(301, 706, 125, 30, null, '0.3 0.3 0.3');
-    p.drawText('3. ENCOMENDAS DOMICÍLIO', 308, 725, 7, true, '0.4 0.4 0.4');
-    p.drawText(`${totalEncomendas} un. (${encomendasDomicilio.length} entregas)`, 308, 712, 10, true, '0 0 0');
+    // Resumo de Carga Total da Viatura (4 Caixas Wireframe - SEM QUALQUER REFERÊNCIA A CAIXAS)
+    p.drawRect(35, 686, 125, 28, null, '0.3 0.3 0.3');
+    p.drawText('1. BASE DIÁRIA ROTA', 42, 702, 6.5, true, '0.4 0.4 0.4');
+    p.drawText(`${totalBaseDiaria} un.`, 42, 690, 10, true, '0 0 0');
+    p.drawText(`${itensBaseDiaria.length} artigos rota`, 82, 690, 6.5, false, '0.4 0.4 0.4');
 
-    p.drawRect(434, 706, 126, 30, null, '0.3 0.3 0.3');
-    p.drawText('TOTAL A BORDO', 441, 725, 7, true, '0.4 0.4 0.4');
-    p.drawText(`${totalGeralCarga} un. (~${totalGeralCaixasEstimadas} cx)`, 441, 712, 10, true, '0 0 0');
+    p.drawRect(168, 686, 125, 28, null, '0.3 0.3 0.3');
+    p.drawText('2. CLIENTES B2B', 175, 702, 6.5, true, '0.4 0.4 0.4');
+    p.drawText(`${totalB2B} un.`, 175, 690, 10, true, '0 0 0');
+    p.drawText(`${clientesB2BRota.length} paragens`, 218, 690, 6.5, false, '0.4 0.4 0.4');
 
-    // 1. BASE DIÁRIA DE ABASTECIMENTO
-    let currentY = 686;
-    p.drawRect(35, currentY, 525, 16, null, '0.2 0.2 0.2');
-    p.drawText('1. BASE DIÁRIA DE ABASTECIMENTO (PORTA-A-PORTA & PARTICULARES)', 42, currentY + 4, 7.5, true, '0 0 0');
-    p.drawText('QUANTIDADE', 440, currentY + 4, 7.5, true, '0 0 0');
-    p.drawText('VISTO', 510, currentY + 4, 7.5, true, '0 0 0');
-    currentY -= 18;
+    p.drawRect(301, 686, 125, 28, null, '0.3 0.3 0.3');
+    p.drawText('3. ENCOMENDAS', 308, 702, 6.5, true, '0.4 0.4 0.4');
+    p.drawText(`${totalEncomendas} un.`, 308, 690, 10, true, '0 0 0');
+    p.drawText(`${encomendasDomicilio.length} entregas`, 350, 690, 6.5, false, '0.4 0.4 0.4');
+
+    p.drawRect(434, 686, 126, 28, null, '0.2 0.2 0.2');
+    p.drawText('TOTAL A BORDO', 441, 702, 6.5, true, '0.4 0.4 0.4');
+    p.drawText(`${totalGeralCarga} un.`, 441, 690, 10, true, '0 0 0');
+    p.drawText('unidades a bordo', 488, 690, 6.5, false, '0.4 0.4 0.4');
+
+    let currentY = 672;
+
+    // 1. QUANTIDADES DA BASE DIÁRIA (ABASTECIMENTO ROTA)
+    p.drawRect(35, currentY - 14, 525, 14, null, '0.2 0.2 0.2');
+    p.drawText('1. QUANTIDADES DA BASE DIÁRIA CARREGADAS NA VIATURA (PORTA-A-PORTA)', 42, currentY - 10, 7, true, '0 0 0');
+    p.drawText(`${itensBaseDiaria.length} artigos na rota`, 430, currentY - 10, 6.5, false, '0.3 0.3 0.3');
+    currentY -= 14;
+
+    p.drawRect(35, currentY - 12, 525, 12, null, '0.3 0.3 0.3');
+    p.drawText('Artigo / Produto', 42, currentY - 9, 6.5, true, '0 0 0');
+    p.drawText('Setor', 260, currentY - 9, 6.5, true, '0 0 0');
+    p.drawText('Quantidade Base', 380, currentY - 9, 6.5, true, '0 0 0');
+    p.drawText('Conferência / Visto', 470, currentY - 9, 6.5, true, '0 0 0');
+    currentY -= 12;
 
     if (itensBaseDiaria.length === 0) {
-      p.drawRect(35, currentY - 10, 525, 18, null, '0.5 0.5 0.5');
-      p.drawText('Sem artigos de base diária configurados para esta rota.', 45, currentY - 4, 7.5, false, '0.4 0.4 0.4');
-      currentY -= 22;
+      p.drawRect(35, currentY - 14, 525, 14, null, '0.5 0.5 0.5');
+      p.drawText('Sem artigos de base diária configurados para esta rota.', 45, currentY - 10, 7, false, '0.4 0.4 0.4');
+      currentY -= 18;
     } else {
       itensBaseDiaria.forEach((it) => {
-        if (currentY < 75) {
+        if (currentY - 12 < 65) {
           p = doc.addPage();
           currentY = 790;
-          p.drawRect(35, currentY - 14, 525, 20, null, '0.3 0.3 0.3');
-          p.drawText(`${car.rota || car.identificador} - Base Diária (Continuação) • ${dataFormatada}`, 45, currentY - 6, 8, true, '0.2 0.2 0.2');
-          currentY -= 28;
+          p.drawRect(35, currentY - 14, 525, 14, null, '0.3 0.3 0.3');
+          p.drawText(`${car.rota || car.identificador} - Base Diária (Continuação) • ${dataFormatada}`, 45, currentY - 10, 7.5, true, '0.2 0.2 0.2');
+          currentY -= 20;
         }
 
-        p.drawRect(35, currentY - 5, 525, 16, null, '0.5 0.5 0.5');
-        p.drawText(it.nome, 45, currentY, 7.5, false, '0 0 0');
-        p.drawText(`[${it.categoria === 'padaria' ? 'Padaria' : 'Pastelaria'}]`, 260, currentY, 7, false, '0.3 0.3 0.3');
-        p.drawText(`${it.quantidade} ${it.unidade} (~${it.caixas} cx)`, 440, currentY, 7.5, true, '0 0 0');
-        p.drawText('[ ] Carga', 510, currentY, 7.5, false, '0 0 0');
-        currentY -= 17;
+        p.drawRect(35, currentY - 12, 525, 12, null, '0.6 0.6 0.6');
+        p.drawText(it.nome.slice(0, 38), 42, currentY - 9, 7, true, '0 0 0');
+        p.drawText(it.categoria === 'pastelaria' ? 'Pastelaria' : 'Padaria', 260, currentY - 9, 6.5, false, '0.3 0.3 0.3');
+        p.drawText(`${it.quantidade} ${it.unidade}`, 380, currentY - 9, 7.5, true, '0 0 0');
+        p.drawText('[ ] Conferido na saída', 470, currentY - 9, 6.5, false, '0 0 0');
+        currentY -= 12;
       });
+
+      // Subtotal Base Diária
+      p.drawRect(35, currentY - 13, 525, 13, null, '0.3 0.3 0.3');
+      p.drawText('SUBTOTAL BASE DIÁRIA (ROTA)', 42, currentY - 9.5, 7, true, '0 0 0');
+      p.drawText(`${totalBaseDiaria} un.`, 380, currentY - 9.5, 7.5, true, '0 0 0');
+      p.drawText('Conforme padrão de saída', 470, currentY - 9.5, 6.5, false, '0.4 0.4 0.4');
+      currentY -= 18;
     }
 
-    // 2. CLIENTES EMPRESARIAIS (B2B) AFETOS À ROTA
-    currentY -= 6;
-    if (currentY < 90) {
+    // 2. DESDOBRAMENTO DE CLIENTES EMPRESARIAIS (B2B)
+    if (currentY - 26 < 65) {
       p = doc.addPage();
       currentY = 790;
     }
-    p.drawRect(35, currentY, 525, 16, null, '0.2 0.2 0.2');
-    p.drawText('2. CLIENTES EMPRESARIAIS (B2B) AFETOS À ROTA', 42, currentY + 4, 7.5, true, '0 0 0');
-    p.drawText('CONFORMIDADE', 490, currentY + 4, 7.5, true, '0 0 0');
-    currentY -= 18;
+    p.drawRect(35, currentY - 14, 525, 14, null, '0.2 0.2 0.2');
+    p.drawText('2. DESDOBRAMENTO DE ENTREGAS POR CLIENTE EMPRESARIAL (B2B)', 42, currentY - 10, 7, true, '0 0 0');
+    p.drawText(`${clientesB2BRota.length} clientes com carga hoje`, 430, currentY - 10, 6.5, false, '0.3 0.3 0.3');
+    currentY -= 14;
 
     if (clientesB2BRota.length === 0) {
-      p.drawRect(35, currentY - 10, 525, 18, null, '0.5 0.5 0.5');
-      p.drawText('Sem clientes B2B agendados para este dia nesta rota.', 45, currentY - 4, 7.5, false, '0.4 0.4 0.4');
-      currentY -= 22;
+      p.drawRect(35, currentY - 14, 525, 14, null, '0.5 0.5 0.5');
+      p.drawText(`Esta rota não tem entregas de clientes empresariais (B2B) agendadas para ${diaSemana.toUpperCase()}.`, 42, currentY - 10, 6.5, false, '0.4 0.4 0.4');
+      currentY -= 20;
     } else {
       clientesB2BRota.forEach((cli) => {
-        const nomeTexto = `${cli.nome}${cli.morada ? ` • ${cli.morada}` : ''}`;
-        const itensTexto = cli.itensDoCli.map((it) => `${it.quantidade}x ${it.artigo}`).join(', ');
-
-        const nomeLines = wrapText(nomeTexto, 32);
-        const itensLines = wrapText(itensTexto, 45);
-        const maxLines = Math.max(nomeLines.length, itensLines.length, 1);
-        const lineHeight = 10;
-        const rowHeight = Math.max(18, maxLines * lineHeight + 6);
-
-        if (currentY - rowHeight < 75) {
+        const heightNeeded = 14 + 11 + (cli.itensDoCli.length * 11) + 4;
+        if (currentY - heightNeeded < 65) {
           p = doc.addPage();
           currentY = 790;
-          p.drawRect(35, currentY - 14, 525, 20, null, '0.3 0.3 0.3');
-          p.drawText(`${car.rota || car.identificador} - Clientes B2B (Continuação) • ${dataFormatada}`, 45, currentY - 6, 8, true, '0.2 0.2 0.2');
-          currentY -= 28;
+          p.drawRect(35, currentY - 14, 525, 14, null, '0.3 0.3 0.3');
+          p.drawText(`${car.rota || car.identificador} - Clientes B2B (Continuação) • ${dataFormatada}`, 45, currentY - 10, 7.5, true, '0.2 0.2 0.2');
+          currentY -= 20;
         }
 
-        p.drawRect(35, currentY - rowHeight + 12, 525, rowHeight, null, '0.5 0.5 0.5');
-        p.drawText('[ ] Entregue', 490, currentY + 2, 7.5, false, '0 0 0');
+        // Cabeçalho do Cliente B2B
+        p.drawRect(35, currentY - 13, 525, 13, null, '0.4 0.4 0.4');
+        const cliInfo = `${cli.nome}${cli.morada ? ` • ${cli.morada}` : ''}${cli.telefone ? ` • Tel: ${cli.telefone}` : ''}${cli.nif ? ` • NIF: ${cli.nif}` : ''}`;
+        p.drawText(cliInfo.slice(0, 75), 42, currentY - 9.5, 7, true, '0 0 0');
+        p.drawText(`Total Cliente: ${cli.totalCli} un.`, 430, currentY - 9.5, 7.5, true, '0 0 0');
+        currentY -= 13;
 
-        for (let i = 0; i < maxLines; i++) {
-          const yPos = currentY + 2 - (i * lineHeight);
-          if (i < nomeLines.length) {
-            p.drawText(nomeLines[i], 45, yPos, 7.5, true, '0 0 0');
-          }
-          if (i < itensLines.length) {
-            p.drawText(itensLines[i], 230, yPos, 7.5, false, '0 0 0');
-          }
-        }
-        currentY -= (rowHeight + 2);
+        // Sub-tabela de Artigos do Cliente B2B
+        p.drawRect(35, currentY - 11, 525, 11, null, '0.3 0.3 0.3');
+        p.drawText('Artigo / Produto', 42, currentY - 8.5, 6.5, true, '0 0 0');
+        p.drawText('Quantidade', 380, currentY - 8.5, 6.5, true, '0 0 0');
+        p.drawText('Conferência de Entrega', 470, currentY - 8.5, 6.5, true, '0 0 0');
+        currentY -= 11;
+
+        cli.itensDoCli.forEach((item) => {
+          p.drawRect(35, currentY - 11, 525, 11, null, '0.6 0.6 0.6');
+          p.drawText(item.artigo.slice(0, 48), 42, currentY - 8.5, 7, false, '0 0 0');
+          p.drawText(`${item.quantidade} un.`, 380, currentY - 8.5, 7.5, true, '0 0 0');
+          p.drawText('[ ] Entregue Conforme', 470, currentY - 8.5, 6.5, false, '0 0 0');
+          currentY -= 11;
+        });
+
+        currentY -= 5;
       });
+
+      // Subtotal B2B
+      p.drawRect(35, currentY - 13, 525, 13, null, '0.3 0.3 0.3');
+      p.drawText('SUBTOTAL CLIENTES B2B', 42, currentY - 9.5, 7, true, '0 0 0');
+      p.drawText(`${totalB2B} un. (${clientesB2BRota.length} paragens)`, 380, currentY - 9.5, 7.5, true, '0 0 0');
+      currentY -= 18;
     }
 
-    // 3. ENCOMENDAS ADICIONAIS AO DOMICÍLIO
-    currentY -= 6;
-    if (currentY < 90) {
+    // 3. DESDOBRAMENTO DE ENCOMENDAS ADICIONAIS AO DOMICÍLIO
+    if (currentY - 26 < 65) {
       p = doc.addPage();
       currentY = 790;
     }
-    p.drawRect(35, currentY, 525, 16, null, '0.2 0.2 0.2');
-    p.drawText('3. ENCOMENDAS ADICIONAIS AO DOMICÍLIO', 42, currentY + 4, 7.5, true, '0 0 0');
-    p.drawText('ESTADO', 505, currentY + 4, 7.5, true, '0 0 0');
-    currentY -= 18;
+    p.drawRect(35, currentY - 14, 525, 14, null, '0.2 0.2 0.2');
+    p.drawText('3. DESDOBRAMENTO DE ENCOMENDAS ADICIONAIS AO DOMICÍLIO', 42, currentY - 10, 7, true, '0 0 0');
+    p.drawText(`${encomendasDomicilio.length} entregas domicílio`, 430, currentY - 10, 6.5, false, '0.3 0.3 0.3');
+    currentY -= 14;
 
     if (encomendasDomicilio.length === 0) {
-      p.drawRect(35, currentY - 10, 525, 18, null, '0.5 0.5 0.5');
-      p.drawText('Sem encomendas adicionais ao domicílio para esta data nesta rota.', 45, currentY - 4, 7.5, false, '0.4 0.4 0.4');
-      currentY -= 22;
+      p.drawRect(35, currentY - 14, 525, 14, null, '0.5 0.5 0.5');
+      p.drawText('Nenhuma encomenda adicional ao domicílio afeta a esta viatura para a data selecionada.', 42, currentY - 10, 6.5, false, '0.4 0.4 0.4');
+      currentY -= 20;
     } else {
       encomendasDomicilio.forEach((enc) => {
-        const clienteTexto = `${enc.codigo || '#ENC'} • ${enc.cliente?.nome || 'Cliente'}${enc.cliente?.telefone ? ` (${enc.cliente.telefone})` : ''} - ${enc.cliente?.morada || 'Morada de entrega'}`;
-        const itensTexto = enc.itensValidos.map((it: any) => `${it.quantidade}x ${it.produto_nome}`).join(', ');
-
-        const descrLines = wrapText(clienteTexto, 38);
-        const itensLines = wrapText(itensTexto, 34);
-        const maxLines = Math.max(descrLines.length, itensLines.length, 1);
-        const lineHeight = 10;
-        const rowHeight = Math.max(18, maxLines * lineHeight + 6);
-
-        if (currentY - rowHeight < 75) {
+        const heightNeeded = 14 + 11 + (enc.itensValidos.length * 11) + 4;
+        if (currentY - heightNeeded < 65) {
           p = doc.addPage();
           currentY = 790;
-          p.drawRect(35, currentY - 14, 525, 20, null, '0.3 0.3 0.3');
-          p.drawText(`${car.rota || car.identificador} - Encomendas (Continuação) • ${dataFormatada}`, 45, currentY - 6, 8, true, '0.2 0.2 0.2');
-          currentY -= 28;
+          p.drawRect(35, currentY - 14, 525, 14, null, '0.3 0.3 0.3');
+          p.drawText(`${car.rota || car.identificador} - Encomendas (Continuação) • ${dataFormatada}`, 45, currentY - 10, 7.5, true, '0.2 0.2 0.2');
+          currentY -= 20;
         }
 
-        p.drawRect(35, currentY - rowHeight + 12, 525, rowHeight, null, '0.5 0.5 0.5');
-        p.drawText('[ ] Entregue', 505, currentY + 2, 7.5, false, '0 0 0');
+        // Cabeçalho da Encomenda
+        p.drawRect(35, currentY - 13, 525, 13, null, '0.4 0.4 0.4');
+        const encInfo = `${enc.codigo || '#ENC'} • ${enc.cliente?.nome || 'Cliente'}${enc.cliente?.telefone ? ` (Tel: ${enc.cliente.telefone})` : ''} - ${enc.cliente?.morada || 'Arouca'}${enc.hora_agendamento ? ` • ⏰ ${enc.hora_agendamento}` : ''}`;
+        p.drawText(encInfo.slice(0, 75), 42, currentY - 9.5, 7, true, '0 0 0');
+        p.drawText(`Total Encomenda: ${enc.totalEnc} un.`, 430, currentY - 9.5, 7.5, true, '0 0 0');
+        currentY -= 13;
 
-        for (let i = 0; i < maxLines; i++) {
-          const yPos = currentY + 2 - (i * lineHeight);
-          if (i < descrLines.length) {
-            p.drawText(descrLines[i], 45, yPos, 7.5, false, '0 0 0');
-          }
-          if (i < itensLines.length) {
-            p.drawText(itensLines[i], 285, yPos, 7.5, true, '0 0 0');
-          }
-        }
-        currentY -= (rowHeight + 2);
+        // Sub-tabela de Artigos da Encomenda
+        p.drawRect(35, currentY - 11, 525, 11, null, '0.3 0.3 0.3');
+        p.drawText('Artigo / Encomenda', 42, currentY - 8.5, 6.5, true, '0 0 0');
+        p.drawText('Quantidade', 380, currentY - 8.5, 6.5, true, '0 0 0');
+        p.drawText('Conferência de Entrega', 470, currentY - 8.5, 6.5, true, '0 0 0');
+        currentY -= 11;
+
+        enc.itensValidos.forEach((item) => {
+          p.drawRect(35, currentY - 11, 525, 11, null, '0.6 0.6 0.6');
+          p.drawText(item.produto_nome.slice(0, 48), 42, currentY - 8.5, 7, false, '0 0 0');
+          p.drawText(`${item.quantidade} un.`, 380, currentY - 8.5, 7.5, true, '0 0 0');
+          p.drawText('[ ] Entregue Conforme', 470, currentY - 8.5, 6.5, false, '0 0 0');
+          currentY -= 11;
+        });
+
+        currentY -= 5;
       });
+
+      // Subtotal Encomendas
+      p.drawRect(35, currentY - 13, 525, 13, null, '0.3 0.3 0.3');
+      p.drawText('SUBTOTAL ENCOMENDAS ADICIONAIS', 42, currentY - 9.5, 7, true, '0 0 0');
+      p.drawText(`${totalEncomendas} un. (${encomendasDomicilio.length} entregas)`, 380, currentY - 9.5, 7.5, true, '0 0 0');
+      currentY -= 18;
     }
 
-    // 4. RESUMO GERAL CONSOLIDADO DA GUIA DE CARGA E ASSINATURAS
-    currentY -= 12;
-    const boxHeight = 44;
-    if (currentY - boxHeight < 50) {
+    // 4. RESUMO GERAL CONSOLIDADO DA GUIA DE CARGA E ASSINATURAS (SEM QUALQUER MENÇÃO A CAIXAS)
+    if (currentY - 48 < 50) {
       p = doc.addPage();
-      currentY = 780;
+      currentY = 790;
     }
-    p.drawRect(35, currentY - boxHeight, 525, boxHeight, null, '0.2 0.2 0.2');
+    p.drawRect(35, currentY - 22, 525, 22, null, '0.2 0.2 0.2');
+    p.drawText('Resumo Consolidado de Carga:', 45, currentY - 10, 6.5, true, '0.3 0.3 0.3');
     p.drawText(
-      `TOTAL GERAL A BORDO: ${totalGeralCarga} Unidades | Volume Estimado: ~${totalGeralCaixasEstimadas} Caixas`,
+      `1. Base Diária: ${totalBaseDiaria} un. • 2. B2B: ${totalB2B} un. • 3. Encomendas: ${totalEncomendas} un.`,
       45,
-      currentY - 15,
-      8.5,
-      true,
+      currentY - 18,
+      7,
+      false,
       '0 0 0'
     );
-    p.drawText('Conferência do Centro de Expedição: ________________________', 45, currentY - 32, 7.5, false, '0.3 0.3 0.3');
+    p.drawText(`TOTAL GERAL A BORDO: ${totalGeralCarga} un.`, 370, currentY - 11, 8.5, true, '0 0 0');
+    p.drawText('Carga total conferida', 370, currentY - 19, 6.5, false, '0.4 0.4 0.4');
+    currentY -= 26;
+
+    // Assinaturas
+    p.drawRect(35, currentY - 22, 525, 22, null, '0.3 0.3 0.3');
     p.drawText(
-      `Assinatura do Motorista (${car.nome_condutor || 'Motorista'}): ________________________`,
-      310,
-      currentY - 32,
-      7.5,
+      `Responsável Carregamento: ${car.nome_condutor || 'Condutor'} (${car.matricula || 'Frota'})`,
+      45,
+      currentY - 14,
+      7,
       false,
-      '0.3 0.3 0.3'
+      '0.2 0.2 0.2'
     );
+    p.drawText('Conferência Expedição: Visto [                    ]', 330, currentY - 14, 7, false, '0.2 0.2 0.2');
   });
 
   return doc.toBuffer();

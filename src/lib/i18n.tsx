@@ -404,7 +404,7 @@ const translations: Record<Language, Translations> = {
     role: 'Função / Cargo',
     roleAdmin: 'Administrador Geral',
     roleStoreManager: 'Gerente de Loja',
-    roleCounter: 'Atendente de Balcão',
+    roleCounter: 'Operador de Balcão',
     roleBaker: 'Padeiro / Pasteleiro',
     roleDriver: 'Motorista / Distribuidor',
     allowedPanels: 'Painéis Autorizados',

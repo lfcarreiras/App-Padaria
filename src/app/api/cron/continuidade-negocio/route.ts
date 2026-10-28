@@ -7,7 +7,8 @@ import {
   carregarProdutosSupabase,
   carregarEncomendasSupabase,
   carregarBasesDiariasRecorrentes,
-  carregarBaseFixaCarrinhas,
+  carregarBaseFixaCarrinhasSupabase,
+  carregarAjustesAdhocSupabase,
   sincronizarClientesB2BComSupabase,
   obterDiaSemanaDeData,
 } from '@/lib/encomendasService';
@@ -64,17 +65,18 @@ export async function GET(request: Request) {
       .filter(Boolean);
 
     // 3. Carregar dados reais consolidados de produção e distribuição
-    const [lojas, carrinhas, produtos, encomendas, basesRecorrentes, clientesB2B] = await Promise.all([
+    const [lojas, carrinhas, produtos, encomendas, basesRecorrentes, clientesB2B, baseFixaCarrinhas, ajustesAdhoc] = await Promise.all([
       carregarLojasSupabase(),
       carregarCarrinhasSupabase(),
       carregarProdutosSupabase(),
       carregarEncomendasSupabase(),
       carregarBasesDiariasRecorrentes(),
       sincronizarClientesB2BComSupabase(),
+      carregarBaseFixaCarrinhasSupabase(),
+      carregarAjustesAdhocSupabase(),
     ]);
-    const baseFixaCarrinhas = carregarBaseFixaCarrinhas();
 
-    // 4. Geração dos dois cadernos oficiais em formato PDF (Buffer em memória com auto-wrap e economia de tinteiro)
+    // 4. Geração dos dois cadernos oficiais em formato PDF (Buffer em memória réplica da app e economia de tinteiro)
     const bufferFabrico = gerarPdfFolhaFabricoLojas({
       dataOperacao: partesData,
       dataFormatada: dataHojeFormatada,
@@ -92,6 +94,7 @@ export async function GET(request: Request) {
       basesRecorrentes,
       encomendas,
       produtos,
+      ajustesAdhoc,
     });
 
     const nomeFicheiroFabrico = `Folha_Fabrico_${dataFicheiro}.pdf`;

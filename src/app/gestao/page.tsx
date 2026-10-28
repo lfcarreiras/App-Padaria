@@ -1869,12 +1869,6 @@ export default function AdminPage() {
     setMatrizPermissoes({ ...MATRIZ_PERMISSOES_CARGOS_PADRAO });
   };
 
-    const novaLista = await salvarPerfilAcessoDb(perfilParaGravar);
-    setPerfis(novaLista);
-    setPerfilEmEdicao(null);
-    alert(t.success);
-  };
-
   const handleEliminarPerfil = async (id: string) => {
     if (!window.confirm('Tem a certeza de que deseja remover este utilizador?')) return;
     const novaLista = await eliminarPerfilAcessoDb(id);
@@ -4578,7 +4572,7 @@ export default function AdminPage() {
                                   return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-100 text-blue-800 border border-blue-200">Gerente</span>;
                                 }
                                 if (r === 'atendente') {
-                                  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">Atendente</span>;
+                                  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">Operador de Balcão</span>;
                                 }
                                 if (r === 'operador_padaria') {
                                   return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-200">Chefe Padeiro</span>;

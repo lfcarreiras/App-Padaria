@@ -500,7 +500,7 @@ export function PdfViewerModal({
         `2. Clientes B2B: ${totalB2B} un. (${clientesB2BComCarga.length} paragens)\n` +
         `3. Encomendas: ${totalEncomendas} un. (${encomendasComCarga.length} entregas)\n` +
         `--------------------------------\n` +
-        `*TOTAL GERAL A BORDO: ${totalGeralCarga} un. (~ ${totalGeralCaixasEstimadas} cx)*`
+        `*TOTAL GERAL A BORDO: ${totalGeralCarga} un.*`
       );
       window.open(`https://wa.me/?text=${texto}`, '_blank');
     }
@@ -759,7 +759,7 @@ export function PdfViewerModal({
                 <div className="p-3.5 rounded-xl bg-white border border-stone-300">
                   <span className="text-[10px] font-bold text-stone-600 uppercase block">1. Base Diária Rota</span>
                   <span className="text-2xl font-black text-stone-950 font-mono">{totalBaseDiaria} un.</span>
-                  <span className="text-[10px] text-stone-500 block mt-0.5">~ {totalBaseCaixas} caixas est.</span>
+                  <span className="text-[10px] text-stone-500 block mt-0.5">{itensCarga.length} artigos da rota</span>
                 </div>
                 <div className="p-3.5 rounded-xl bg-white border border-stone-300">
                   <span className="text-[10px] font-bold text-stone-600 uppercase block">2. Clientes B2B</span>
@@ -774,7 +774,7 @@ export function PdfViewerModal({
                 <div className="p-3.5 rounded-xl bg-white border-2 border-stone-900 text-stone-900">
                   <span className="text-[10px] font-bold text-stone-600 uppercase block">Total Geral a Bordo</span>
                   <span className="text-2xl font-black text-stone-950 font-mono">{totalGeralCarga} un.</span>
-                  <span className="text-[10px] text-stone-500 block mt-0.5">~ {totalGeralCaixasEstimadas} caixas total</span>
+                  <span className="text-[10px] text-stone-500 block mt-0.5">unidades totais a bordo</span>
                 </div>
               </div>
 
@@ -995,7 +995,7 @@ export function PdfViewerModal({
                 <div className="text-right">
                   <span className="text-[10px] uppercase text-stone-600 font-bold block">Total Geral a Bordo</span>
                   <span className="text-xl font-black text-stone-950">{totalGeralCarga} un.</span>
-                  <span className="text-[10px] text-stone-500 block mt-0.5">~ {totalGeralCaixasEstimadas} caixas estimadas</span>
+                  <span className="text-[10px] text-stone-500 block mt-0.5">Carga total conferida</span>
                 </div>
               </div>
 
