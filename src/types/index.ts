@@ -125,6 +125,16 @@ export interface PedidoWhatsAppEstruturado {
 
 export type NivelAcesso = 'sem_acesso' | 'leitura' | 'edicao';
 
+export interface PermissoesCargo {
+  acesso_encomendas: NivelAcesso;
+  acesso_loja: NivelAcesso;
+  acesso_producao: NivelAcesso;
+  acesso_entregas: NivelAcesso;
+  acesso_gestao: NivelAcesso;
+}
+
+export type MatrizPermissoesCargos = Record<Role, PermissoesCargo>;
+
 export interface PerfilUtilizador {
   id: string;
   nome: string;

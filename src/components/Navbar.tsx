@@ -49,8 +49,13 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId = 'todas', onSele
     { href: getSecretUrl('gestao'), label: t.navGestao, icon: BarChart3, panel: 'gestao', aliases: ['/gestao'] },
   ];
 
-  // Filtrar estritamente pelo Cockpit escolhido no Login (ou pelas permissões do utilizador caso não haja cockpit explícito)
+  // Filtrar estritamente pelo perfil do utilizador (RBAC) e pelo Cockpit ativo
   const links = allLinks.filter((item) => {
+    // 1. O utilizador tem de ter permissão no perfil (sem_acesso é estritamente ocultado)
+    const nivel = getNivelAcesso(item.panel);
+    if (nivel === 'sem_acesso') return false;
+
+    // 2. Se entrou com cockpit específico, filtrar apenas os módulos desse cockpit
     if (cockpitAtivo === 'loja') {
       return item.panel === 'encomendas' || item.panel === 'loja';
     }
@@ -63,18 +68,17 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId = 'todas', onSele
     if (cockpitAtivo === 'gestao') {
       return item.panel === 'gestao';
     }
-    const nivel = getNivelAcesso(item.panel);
-    return nivel !== 'sem_acesso';
+    return true;
   });
 
-  // Route Guard estrito por Cockpit Ativo (Agente 3 OWASP RBAC Enforcement)
+  // Route Guard estrito por Perfil e Cockpit Ativo (RBAC Enforcement)
   React.useEffect(() => {
-    if (loading || !usuario || !cockpitAtivo) return;
+    if (loading || !usuario) return;
     const rotasPermitidas = links.flatMap((l) => [l.href, ...(l.aliases || [])]);
     if (rotasPermitidas.length > 0 && !rotasPermitidas.includes(pathname)) {
       router.replace(obterRotaInicial(usuario, cockpitAtivo));
     }
-  }, [loading, usuario, cockpitAtivo, pathname]);
+  }, [loading, usuario, cockpitAtivo, pathname, links]);
 
   return (
     <header className="no-print sticky top-0 z-40 w-full border-b border-bakery-200 bg-white/95 backdrop-blur shadow-xs">

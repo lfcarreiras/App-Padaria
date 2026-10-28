@@ -44,7 +44,10 @@ export default function EntregaLojaPage({ embedded = false }: { embedded?: boole
   const currentUser = usuario || { id: 'user-balcao', nome: 'Marta Santos (Atendente Balcão)', role: 'atendente' };
   const temPermissaoEdicao = podeEditar('loja');
   const configMarca = obterConfiguracaoMarca();
-  const [selectedLojaId, setSelectedLojaId] = useState<string>(lojaTrabalhoId || 'todas');
+
+  // Isolamento estrito de Loja por utilizador (se não for admin e tiver loja afeta)
+  const lojaAfetaId = (usuario?.role !== 'admin' && usuario?.loja_id) || lojaTrabalhoId || null;
+  const [selectedLojaId, setSelectedLojaId] = useState<string>(lojaAfetaId || 'todas');
   const [lojas, setLojas] = useState<Loja[]>(LOJAS_MOCK);
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
   const [filtroEstado, setFiltroEstado] = useState<'pendentes' | 'concluidos' | 'todos'>('pendentes');
@@ -56,10 +59,10 @@ export default function EntregaLojaPage({ embedded = false }: { embedded?: boole
   const [dataPersonalizada, setDataPersonalizada] = useState('');
 
   useEffect(() => {
-    if (lojaTrabalhoId) {
-      setSelectedLojaId(lojaTrabalhoId);
+    if (lojaAfetaId) {
+      setSelectedLojaId(lojaAfetaId);
     }
-  }, [lojaTrabalhoId]);
+  }, [lojaAfetaId]);
 
   useEffect(() => {
     async function carregar() {
@@ -257,20 +260,32 @@ export default function EntregaLojaPage({ embedded = false }: { embedded?: boole
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              {/* Seletor de Loja do Painel do Balcão */}
-              <div className="flex items-center gap-1.5 bg-stone-50 border border-amber-200 px-2.5 py-1.5 rounded-xl shadow-2xs">
-                <Store className="h-4 w-4 text-amber-700 shrink-0" />
-                <select
-                  value={selectedLojaId}
-                  onChange={(e) => setSelectedLojaId(e.target.value)}
-                  className="bg-transparent text-xs font-bold text-gray-900 focus:outline-hidden cursor-pointer"
-                >
-                  <option value="todas">{t.allStores}</option>
-                  {lojas.map((l) => (
-                    <option key={l.id} value={l.id}>{l.nome}</option>
-                  ))}
-                </select>
-              </div>
+              {/* Seletor ou Indicador Fixo de Loja do Painel do Balcão */}
+              {lojaAfetaId ? (
+                <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-300 px-3 py-1.5 rounded-xl shadow-2xs">
+                  <Store className="h-4 w-4 text-amber-800 shrink-0" />
+                  <span className="text-xs font-black text-amber-950">
+                    {lojas.find((l) => l.id === lojaAfetaId)?.nome || lojaAfetaId}
+                  </span>
+                  <span className="text-[10px] text-amber-700 font-bold ml-1 bg-amber-100 px-1.5 py-0.2 rounded border border-amber-200">
+                    Loja Afeta
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 bg-stone-50 border border-amber-200 px-2.5 py-1.5 rounded-xl shadow-2xs">
+                  <Store className="h-4 w-4 text-amber-700 shrink-0" />
+                  <select
+                    value={selectedLojaId}
+                    onChange={(e) => setSelectedLojaId(e.target.value)}
+                    className="bg-transparent text-xs font-bold text-gray-900 focus:outline-hidden cursor-pointer"
+                  >
+                    <option value="todas">{t.allStores}</option>
+                    {lojas.map((l) => (
+                      <option key={l.id} value={l.id}>{l.nome}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Alternador de Estado */}
               <div className="flex bg-gray-100 p-1 rounded-xl">

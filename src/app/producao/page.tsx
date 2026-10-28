@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { Navbar } from '../../components/Navbar';
 import { ThermalReceipt } from '../../components/ThermalReceipt';
 import { LOJAS_MOCK, PRODUTOS_MOCK, CARRINHAS_MOCK } from '../../lib/mockData';
@@ -92,11 +93,19 @@ import {
 } from '../../lib/poolNoturnaService';
 
 export default function ProducaoPage() {
+  const router = useRouter();
   const { t } = useTranslation();
-  const { podeEditar, usuario } = useAuth();
+  const { podeEditar, podeLer, usuario, cockpitAtivo, loading, obterRotaInicial } = useAuth();
   const currentUser = usuario || { id: 'user-padeiro', nome: 'Carlos Ferreira (Chefe Padeiro)', role: 'operador_padaria' };
   const temPermissaoEdicao = true; // No Cockpit de Produção, a operação de concluir fabrico está sempre disponível aos operadores
   const configMarca = obterConfiguracaoMarca();
+
+  // Route Guard estrito para Cockpit de Produção
+  useEffect(() => {
+    if (!loading && usuario && !podeLer('producao')) {
+      router.replace(obterRotaInicial(usuario, cockpitAtivo));
+    }
+  }, [loading, usuario, cockpitAtivo, router, podeLer, obterRotaInicial]);
 
   // Navegação entre ecrãs no Cockpit de Produção
   const [abaAtiva, setAbaAtiva] = useState<'fabrico' | 'encomendas' | 'balcao' | 'guias_carga'>('fabrico');
@@ -1046,6 +1055,18 @@ export default function ProducaoPage() {
       return matchLoja && matchEstado && matchBusca;
     }).sort((a, b) => `${a.data_agendamento} ${a.hora_agendamento}`.localeCompare(`${b.data_agendamento} ${b.hora_agendamento}`));
   }, [encomendasLevantamentoLoja, selectedLojaId, filtroEstadoBalcao, buscaBalcao]);
+
+  if (!loading && usuario && !podeLer('producao')) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div className="text-center space-y-3 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm max-w-md">
+          <ChefHat className="h-10 w-10 text-gray-400 mx-auto" />
+          <h2 className="text-base font-bold text-gray-900">Acesso Restrito ao Cockpit de Produção</h2>
+          <p className="text-xs text-gray-500">O seu perfil não tem permissão para aceder à Produção. A redirecionar...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-stone-100/70 font-sans selection:bg-amber-100 selection:text-amber-900">

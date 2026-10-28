@@ -61,7 +61,10 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
   const currentUser = usuario || { id: 'user-balcao', nome: 'Marta Santos (Atendente Balcão)', role: 'atendente' };
   const temPermissaoEdicao = podeEditar('encomendas');
   const configMarca = obterConfiguracaoMarca();
-  const [selectedLojaId, setSelectedLojaId] = useState<string>(lojaTrabalhoId || 'todas');
+
+  // Isolamento estrito de Loja por utilizador (se não for admin e tiver loja afeta)
+  const lojaAfetaId = (usuario?.role !== 'admin' && usuario?.loja_id) || lojaTrabalhoId || null;
+  const [selectedLojaId, setSelectedLojaId] = useState<string>(lojaAfetaId || 'todas');
   const [activeTab, setActiveTab] = useState<'novo' | 'clientes' | 'historico'>('novo');
 
   // Dados Globais
@@ -109,13 +112,13 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
   const [encomendaEmEdicao, setEncomendaEmEdicao] = useState<Encomenda | null>(null);
   const [produtoAdicionalId, setProdutoAdicionalId] = useState<string>('');
 
-  // Sincronizar Loja predefinida com a Loja de Trabalho escolhida no Login
+  // Sincronizar Loja predefinida com a Loja atribuída ao utilizador ou escolhida no Login
   useEffect(() => {
-    if (lojaTrabalhoId) {
-      setLojaPedidoId(lojaTrabalhoId);
-      setSelectedLojaId(lojaTrabalhoId);
+    if (lojaAfetaId) {
+      setLojaPedidoId(lojaAfetaId);
+      setSelectedLojaId(lojaAfetaId);
     }
-  }, [lojaTrabalhoId]);
+  }, [lojaAfetaId]);
 
   // Carregamento Inicial
   useEffect(() => {
@@ -912,17 +915,26 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
                       <Store className="h-3.5 w-3.5 text-amber-700" />
                       Loja de Levantamento *
                     </label>
-                    <select
-                      value={lojaPedidoId}
-                      onChange={(e) => setLojaPedidoId(e.target.value)}
-                      className="w-full px-3 py-2 text-xs bg-white rounded-lg border border-amber-300 font-bold text-gray-900 focus:outline-hidden focus:border-amber-500 cursor-pointer"
-                    >
-                      {lojas.map((l) => (
-                        <option key={l.id} value={l.id}>
-                          {l.nome}
-                        </option>
-                      ))}
-                    </select>
+                    {lojaAfetaId ? (
+                      <div className="w-full px-3 py-2 text-xs bg-white rounded-lg border border-amber-300 font-bold text-gray-900 flex items-center justify-between">
+                        <span>{lojas.find((l) => l.id === lojaAfetaId)?.nome || lojaAfetaId}</span>
+                        <span className="text-[10px] text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-200">
+                          Loja Afeta
+                        </span>
+                      </div>
+                    ) : (
+                      <select
+                        value={lojaPedidoId}
+                        onChange={(e) => setLojaPedidoId(e.target.value)}
+                        className="w-full px-3 py-2 text-xs bg-white rounded-lg border border-amber-300 font-bold text-gray-900 focus:outline-hidden focus:border-amber-500 cursor-pointer"
+                      >
+                        {lojas.map((l) => (
+                          <option key={l.id} value={l.id}>
+                            {l.nome}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                 )}
 
@@ -1213,16 +1225,22 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
                 {/* Seletor de Loja (exclusivamente no Histórico de Encomendas) */}
                 <div className="flex items-center gap-1.5 bg-stone-50 px-3 py-2 rounded-xl border border-gray-200 shadow-2xs w-full md:w-auto shrink-0">
                   <Store className="h-4 w-4 text-bakery-600 shrink-0" />
-                  <select
-                    value={selectedLojaId}
-                    onChange={(e) => setSelectedLojaId(e.target.value)}
-                    className="text-xs font-bold text-gray-900 bg-transparent focus:outline-hidden cursor-pointer w-full"
-                  >
-                    <option value="todas">{t.allStores}</option>
-                    {lojas.map((l) => (
-                      <option key={l.id} value={l.id}>{l.nome}</option>
-                    ))}
-                  </select>
+                  {lojaAfetaId ? (
+                    <span className="text-xs font-black text-gray-900 whitespace-nowrap">
+                      {lojas.find((l) => l.id === lojaAfetaId)?.nome || lojaAfetaId}
+                    </span>
+                  ) : (
+                    <select
+                      value={selectedLojaId}
+                      onChange={(e) => setSelectedLojaId(e.target.value)}
+                      className="text-xs font-bold text-gray-900 bg-transparent focus:outline-hidden cursor-pointer w-full"
+                    >
+                      <option value="todas">{t.allStores}</option>
+                      {lojas.map((l) => (
+                        <option key={l.id} value={l.id}>{l.nome}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 <div className="relative flex-1 w-full">

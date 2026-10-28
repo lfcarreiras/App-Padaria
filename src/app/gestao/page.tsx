@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import * as XLSX from 'xlsx';
 import { Navbar } from '../../components/Navbar';
 import { ThermalReceipt } from '../../components/ThermalReceipt';
@@ -19,6 +20,10 @@ import {
   carregarPerfisAcessoSupabase,
   salvarPerfilAcessoDb,
   eliminarPerfilAcessoDb,
+  carregarMatrizPermissoesCargos,
+  salvarMatrizPermissoesCargos,
+  obterPermissoesCargo,
+  MATRIZ_PERMISSOES_CARGOS_PADRAO,
   salvarClienteDb,
   enviarEmailRecuperacaoPassword,
   salvarProdutoDb,
@@ -50,7 +55,7 @@ import {
   saveReceiptConfig, 
   DEFAULT_RECEIPT_CONFIG 
 } from '../../lib/receiptConfig';
-import { Encomenda, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, Role, NivelAcesso, LogAuditoria, BaseFixaCarrinha, ClienteEmpresarialB2B, DiaSemana, BaseDiariaRecorrente } from '../../types';
+import { Encomenda, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, Role, NivelAcesso, LogAuditoria, BaseFixaCarrinha, ClienteEmpresarialB2B, DiaSemana, BaseDiariaRecorrente, PermissoesCargo, MatrizPermissoesCargos } from '../../types';
 import { useTranslation } from '../../lib/i18n';
 import { useAuth } from '../../lib/authContext';
 import { obterConfiguracaoMarca } from '../../lib/tinaContent';
@@ -104,12 +109,24 @@ import { FileText, Zap, Mail } from 'lucide-react';
 import { correspondePesquisaArtigo } from '../../lib/fuzzySearch';
 
 export default function AdminPage() {
+  const router = useRouter();
   const { t, language } = useTranslation();
-  const { podeEditar } = useAuth();
+  const { podeEditar, podeLer, usuario, cockpitAtivo, loading, obterRotaInicial } = useAuth();
   const temPermissaoEdicaoGestao = podeEditar('gestao');
   const configMarca = obterConfiguracaoMarca();
+
+  // Route Guard estrito para Cockpit de Gestão
+  useEffect(() => {
+    if (!loading && usuario && !podeLer('gestao')) {
+      router.replace(obterRotaInicial(usuario, cockpitAtivo));
+    }
+  }, [loading, usuario, cockpitAtivo, router, podeLer, obterRotaInicial]);
+
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
   const [activeTab, setActiveTab] = useState<'metricas' | 'lojas_carrinhas' | 'database' | 'logs' | 'talao' | 'acessos'>('metricas');
+  const [subAbaAcessos, setSubAbaAcessos] = useState<'colaboradores' | 'permissoes_cargos'>('colaboradores');
+  const [matrizPermissoes, setMatrizPermissoes] = useState<Record<Role, PermissoesCargo>>(() => carregarMatrizPermissoesCargos());
+  const [salvandoMatriz, setSalvandoMatriz] = useState(false);
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
 
   // Histórico & Logs de Auditoria de Utilizadores
@@ -1785,63 +1802,17 @@ export default function AdminPage() {
   // Ações de Gestão de Acessos
   const aplicarPredefinicoesCargo = (cargo: Role) => {
     if (!perfilEmEdicao) return;
-    let accessLevels: {
-      acesso_encomendas: NivelAcesso;
-      acesso_producao: NivelAcesso;
-      acesso_loja: NivelAcesso;
-      acesso_entregas: NivelAcesso;
-      acesso_gestao: NivelAcesso;
-    } = {
-      acesso_encomendas: 'edicao',
-      acesso_producao: 'leitura',
-      acesso_loja: 'edicao',
-      acesso_entregas: 'sem_acesso',
-      acesso_gestao: 'sem_acesso',
-    };
-
-    if (cargo === 'admin') {
-      accessLevels = {
-        acesso_encomendas: 'edicao',
-        acesso_producao: 'edicao',
-        acesso_loja: 'edicao',
-        acesso_entregas: 'edicao',
-        acesso_gestao: 'edicao',
-      };
-    } else if (cargo === 'gerente_loja') {
-      accessLevels = {
-        acesso_encomendas: 'edicao',
-        acesso_producao: 'edicao',
-        acesso_loja: 'edicao',
-        acesso_entregas: 'edicao',
-        acesso_gestao: 'leitura',
-      };
-    } else if (cargo === 'operador_padaria' || cargo === 'operador_pastelaria') {
-      accessLevels = {
-        acesso_encomendas: 'sem_acesso',
-        acesso_producao: 'edicao',
-        acesso_loja: 'sem_acesso',
-        acesso_entregas: 'sem_acesso',
-        acesso_gestao: 'sem_acesso',
-      };
-    } else if (cargo === 'motorista') {
-      accessLevels = {
-        acesso_encomendas: 'sem_acesso',
-        acesso_producao: 'sem_acesso',
-        acesso_loja: 'leitura',
-        acesso_entregas: 'edicao',
-        acesso_gestao: 'sem_acesso',
-      };
-    }
+    const perm = matrizPermissoes[cargo] || obterPermissoesCargo(cargo);
 
     setPerfilEmEdicao({
       ...perfilEmEdicao,
       role: cargo,
-      ...accessLevels,
-      painel_encomendas: accessLevels.acesso_encomendas !== 'sem_acesso',
-      painel_producao: accessLevels.acesso_producao !== 'sem_acesso',
-      painel_loja: accessLevels.acesso_loja !== 'sem_acesso',
-      painel_entregas: accessLevels.acesso_entregas !== 'sem_acesso',
-      painel_gestao: accessLevels.acesso_gestao !== 'sem_acesso',
+      ...perm,
+      painel_encomendas: perm.acesso_encomendas !== 'sem_acesso',
+      painel_producao: perm.acesso_producao !== 'sem_acesso',
+      painel_loja: perm.acesso_loja !== 'sem_acesso',
+      painel_entregas: perm.acesso_entregas !== 'sem_acesso',
+      painel_gestao: perm.acesso_gestao !== 'sem_acesso',
     });
   };
 
@@ -1849,32 +1820,54 @@ export default function AdminPage() {
     e.preventDefault();
     if (!perfilEmEdicao || !perfilEmEdicao.nome) return;
 
-    const encNivel: NivelAcesso = perfilEmEdicao.acesso_encomendas || (perfilEmEdicao.painel_encomendas ? 'edicao' : 'sem_acesso');
-    const prodNivel: NivelAcesso = perfilEmEdicao.acesso_producao || (perfilEmEdicao.painel_producao ? 'edicao' : 'sem_acesso');
-    const lojaNivel: NivelAcesso = perfilEmEdicao.acesso_loja || (perfilEmEdicao.painel_loja ? 'edicao' : 'sem_acesso');
-    const entNivel: NivelAcesso = perfilEmEdicao.acesso_entregas || (perfilEmEdicao.painel_entregas ? 'edicao' : 'sem_acesso');
-    const gestNivel: NivelAcesso = perfilEmEdicao.acesso_gestao || (perfilEmEdicao.painel_gestao ? 'edicao' : 'sem_acesso');
+    const cargo: Role = (perfilEmEdicao.role as Role) || 'atendente';
+    const perm = matrizPermissoes[cargo] || obterPermissoesCargo(cargo);
 
     const perfilParaGravar: PerfilUtilizador = {
       id: perfilEmEdicao.id || `user-${Date.now()}`,
       nome: perfilEmEdicao.nome.trim(),
       telefone: perfilEmEdicao.telefone?.trim() || '9xxxxxxxx',
       email: perfilEmEdicao.email?.trim() || '',
-      password: perfilEmEdicao.password?.trim() || (perfilEmEdicao.role === 'admin' ? 'admin' : '123'),
-      role: (perfilEmEdicao.role as Role) || 'atendente',
+      password: perfilEmEdicao.password?.trim() || (cargo === 'admin' ? 'admin' : '123'),
+      role: cargo,
       loja_id: perfilEmEdicao.loja_id || undefined,
-      acesso_encomendas: encNivel,
-      acesso_producao: prodNivel,
-      acesso_loja: lojaNivel,
-      acesso_entregas: entNivel,
-      acesso_gestao: gestNivel,
-      painel_encomendas: encNivel !== 'sem_acesso',
-      painel_producao: prodNivel !== 'sem_acesso',
-      painel_loja: lojaNivel !== 'sem_acesso',
-      painel_entregas: entNivel !== 'sem_acesso',
-      painel_gestao: gestNivel !== 'sem_acesso',
+      acesso_encomendas: perm.acesso_encomendas,
+      acesso_producao: perm.acesso_producao,
+      acesso_loja: perm.acesso_loja,
+      acesso_entregas: perm.acesso_entregas,
+      acesso_gestao: perm.acesso_gestao,
+      painel_encomendas: perm.acesso_encomendas !== 'sem_acesso',
+      painel_producao: perm.acesso_producao !== 'sem_acesso',
+      painel_loja: perm.acesso_loja !== 'sem_acesso',
+      painel_entregas: perm.acesso_entregas !== 'sem_acesso',
+      painel_gestao: perm.acesso_gestao !== 'sem_acesso',
       ativo: perfilEmEdicao.ativo ?? true,
     };
+
+    const novaLista = await salvarPerfilAcessoDb(perfilParaGravar);
+    setPerfis(novaLista);
+    setPerfilEmEdicao(null);
+    alert(t.success);
+  };
+
+  const handleSalvarMatrizPermissoes = async () => {
+    setSalvandoMatriz(true);
+    try {
+      await salvarMatrizPermissoesCargos(matrizPermissoes);
+      const perfisAtualizados = await carregarPerfisAcessoSupabase();
+      setPerfis(perfisAtualizados);
+      alert('Matriz de Permissões por Cargo guardada com sucesso! As novas permissões foram aplicadas a todos os colaboradores.');
+    } catch (err: any) {
+      alert(`Erro ao guardar matriz: ${err.message || 'Erro desconhecido'}`);
+    } finally {
+      setSalvandoMatriz(false);
+    }
+  };
+
+  const handleReporMatrizPadrao = () => {
+    if (!window.confirm('Deseja repor a matriz de permissões com os valores recomendados de fábrica?')) return;
+    setMatrizPermissoes({ ...MATRIZ_PERMISSOES_CARGOS_PADRAO });
+  };
 
     const novaLista = await salvarPerfilAcessoDb(perfilParaGravar);
     setPerfis(novaLista);
@@ -2095,6 +2088,18 @@ export default function AdminPage() {
       setProcessandoImportacao(false);
     }
   };
+
+  if (!loading && usuario && !podeLer('gestao')) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div className="text-center space-y-3 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm max-w-md">
+          <BarChart3 className="h-10 w-10 text-gray-400 mx-auto" />
+          <h2 className="text-base font-bold text-gray-900">Acesso Restrito ao Cockpit de Gestão</h2>
+          <p className="text-xs text-gray-500">O seu perfil não tem permissão para aceder à Gestão. A redirecionar...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50/70">
@@ -5020,136 +5025,319 @@ export default function AdminPage() {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setPerfilEmEdicao({
-                    nome: '',
-                    telefone: '',
-                    email: '',
-                    password: '123',
-                    role: 'atendente',
-                    loja_id: lojas[0]?.id,
-                    acesso_encomendas: 'edicao',
-                    acesso_producao: 'leitura',
-                    acesso_loja: 'edicao',
-                    acesso_entregas: 'sem_acesso',
-                    acesso_gestao: 'sem_acesso',
-                    ativo: true,
-                  });
-                }}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-bakery-600 text-white text-xs font-bold hover:bg-bakery-700 transition shadow-xs cursor-pointer"
-              >
-                <Plus className="h-4 w-4" />
-                {t.newUser}
-              </button>
+              {/* Alternador de Sub-Abas: Colaboradores vs Matriz de Permissões */}
+              <div className="flex items-center gap-2">
+                <div className="flex bg-gray-100 p-1 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setSubAbaAcessos('colaboradores')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                      subAbaAcessos === 'colaboradores'
+                        ? 'bg-white text-gray-900 shadow-2xs'
+                        : 'text-gray-500 hover:text-gray-900'
+                    }`}
+                  >
+                    <Users className="h-3.5 w-3.5 text-bakery-600" />
+                    <span>Colaboradores ({perfis.length})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSubAbaAcessos('permissoes_cargos')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                      subAbaAcessos === 'permissoes_cargos'
+                        ? 'bg-white text-gray-900 shadow-2xs'
+                        : 'text-gray-500 hover:text-gray-900'
+                    }`}
+                  >
+                    <ShieldCheck className="h-3.5 w-3.5 text-bakery-600" />
+                    <span>Matriz de Permissões por Cargo</span>
+                  </button>
+                </div>
+
+                {subAbaAcessos === 'colaboradores' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cargoInicial: Role = 'atendente';
+                      const permPadrao = matrizPermissoes[cargoInicial] || obterPermissoesCargo(cargoInicial);
+                      setPerfilEmEdicao({
+                        nome: '',
+                        telefone: '',
+                        email: '',
+                        password: '123',
+                        role: cargoInicial,
+                        loja_id: lojas[0]?.id,
+                        ...permPadrao,
+                        ativo: true,
+                      });
+                    }}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-bakery-600 text-white text-xs font-bold hover:bg-bakery-700 transition shadow-xs cursor-pointer"
+                  >
+                    <Plus className="h-4 w-4" />
+                    {t.newUser}
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* Tabela de Utilizadores & Permissões */}
-            <div className="overflow-x-auto border border-gray-200 rounded-xl">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-gray-50 text-gray-600 font-bold uppercase text-[10px] border-b border-gray-200">
-                  <tr>
-                    <th className="p-3.5">Colaborador</th>
-                    <th className="p-3.5">{t.role}</th>
-                    <th className="p-3.5">{t.store}</th>
-                    <th className="p-3.5">{t.allowedPanels}</th>
-                    <th className="p-3.5">{t.status}</th>
-                    <th className="p-3.5 text-right">{t.actions}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 font-medium text-gray-800">
-                  {perfis.map((p) => {
-                    const lojaNome = lojas.find((l) => l.id === p.loja_id)?.nome || t.allStores;
-                    const roleLabel =
-                      p.role === 'admin' ? t.roleAdmin :
-                      p.role === 'gerente_loja' ? t.roleStoreManager :
-                      p.role === 'operador_padaria' || p.role === 'operador_pastelaria' ? t.roleBaker :
-                      p.role === 'motorista' ? t.roleDriver : t.roleCounter;
+            {/* SUB-ABA 1: LISTA DE COLABORADORES */}
+            {subAbaAcessos === 'colaboradores' && (
+              <div className="overflow-x-auto border border-gray-200 rounded-xl">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-gray-50 text-gray-600 font-bold uppercase text-[10px] border-b border-gray-200">
+                    <tr>
+                      <th className="p-3.5">Colaborador</th>
+                      <th className="p-3.5">{t.role}</th>
+                      <th className="p-3.5">{t.store}</th>
+                      <th className="p-3.5">{t.allowedPanels}</th>
+                      <th className="p-3.5">{t.status}</th>
+                      <th className="p-3.5 text-right">{t.actions}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 font-medium text-gray-800">
+                    {perfis.map((p) => {
+                      const lojaNome = lojas.find((l) => l.id === p.loja_id)?.nome || t.allStores;
+                      const roleLabel =
+                        p.role === 'admin' ? t.roleAdmin :
+                        p.role === 'gerente_loja' ? t.roleStoreManager :
+                        p.role === 'operador_padaria' ? `${t.roleBaker} (Padaria)` :
+                        p.role === 'operador_pastelaria' ? `${t.roleBaker} (Pastelaria)` :
+                        p.role === 'motorista' ? t.roleDriver : t.roleCounter;
 
-                    const paineisUtilizador = [
-                      { key: 'acesso_encomendas', label: t.navEncomendas, nivel: p.acesso_encomendas || (p.painel_encomendas ? 'edicao' : 'sem_acesso') },
-                      { key: 'acesso_producao', label: t.navProducao, nivel: p.acesso_producao || (p.painel_producao ? 'edicao' : 'sem_acesso') },
-                      { key: 'acesso_loja', label: t.navLoja, nivel: p.acesso_loja || (p.painel_loja ? 'edicao' : 'sem_acesso') },
-                      { key: 'acesso_entregas', label: t.navEntregas, nivel: p.acesso_entregas || (p.painel_entregas ? 'edicao' : 'sem_acesso') },
-                      { key: 'acesso_gestao', label: t.navGestao, nivel: p.acesso_gestao || (p.painel_gestao ? 'edicao' : 'sem_acesso') },
-                    ];
+                      const paineisUtilizador = [
+                        { key: 'acesso_encomendas', label: t.navEncomendas, nivel: p.acesso_encomendas },
+                        { key: 'acesso_loja', label: t.navLoja, nivel: p.acesso_loja },
+                        { key: 'acesso_producao', label: t.navProducao, nivel: p.acesso_producao },
+                        { key: 'acesso_entregas', label: t.navEntregas, nivel: p.acesso_entregas },
+                        { key: 'acesso_gestao', label: t.navGestao, nivel: p.acesso_gestao },
+                      ];
 
-                    return (
-                      <tr key={p.id} className="hover:bg-gray-50/70 transition">
-                        <td className="p-3.5">
-                          <p className="font-bold text-gray-900">{p.nome}</p>
-                          <p className="text-[11px] text-gray-500">{p.telefone} {p.email ? `• ${p.email}` : ''}</p>
-                        </td>
+                      return (
+                        <tr key={p.id} className="hover:bg-gray-50/70 transition">
+                          <td className="p-3.5">
+                            <p className="font-bold text-gray-900">{p.nome}</p>
+                            <p className="text-[11px] text-gray-500">{p.telefone} {p.email ? `• ${p.email}` : ''}</p>
+                          </td>
 
-                        <td className="p-3.5">
-                          <span className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                            p.role === 'admin' ? 'bg-purple-50 text-purple-800 border border-purple-200' :
-                            p.role === 'gerente_loja' ? 'bg-blue-50 text-blue-800 border border-blue-200' :
-                            'bg-gray-100 text-gray-700'
-                          }`}>
-                            {roleLabel}
-                          </span>
-                        </td>
+                          <td className="p-3.5">
+                            <span className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                              p.role === 'admin' ? 'bg-purple-50 text-purple-800 border border-purple-200' :
+                              p.role === 'gerente_loja' ? 'bg-blue-50 text-blue-800 border border-blue-200' :
+                              'bg-gray-100 text-gray-700'
+                            }`}>
+                              {roleLabel}
+                            </span>
+                          </td>
 
-                        <td className="p-3.5 text-gray-600 font-bold">
-                          {lojaNome}
-                        </td>
+                          <td className="p-3.5 text-gray-600 font-bold">
+                            {lojaNome}
+                          </td>
 
-                        <td className="p-3.5">
-                          <div className="flex flex-wrap gap-1.5">
-                            {paineisUtilizador.map((item) => {
-                              if (item.nivel === 'sem_acesso') return null;
-                              const isLeitura = item.nivel === 'leitura';
+                          <td className="p-3.5">
+                            <div className="flex flex-wrap gap-1.5">
+                              {paineisUtilizador.map((item) => {
+                                if (item.nivel === 'sem_acesso') return null;
+                                const isLeitura = item.nivel === 'leitura';
+                                return (
+                                  <span
+                                    key={item.key}
+                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${
+                                      isLeitura
+                                        ? 'bg-blue-50 text-blue-800 border-blue-200'
+                                        : 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                    }`}
+                                    title={isLeitura ? t.levelReadOnly : t.levelFullEdit}
+                                  >
+                                    {isLeitura ? <Eye className="h-2.5 w-2.5 text-blue-600" /> : <Edit3 className="h-2.5 w-2.5 text-emerald-600" />}
+                                    {item.label} ({isLeitura ? t.levelReadOnly : t.levelFullEdit})
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          </td>
+
+                          <td className="p-3.5">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              p.ativo ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
+                            }`}>
+                              {p.ativo ? t.userActive : t.userInactive}
+                            </span>
+                          </td>
+
+                          <td className="p-3.5 text-right space-x-1.5 whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={() => setPerfilEmEdicao(p)}
+                              className="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-[11px] transition cursor-pointer"
+                            >
+                              {t.edit}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleEliminarPerfil(p.id)}
+                              className="px-2 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-bold text-[11px] transition cursor-pointer"
+                              title="Eliminar este utilizador"
+                            >
+                              <Trash2 className="h-3.5 w-3.5 inline" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* SUB-ABA 2: MATRIZ DE PERMISSÕES POR CARGO */}
+            {subAbaAcessos === 'permissoes_cargos' && (
+              <div className="space-y-4">
+                <div className="bg-amber-50/60 border border-amber-200 rounded-xl p-3 text-xs text-amber-900 leading-relaxed">
+                  <p className="font-bold flex items-center gap-1.5">
+                    <ShieldCheck className="h-4 w-4 text-amber-700" />
+                    Configuração Centralizada de Permissões por Função / Cargo (RBAC)
+                  </p>
+                  <p className="text-[11px] text-amber-800/90 mt-0.5">
+                    Defina abaixo os privilégios operacionais de cada função nos 5 cockpits. Ao guardar, todos os colaboradores registados com cada função herdam as regras imediatamente, garantindo que nenhum colaborador acede a cockpits ou dados indevidos.
+                  </p>
+                </div>
+
+                <div className="overflow-x-auto border border-gray-200 rounded-xl shadow-2xs">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-gray-50 text-gray-700 font-bold uppercase text-[10px] border-b border-gray-200">
+                      <tr>
+                        <th className="p-3 min-w-[160px]">Cargo / Função</th>
+                        <th className="p-3 text-center min-w-[140px]">📦 {t.navEncomendas}</th>
+                        <th className="p-3 text-center min-w-[140px]">🏬 {t.navLoja}</th>
+                        <th className="p-3 text-center min-w-[140px]">👨‍🍳 {t.navProducao}</th>
+                        <th className="p-3 text-center min-w-[140px]">🚚 {t.navEntregas}</th>
+                        <th className="p-3 text-center min-w-[140px]">📊 {t.navGestao}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 font-medium text-gray-800">
+                      {([
+                        { role: 'admin' as Role, label: t.roleAdmin, desc: 'Acesso pleno a todos os módulos e configurações globais' },
+                        { role: 'gerente_loja' as Role, label: t.roleStoreManager, desc: 'Gestão da loja física, encomendas e consulta aos restantes painéis' },
+                        { role: 'atendente' as Role, label: t.roleCounter, desc: 'Operação exclusiva de registo de encomendas e levantamentos ao balcão' },
+                        { role: 'operador_padaria' as Role, label: `${t.roleBaker} (Padaria)`, desc: 'Operação do Cockpit de Produção e planeamento de massas/pão' },
+                        { role: 'operador_pastelaria' as Role, label: `${t.roleBaker} (Pastelaria)`, desc: 'Operação do Cockpit de Produção e planeamento de doçaria' },
+                        { role: 'motorista' as Role, label: t.roleDriver, desc: 'Operação do Cockpit de Carrinhas, rotas de distribuição e guias' },
+                      ] as const).map((item) => {
+                        const permCargo = matrizPermissoes[item.role] || MATRIZ_PERMISSOES_CARGOS_PADRAO[item.role];
+                        const modulos: { key: keyof PermissoesCargo; nome: string }[] = [
+                          { key: 'acesso_encomendas', nome: 'Encomendas' },
+                          { key: 'acesso_loja', nome: 'Loja' },
+                          { key: 'acesso_producao', nome: 'Produção' },
+                          { key: 'acesso_entregas', nome: 'Carrinhas' },
+                          { key: 'acesso_gestao', nome: 'Gestão' },
+                        ];
+
+                        return (
+                          <tr key={item.role} className="hover:bg-gray-50/70 transition">
+                            <td className="p-3.5">
+                              <p className="font-bold text-gray-900">{item.label}</p>
+                              <p className="text-[10px] text-gray-500 leading-tight mt-0.5">{item.desc}</p>
+                            </td>
+
+                            {modulos.map((mod) => {
+                              const nivelAtual = permCargo[mod.key] || 'sem_acesso';
                               return (
-                                <span
-                                  key={item.key}
-                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${
-                                    isLeitura
-                                      ? 'bg-blue-50 text-blue-800 border-blue-200'
-                                      : 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                                  }`}
-                                  title={isLeitura ? t.levelReadOnly : t.levelFullEdit}
-                                >
-                                  {isLeitura ? <Eye className="h-2.5 w-2.5 text-blue-600" /> : <Edit3 className="h-2.5 w-2.5 text-emerald-600" />}
-                                  {item.label} ({isLeitura ? t.levelReadOnly : t.levelFullEdit})
-                                </span>
+                                <td key={mod.key} className="p-2.5 text-center">
+                                  <div className="inline-flex items-center gap-0.5 bg-gray-100 p-0.5 rounded-lg border border-gray-200 shadow-2xs">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setMatrizPermissoes((prev) => ({
+                                          ...prev,
+                                          [item.role]: {
+                                            ...prev[item.role],
+                                            [mod.key]: 'sem_acesso',
+                                          },
+                                        }));
+                                      }}
+                                      className={`px-1.5 py-1 rounded text-[10px] font-bold transition cursor-pointer ${
+                                        nivelAtual === 'sem_acesso'
+                                          ? 'bg-red-600 text-white shadow-2xs'
+                                          : 'text-gray-500 hover:text-gray-900'
+                                      }`}
+                                      title="Sem Acesso"
+                                    >
+                                      <Lock className="h-3 w-3 inline" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setMatrizPermissoes((prev) => ({
+                                          ...prev,
+                                          [item.role]: {
+                                            ...prev[item.role],
+                                            [mod.key]: 'leitura',
+                                          },
+                                        }));
+                                      }}
+                                      className={`px-1.5 py-1 rounded text-[10px] font-bold transition cursor-pointer ${
+                                        nivelAtual === 'leitura'
+                                          ? 'bg-blue-600 text-white shadow-2xs'
+                                          : 'text-gray-500 hover:text-gray-900'
+                                      }`}
+                                      title="Apenas Leitura"
+                                    >
+                                      <Eye className="h-3 w-3 inline" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setMatrizPermissoes((prev) => ({
+                                          ...prev,
+                                          [item.role]: {
+                                            ...prev[item.role],
+                                            [mod.key]: 'edicao',
+                                          },
+                                        }));
+                                      }}
+                                      className={`px-1.5 py-1 rounded text-[10px] font-bold transition cursor-pointer ${
+                                        nivelAtual === 'edicao'
+                                          ? 'bg-emerald-600 text-white shadow-2xs'
+                                          : 'text-gray-500 hover:text-gray-900'
+                                      }`}
+                                      title="Edição Total"
+                                    >
+                                      <Edit3 className="h-3 w-3 inline" />
+                                    </button>
+                                  </div>
+                                </td>
                               );
                             })}
-                          </div>
-                        </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
 
-                        <td className="p-3.5">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            p.ativo ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
-                          }`}>
-                            {p.ativo ? t.userActive : t.userInactive}
-                          </span>
-                        </td>
+                {/* Barra de Ações da Matriz de Permissões */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-gray-100">
+                  <button
+                    type="button"
+                    onClick={handleReporMatrizPadrao}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-300 text-gray-700 text-xs font-bold hover:bg-gray-50 transition cursor-pointer"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5 text-gray-500" />
+                    Repor Valores Recomendados
+                  </button>
 
-                        <td className="p-3.5 text-right space-x-1.5 whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={() => setPerfilEmEdicao(p)}
-                            className="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-[11px] transition cursor-pointer"
-                          >
-                            {t.edit}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleEliminarPerfil(p.id)}
-                            className="px-2 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-bold text-[11px] transition cursor-pointer"
-                            title="Eliminar este utilizador"
-                          >
-                            <Trash2 className="h-3.5 w-3.5 inline" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                  <button
+                    type="button"
+                    disabled={salvandoMatriz}
+                    onClick={handleSalvarMatrizPermissoes}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-bakery-600 hover:bg-bakery-700 text-white text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-50"
+                  >
+                    <Check className="h-4 w-4" />
+                    <span>{salvandoMatriz ? 'A Guardar e Sincronizar...' : 'Guardar Configuração de Permissões'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
@@ -5239,66 +5427,15 @@ export default function AdminPage() {
                 </select>
               </div>
 
-              {/* Seletores Granulares de Acesso aos 5 Painéis (Sem Acesso / Leitura / Edição) */}
-              <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 space-y-2.5">
-                <div className="flex items-center justify-between border-b border-gray-200 pb-1.5">
-                  <span className="font-bold text-gray-900 block">{t.granularPermissions}</span>
-                  <span className="text-[10px] text-gray-600 italic">{t.roleAutoAdjust}</span>
+              {/* Informação explicativa sobre permissões RBAC centralizadas */}
+              <div className="bg-amber-50/70 border border-amber-200/90 rounded-xl p-3 text-amber-900 text-[11px] leading-relaxed flex items-start gap-2.5">
+                <ShieldCheck className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold">Permissões de Cockpit Automáticas (RBAC):</span>
+                  <p className="text-amber-800/90 mt-0.5">
+                    As permissões de acesso aos cockpits deste colaborador são atribuídas automaticamente através da <strong>Matriz de Permissões por Cargo</strong>. Para editar o que cada função pode ou não executar, utilize o separador &ldquo;Matriz de Permissões por Cargo&rdquo;.
+                  </p>
                 </div>
-
-                {([
-                  { key: 'acesso_encomendas', label: t.roleCounter, desc: t.permDescOrders },
-                  { key: 'acesso_loja', label: t.roleStoreManager, desc: t.permDescStore },
-                  { key: 'acesso_producao', label: t.roleBaker, desc: t.permDescProduction },
-                  { key: 'acesso_entregas', label: t.roleDriver, desc: t.permDescDeliveries },
-                  { key: 'acesso_gestao', label: t.roleAdmin, desc: t.permDescManagement },
-                ] as const).map((item) => {
-                  const nivelAtual = perfilEmEdicao[item.key] || 'sem_acesso';
-                  return (
-                    <div key={item.key} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 py-1 border-b border-gray-100 last:border-0">
-                      <div>
-                        <span className="font-bold text-gray-800">{item.label}</span>
-                        <p className="text-[10px] text-gray-600">{item.desc}</p>
-                      </div>
-
-                      <div className="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-gray-200">
-                        <button
-                          type="button"
-                          onClick={() => setPerfilEmEdicao({ ...perfilEmEdicao, [item.key]: 'sem_acesso' })}
-                          className={`px-2 py-1 rounded-md transition ${
-                            nivelAtual === 'sem_acesso'
-                              ? 'bg-red-600 text-white shadow-2xs font-black'
-                              : 'text-gray-500 hover:text-gray-900'
-                          }`}
-                        >
-                          <span className="inline-flex items-center gap-1.5"><Lock className="h-3.5 w-3.5 text-red-600" /><span>{t.levelNoAccess}</span></span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPerfilEmEdicao({ ...perfilEmEdicao, [item.key]: 'leitura' })}
-                          className={`px-2 py-1 rounded-md transition ${
-                            nivelAtual === 'leitura'
-                              ? 'bg-blue-600 text-white shadow-2xs font-black'
-                              : 'text-gray-500 hover:text-gray-900'
-                          }`}
-                        >
-                          <span className="inline-flex items-center gap-1.5"><Eye className="h-3.5 w-3.5 text-blue-600" /><span>{t.levelReadOnly}</span></span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPerfilEmEdicao({ ...perfilEmEdicao, [item.key]: 'edicao' })}
-                          className={`px-2 py-1 rounded-md transition ${
-                            nivelAtual === 'edicao'
-                              ? 'bg-emerald-600 text-white shadow-2xs font-black'
-                              : 'text-gray-500 hover:text-gray-900'
-                          }`}
-                        >
-                          <span className="inline-flex items-center gap-1.5"><Edit3 className="h-3.5 w-3.5 text-emerald-600" /><span>{t.levelFullEdit}</span></span>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
               </div>
 
               <div className="flex items-center justify-between pt-2 border-t">

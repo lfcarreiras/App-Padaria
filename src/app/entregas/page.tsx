@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { Navbar } from '../../components/Navbar';
 import { ThermalReceipt } from '../../components/ThermalReceipt';
 import { LOJAS_MOCK, CARRINHAS_MOCK, PRODUTOS_MOCK, COLUNAS_MAPA_DIARIO_OFICIAL } from '../../lib/mockData';
@@ -75,11 +76,19 @@ import { PdfViewerModal, LinhaArtigoCarga } from '../../components/pdf/PdfViewer
 import { FileText, PenTool } from 'lucide-react';
 
 export default function EntregasPage() {
+  const router = useRouter();
   const { t } = useTranslation();
-  const { podeEditar, usuario } = useAuth();
+  const { podeEditar, podeLer, usuario, cockpitAtivo, loading, obterRotaInicial } = useAuth();
   const currentUser = usuario || { id: 'user-motorista', nome: 'Rui Oliveira (Motorista Carrinha 1)', role: 'motorista' };
   const temPermissaoEdicao = podeEditar('entregas');
   const configMarca = obterConfiguracaoMarca();
+
+  // Route Guard estrito para Cockpit de Carrinhas / Entregas
+  useEffect(() => {
+    if (!loading && usuario && !podeLer('entregas')) {
+      router.replace(obterRotaInicial(usuario, cockpitAtivo));
+    }
+  }, [loading, usuario, cockpitAtivo, router, podeLer, obterRotaInicial]);
   const [selectedLojaId, setSelectedLojaId] = useState<string>('todas');
   const [lojas, setLojas] = useState<Loja[]>(LOJAS_MOCK);
   const [carrinhas, setCarrinhas] = useState<Carrinha[]>(CARRINHAS_MOCK);
@@ -651,6 +660,18 @@ export default function EntregasPage() {
       alert(`Encomenda ${enc.codigo} movida para o Balcão de Entrega em Loja!`);
     }
   };
+
+  if (!loading && usuario && !podeLer('entregas')) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div className="text-center space-y-3 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm max-w-md">
+          <Truck className="h-10 w-10 text-gray-400 mx-auto" />
+          <h2 className="text-base font-bold text-gray-900">Acesso Restrito ao Cockpit de Carrinhas</h2>
+          <p className="text-xs text-gray-500">O seu perfil não tem permissão para aceder às Carrinhas / Entregas. A redirecionar...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-stone-50">

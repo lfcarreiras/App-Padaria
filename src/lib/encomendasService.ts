@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Encomenda, ItemEncomenda, EstadoEncomenda, EstadoProducaoItem, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, LogAuditoria, BaseFixaCarrinha, ClienteEmpresarialB2B, DiaSemana, BaseDiariaRecorrente } from '../types';
+import { Encomenda, ItemEncomenda, EstadoEncomenda, EstadoProducaoItem, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, LogAuditoria, BaseFixaCarrinha, ClienteEmpresarialB2B, DiaSemana, BaseDiariaRecorrente, Role, PermissoesCargo, MatrizPermissoesCargos } from '../types';
 import { LOGS_AUDITORIA_MOCK, CARRINHAS_MOCK, COLUNAS_MAPA_DIARIO_OFICIAL, BASE_FIXA_CARRINHAS_INICIAL, CLIENTES_EMPRESARIAIS_B2B_INICIAIS } from './mockData';
 
 const REAL_DELIVERY_TIMESTAMPS_KEY = 'padaria_timestamps_entrega_real_v1';
@@ -1217,12 +1217,210 @@ export async function upsertProdutosEmLote(produtos: any[]) {
 
 // ---------------- GESTÃO DE ACESSOS & UTILIZADORES ---------------- //
 
+export const MATRIZ_PERMISSOES_CARGOS_PADRAO: Record<Role, PermissoesCargo> = {
+  admin: {
+    acesso_encomendas: 'edicao',
+    acesso_loja: 'edicao',
+    acesso_producao: 'edicao',
+    acesso_entregas: 'edicao',
+    acesso_gestao: 'edicao',
+  },
+  gerente_loja: {
+    acesso_encomendas: 'edicao',
+    acesso_loja: 'edicao',
+    acesso_producao: 'leitura',
+    acesso_entregas: 'leitura',
+    acesso_gestao: 'leitura',
+  },
+  atendente: {
+    acesso_encomendas: 'edicao',
+    acesso_loja: 'edicao',
+    acesso_producao: 'sem_acesso',
+    acesso_entregas: 'sem_acesso',
+    acesso_gestao: 'sem_acesso',
+  },
+  operador_padaria: {
+    acesso_encomendas: 'sem_acesso',
+    acesso_loja: 'sem_acesso',
+    acesso_producao: 'edicao',
+    acesso_entregas: 'sem_acesso',
+    acesso_gestao: 'sem_acesso',
+  },
+  operador_pastelaria: {
+    acesso_encomendas: 'sem_acesso',
+    acesso_loja: 'sem_acesso',
+    acesso_producao: 'edicao',
+    acesso_entregas: 'sem_acesso',
+    acesso_gestao: 'sem_acesso',
+  },
+  motorista: {
+    acesso_encomendas: 'sem_acesso',
+    acesso_loja: 'sem_acesso',
+    acesso_producao: 'sem_acesso',
+    acesso_entregas: 'edicao',
+    acesso_gestao: 'sem_acesso',
+  },
+};
+
+export const MATRIZ_CARGOS_STORAGE_KEY = 'padaria_matriz_permissoes_cargos_v1';
+export const CONFIG_MATRIZ_PHONE_KEY = '000000002';
+
+export function carregarMatrizPermissoesCargos(): Record<Role, PermissoesCargo> {
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem(MATRIZ_CARGOS_STORAGE_KEY);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          return {
+            ...MATRIZ_PERMISSOES_CARGOS_PADRAO,
+            ...parsed,
+          };
+        }
+      } catch (e) {}
+    }
+  }
+  return { ...MATRIZ_PERMISSOES_CARGOS_PADRAO };
+}
+
+export async function carregarMatrizPermissoesCargosSupabase(): Promise<Record<Role, PermissoesCargo>> {
+  if (typeof window !== 'undefined') {
+    const cached = localStorage.getItem(MATRIZ_CARGOS_STORAGE_KEY);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (parsed && typeof parsed === 'object') {
+          return { ...MATRIZ_PERMISSOES_CARGOS_PADRAO, ...parsed };
+        }
+      } catch (e) {}
+    }
+  }
+
+  if (!supabase) return { ...MATRIZ_PERMISSOES_CARGOS_PADRAO };
+
+  try {
+    const { data } = await supabase
+      .from('clientes')
+      .select('notas_entrega')
+      .eq('telefone', CONFIG_MATRIZ_PHONE_KEY)
+      .maybeSingle();
+
+    if (data && data.notas_entrega) {
+      const parsed = JSON.parse(data.notas_entrega);
+      if (parsed && typeof parsed === 'object') {
+        const fullMatriz = { ...MATRIZ_PERMISSOES_CARGOS_PADRAO, ...parsed };
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(MATRIZ_CARGOS_STORAGE_KEY, JSON.stringify(fullMatriz));
+        }
+        return fullMatriz;
+      }
+    }
+  } catch (err) {
+    console.warn('Usando matriz de permissões predefinida:', err);
+  }
+
+  return { ...MATRIZ_PERMISSOES_CARGOS_PADRAO };
+}
+
+export function obterPermissoesCargo(role: Role): PermissoesCargo {
+  const matriz = carregarMatrizPermissoesCargos();
+  return matriz[role] || MATRIZ_PERMISSOES_CARGOS_PADRAO[role] || MATRIZ_PERMISSOES_CARGOS_PADRAO.atendente;
+}
+
+export async function salvarMatrizPermissoesCargos(
+  novaMatriz: Record<Role, PermissoesCargo>
+): Promise<void> {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(MATRIZ_CARGOS_STORAGE_KEY, JSON.stringify(novaMatriz));
+    window.dispatchEvent(new Event('app_matriz_cargos_atualizada'));
+  }
+
+  // Atualizar todos os perfis de utilizadores para refletirem a nova matriz do seu cargo
+  const perfisAtuais = await carregarPerfisAcessoSupabase();
+  const perfisAtualizados = perfisAtuais.map((p) => {
+    const perm = novaMatriz[p.role] || MATRIZ_PERMISSOES_CARGOS_PADRAO[p.role];
+    if (perm) {
+      return {
+        ...p,
+        ...perm,
+        painel_encomendas: perm.acesso_encomendas !== 'sem_acesso',
+        painel_loja: perm.acesso_loja !== 'sem_acesso',
+        painel_producao: perm.acesso_producao !== 'sem_acesso',
+        painel_entregas: perm.acesso_entregas !== 'sem_acesso',
+        painel_gestao: perm.acesso_gestao !== 'sem_acesso',
+        atualizado_em: new Date().toISOString(),
+      };
+    }
+    return p;
+  });
+
+  await salvarTodosPerfisSupabase(perfisAtualizados);
+
+  if (!supabase) return;
+  try {
+    const jsonStr = JSON.stringify(novaMatriz);
+    const { data: existente } = await supabase
+      .from('clientes')
+      .select('id')
+      .eq('telefone', CONFIG_MATRIZ_PHONE_KEY)
+      .maybeSingle();
+
+    if (existente) {
+      await supabase
+        .from('clientes')
+        .update({
+          nome: '[SISTEMA_MATRIZ_PERMISSOES_CARGOS]',
+          notas_entrega: jsonStr,
+        })
+        .eq('id', existente.id);
+    } else {
+      await supabase
+        .from('clientes')
+        .insert({
+          nome: '[SISTEMA_MATRIZ_PERMISSOES_CARGOS]',
+          telefone: CONFIG_MATRIZ_PHONE_KEY,
+          notas_entrega: jsonStr,
+        });
+    }
+  } catch (err) {
+    console.error('Erro ao sincronizar matriz de permissões no Supabase:', err);
+  }
+}
+
 export function normalizarPerfil(p: any): PerfilUtilizador {
-  const acessoEnc = p.acesso_encomendas || (p.painel_encomendas ? 'edicao' : 'sem_acesso');
-  const acessoProd = p.acesso_producao || (p.painel_producao ? 'edicao' : 'sem_acesso');
-  const acessoLoja = p.acesso_loja || (p.painel_loja ? 'edicao' : 'sem_acesso');
-  const acessoEnt = p.acesso_entregas || (p.painel_entregas ? 'edicao' : 'sem_acesso');
-  const acessoGest = p.acesso_gestao || (p.painel_gestao ? 'edicao' : 'sem_acesso');
+  const role: Role = p.role || 'atendente';
+  const permPadrao = obterPermissoesCargo(role);
+
+  // As permissões aos 5 cockpits são estritamente governadas pela Matriz de Cargos (RBAC)
+  const acessoEnc = permPadrao.acesso_encomendas;
+  const acessoLoja = permPadrao.acesso_loja;
+  const acessoProd = permPadrao.acesso_producao;
+  const acessoEnt = permPadrao.acesso_entregas;
+  const acessoGest = permPadrao.acesso_gestao;
+
+  return {
+    id: p.id || `user-${Date.now()}`,
+    nome: p.nome || 'Colaborador',
+    telefone: p.telefone || '',
+    email: p.email || '',
+    password: p.password || (role === 'admin' ? 'admin' : '123'),
+    role,
+    loja_id: p.loja_id,
+    loja_nome: p.loja_nome,
+    acesso_encomendas: acessoEnc,
+    acesso_producao: acessoProd,
+    acesso_loja: acessoLoja,
+    acesso_entregas: acessoEnt,
+    acesso_gestao: acessoGest,
+    painel_encomendas: acessoEnc !== 'sem_acesso',
+    painel_producao: acessoProd !== 'sem_acesso',
+    painel_loja: acessoLoja !== 'sem_acesso',
+    painel_entregas: acessoEnt !== 'sem_acesso',
+    painel_gestao: acessoGest !== 'sem_acesso',
+    ativo: p.ativo !== undefined ? Boolean(p.ativo) : true,
+    atualizado_em: p.atualizado_em,
+  };
+}
 
   return {
     id: p.id || `user-${Date.now()}`,
@@ -1230,7 +1428,7 @@ export function normalizarPerfil(p: any): PerfilUtilizador {
     telefone: p.telefone || '',
     email: p.email || '',
     password: p.password || (p.role === 'admin' ? 'admin' : '123'),
-    role: p.role || 'atendente',
+    role,
     loja_id: p.loja_id,
     loja_nome: p.loja_nome,
     acesso_encomendas: acessoEnc,
@@ -1280,9 +1478,9 @@ export const PERFIS_INICIAIS: PerfilUtilizador[] = [
     loja_id: 'loja-1',
     loja_nome: 'Padaria Central (Matriz)',
     acesso_encomendas: 'edicao',
-    acesso_producao: 'edicao',
+    acesso_producao: 'leitura',
     acesso_loja: 'edicao',
-    acesso_entregas: 'edicao',
+    acesso_entregas: 'leitura',
     acesso_gestao: 'leitura',
     painel_encomendas: true,
     painel_producao: true,
@@ -1301,12 +1499,12 @@ export const PERFIS_INICIAIS: PerfilUtilizador[] = [
     loja_id: 'loja-1',
     loja_nome: 'Padaria Central (Matriz)',
     acesso_encomendas: 'edicao',
-    acesso_producao: 'leitura',
+    acesso_producao: 'sem_acesso',
     acesso_loja: 'edicao',
     acesso_entregas: 'sem_acesso',
     acesso_gestao: 'sem_acesso',
     painel_encomendas: true,
-    painel_producao: true,
+    painel_producao: false,
     painel_loja: true,
     painel_entregas: false,
     painel_gestao: false,
@@ -1321,12 +1519,12 @@ export const PERFIS_INICIAIS: PerfilUtilizador[] = [
     role: 'operador_padaria',
     loja_id: 'loja-1',
     loja_nome: 'Padaria Central (Matriz)',
-    acesso_encomendas: 'leitura',
+    acesso_encomendas: 'sem_acesso',
     acesso_producao: 'edicao',
     acesso_loja: 'sem_acesso',
     acesso_entregas: 'sem_acesso',
     acesso_gestao: 'sem_acesso',
-    painel_encomendas: true,
+    painel_encomendas: false,
     painel_producao: true,
     painel_loja: false,
     painel_entregas: false,
@@ -1435,14 +1633,15 @@ export async function salvarTodosPerfisSupabase(perfis: PerfilUtilizador[]) {
 }
 
 export async function salvarPerfilAcessoDb(perfil: PerfilUtilizador): Promise<PerfilUtilizador[]> {
+  const normalizado = normalizarPerfil(perfil);
   const listaAtual = await carregarPerfisAcessoSupabase();
   let novaLista: PerfilUtilizador[] = [];
 
-  const idx = listaAtual.findIndex((p) => p.id === perfil.id);
+  const idx = listaAtual.findIndex((p) => p.id === normalizado.id);
   if (idx >= 0) {
-    novaLista = listaAtual.map((p) => (p.id === perfil.id ? { ...perfil, atualizado_em: new Date().toISOString() } : p));
+    novaLista = listaAtual.map((p) => (p.id === normalizado.id ? { ...normalizado, atualizado_em: new Date().toISOString() } : p));
   } else {
-    novaLista = [...listaAtual, { ...perfil, id: `user-${Date.now()}`, atualizado_em: new Date().toISOString() }];
+    novaLista = [...listaAtual, { ...normalizado, id: normalizado.id || `user-${Date.now()}`, atualizado_em: new Date().toISOString() }];
   }
 
   await salvarTodosPerfisSupabase(novaLista);

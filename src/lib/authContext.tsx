@@ -97,46 +97,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     perfil: PerfilUtilizador,
     cockpit: CockpitSelecionado
   ): { valido: boolean; erro?: string } => {
-    // Administradores e Gerentes têm permissão transversal se tiverem acesso ativo ao módulo
-    if (perfil.role === 'admin' || perfil.role === 'gerente_loja') {
+    // Administrador tem acesso transversal a todos os cockpits
+    if (perfil.role === 'admin') {
       return { valido: true };
     }
 
     if (cockpit === 'loja') {
       const temAcessoLoja =
-        perfil.role === 'atendente' ||
-        perfil.acesso_encomendas !== 'sem_acesso' ||
-        perfil.acesso_loja !== 'sem_acesso';
+        perfil.acesso_loja !== 'sem_acesso' ||
+        perfil.acesso_encomendas !== 'sem_acesso';
       if (!temAcessoLoja) {
         return {
           valido: false,
-          erro: `O perfil "${perfil.nome}" (${perfil.role}) não tem permissão para aceder ao Cockpit de Loja Físico.`,
+          erro: `O utilizador "${perfil.nome}" não tem permissão para aceder ao Cockpit de Loja / Balcão.`,
         };
       }
       return { valido: true };
     }
 
     if (cockpit === 'producao') {
-      const temAcessoProd =
-        perfil.role === 'operador_padaria' ||
-        perfil.role === 'operador_pastelaria' ||
-        perfil.acesso_producao === 'edicao';
+      const temAcessoProd = perfil.acesso_producao !== 'sem_acesso';
       if (!temAcessoProd) {
         return {
           valido: false,
-          erro: `O perfil "${perfil.nome}" não tem permissão para operar o Cockpit do Centro de Produção.`,
+          erro: `O utilizador "${perfil.nome}" não tem permissão para operar o Cockpit do Centro de Produção.`,
         };
       }
       return { valido: true };
     }
 
     if (cockpit === 'carrinhas') {
-      const temAcessoCarrinhas =
-        perfil.role === 'motorista' || perfil.acesso_entregas === 'edicao';
+      const temAcessoCarrinhas = perfil.acesso_entregas !== 'sem_acesso';
       if (!temAcessoCarrinhas) {
         return {
           valido: false,
-          erro: `O perfil "${perfil.nome}" não tem permissão para aceder ao Cockpit de Carrinhas / Distribuição.`,
+          erro: `O utilizador "${perfil.nome}" não tem permissão para aceder ao Cockpit de Carrinhas / Distribuição.`,
         };
       }
       return { valido: true };
@@ -147,7 +142,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!temAcessoGestao) {
         return {
           valido: false,
-          erro: `O perfil "${perfil.nome}" não tem permissão para aceder ao Cockpit de Gestão.`,
+          erro: `O utilizador "${perfil.nome}" não tem permissão para aceder ao Cockpit de Gestão.`,
         };
       }
       return { valido: true };
@@ -213,12 +208,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const lojaIdFinal =
       cockpitFinal === 'loja'
-        ? lojaId || utilizadorEncontrado.loja_id || LOJAS_MOCK[0].id
+        ? (utilizadorEncontrado.role !== 'admin' && utilizadorEncontrado.loja_id
+            ? utilizadorEncontrado.loja_id
+            : (lojaId || utilizadorEncontrado.loja_id || LOJAS_MOCK[0].id))
         : null;
     const lojaObj = LOJAS_MOCK.find((l) => l.id === lojaIdFinal);
     const lojaNomeFinal =
       cockpitFinal === 'loja'
-        ? lojaNome || lojaObj?.nome || LOJAS_MOCK[0].nome
+        ? (lojaObj?.nome || utilizadorEncontrado.loja_nome || LOJAS_MOCK[0].nome)
         : null;
 
     // Login bem-sucedido
