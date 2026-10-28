@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { PerfilUtilizador, NivelAcesso, CockpitSelecionado } from '../types';
-import { carregarPerfisAcessoSupabase } from './encomendasService';
+import { carregarPerfisAcessoSupabase, carregarLojasSupabase } from './encomendasService';
 import { LOJAS_MOCK } from './mockData';
 import { getSecretUrl } from './secretRoutes';
 
