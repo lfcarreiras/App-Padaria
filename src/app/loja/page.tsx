@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { Navbar } from '../../components/Navbar';
 import { ThermalReceipt } from '../../components/ThermalReceipt';
 import { LOJAS_MOCK } from '../../lib/mockData';
@@ -39,14 +40,22 @@ import { buscarEncomendasOramaSync } from '../../lib/oramaSearch';
 import { correspondePesquisaArtigo } from '../../lib/fuzzySearch';
 
 export default function EntregaLojaPage({ embedded = false }: { embedded?: boolean; [key: string]: any } = {}) {
+  const router = useRouter();
   const { t } = useTranslation();
-  const { podeEditar, usuario, lojaTrabalhoId } = useAuth();
-  const currentUser = usuario || { id: 'user-balcao', nome: 'Marta Santos (Atendente Balcão)', role: 'atendente' };
+  const { podeEditar, podeLer, usuario, cockpitAtivo, loading, lojaTrabalhoId, obterRotaInicial } = useAuth();
+  const currentUser = usuario || { id: 'user-balcao', nome: 'Marta Santos (Operador Balcão)', role: 'atendente' };
   const temPermissaoEdicao = podeEditar('loja');
   const configMarca = obterConfiguracaoMarca();
 
+  // Route Guard estrito para Cockpit de Loja / Balcão
+  useEffect(() => {
+    if (!loading && usuario && !podeLer('loja')) {
+      router.replace(obterRotaInicial(usuario, cockpitAtivo));
+    }
+  }, [loading, usuario, cockpitAtivo, router, podeLer, obterRotaInicial]);
+
   // Isolamento estrito de Loja por utilizador (se não for admin e tiver loja afeta)
-  const lojaAfetaId = (usuario?.role !== 'admin' && usuario?.loja_id) || lojaTrabalhoId || null;
+  const lojaAfetaId = (usuario?.role !== 'admin' && (usuario?.loja_id || lojaTrabalhoId)) || null;
   const [selectedLojaId, setSelectedLojaId] = useState<string>(lojaAfetaId || 'todas');
   const [lojas, setLojas] = useState<Loja[]>(LOJAS_MOCK);
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
@@ -76,7 +85,8 @@ export default function EntregaLojaPage({ embedded = false }: { embedded?: boole
     carregar();
   }, []);
 
-  const lojaAtual = lojas.find((l) => l.id === selectedLojaId) || lojas[0] || LOJAS_MOCK[0];
+  const idLojaEfetiva = lojaAfetaId || selectedLojaId;
+  const lojaAtual = lojas.find((l) => l.id === idLojaEfetiva) || lojas[0] || LOJAS_MOCK[0];
 
   const hoje = new Date().toISOString().split('T')[0];
   const dHoje = new Date();
@@ -93,10 +103,11 @@ export default function EntregaLojaPage({ embedded = false }: { embedded?: boole
     return new Set(resultadoOramaEncomendas.resultados.map((e) => e.id));
   }, [resultadoOramaEncomendas]);
 
-  // Encomendas filtradas de acordo com Loja, Estado, Calendário e Pesquisa
+  // Encomendas filtradas de acordo com Loja (Isolamento Estrito), Estado, Calendário e Pesquisa
   const encomendasFiltradas = encomendas.filter((e) => {
-    // 1. Loja
-    const matchLoja = selectedLojaId === 'todas' || e.loja_id === selectedLojaId;
+    // 1. Loja (Se não for admin e tiver loja afeta, o filtro é absoluto e inviolável)
+    const idLojaFiltro = lojaAfetaId || (selectedLojaId !== 'todas' ? selectedLojaId : null);
+    const matchLoja = idLojaFiltro ? e.loja_id === idLojaFiltro : true;
 
     // 2. Estado
     const matchStatus = 

@@ -76,6 +76,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (perfilAtualizado && perfilAtualizado.ativo) {
               setUsuario(perfilAtualizado);
               localStorage.setItem(SESSION_KEY, JSON.stringify(perfilAtualizado));
+              // Garantir isolamento estrito de Loja: Se não for admin e tiver loja afeta, forçar sempre
+              if (perfilAtualizado.role !== 'admin' && perfilAtualizado.loja_id) {
+                setLojaTrabalhoId(perfilAtualizado.loja_id);
+                const ljs = await carregarLojasSupabase();
+                const lj = (ljs && ljs.length > 0 ? ljs : LOJAS_MOCK).find((l) => l.id === perfilAtualizado.loja_id);
+                if (lj) setLojaTrabalhoNome(lj.nome);
+              }
             } else if (perfilAtualizado && !perfilAtualizado.ativo) {
               setUsuario(null);
               localStorage.removeItem(SESSION_KEY);
@@ -95,9 +102,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const validarCompatibilidadeCockpit = (
     perfil: PerfilUtilizador,
-    cockpit: CockpitSelecionado
+    cockpit: CockpitSelecionado,
+    lojaIdTentativa?: string
   ): { valido: boolean; erro?: string } => {
-    // Administrador tem acesso transversal a todos os cockpits
+    // Administrador tem acesso transversal a todos os cockpits e lojas
     if (perfil.role === 'admin') {
       return { valido: true };
     }
@@ -110,6 +118,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return {
           valido: false,
           erro: `O utilizador "${perfil.nome}" não tem permissão para aceder ao Cockpit de Loja / Balcão.`,
+        };
+      }
+      // Isolamento estrito de Loja: se o colaborador tem uma loja afeta definida e tentou entrar noutra
+      if (perfil.loja_id && lojaIdTentativa && perfil.loja_id !== lojaIdTentativa) {
+        return {
+          valido: false,
+          erro: `Acesso negado: O colaborador "${perfil.nome}" está afeto exclusivamente à sua loja e não tem permissão para aceder a outra loja.`,
         };
       }
       return { valido: true };
@@ -194,28 +209,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       cockpit ||
       (utilizadorEncontrado.role === 'admin'
         ? 'gestao'
-        : utilizadorEncontrado.role === 'operador_padaria' || utilizadorEncontrado.role === 'operador_pastelaria'
+        : utilizadorEncontrado.role === 'padeiro_pasteleiro' || utilizadorEncontrado.role === 'operador_padaria' || utilizadorEncontrado.role === 'operador_pastelaria'
         ? 'producao'
         : utilizadorEncontrado.role === 'motorista'
         ? 'carrinhas'
         : 'loja');
 
-    // Validar compatibilidade entre perfil e Cockpit selecionado
-    const validacao = validarCompatibilidadeCockpit(utilizadorEncontrado, cockpitFinal);
+    // Validar compatibilidade entre perfil, Cockpit e Loja selecionada
+    const validacao = validarCompatibilidadeCockpit(utilizadorEncontrado, cockpitFinal, lojaId);
     if (!validacao.valido) {
       return { success: false, message: validacao.erro };
     }
 
+    const ljs = await carregarLojasSupabase();
+    const listaLojas = ljs && ljs.length > 0 ? ljs : LOJAS_MOCK;
+
+    // Se o colaborador não for admin e tiver loja_id afeta, a loja é ESTRITAMENTE a sua loja afeta
     const lojaIdFinal =
       cockpitFinal === 'loja'
         ? (utilizadorEncontrado.role !== 'admin' && utilizadorEncontrado.loja_id
             ? utilizadorEncontrado.loja_id
-            : (lojaId || utilizadorEncontrado.loja_id || LOJAS_MOCK[0].id))
+            : (lojaId || utilizadorEncontrado.loja_id || listaLojas[0].id))
         : null;
-    const lojaObj = LOJAS_MOCK.find((l) => l.id === lojaIdFinal);
+    const lojaObj = listaLojas.find((l) => l.id === lojaIdFinal);
     const lojaNomeFinal =
       cockpitFinal === 'loja'
-        ? (lojaObj?.nome || utilizadorEncontrado.loja_nome || LOJAS_MOCK[0].nome)
+        ? (lojaObj?.nome || utilizadorEncontrado.loja_nome || listaLojas[0].nome)
         : null;
 
     // Login bem-sucedido

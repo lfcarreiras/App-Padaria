@@ -18,8 +18,8 @@ export default function LoginPage() {
   const [identificador, setIdentificador] = useState('');
   const [password, setPassword] = useState('');
   const [mostrarPassword, setMostrarPassword] = useState(false);
-  // Valor selecionado: 'loja:<id>' | 'producao' | 'carrinhas' | 'gestao'
-  const [localizacaoSelecionada, setLocalizacaoSelecionada] = useState<string>(`loja:${LOJAS_MOCK[0].id}`);
+  // Valor selecionado: 'auto' | 'loja:<id>' | 'producao' | 'carrinhas' | 'gestao'
+  const [localizacaoSelecionada, setLocalizacaoSelecionada] = useState<string>('auto');
   const [erro, setErro] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -45,11 +45,15 @@ export default function LoginPage() {
     setSubmitting(true);
 
     try {
-      let cockpit: CockpitSelecionado = 'loja';
+      let cockpit: CockpitSelecionado | undefined = undefined;
       let lojaId: string | undefined = undefined;
       let lojaNome: string | undefined = undefined;
 
-      if (localizacaoSelecionada.startsWith('loja:')) {
+      if (localizacaoSelecionada === 'auto') {
+        cockpit = undefined;
+        lojaId = undefined;
+        lojaNome = undefined;
+      } else if (localizacaoSelecionada.startsWith('loja:')) {
         cockpit = 'loja';
         lojaId = localizacaoSelecionada.replace('loja:', '');
         const lj = lojas.find((l) => l.id === lojaId) || LOJAS_MOCK[0];
@@ -134,7 +138,8 @@ export default function LoginPage() {
                   onChange={(e) => setLocalizacaoSelecionada(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 rounded-xl border border-amber-300 bg-amber-50/50 text-xs font-bold text-stone-900 focus:bg-white focus:border-amber-600 focus:outline-hidden transition cursor-pointer"
                 >
-                  <optgroup label="Lojas">
+                  <option value="auto">🎯 Seleção Automática pelo Perfil / Loja Afeta</option>
+                  <optgroup label="Lojas Físicas">
                     {lojas.map((l) => (
                       <option key={l.id} value={`loja:${l.id}`}>
                         {l.nome}
@@ -153,7 +158,9 @@ export default function LoginPage() {
                 </select>
               </div>
               <p className="text-[10px] text-stone-500 mt-0.5 leading-tight">
-                {localizacaoSelecionada.startsWith('loja:')
+                {localizacaoSelecionada === 'auto'
+                  ? 'O sistema abrirá automaticamente o cockpit e a loja física autorizados no perfil do utilizador.'
+                  : localizacaoSelecionada.startsWith('loja:')
                   ? 'Acesso exclusivo aos menus de Encomendas e Balcão para a loja selecionada.'
                   : localizacaoSelecionada === 'producao'
                   ? 'Acesso exclusivo ao ecrã tátil de Produção (Pool & Fornos).'

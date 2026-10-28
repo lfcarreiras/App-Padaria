@@ -1803,10 +1803,15 @@ export default function AdminPage() {
   const aplicarPredefinicoesCargo = (cargo: Role) => {
     if (!perfilEmEdicao) return;
     const perm = matrizPermissoes[cargo] || obterPermissoesCargo(cargo);
+    const lojaIdAtualizada =
+      (cargo === 'atendente' || cargo === 'gerente_loja')
+        ? (perfilEmEdicao.loja_id || lojas[0]?.id)
+        : perfilEmEdicao.loja_id;
 
     setPerfilEmEdicao({
       ...perfilEmEdicao,
       role: cargo,
+      loja_id: lojaIdAtualizada,
       ...perm,
       painel_encomendas: perm.acesso_encomendas !== 'sem_acesso',
       painel_producao: perm.acesso_producao !== 'sem_acesso',
@@ -1820,8 +1825,19 @@ export default function AdminPage() {
     e.preventDefault();
     if (!perfilEmEdicao || !perfilEmEdicao.nome) return;
 
-    const cargo: Role = (perfilEmEdicao.role as Role) || 'atendente';
+    const cargo: Role =
+      perfilEmEdicao.role === 'operador_padaria' || perfilEmEdicao.role === 'operador_pastelaria'
+        ? 'padeiro_pasteleiro'
+        : (perfilEmEdicao.role as Role) || 'atendente';
     const perm = matrizPermissoes[cargo] || obterPermissoesCargo(cargo);
+
+    // Se for atendente ou gerente de loja, garantir obrigatoriamente a loja afeta
+    const lojaIdEfetiva =
+      cargo === 'atendente' || cargo === 'gerente_loja'
+        ? (perfilEmEdicao.loja_id || lojas[0]?.id)
+        : (perfilEmEdicao.loja_id || undefined);
+
+    const lojaEncontrada = lojas.find((l) => l.id === lojaIdEfetiva);
 
     const perfilParaGravar: PerfilUtilizador = {
       id: perfilEmEdicao.id || `user-${Date.now()}`,
@@ -1830,7 +1846,8 @@ export default function AdminPage() {
       email: perfilEmEdicao.email?.trim() || '',
       password: perfilEmEdicao.password?.trim() || (cargo === 'admin' ? 'admin' : '123'),
       role: cargo,
-      loja_id: perfilEmEdicao.loja_id || undefined,
+      loja_id: lojaIdEfetiva,
+      loja_nome: lojaEncontrada?.nome || (cargo === 'admin' ? 'Todas as Lojas' : undefined),
       acesso_encomendas: perm.acesso_encomendas,
       acesso_producao: perm.acesso_producao,
       acesso_loja: perm.acesso_loja,
@@ -4574,11 +4591,8 @@ export default function AdminPage() {
                                 if (r === 'atendente') {
                                   return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">Operador de Balcão</span>;
                                 }
-                                if (r === 'operador_padaria') {
-                                  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-200">Chefe Padeiro</span>;
-                                }
-                                if (r === 'operador_pastelaria') {
-                                  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-pink-100 text-pink-800 border border-pink-200">Pastelaria</span>;
+                                if (r === 'padeiro_pasteleiro' || r === 'operador_padaria' || r === 'operador_pastelaria') {
+                                  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-200">Padeiro / Pasteleiro</span>;
                                 }
                                 if (r === 'motorista') {
                                   return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-orange-100 text-orange-800 border border-orange-200">Motorista</span>;
@@ -5094,8 +5108,7 @@ export default function AdminPage() {
                       const roleLabel =
                         p.role === 'admin' ? t.roleAdmin :
                         p.role === 'gerente_loja' ? t.roleStoreManager :
-                        p.role === 'operador_padaria' ? `${t.roleBaker} (Padaria)` :
-                        p.role === 'operador_pastelaria' ? `${t.roleBaker} (Pastelaria)` :
+                        p.role === 'padeiro_pasteleiro' || p.role === 'operador_padaria' || p.role === 'operador_pastelaria' ? t.roleBaker :
                         p.role === 'motorista' ? t.roleDriver : t.roleCounter;
 
                       const paineisUtilizador = [
@@ -5213,8 +5226,7 @@ export default function AdminPage() {
                         { role: 'admin' as Role, label: t.roleAdmin, desc: 'Acesso pleno a todos os módulos e configurações globais' },
                         { role: 'gerente_loja' as Role, label: t.roleStoreManager, desc: 'Gestão da loja física, encomendas e consulta aos restantes painéis' },
                         { role: 'atendente' as Role, label: t.roleCounter, desc: 'Operação exclusiva de registo de encomendas e levantamentos ao balcão' },
-                        { role: 'operador_padaria' as Role, label: `${t.roleBaker} (Padaria)`, desc: 'Operação do Cockpit de Produção e planeamento de massas/pão' },
-                        { role: 'operador_pastelaria' as Role, label: `${t.roleBaker} (Pastelaria)`, desc: 'Operação do Cockpit de Produção e planeamento de doçaria' },
+                        { role: 'padeiro_pasteleiro' as Role, label: t.roleBaker, desc: 'Operação do Cockpit de Produção e planeamento de fabrico (padaria e pastelaria)' },
                         { role: 'motorista' as Role, label: t.roleDriver, desc: 'Operação do Cockpit de Carrinhas, rotas de distribuição e guias' },
                       ] as const).map((item) => {
                         const permCargo = matrizPermissoes[item.role] || MATRIZ_PERMISSOES_CARGOS_PADRAO[item.role];
@@ -5391,13 +5403,17 @@ export default function AdminPage() {
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-gray-700 mb-1">Loja Afeta</label>
+                  <label className="block font-bold text-gray-700 mb-1">
+                    Loja Afeta {perfilEmEdicao.role === 'atendente' || perfilEmEdicao.role === 'gerente_loja' ? '*' : ''}
+                  </label>
                   <select
-                    value={perfilEmEdicao.loja_id || 'todas'}
+                    value={perfilEmEdicao.loja_id || (perfilEmEdicao.role === 'atendente' || perfilEmEdicao.role === 'gerente_loja' ? (lojas[0]?.id || '') : 'todas')}
                     onChange={(e) => setPerfilEmEdicao({ ...perfilEmEdicao, loja_id: e.target.value === 'todas' ? undefined : e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold"
                   >
-                    <option value="todas">{t.allStores}</option>
+                    {perfilEmEdicao.role !== 'atendente' && perfilEmEdicao.role !== 'gerente_loja' && (
+                      <option value="todas">{t.allStores}</option>
+                    )}
                     {lojas.map((l) => (
                       <option key={l.id} value={l.id}>{l.nome}</option>
                     ))}
@@ -5408,15 +5424,18 @@ export default function AdminPage() {
               <div>
                 <label className="block font-bold text-gray-700 mb-1">{t.role}</label>
                 <select
-                  value={perfilEmEdicao.role || 'atendente'}
+                  value={
+                    perfilEmEdicao.role === 'operador_padaria' || perfilEmEdicao.role === 'operador_pastelaria'
+                      ? 'padeiro_pasteleiro'
+                      : (perfilEmEdicao.role || 'atendente')
+                  }
                   onChange={(e) => aplicarPredefinicoesCargo(e.target.value as Role)}
                   className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold text-gray-900"
                 >
                   <option value="admin">{t.roleAdmin}</option>
                   <option value="gerente_loja">{t.roleStoreManager}</option>
                   <option value="atendente">{t.roleCounter}</option>
-                  <option value="operador_padaria">{t.roleBaker} (Padaria)</option>
-                  <option value="operador_pastelaria">{t.roleBaker} (Pastelaria)</option>
+                  <option value="padeiro_pasteleiro">{t.roleBaker}</option>
                   <option value="motorista">{t.roleDriver}</option>
                 </select>
               </div>

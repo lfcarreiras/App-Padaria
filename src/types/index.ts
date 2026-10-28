@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'gerente_loja' | 'atendente' | 'operador_padaria' | 'operador_pastelaria' | 'motorista';
+export type Role = 'admin' | 'gerente_loja' | 'atendente' | 'padeiro_pasteleiro' | 'motorista' | 'operador_padaria' | 'operador_pastelaria';
 
 export type CategoriaProduto = 'padaria' | 'pastelaria' | 'bebidas_outros';
 export type SetorProducao = 'padaria' | 'pastelaria';

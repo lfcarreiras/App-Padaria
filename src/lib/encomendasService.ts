@@ -1239,6 +1239,13 @@ export const MATRIZ_PERMISSOES_CARGOS_PADRAO: Record<Role, PermissoesCargo> = {
     acesso_entregas: 'sem_acesso',
     acesso_gestao: 'sem_acesso',
   },
+  padeiro_pasteleiro: {
+    acesso_encomendas: 'sem_acesso',
+    acesso_loja: 'sem_acesso',
+    acesso_producao: 'edicao',
+    acesso_entregas: 'sem_acesso',
+    acesso_gestao: 'sem_acesso',
+  },
   operador_padaria: {
     acesso_encomendas: 'sem_acesso',
     acesso_loja: 'sem_acesso',
@@ -1388,8 +1395,17 @@ export async function salvarMatrizPermissoesCargos(
 }
 
 export function normalizarPerfil(p: any): PerfilUtilizador {
-  const role: Role = p.role || 'atendente';
+  let role: Role = p.role || 'atendente';
+  if (role === 'operador_padaria' || role === 'operador_pastelaria') {
+    role = 'padeiro_pasteleiro';
+  }
   const permPadrao = obterPermissoesCargo(role);
+
+  // Normalizar IDs legados de loja para UUIDs canónicos
+  let lojaId = p.loja_id;
+  if (lojaId === 'loja-1') lojaId = 'a9982e9f-7899-4a7c-8ce3-bc30f16c99a2';
+  else if (lojaId === 'loja-2') lojaId = '778dae33-00ea-4ae7-8e36-e1f5fb067dab';
+  else if (lojaId === 'loja-3') lojaId = '4d475863-af72-4349-bd4a-66eb7a90304b';
 
   // As permissões aos 5 cockpits são estritamente governadas pela Matriz de Cargos (RBAC)
   const acessoEnc = permPadrao.acesso_encomendas;
@@ -1405,7 +1421,7 @@ export function normalizarPerfil(p: any): PerfilUtilizador {
     email: p.email || '',
     password: p.password || (role === 'admin' ? 'admin' : '123'),
     role,
-    loja_id: p.loja_id,
+    loja_id: lojaId,
     loja_nome: p.loja_nome,
     acesso_encomendas: acessoEnc,
     acesso_producao: acessoProd,
@@ -1451,8 +1467,8 @@ export const PERFIS_INICIAIS: PerfilUtilizador[] = [
     email: 'antonio.silva@padaria.pt',
     password: '123',
     role: 'gerente_loja',
-    loja_id: 'loja-1',
-    loja_nome: 'Padaria Central (Matriz)',
+    loja_id: 'a9982e9f-7899-4a7c-8ce3-bc30f16c99a2',
+    loja_nome: 'Padaria da Vila I - Praça',
     acesso_encomendas: 'edicao',
     acesso_producao: 'leitura',
     acesso_loja: 'edicao',
@@ -1472,8 +1488,8 @@ export const PERFIS_INICIAIS: PerfilUtilizador[] = [
     email: 'marta.santos@padaria.pt',
     password: '123',
     role: 'atendente',
-    loja_id: 'loja-1',
-    loja_nome: 'Padaria Central (Matriz)',
+    loja_id: 'a9982e9f-7899-4a7c-8ce3-bc30f16c99a2',
+    loja_nome: 'Padaria da Vila I - Praça',
     acesso_encomendas: 'edicao',
     acesso_producao: 'sem_acesso',
     acesso_loja: 'edicao',
@@ -1488,13 +1504,13 @@ export const PERFIS_INICIAIS: PerfilUtilizador[] = [
   },
   {
     id: 'user-padeiro',
-    nome: 'Carlos Ferreira (Chefe Padeiro)',
+    nome: 'Carlos Ferreira (Padeiro / Pasteleiro)',
     telefone: '910 000 004',
     email: 'carlos.padeiro@padaria.pt',
     password: '123',
-    role: 'operador_padaria',
-    loja_id: 'loja-1',
-    loja_nome: 'Padaria Central (Matriz)',
+    role: 'padeiro_pasteleiro',
+    loja_id: undefined,
+    loja_nome: 'Centro de Produção',
     acesso_encomendas: 'sem_acesso',
     acesso_producao: 'edicao',
     acesso_loja: 'sem_acesso',
@@ -1514,8 +1530,8 @@ export const PERFIS_INICIAIS: PerfilUtilizador[] = [
     email: 'rui.motorista@padaria.pt',
     password: '123',
     role: 'motorista',
-    loja_id: 'loja-1',
-    loja_nome: 'Carrinha 1 - Matriz',
+    loja_id: 'a9982e9f-7899-4a7c-8ce3-bc30f16c99a2',
+    loja_nome: 'Rota 1 - Matriz',
     acesso_encomendas: 'sem_acesso',
     acesso_producao: 'sem_acesso',
     acesso_loja: 'leitura',

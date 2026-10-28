@@ -96,7 +96,7 @@ export default function ProducaoPage() {
   const router = useRouter();
   const { t } = useTranslation();
   const { podeEditar, podeLer, usuario, cockpitAtivo, loading, obterRotaInicial } = useAuth();
-  const currentUser = usuario || { id: 'user-padeiro', nome: 'Carlos Ferreira (Chefe Padeiro)', role: 'operador_padaria' };
+  const currentUser = usuario || { id: 'user-padeiro', nome: 'Carlos Ferreira (Padeiro / Pasteleiro)', role: 'padeiro_pasteleiro' };
   const temPermissaoEdicao = true; // No Cockpit de Produção, a operação de concluir fabrico está sempre disponível aos operadores
   const configMarca = obterConfiguracaoMarca();
 

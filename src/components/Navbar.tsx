@@ -192,7 +192,7 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId = 'todas', onSele
                   {usuario.role === 'admin' ? t.roleAdmin :
                    usuario.role === 'gerente_loja' ? t.roleStoreManager :
                    usuario.role === 'motorista' ? t.roleDriver :
-                   usuario.role === 'operador_padaria' || usuario.role === 'operador_pastelaria' ? t.roleBaker : t.roleCounter}
+                   usuario.role === 'padeiro_pasteleiro' || usuario.role === 'operador_padaria' || usuario.role === 'operador_pastelaria' ? t.roleBaker : t.roleCounter}
                 </span>
               </div>
 

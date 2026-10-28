@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { Navbar } from '../../components/Navbar';
 import { ThermalReceipt } from '../../components/ThermalReceipt';
 import { LOJAS_MOCK, PRODUTOS_MOCK, CARRINHAS_MOCK } from '../../lib/mockData';
@@ -56,14 +57,22 @@ import { buscarArtigosOramaSync } from '../../lib/oramaSearch';
 import { OramaQuickSearchModal } from '../../components/OramaQuickSearchModal';
 
 export default function EncomendasPage({ embedded = false }: { embedded?: boolean; [key: string]: any } = {}) {
+  const router = useRouter();
   const { t, language } = useTranslation();
-  const { podeEditar, usuario, lojaTrabalhoId } = useAuth();
-  const currentUser = usuario || { id: 'user-balcao', nome: 'Marta Santos (Atendente Balcão)', role: 'atendente' };
+  const { podeEditar, podeLer, usuario, cockpitAtivo, loading, lojaTrabalhoId, obterRotaInicial } = useAuth();
+  const currentUser = usuario || { id: 'user-balcao', nome: 'Marta Santos (Operador Balcão)', role: 'atendente' };
   const temPermissaoEdicao = podeEditar('encomendas');
   const configMarca = obterConfiguracaoMarca();
 
+  // Route Guard estrito para Cockpit de Encomendas
+  useEffect(() => {
+    if (!loading && usuario && !podeLer('encomendas')) {
+      router.replace(obterRotaInicial(usuario, cockpitAtivo));
+    }
+  }, [loading, usuario, cockpitAtivo, router, podeLer, obterRotaInicial]);
+
   // Isolamento estrito de Loja por utilizador (se não for admin e tiver loja afeta)
-  const lojaAfetaId = (usuario?.role !== 'admin' && usuario?.loja_id) || lojaTrabalhoId || null;
+  const lojaAfetaId = (usuario?.role !== 'admin' && (usuario?.loja_id || lojaTrabalhoId)) || null;
   const [selectedLojaId, setSelectedLojaId] = useState<string>(lojaAfetaId || 'todas');
   const [activeTab, setActiveTab] = useState<'novo' | 'clientes' | 'historico'>('novo');
 
@@ -165,9 +174,10 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
     };
   }, [lojaTrabalhoId]);
 
-  const lojaAtual = (tipoEntrega === 'levantamento_loja'
-    ? lojas.find((l) => l.id === lojaPedidoId)
-    : (selectedLojaId !== 'todas' ? lojas.find((l) => l.id === selectedLojaId) : null)) || lojas[0] || LOJAS_MOCK[0];
+  const idLojaEfetiva = lojaAfetaId || (tipoEntrega === 'levantamento_loja'
+    ? lojaPedidoId
+    : (selectedLojaId !== 'todas' ? selectedLojaId : null));
+  const lojaAtual = lojas.find((l) => l.id === idLojaEfetiva) || lojas[0] || LOJAS_MOCK[0];
 
   // Pesquisa automática de cliente no formulário de pedido
   const handleTelefoneChange = async (tel: string) => {
@@ -287,7 +297,7 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
           .eq('codigo', lojaAtual.codigo)
           .maybeSingle();
 
-        const lojaIdFinal = lojaDb?.id || lojaAtual.id;
+        const lojaIdFinal = lojaAfetaId || lojaDb?.id || lojaAtual.id;
 
         let carrinhaIdFinal: string | null = null;
         if (tipoEntrega === 'entrega_domicilio' && carrinhaObj) {
@@ -656,10 +666,11 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
     );
   });
 
-  // Filtros de Encomendas
-  const encomendasFiltradas = selectedLojaId === 'todas'
-    ? encomendas
-    : encomendas.filter((e) => e.loja_id === selectedLojaId);
+  // Filtros de Encomendas (Isolamento Estrito de Loja para não-admins)
+  const idLojaFiltro = lojaAfetaId || (selectedLojaId !== 'todas' ? selectedLojaId : null);
+  const encomendasFiltradas = idLojaFiltro
+    ? encomendas.filter((e) => e.loja_id === idLojaFiltro)
+    : encomendas;
 
   // Filtro e Ordenação do Histórico de Encomendas
   const hoje = new Date().toISOString().split('T')[0];
