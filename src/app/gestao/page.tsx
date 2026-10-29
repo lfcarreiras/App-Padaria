@@ -21,6 +21,8 @@ import {
   subscreverAlteracoesBaseFixa,
   subscreverAlteracoesAjustesAdhoc,
   subscreverAlteracoesEncomendas,
+  carregarAjustesAdhoc,
+  carregarAjustesAdhocSupabase,
   eliminarCarrinhaDb,
   carregarPerfisAcessoSupabase,
   salvarPerfilAcessoDb,
@@ -197,6 +199,7 @@ export default function AdminPage() {
   const [lojaSelecionadaTalao, setLojaSelecionadaTalao] = useState<string>('todas');
   const [feedbackTalao, setFeedbackTalao] = useState<string | null>(null);
   const [encomendaTesteTalão, setEncomendaTesteTalão] = useState<Encomenda | null>(null);
+  const [ajustesAdhoc, setAjustesAdhoc] = useState<Record<string, number>>({});
 
   // Edição de Lojas / Carrinhas / Utilizadores
   const [lojaEmEdicao, setLojaEmEdicao] = useState<Partial<Loja> | null>(null);
@@ -387,9 +390,13 @@ export default function AdminPage() {
     const unsubEncomendas = subscreverAlteracoesEncomendas((encs) => {
       setEncomendas(encs);
     });
-    const unsubAjustes = subscreverAlteracoesAjustesAdhoc(() => {
+    const unsubAjustes = subscreverAlteracoesAjustesAdhoc((novos) => {
+      if (novos) setAjustesAdhoc(novos);
       const bfAtualizada = carregarBaseFixaCarrinhas();
       if (Array.isArray(bfAtualizada)) setBaseFixaCarrinhas(bfAtualizada);
+    });
+    carregarAjustesAdhocSupabase().then((adhoc) => {
+      if (adhoc && Object.keys(adhoc).length > 0) setAjustesAdhoc(adhoc);
     });
 
     return () => {
@@ -892,7 +899,8 @@ export default function AdminPage() {
       clientesB2B,
       basesRecorrentes,
       encomendas,
-      produtos
+      produtos,
+      ajustesAdhoc
     );
     setPdfDadosGuiaConjunta(dados);
     setPdfModalTipo('guia_carga_conjunta');

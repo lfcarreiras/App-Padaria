@@ -12,6 +12,8 @@ import {
   carregarCarrinhasSupabase,
   carregarBaseFixaCarrinhas,
   carregarClientesEmpresariaisB2B,
+  carregarAjustesAdhoc,
+  carregarAjustesAdhocSupabase,
   sincronizarClientesB2BComSupabase,
   subscreverAlteracoesClientesB2B,
   subscreverAlteracoesCarrinhas,
@@ -163,6 +165,7 @@ export default function ProducaoPage() {
   const [pdfDiaSemana, setPdfDiaSemana] = useState<string>('');
   const [modoFabricoPdf, setModoFabricoPdf] = useState<'consolidado' | 'encomendas'>('consolidado');
   const [lojaIdFiltroFabrico, setLojaIdFiltroFabrico] = useState<string>('todas');
+  const [ajustesAdhoc, setAjustesAdhoc] = useState<Record<string, number>>({});
 
   // Carregar dados iniciais
   useEffect(() => {
@@ -185,6 +188,9 @@ export default function ProducaoPage() {
       carregarBasesDiariasRecorrentes().then((bases) => {
         if (Array.isArray(bases)) setBasesRecorrentes(bases);
       });
+      carregarAjustesAdhocSupabase().then((adhoc) => {
+        if (adhoc && Object.keys(adhoc).length > 0) setAjustesAdhoc(adhoc);
+      });
     }
     carregar();
 
@@ -203,7 +209,8 @@ export default function ProducaoPage() {
       setBaseFixaCarrinhas(bfs);
       setVersaoDados((v) => v + 1);
     });
-    const unsubAjustes = subscreverAlteracoesAjustesAdhoc(() => {
+    const unsubAjustes = subscreverAlteracoesAjustesAdhoc((novos) => {
+      if (novos) setAjustesAdhoc(novos);
       setVersaoDados((v) => v + 1);
     });
     const unsubEncomendas = subscreverAlteracoesEncomendas((dados) => {
@@ -226,6 +233,7 @@ export default function ProducaoPage() {
     const handleAtualizacoes = () => {
       setBaseFixaCarrinhas(carregarBaseFixaCarrinhas());
       setClientesB2B(carregarClientesEmpresariaisB2B());
+      setAjustesAdhoc(carregarAjustesAdhoc());
       setVersaoDados((v) => v + 1);
     };
 
@@ -654,7 +662,8 @@ export default function ProducaoPage() {
       clientesB2B,
       basesRecorrentes,
       encomendas,
-      produtos
+      produtos,
+      ajustesAdhoc
     );
     setPdfDadosGuiaConjunta(dadosConjunta);
     setPdfDataReferencia(dataAlvo);
@@ -684,10 +693,10 @@ export default function ProducaoPage() {
     if (bf?.quantidades_por_produto) {
       Object.keys(bf.quantidades_por_produto).forEach((a) => candidatos.add(a.trim()));
     }
-    obterArtigosAjustadosBaseRota(dataAlvo, car.id).forEach((a) => candidatos.add(a.trim()));
+    obterArtigosAjustadosBaseRota(dataAlvo, car.id, ajustesAdhoc).forEach((a) => candidatos.add(a.trim()));
 
     candidatos.forEach((artigo) => {
-      const { quantidade } = obterQuantidadeEfetivaBaseRota(dataAlvo, car.id, artigo, semana, diaSemanaAlvo);
+      const { quantidade } = obterQuantidadeEfetivaBaseRota(dataAlvo, car.id, artigo, semana, diaSemanaAlvo, ajustesAdhoc);
       if (quantidade > 0) {
         const prodRef = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
         const cat: 'padaria' | 'pastelaria' = prodRef?.categoria || (artigo.toLowerCase().includes('bolo') || artigo.toLowerCase().includes('croissant') ? 'pastelaria' : 'padaria');

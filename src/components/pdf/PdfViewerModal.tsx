@@ -443,18 +443,24 @@ export function PdfViewerModal({
   // Partilha via WhatsApp
   const handlePartilharWhatsApp = () => {
     if (tipo === 'guia_carga_conjunta' && dadosGuiaConjunta) {
-      const linhasRotas = dadosGuiaConjunta.colunasRotas.map((col) => {
-        const totalRota = dadosGuiaConjunta.totaisPorRota[col.carrinhaId] || 0;
+      const colunas = dadosGuiaConjunta.colunasRotas || [];
+      const totaisPorRota = dadosGuiaConjunta.totaisPorRota || {};
+      const linhasRotas = colunas.map((col) => {
+        const totalRota = totaisPorRota[col.carrinhaId] || 0;
         return `🚐 *${col.rota}* (${col.nomeCondutor || 'Condutor'}): *${totalRota} un.*`;
       }).join('\n');
+
+      const totalGeral = dadosGuiaConjunta.totalGeralUnidades ?? dadosGuiaConjunta.totalGeral ?? 0;
+      const totalPad = dadosGuiaConjunta.totalGeralPadaria ?? 0;
+      const totalPast = dadosGuiaConjunta.totalGeralPastelaria ?? 0;
 
       const texto = encodeURIComponent(
         `🍞 *PADARIA DA VILA — GUIA DE CARGA CONJUNTA (TODAS AS ROTAS)*\n` +
         `Data: ${dadosGuiaConjunta.data || dataFormatada}\n\n` +
         `*Resumo por Rota:*\n${linhasRotas}\n\n` +
         `--------------------------------\n` +
-        `*TOTAL GERAL A CARREGAR: ${dadosGuiaConjunta.totalGeralUnidades} un.*\n` +
-        `(Padaria: ${dadosGuiaConjunta.totalGeralPadaria} un. | Pastelaria: ${dadosGuiaConjunta.totalGeralPastelaria} un.)\n` +
+        `*TOTAL GERAL A CARREGAR: ${totalGeral} un.*\n` +
+        `(Padaria: ${totalPad} un. | Pastelaria: ${totalPast} un.)\n` +
         `Centro de Fabrico & Expedição Central`
       );
       window.open(`https://wa.me/?text=${texto}`, '_blank');
@@ -1728,7 +1734,7 @@ export function PdfViewerModal({
                   </span>
                   <p className="text-xs font-bold text-stone-900 mt-1">Data: {dadosGuiaConjunta.data || dataFormatada}</p>
                   <p className="text-[11px] text-stone-600">
-                    {dadosGuiaConjunta.colunasRotas.length} rotas ativas (Bases + B2B + Domicílios)
+                    {(dadosGuiaConjunta.colunasRotas || []).length} rotas ativas (Bases + B2B + Domicílios)
                   </p>
                 </div>
               </div>
@@ -1737,17 +1743,17 @@ export function PdfViewerModal({
               <div className="grid grid-cols-3 gap-3 print:gap-2">
                 <div className="p-2.5 rounded-xl bg-white border border-stone-300">
                   <span className="text-[9px] font-bold text-stone-600 uppercase block">Total Geral a Carga</span>
-                  <span className="text-xl font-black text-stone-950 font-mono">{dadosGuiaConjunta.totalGeralUnidades} un.</span>
+                  <span className="text-xl font-black text-stone-950 font-mono">{dadosGuiaConjunta.totalGeralUnidades ?? dadosGuiaConjunta.totalGeral ?? 0} un.</span>
                   <span className="text-[9px] text-stone-500 block mt-0.5">todas as carrinhas</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-white border border-stone-300">
                   <span className="text-[9px] font-bold text-stone-600 uppercase block">🥖 Padaria & Broas</span>
-                  <span className="text-xl font-black text-stone-950 font-mono">{dadosGuiaConjunta.totalGeralPadaria} un.</span>
+                  <span className="text-xl font-black text-stone-950 font-mono">{dadosGuiaConjunta.totalGeralPadaria ?? 0} un.</span>
                   <span className="text-[9px] text-stone-500 block mt-0.5">pães e broas</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-white border border-stone-300">
                   <span className="text-[9px] font-bold text-stone-600 uppercase block">🍰 Pastelaria</span>
-                  <span className="text-xl font-black text-stone-950 font-mono">{dadosGuiaConjunta.totalGeralPastelaria} un.</span>
+                  <span className="text-xl font-black text-stone-950 font-mono">{dadosGuiaConjunta.totalGeralPastelaria ?? 0} un.</span>
                   <span className="text-[9px] text-stone-500 block mt-0.5">pastelaria e doçaria</span>
                 </div>
               </div>
@@ -1760,7 +1766,7 @@ export function PdfViewerModal({
                       <th className="py-1.5 px-2 text-left font-black w-44 sticky left-0 bg-stone-100 print:static">
                         Artigo / Referência
                       </th>
-                      {dadosGuiaConjunta.colunasRotas.map((col) => (
+                      {(dadosGuiaConjunta.colunasRotas || []).map((col) => (
                         <th key={col.carrinhaId} className="py-1.5 px-1 text-center font-bold border-l border-stone-200 min-w-[55px]">
                           <div className="font-black text-stone-950 text-[10px] leading-tight">{col.rota}</div>
                           <div className="text-[8px] text-stone-600 truncate max-w-[65px] mx-auto font-normal" title={col.nomeCondutor || 'Condutor'}>
@@ -1778,23 +1784,23 @@ export function PdfViewerModal({
                   </thead>
                   <tbody>
                     {/* SECÇÃO PADARIA */}
-                    {dadosGuiaConjunta.linhasPadaria.length > 0 && (
+                    {(dadosGuiaConjunta.linhasPadaria || []).length > 0 && (
                       <>
                         <tr className="bg-stone-50 border-y border-stone-300">
                           <td
-                            colSpan={dadosGuiaConjunta.colunasRotas.length + 2}
+                            colSpan={(dadosGuiaConjunta.colunasRotas || []).length + 2}
                             className="py-1 px-2 font-black text-stone-800 uppercase tracking-wider text-[9px]"
                           >
                             🥖 Padaria Tradicional & Broas
                           </td>
                         </tr>
-                        {dadosGuiaConjunta.linhasPadaria.map((linha, idx) => (
+                        {(dadosGuiaConjunta.linhasPadaria || []).map((linha, idx) => (
                           <tr key={`pad-${idx}`} className="border-b border-stone-100 hover:bg-stone-50/50">
                             <td className="py-1 px-2 font-bold text-stone-900 sticky left-0 bg-white print:static">
                               {linha.artigo}
                             </td>
-                            {dadosGuiaConjunta.colunasRotas.map((col) => {
-                              const qtd = linha.quantidadesPorRota[col.carrinhaId] || 0;
+                            {(dadosGuiaConjunta.colunasRotas || []).map((col) => {
+                              const qtd = linha.quantidadesPorRota?.[col.carrinhaId] || 0;
                               return (
                                 <td
                                   key={col.carrinhaId}
@@ -1816,36 +1822,36 @@ export function PdfViewerModal({
                           <td className="py-1 px-2 uppercase text-[9px] sticky left-0 bg-stone-100 print:static">
                             Subtotal Padaria
                           </td>
-                          {dadosGuiaConjunta.colunasRotas.map((col) => (
+                          {(dadosGuiaConjunta.colunasRotas || []).map((col) => (
                             <td key={col.carrinhaId} className="py-1 px-1 text-center font-mono border-l border-stone-300 text-[10px]">
-                              {dadosGuiaConjunta.totaisPadariaPorRota[col.carrinhaId] || 0}
+                              {dadosGuiaConjunta.totaisPadariaPorRota?.[col.carrinhaId] || 0}
                             </td>
                           ))}
                           <td className="py-1 px-2 text-right font-mono border-l-2 border-stone-800 bg-stone-200 text-[10px]">
-                            {dadosGuiaConjunta.totalGeralPadaria}
+                            {dadosGuiaConjunta.totalGeralPadaria ?? 0}
                           </td>
                         </tr>
                       </>
                     )}
 
                     {/* SECÇÃO PASTELARIA */}
-                    {dadosGuiaConjunta.linhasPastelaria.length > 0 && (
+                    {(dadosGuiaConjunta.linhasPastelaria || []).length > 0 && (
                       <>
                         <tr className="bg-stone-50 border-y border-stone-300">
                           <td
-                            colSpan={dadosGuiaConjunta.colunasRotas.length + 2}
+                            colSpan={(dadosGuiaConjunta.colunasRotas || []).length + 2}
                             className="py-1 px-2 font-black text-stone-800 uppercase tracking-wider text-[9px]"
                           >
                             🍰 Pastelaria Fina & Confeitaria
                           </td>
                         </tr>
-                        {dadosGuiaConjunta.linhasPastelaria.map((linha, idx) => (
+                        {(dadosGuiaConjunta.linhasPastelaria || []).map((linha, idx) => (
                           <tr key={`past-${idx}`} className="border-b border-stone-100 hover:bg-stone-50/50">
                             <td className="py-1 px-2 font-bold text-stone-900 sticky left-0 bg-white print:static">
                               {linha.artigo}
                             </td>
-                            {dadosGuiaConjunta.colunasRotas.map((col) => {
-                              const qtd = linha.quantidadesPorRota[col.carrinhaId] || 0;
+                            {(dadosGuiaConjunta.colunasRotas || []).map((col) => {
+                              const qtd = linha.quantidadesPorRota?.[col.carrinhaId] || 0;
                               return (
                                 <td
                                   key={col.carrinhaId}
@@ -1867,13 +1873,13 @@ export function PdfViewerModal({
                           <td className="py-1 px-2 uppercase text-[9px] sticky left-0 bg-stone-100 print:static">
                             Subtotal Pastelaria
                           </td>
-                          {dadosGuiaConjunta.colunasRotas.map((col) => (
+                          {(dadosGuiaConjunta.colunasRotas || []).map((col) => (
                             <td key={col.carrinhaId} className="py-1 px-1 text-center font-mono border-l border-stone-300 text-[10px]">
-                              {dadosGuiaConjunta.totaisPastelariaPorRota[col.carrinhaId] || 0}
+                              {dadosGuiaConjunta.totaisPastelariaPorRota?.[col.carrinhaId] || 0}
                             </td>
                           ))}
                           <td className="py-1 px-2 text-right font-mono border-l-2 border-stone-800 bg-stone-200 text-[10px]">
-                            {dadosGuiaConjunta.totalGeralPastelaria}
+                            {dadosGuiaConjunta.totalGeralPastelaria ?? 0}
                           </td>
                         </tr>
                       </>
@@ -1884,13 +1890,13 @@ export function PdfViewerModal({
                       <td className="py-1.5 px-2 uppercase text-[10px] tracking-wider sticky left-0 bg-stone-900 print:static print:text-black print:bg-stone-200">
                         TOTAL A BORDO
                       </td>
-                      {dadosGuiaConjunta.colunasRotas.map((col) => (
+                      {(dadosGuiaConjunta.colunasRotas || []).map((col) => (
                         <td key={col.carrinhaId} className="py-1.5 px-1 text-center font-mono border-l border-stone-700 text-[11px] print:text-black print:border-stone-400">
-                          {dadosGuiaConjunta.totaisPorRota[col.carrinhaId] || 0}
+                          {dadosGuiaConjunta.totaisPorRota?.[col.carrinhaId] || 0}
                         </td>
                       ))}
                       <td className="py-1.5 px-2 text-right font-mono border-l-2 border-stone-700 bg-stone-950 text-amber-400 text-[11px] font-black print:text-black print:bg-stone-300">
-                        {dadosGuiaConjunta.totalGeralUnidades}
+                        {dadosGuiaConjunta.totalGeralUnidades ?? dadosGuiaConjunta.totalGeral ?? 0}
                       </td>
                     </tr>
                   </tfoot>

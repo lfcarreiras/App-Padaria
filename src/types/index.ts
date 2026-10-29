@@ -1,4 +1,4 @@
-﻿export type Role = 'admin' | 'gerente_loja' | 'atendente' | 'padeiro_pasteleiro' | 'motorista' | 'condutor' | 'operador_padaria' | 'operador_pastelaria';
+export type Role = 'admin' | 'gerente_loja' | 'atendente' | 'padeiro_pasteleiro' | 'motorista' | 'condutor' | 'operador_padaria' | 'operador_pastelaria';
 
 export type CategoriaProduto = 'padaria' | 'pastelaria' | 'bebidas_outros';
 export type SetorProducao = 'padaria' | 'pastelaria';
@@ -262,6 +262,22 @@ export interface CartaoFornoProducao {
   historico_fornadas?: RegistoFornada[];
 }
 
+export interface ColunaRotaGuia {
+  carrinhaId: string;
+  numeroRota: number;
+  rota: string;
+  nomeCondutor: string;
+  matricula: string;
+  nomeCarro?: string;
+}
+
+export interface LinhaGuiaConjuntaSecao {
+  artigo: string;
+  unidade: string;
+  quantidadesPorRota: Record<string, number>;
+  totalArtigo: number;
+}
+
 export interface LinhaCargaConjunta {
   artigo: string;
   setor: 'padaria' | 'pastelaria' | string;
@@ -277,12 +293,26 @@ export interface ColunaCabecalhoRota {
   nome_condutor: string;
   nome_carro: string;
   matricula: string;
+  carrinhaId?: string;
+  numeroRota?: number;
+  nomeCondutor?: string;
+  nomeCarro?: string;
 }
 
 export interface DadosGuiaConjunta {
-  rotasCabecalho: ColunaCabecalhoRota[];
-  linhas: LinhaCargaConjunta[];
+  data?: string;
+  colunasRotas: ColunaRotaGuia[];
+  linhasPadaria: LinhaGuiaConjuntaSecao[];
+  linhasPastelaria: LinhaGuiaConjuntaSecao[];
   totaisPorRota: Record<string, number>;
-  totalGeral: number;
+  totaisPadariaPorRota: Record<string, number>;
+  totaisPastelariaPorRota: Record<string, number>;
+  totalGeralUnidades: number;
+  totalGeralPadaria: number;
+  totalGeralPastelaria: number;
   totalCaixasEstimadas: number;
+
+  rotasCabecalho?: ColunaCabecalhoRota[];
+  linhas?: LinhaCargaConjunta[];
+  totalGeral?: number;
 }

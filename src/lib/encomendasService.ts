@@ -2690,6 +2690,7 @@ export async function carregarAjustesAdhocSupabase(): Promise<Record<string, num
             valores,
             atualizado_em: new Date().toISOString()
           }));
+          window.dispatchEvent(new Event('app_ajustes_adhoc_atualizados'));
         }
         return valores;
       }
@@ -2711,8 +2712,8 @@ export async function carregarAjustesAdhocSupabase(): Promise<Record<string, num
           // Migração automática imediata para ajustes_producao
           for (const [ch, q] of Object.entries(valores)) {
             const partes = ch.split('_');
-            const dataStr = partes[0] || new Date().toISOString().split('T')[0];
-            const tipoAlvo = ch.includes('_base_') ? 'rota' : 'b2b';
+            const tipoAlvo = ch.startsWith('base_') ? 'rota' : 'b2b';
+            const dataStr = partes[1] || new Date().toISOString().split('T')[0];
             const alvoId = partes[2] || '';
             const produtoNome = partes.slice(3).join('_') || 'artigo';
             supabase.from('ajustes_producao').upsert({
@@ -2730,6 +2731,7 @@ export async function carregarAjustesAdhocSupabase(): Promise<Record<string, num
               valores,
               atualizado_em: new Date().toISOString()
             }));
+            window.dispatchEvent(new Event('app_ajustes_adhoc_atualizados'));
           }
           return valores;
         }
@@ -2742,7 +2744,7 @@ export async function carregarAjustesAdhocSupabase(): Promise<Record<string, num
   return carregarAjustesAdhoc();
 }
 
-export function salvarAjusteAdhoc(chave: string, quantidade: number | null): void {
+export async function salvarAjusteAdhoc(chave: string, quantidade: number | null): Promise<void> {
   const todos = carregarAjustesAdhoc();
   if (quantidade === null || isNaN(quantidade)) {
     delete todos[chave];
@@ -2763,38 +2765,42 @@ export function salvarAjusteAdhoc(chave: string, quantidade: number | null): voi
   }
 
   if (supabase) {
-    if (quantidade === null || isNaN(quantidade)) {
-      supabase.from('ajustes_producao').delete().eq('chave', chave).then(() => {}).catch(() => {});
-    } else {
-      const partes = chave.split('_');
-      const dataStr = partes[0] || new Date().toISOString().split('T')[0];
-      const tipoAlvo = chave.includes('_base_') ? 'rota' : 'b2b';
-      const alvoId = partes[2] || '';
-      const produtoNome = partes.slice(3).join('_') || 'artigo';
-      supabase.from('ajustes_producao').upsert({
-        chave,
-        data: dataStr,
-        tipo_alvo: tipoAlvo,
-        alvo_id: alvoId,
-        produto_nome: produtoNome,
-        quantidade: Math.max(0, quantidade),
-        atualizado_em: new Date().toISOString()
-      }, { onConflict: 'chave' }).then(() => {}).catch(() => {});
+    try {
+      if (quantidade === null || isNaN(quantidade)) {
+        await supabase.from('ajustes_producao').delete().eq('chave', chave);
+      } else {
+        const partes = chave.split('_');
+        const tipoAlvo = chave.startsWith('base_') ? 'rota' : 'b2b';
+        const dataStr = partes[1] || new Date().toISOString().split('T')[0];
+        const alvoId = partes[2] || '';
+        const produtoNome = partes.slice(3).join('_') || 'artigo';
+        await supabase.from('ajustes_producao').upsert({
+          chave,
+          data: dataStr,
+          tipo_alvo: tipoAlvo,
+          alvo_id: alvoId,
+          produto_nome: produtoNome,
+          quantidade: Math.max(0, quantidade),
+          atualizado_em: new Date().toISOString()
+        }, { onConflict: 'chave' });
+      }
+    } catch (err) {
+      console.error('Erro ao upsert ajuste na tabela ajustes_producao:', err);
     }
 
-    const jsonStr = JSON.stringify({
-      valores: todos,
-      atualizado_em: new Date().toISOString()
-    });
-    supabase
-      .from('clientes')
-      .update({
-        nome: '[SISTEMA_AJUSTES_ADHOC_ROTAS]',
-        notas_entrega: jsonStr,
-      })
-      .eq('telefone', CONFIG_AJUSTES_ADHOC_PHONE_KEY)
-      .then(() => {})
-      .catch(() => {});
+    try {
+      const jsonStr = JSON.stringify({
+        valores: todos,
+        atualizado_em: new Date().toISOString()
+      });
+      await supabase
+        .from('clientes')
+        .update({
+          nome: '[SISTEMA_AJUSTES_ADHOC_ROTAS]',
+          notas_entrega: jsonStr,
+        })
+        .eq('telefone', CONFIG_AJUSTES_ADHOC_PHONE_KEY);
+    } catch {}
   }
 }
 
@@ -2852,6 +2858,38 @@ export function removerAjusteAdhoc(chave: string): void {
   salvarAjusteAdhoc(chave, null);
 }
 
+export const MAPA_ID_PARA_NUMERO_ROTA: Record<string, number> = {
+  '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75': 1,
+  '5ebae97d-593f-4f54-81c5-b200dd04258b': 2,
+  'e062fea7-97da-4b2a-8607-da6a9ea8e668': 3,
+  'a282db95-c427-4ed5-83fc-01403bd24cfc': 4,
+  'b555db95-c427-4ed5-83fc-01403bd24cf5': 5,
+  'c666db95-c427-4ed5-83fc-01403bd24cf6': 6,
+  'd777db95-c427-4ed5-83fc-01403bd24cf7': 7,
+  'car-1': 1,
+  'car-2': 2,
+  'car-3': 3,
+  'car-4': 4,
+  'car-5': 5,
+  'car-6': 6,
+  'car-7': 7,
+};
+
+export function obterAliasesCarrinha(carrinhaId: string): string[] {
+  const aliases = [carrinhaId];
+  const num = MAPA_ID_PARA_NUMERO_ROTA[carrinhaId] || parseInt(String(carrinhaId).replace(/\D+/g, '') || '0', 10);
+  if (num >= 1 && num <= 7) {
+    if (!aliases.includes(`car-${num}`)) aliases.push(`car-${num}`);
+    if (!aliases.includes(String(num))) aliases.push(String(num));
+    for (const [uuid, rNum] of Object.entries(MAPA_ID_PARA_NUMERO_ROTA)) {
+      if (rNum === num && !aliases.includes(uuid)) {
+        aliases.push(uuid);
+      }
+    }
+  }
+  return aliases;
+}
+
 export function getChaveAdhocBase(dataStr: string, carrinhaId: string, produtoNome: string): string {
   return `base_${dataStr}_${carrinhaId}_${(produtoNome || '').trim()}`;
 }
@@ -2862,16 +2900,20 @@ export function getChaveAdhocB2B(dataStr: string, clienteB2BId: string, produtoN
 
 export function obterArtigosAjustadosBaseRota(dataStr: string, carrinhaId: string, ajustesCustom?: Record<string, number>): string[] {
   const ajustes = ajustesCustom || carregarAjustesAdhoc();
-  const prefixo = `base_${dataStr}_${carrinhaId}_`;
+  const aliases = obterAliasesCarrinha(carrinhaId);
   const artigos: string[] = [];
-  Object.keys(ajustes).forEach((k) => {
-    if (k.startsWith(prefixo)) {
-      const art = k.slice(prefixo.length).trim();
-      if (art && !artigos.includes(art)) {
-        artigos.push(art);
+
+  for (const alt of aliases) {
+    const prefixo = `base_${dataStr}_${alt}_`;
+    Object.keys(ajustes).forEach((k) => {
+      if (k.startsWith(prefixo)) {
+        const art = k.slice(prefixo.length).trim();
+        if (art && !artigos.includes(art)) {
+          artigos.push(art);
+        }
       }
-    }
-  });
+    });
+  }
   return artigos;
 }
 
@@ -2900,18 +2942,23 @@ export function obterQuantidadeEfetivaBaseRota(
 ): { quantidade: number; isAdhoc: boolean } {
   const ajustes = ajustesCustom || carregarAjustesAdhoc();
   const nomeLimpo = (produtoNome || '').trim();
-  const chave = getChaveAdhocBase(dataStr, carrinhaId, nomeLimpo);
-  if (ajustes[chave] !== undefined) {
-    return { quantidade: Number(ajustes[chave]), isAdhoc: true };
-  }
-  // Fallback case-insensitive na chave adhoc
-  const prefixo = `base_${dataStr}_${carrinhaId}_`;
-  for (const [k, v] of Object.entries(ajustes)) {
-    if (k.startsWith(prefixo) && k.slice(prefixo.length).trim().toLowerCase() === nomeLimpo.toLowerCase()) {
-      return { quantidade: Number(v), isAdhoc: true };
+  const aliases = obterAliasesCarrinha(carrinhaId);
+
+  // 1. Procurar em todos os aliases (UUID ou car-X)
+  for (const alt of aliases) {
+    const chave = getChaveAdhocBase(dataStr, alt, nomeLimpo);
+    if (ajustes[chave] !== undefined) {
+      return { quantidade: Number(ajustes[chave]), isAdhoc: true };
+    }
+    const prefixo = `base_${dataStr}_${alt}_`;
+    for (const [k, v] of Object.entries(ajustes)) {
+      if (k.startsWith(prefixo) && k.slice(prefixo.length).trim().toLowerCase() === nomeLimpo.toLowerCase()) {
+        return { quantidade: Number(v), isAdhoc: true };
+      }
     }
   }
-  // Baseline do mapa semanal
+
+  // 2. Baseline do mapa semanal
   const mapaDia = baseFixaSemanal?.[diaSemana] || {};
   if (mapaDia[nomeLimpo] !== undefined) {
     return { quantidade: Number(mapaDia[nomeLimpo]), isAdhoc: false };
@@ -2960,17 +3007,45 @@ export function obterQuantidadeEfetivaClienteB2B(
 
 // ---------------- GUIA DE CARGA CONJUNTA (ROTAS 1 A 7) ---------------- //
 
-export function calcularDadosGuiaCargaConjunta(params: {
-  carrinhas: Carrinha[];
-  dataAlvo: string;
-  baseFixaCarrinhas: BaseFixaCarrinha[];
-  clientesB2B: ClienteEmpresarialB2B[];
-  basesRecorrentes: BaseDiariaRecorrente[];
-  encomendas: Encomenda[];
-  produtos: Produto[];
-  ajustesCustom?: Record<string, number>;
-}): DadosGuiaConjunta {
-  const { carrinhas, dataAlvo, baseFixaCarrinhas, clientesB2B, basesRecorrentes, encomendas, produtos, ajustesCustom } = params;
+export function calcularDadosGuiaCargaConjunta(
+  arg1: any,
+  carrinhasArg?: Carrinha[],
+  baseFixaCarrinhasArg?: BaseFixaCarrinha[],
+  clientesB2BArg?: ClienteEmpresarialB2B[],
+  basesRecorrentesArg?: BaseDiariaRecorrente[],
+  encomendasArg?: Encomenda[],
+  produtosArg?: Produto[],
+  ajustesCustomArg?: Record<string, number>
+): DadosGuiaConjunta {
+  let carrinhas: Carrinha[];
+  let dataAlvo: string;
+  let baseFixaCarrinhas: BaseFixaCarrinha[];
+  let clientesB2B: ClienteEmpresarialB2B[];
+  let basesRecorrentes: BaseDiariaRecorrente[];
+  let encomendas: Encomenda[];
+  let produtos: Produto[];
+  let ajustesCustom: Record<string, number> | undefined;
+
+  if (typeof arg1 === 'object' && arg1 !== null && Array.isArray(arg1.carrinhas)) {
+    carrinhas = arg1.carrinhas;
+    dataAlvo = arg1.dataAlvo || new Date().toISOString().split('T')[0];
+    baseFixaCarrinhas = arg1.baseFixaCarrinhas || [];
+    clientesB2B = arg1.clientesB2B || [];
+    basesRecorrentes = arg1.basesRecorrentes || [];
+    encomendas = arg1.encomendas || [];
+    produtos = arg1.produtos || [];
+    ajustesCustom = arg1.ajustesCustom;
+  } else {
+    dataAlvo = typeof arg1 === 'string' ? arg1 : new Date().toISOString().split('T')[0];
+    carrinhas = carrinhasArg || [];
+    baseFixaCarrinhas = baseFixaCarrinhasArg || [];
+    clientesB2B = clientesB2BArg || [];
+    basesRecorrentes = basesRecorrentesArg || [];
+    encomendas = encomendasArg || [];
+    produtos = produtosArg || [];
+    ajustesCustom = ajustesCustomArg;
+  }
+
   const diaSemanaAlvo = obterDiaSemanaDeData(dataAlvo);
 
   const rotasAtivas = [...carrinhas]
@@ -2979,6 +3054,18 @@ export function calcularDadosGuiaCargaConjunta(params: {
       return num >= 1 && num <= 7 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 8' && c.identificador !== 'Rota 8';
     })
     .sort((a, b) => (a.numero || 0) - (b.numero || 0));
+
+  const colunasRotas: ColunaRotaGuia[] = rotasAtivas.map((c, i) => {
+    const num = c.numero || i + 1;
+    return {
+      carrinhaId: c.id,
+      numeroRota: num,
+      rota: c.rota || `Rota ${num}`,
+      nomeCondutor: c.nome_condutor || 'A atribuir',
+      matricula: c.matricula || '---',
+      nomeCarro: c.nome_carro || `Carro ${num}`,
+    };
+  });
 
   const rotasCabecalho: ColunaCabecalhoRota[] = rotasAtivas.map((c, i) => {
     const num = c.numero || i + 1;
@@ -2989,6 +3076,10 @@ export function calcularDadosGuiaCargaConjunta(params: {
       nome_condutor: c.nome_condutor || 'A atribuir',
       nome_carro: c.nome_carro || `Carro ${num}`,
       matricula: c.matricula || '---',
+      carrinhaId: c.id,
+      numeroRota: num,
+      nomeCondutor: c.nome_condutor || 'A atribuir',
+      nomeCarro: c.nome_carro || `Carro ${num}`,
     };
   });
 
@@ -3121,23 +3212,68 @@ export function calcularDadosGuiaCargaConjunta(params: {
     });
 
   const totaisPorRota: Record<string, number> = {};
-  rotasAtivas.forEach((r) => { totaisPorRota[r.id] = 0; });
+  const totaisPadariaPorRota: Record<string, number> = {};
+  const totaisPastelariaPorRota: Record<string, number> = {};
+  rotasAtivas.forEach((r) => {
+    totaisPorRota[r.id] = 0;
+    totaisPadariaPorRota[r.id] = 0;
+    totaisPastelariaPorRota[r.id] = 0;
+  });
+
+  const linhasPadaria: LinhaGuiaConjuntaSecao[] = [];
+  const linhasPastelaria: LinhaGuiaConjuntaSecao[] = [];
   let totalGeral = 0;
+  let totalGeralPadaria = 0;
+  let totalGeralPastelaria = 0;
 
   for (const l of linhas) {
+    const itemSecao: LinhaGuiaConjuntaSecao = {
+      artigo: l.artigo,
+      unidade: l.unidade,
+      quantidadesPorRota: l.rotas,
+      totalArtigo: l.total,
+    };
+
     rotasAtivas.forEach((r) => {
-      totaisPorRota[r.id] = (totaisPorRota[r.id] || 0) + (l.rotas[r.id] || 0);
+      const q = l.rotas[r.id] || 0;
+      totaisPorRota[r.id] = (totaisPorRota[r.id] || 0) + q;
     });
     totalGeral += l.total;
+
+    if (l.setor === 'pastelaria') {
+      linhasPastelaria.push(itemSecao);
+      totalGeralPastelaria += l.total;
+      rotasAtivas.forEach((r) => {
+        const q = l.rotas[r.id] || 0;
+        totaisPastelariaPorRota[r.id] = (totaisPastelariaPorRota[r.id] || 0) + q;
+      });
+    } else {
+      linhasPadaria.push(itemSecao);
+      totalGeralPadaria += l.total;
+      rotasAtivas.forEach((r) => {
+        const q = l.rotas[r.id] || 0;
+        totaisPadariaPorRota[r.id] = (totaisPadariaPorRota[r.id] || 0) + q;
+      });
+    }
   }
 
   const totalCaixasEstimadas = Math.ceil(totalGeral / 25);
 
   return {
+    data: dataAlvo,
+    colunasRotas,
+    linhasPadaria,
+    linhasPastelaria,
+    totaisPorRota,
+    totaisPadariaPorRota,
+    totaisPastelariaPorRota,
+    totalGeralUnidades: totalGeral,
+    totalGeralPadaria,
+    totalGeralPastelaria,
+    totalCaixasEstimadas,
+
     rotasCabecalho,
     linhas,
-    totaisPorRota,
     totalGeral,
-    totalCaixasEstimadas,
   };
 }

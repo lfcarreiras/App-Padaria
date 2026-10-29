@@ -13,6 +13,9 @@ import {
   carregarAjustesAdhoc, 
   salvarAjusteAdhoc, 
   removerAjusteAdhoc,
+  carregarAjustesAdhocSupabase,
+  subscreverAlteracoesAjustesAdhoc,
+  obterAliasesCarrinha,
   getChaveAdhocBase, 
   getChaveAdhocB2B
 } from '../lib/encomendasService';
@@ -26,7 +29,9 @@ import {
   Sparkles,
   Info,
   ShieldCheck,
-  Filter
+  Filter,
+  RefreshCw,
+  CloudCheck
 } from 'lucide-react';
 
 export interface MatrizAjustesAdhocProps {
@@ -52,6 +57,9 @@ export function MatrizAjustesAdhoc({
   const [pesquisaCliente, setPesquisaCliente] = useState<string>('');
   const [ajustesAdhoc, setAjustesAdhoc] = useState<Record<string, number>>({});
   const [feedbackSalvo, setFeedbackSalvo] = useState<string | null>(null);
+  const [salvandoCloud, setSalvandoCloud] = useState<boolean>(false);
+  const [sincronizando, setSincronizando] = useState<boolean>(false);
+  const [ultimaSincronizacao, setUltimaSincronizacao] = useState<Date | null>(null);
 
   // Filtrar carrinhas para garantir apenas Rotas 1 a 7 (Rota 8 eliminada)
   const carrinhasValidas = useMemo(() => {
@@ -70,16 +78,40 @@ export function MatrizAjustesAdhoc({
     }
   }, [carrinhasValidas, rotaFiltroId]);
 
-  // Carregar ajustes do localStorage
-  const recarregarAjustes = () => {
+  // Carregar ajustes do localStorage e da nuvem Supabase
+  const recarregarAjustes = async () => {
+    // 1. Ler de imediato do local para resposta instantânea na interface
     setAjustesAdhoc(carregarAjustesAdhoc());
+    // 2. Carregar da nuvem Supabase em background
+    try {
+      const nuvem = await carregarAjustesAdhocSupabase();
+      if (nuvem && Object.keys(nuvem).length > 0) {
+        setAjustesAdhoc(nuvem);
+        setUltimaSincronizacao(new Date());
+      }
+    } catch (e) {
+      console.warn('Erro ao carregar ajustes ad-hoc da nuvem:', e);
+    }
   };
 
   useEffect(() => {
     recarregarAjustes();
-    const handleSync = () => recarregarAjustes();
+
+    const handleSync = () => {
+      setAjustesAdhoc(carregarAjustesAdhoc());
+    };
     window.addEventListener('app_ajustes_adhoc_atualizados', handleSync);
-    return () => window.removeEventListener('app_ajustes_adhoc_atualizados', handleSync);
+
+    // Subscrever Realtime do Supabase para alterações entre utilizadores/dispositivos em tempo real
+    const unsubRealtime = subscreverAlteracoesAjustesAdhoc((novos) => {
+      setAjustesAdhoc(novos);
+      setUltimaSincronizacao(new Date());
+    });
+
+    return () => {
+      window.removeEventListener('app_ajustes_adhoc_atualizados', handleSync);
+      unsubRealtime();
+    };
   }, []);
 
   // Janela móvel de 7 dias a partir de hoje
@@ -133,67 +165,99 @@ export function MatrizAjustesAdhoc({
   }, []);
 
   // Handler de alteração ad-hoc para Base de Rota
-  const handleAlterarBaseAdhoc = (
+  const handleAlterarBaseAdhoc = async (
     dataIso: string,
     carrinhaId: string,
     produtoNome: string,
     valorStr: string
   ) => {
+    setSalvandoCloud(true);
     const chave = getChaveAdhocBase(dataIso, carrinhaId, produtoNome);
     if (valorStr.trim() === '') {
-      removerAjusteAdhoc(chave);
+      await removerAjusteAdhoc(chave);
     } else {
       const num = parseInt(valorStr, 10);
       if (!isNaN(num)) {
-        salvarAjusteAdhoc(chave, Math.max(0, num));
+        await salvarAjusteAdhoc(chave, Math.max(0, num));
       }
     }
-    recarregarAjustes();
-    setFeedbackSalvo(`Ajuste guardado para ${produtoNome} (${dataIso})`);
-    setTimeout(() => setFeedbackSalvo(null), 2500);
+    setAjustesAdhoc(carregarAjustesAdhoc());
+    setSalvandoCloud(false);
+    setUltimaSincronizacao(new Date());
+    setFeedbackSalvo(`✓ Ajuste guardado e difundido: ${produtoNome} (${dataIso})`);
+    setTimeout(() => setFeedbackSalvo(null), 3000);
     if (onAjusteSalvo) onAjusteSalvo();
   };
 
   // Reverter ajuste ad-hoc para Base de Rota
-  const handleReverterBaseAdhoc = (dataIso: string, carrinhaId: string, produtoNome: string) => {
-    const chave = getChaveAdhocBase(dataIso, carrinhaId, produtoNome);
-    removerAjusteAdhoc(chave);
-    recarregarAjustes();
-    setFeedbackSalvo(`Restaurado valor baseline para ${produtoNome}`);
-    setTimeout(() => setFeedbackSalvo(null), 2500);
+  const handleReverterBaseAdhoc = async (dataIso: string, carrinhaId: string, produtoNome: string) => {
+    setSalvandoCloud(true);
+    const aliases = obterAliasesCarrinha(carrinhaId);
+    for (const alt of aliases) {
+      const chave = getChaveAdhocBase(dataIso, alt, produtoNome);
+      await removerAjusteAdhoc(chave);
+    }
+    setAjustesAdhoc(carregarAjustesAdhoc());
+    setSalvandoCloud(false);
+    setUltimaSincronizacao(new Date());
+    setFeedbackSalvo(`✓ Restaurado valor baseline para ${produtoNome}`);
+    setTimeout(() => setFeedbackSalvo(null), 3000);
     if (onAjusteSalvo) onAjusteSalvo();
   };
 
   // Handler de alteração ad-hoc para Cliente B2B
-  const handleAlterarB2BAdhoc = (
+  const handleAlterarB2BAdhoc = async (
     dataIso: string,
     clienteB2BId: string,
     produtoNome: string,
     valorStr: string
   ) => {
+    setSalvandoCloud(true);
     const chave = getChaveAdhocB2B(dataIso, clienteB2BId, produtoNome);
     if (valorStr.trim() === '') {
-      removerAjusteAdhoc(chave);
+      await removerAjusteAdhoc(chave);
     } else {
       const num = parseInt(valorStr, 10);
       if (!isNaN(num)) {
-        salvarAjusteAdhoc(chave, Math.max(0, num));
+        await salvarAjusteAdhoc(chave, Math.max(0, num));
       }
     }
-    recarregarAjustes();
-    setFeedbackSalvo(`Ajuste B2B guardado para ${produtoNome} (${dataIso})`);
-    setTimeout(() => setFeedbackSalvo(null), 2500);
+    setAjustesAdhoc(carregarAjustesAdhoc());
+    setSalvandoCloud(false);
+    setUltimaSincronizacao(new Date());
+    setFeedbackSalvo(`✓ Ajuste B2B guardado e difundido: ${produtoNome} (${dataIso})`);
+    setTimeout(() => setFeedbackSalvo(null), 3000);
     if (onAjusteSalvo) onAjusteSalvo();
   };
 
   // Reverter ajuste ad-hoc para Cliente B2B
-  const handleReverterB2BAdhoc = (dataIso: string, clienteB2BId: string, produtoNome: string) => {
+  const handleReverterB2BAdhoc = async (dataIso: string, clienteB2BId: string, produtoNome: string) => {
+    setSalvandoCloud(true);
     const chave = getChaveAdhocB2B(dataIso, clienteB2BId, produtoNome);
-    removerAjusteAdhoc(chave);
-    recarregarAjustes();
-    setFeedbackSalvo(`Restaurado valor baseline B2B para ${produtoNome}`);
-    setTimeout(() => setFeedbackSalvo(null), 2500);
+    await removerAjusteAdhoc(chave);
+    setAjustesAdhoc(carregarAjustesAdhoc());
+    setSalvandoCloud(false);
+    setUltimaSincronizacao(new Date());
+    setFeedbackSalvo(`✓ Restaurado valor baseline B2B para ${produtoNome}`);
+    setTimeout(() => setFeedbackSalvo(null), 3000);
     if (onAjusteSalvo) onAjusteSalvo();
+  };
+
+  const handleSincronizarManual = async () => {
+    setSincronizando(true);
+    try {
+      const doSupabase = await carregarAjustesAdhocSupabase();
+      if (doSupabase) {
+        setAjustesAdhoc(doSupabase);
+      }
+      setUltimaSincronizacao(new Date());
+      setFeedbackSalvo('✓ Todos os ajustes sincronizados e difundidos com sucesso!');
+      setTimeout(() => setFeedbackSalvo(null), 3500);
+    } catch (e) {
+      console.error('Erro ao sincronizar manualmente:', e);
+    } finally {
+      setSincronizando(false);
+    }
   };
 
   // Carrinha selecionada para a Base Diária
@@ -226,18 +290,29 @@ export function MatrizAjustesAdhoc({
         if (limpo) setProds.add(limpo);
       });
     }
-    // Adicionar também quaisquer produtos que tenham ajustes adhoc registados para esta carrinha
+    // Adicionar também quaisquer produtos que tenham ajustes adhoc registados para esta carrinha (incluindo aliases)
+    const aliasesCarrinha = carrinhaAtiva ? obterAliasesCarrinha(carrinhaAtiva.id) : [];
     Object.keys(ajustesAdhoc).forEach((k) => {
-      if (carrinhaAtiva && k.includes(`_${carrinhaAtiva.id}_`)) {
-        const partes = k.split(`_${carrinhaAtiva.id}_`);
-        if (partes[1]) {
-          const limpo = partes[1].trim();
-          if (limpo) setProds.add(limpo);
+      if (k.startsWith('base_')) {
+        for (const alt of aliasesCarrinha) {
+          if (k.includes(`_${alt}_`)) {
+            const partes = k.split(`_${alt}_`);
+            if (partes[1]) {
+              const limpo = partes[1].trim();
+              if (limpo) setProds.add(limpo);
+            }
+          }
         }
       }
     });
 
     let lista = Array.from(setProds);
+    if (pesquisaArtigo.trim()) {
+      lista = lista.filter((p) => correspondePesquisaArtigo(p, pesquisaArtigo));
+    }
+
+    return lista.sort((a, b) => a.localeCompare(b));
+  }, [baseFixaAtiva, ajustesAdhoc, carrinhaAtiva, pesquisaArtigo]);
     if (pesquisaArtigo.trim()) {
       lista = lista.filter((p) => correspondePesquisaArtigo(p, pesquisaArtigo));
     }
@@ -303,9 +378,27 @@ export function MatrizAjustesAdhoc({
 
         {/* Badges de Estado e Base Protegida */}
         <div className="flex flex-wrap items-center gap-2">
+          {salvandoCloud ? (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 text-stone-950 text-xs font-bold animate-pulse shadow-xs">
+              <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+              <span>A gravar na nuvem...</span>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSincronizarManual}
+              disabled={sincronizando}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
+              title="Sincronizar e difundir imediatamente com todos os computadores em tempo real"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 text-amber-400 ${sincronizando ? 'animate-spin' : ''}`} />
+              <span>{sincronizando ? 'A difundir...' : 'Gravar / Difundir'}</span>
+            </button>
+          )}
+
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 border border-white/20 text-stone-200 text-xs font-semibold">
             <ShieldCheck className="h-4 w-4 text-emerald-400" />
-            <span>Base Recorrente Protegida</span>
+            <span>Base Protegida</span>
           </div>
 
           {totalAjustesAtivos > 0 && (
@@ -447,15 +540,25 @@ export function MatrizAjustesAdhoc({
                         </td>
 
                         {diasJanela.map((col) => {
-                          const chave = getChaveAdhocBase(col.dataIso, carrinhaAtiva.id, produtoNome);
-                          const temAdhoc = ajustesAdhoc[chave] !== undefined;
+                          const aliasesCarrinha = carrinhaAtiva ? obterAliasesCarrinha(carrinhaAtiva.id) : [];
+                          let temAdhoc = false;
+                          let valorAdhoc: number | undefined = undefined;
+
+                          for (const alt of aliasesCarrinha) {
+                            const ch = getChaveAdhocBase(col.dataIso, alt, produtoNome);
+                            if (ajustesAdhoc[ch] !== undefined) {
+                              temAdhoc = true;
+                              valorAdhoc = Number(ajustesAdhoc[ch]);
+                              break;
+                            }
+                          }
 
                           // Baseline semanal
                           const semana = baseFixaAtiva?.quantidades_semanais || baseFixaAtiva?.quantidades_semana || {};
                           const mapaDia = semana[col.diaSemana] || baseFixaAtiva?.quantidades_por_produto || {};
                           const baselineVal = Number(mapaDia[produtoNome] || 0);
 
-                          const valorEfetivo = temAdhoc ? Number(ajustesAdhoc[chave]) : baselineVal;
+                          const valorEfetivo = temAdhoc && valorAdhoc !== undefined ? valorAdhoc : baselineVal;
                           totalLinha7Dias += valorEfetivo;
 
                           return (
