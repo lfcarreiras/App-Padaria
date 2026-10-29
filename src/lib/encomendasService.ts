@@ -953,19 +953,36 @@ export async function carregarLojasSupabase(): Promise<Loja[]> {
   return [...LOJAS_MOCK];
 }
 
+// Helper para criar canais Realtime com nomes únicos e isolados
+function criarCanalRealtime(prefixo: string) {
+  if (!supabase) return null;
+  const uniqueId = `rt_${prefixo}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  return supabase.channel(uniqueId);
+}
+
 export function subscreverAlteracoesLojas(onUpdate: (lojas: Loja[]) => void) {
   if (!supabase) return () => {};
-  const channel = supabase
-    .channel('public:lojas_realtime_sync')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'lojas' }, async () => {
-      const atualizados = await carregarLojasSupabase();
-      onUpdate(atualizados);
-    })
-    .subscribe();
+  try {
+    const channel = criarCanalRealtime('lojas');
+    if (!channel) return () => {};
+    channel
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lojas' }, async () => {
+        try {
+          const atualizados = await carregarLojasSupabase();
+          onUpdate(atualizados);
+        } catch {}
+      })
+      .subscribe();
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
+    return () => {
+      try {
+        supabase.removeChannel(channel);
+      } catch {}
+    };
+  } catch (err) {
+    console.warn('Aviso ao subscrever lojas realtime:', err);
+    return () => {};
+  }
 }
 
 export async function salvarLojaDb(loja: Partial<Loja> & { codigo: string; nome: string; morada: string; telefone: string }) {
@@ -1045,8 +1062,10 @@ export async function carregarCarrinhasSupabase(): Promise<Carrinha[]> {
     if (!error && data && data.length > 0) {
       // Prioridade absoluta para a base central Supabase (Network-First)
       const mapped: Carrinha[] = data.map((row) => {
-        const localMatch = locaisRotas.find((m) => m.id === row.id) || {};
-        const num = row.numero || localMatch.numero || parseInt(String(row.rota || row.identificador || '').replace(/\D+/g, '') || '0', 10);
+        const numInferido = row.numero || parseInt(String(row.rota || row.identificador || '').replace(/\D+/g, '') || '0', 10);
+        const localMatch = locaisRotas.find((m) => m.id === row.id || (m.numero && m.numero === numInferido) || (m.identificador && m.identificador === row.identificador)) || {};
+        const num = numInferido || localMatch.numero || 1;
+        const condutorFinal = (row.nome_condutor && row.nome_condutor.trim()) || (row.motorista_nome && row.motorista_nome.trim()) || (localMatch.nome_condutor && localMatch.nome_condutor.trim()) || '';
         return {
           id: row.id,
           loja_id: row.loja_id || 'a9982e9f-7899-4a7c-8ce3-bc30f16c99a2',
@@ -1056,7 +1075,7 @@ export async function carregarCarrinhasSupabase(): Promise<Carrinha[]> {
           criado_em: row.criado_em,
           rota: row.rota || `Rota ${num}`,
           nome_carro: row.nome_carro || localMatch.nome_carro || `Carro ${num}`,
-          nome_condutor: row.nome_condutor || row.motorista_nome || localMatch.nome_condutor || '',
+          nome_condutor: condutorFinal,
           numero: num,
         };
       });
@@ -1130,7 +1149,16 @@ export async function salvarCarrinhaDb(carrinha: Partial<Carrinha> & { identific
       .eq('id', carrinha.id)
       .select()
       .maybeSingle();
-    if (error) console.warn('Erro ao atualizar carrinha no Supabase:', error);
+    if (error) {
+      console.warn('Erro ao atualizar carrinha com colunas estendidas, a tentar colunas base:', error.message);
+      const basePayload: any = {
+        loja_id: payload.loja_id,
+        identificador: payload.identificador,
+        matricula: payload.matricula,
+        ativo: payload.ativo,
+      };
+      await supabase.from('carrinhas').update(basePayload).eq('id', carrinha.id);
+    }
     return data || carrinha;
   } else {
     const { data, error } = await supabase
@@ -1138,24 +1166,43 @@ export async function salvarCarrinhaDb(carrinha: Partial<Carrinha> & { identific
       .insert(payload)
       .select()
       .maybeSingle();
-    if (error) console.warn('Erro ao criar carrinha no Supabase:', error);
+    if (error) {
+      console.warn('Erro ao criar carrinha no Supabase:', error);
+      const basePayload: any = {
+        loja_id: payload.loja_id,
+        identificador: payload.identificador,
+        matricula: payload.matricula,
+        ativo: payload.ativo,
+      };
+      await supabase.from('carrinhas').insert(basePayload);
+    }
     return data || carrinha;
   }
 }
 
 export function subscreverAlteracoesCarrinhas(onUpdate: (lista: Carrinha[]) => void) {
   if (!supabase) return () => {};
-  const channel = supabase
-    .channel('public:carrinhas_realtime_sync')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'carrinhas' }, async () => {
-      const atualizados = await carregarCarrinhasSupabase();
-      onUpdate(atualizados);
-    })
-    .subscribe();
+  try {
+    const channel = criarCanalRealtime('carrinhas');
+    if (!channel) return () => {};
+    channel
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'carrinhas' }, async () => {
+        try {
+          const atualizados = await carregarCarrinhasSupabase();
+          onUpdate(atualizados);
+        } catch {}
+      })
+      .subscribe();
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
+    return () => {
+      try {
+        supabase.removeChannel(channel);
+      } catch {}
+    };
+  } catch (err) {
+    console.warn('Aviso ao subscrever carrinhas realtime:', err);
+    return () => {};
+  }
 }
 
 export async function eliminarCarrinhaDb(carrinhaId: string) {
@@ -2180,17 +2227,27 @@ export function salvarBaseFixaCarrinhas(dados: BaseFixaCarrinha[]): void {
 
 export function subscreverAlteracoesBaseFixa(onUpdate: (lista: BaseFixaCarrinha[]) => void) {
   if (!supabase) return () => {};
-  const channel = supabase
-    .channel('public:bases_fixas_carrinhas_realtime_sync')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'bases_fixas_carrinhas' }, async () => {
-      const atualizados = await carregarBaseFixaCarrinhasSupabase();
-      onUpdate(atualizados);
-    })
-    .subscribe();
+  try {
+    const channel = criarCanalRealtime('base_fixa');
+    if (!channel) return () => {};
+    channel
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bases_fixas_carrinhas' }, async () => {
+        try {
+          const atualizados = await carregarBaseFixaCarrinhasSupabase();
+          onUpdate(atualizados);
+        } catch {}
+      })
+      .subscribe();
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
+    return () => {
+      try {
+        supabase.removeChannel(channel);
+      } catch {}
+    };
+  } catch (err) {
+    console.warn('Aviso ao subscrever bases fixas realtime:', err);
+    return () => {};
+  }
 }
 
 export function carregarClientesEmpresariaisB2B(): ClienteEmpresarialB2B[] {
@@ -2502,47 +2559,77 @@ export async function eliminarBaseDiariaRecorrente(id: string): Promise<boolean>
 
 export function subscreverAlteracoesClientesB2B(onUpdate: (lista: ClienteEmpresarialB2B[]) => void) {
   if (!supabase) return () => {};
-  const channel = supabase
-    .channel('public:clientes_empresariais')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes_empresariais' }, async () => {
-      const atualizados = await sincronizarClientesB2BComSupabase();
-      onUpdate(atualizados);
-    })
-    .subscribe();
+  try {
+    const channel = criarCanalRealtime('b2b');
+    if (!channel) return () => {};
+    channel
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes_empresariais' }, async () => {
+        try {
+          const atualizados = await sincronizarClientesB2BComSupabase();
+          onUpdate(atualizados);
+        } catch {}
+      })
+      .subscribe();
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
+    return () => {
+      try {
+        supabase.removeChannel(channel);
+      } catch {}
+    };
+  } catch (err) {
+    console.warn('Aviso ao subscrever b2b realtime:', err);
+    return () => {};
+  }
 }
 
 export function subscreverAlteracoesClientes(onUpdate: (lista: Cliente[]) => void) {
   if (!supabase) return () => {};
-  const channel = supabase
-    .channel('public:clientes')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, async () => {
-      const atualizados = await carregarClientesSupabase();
-      onUpdate(atualizados);
-    })
-    .subscribe();
+  try {
+    const channel = criarCanalRealtime('clientes');
+    if (!channel) return () => {};
+    channel
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, async () => {
+        try {
+          const atualizados = await carregarClientesSupabase();
+          onUpdate(atualizados);
+        } catch {}
+      })
+      .subscribe();
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
+    return () => {
+      try {
+        supabase.removeChannel(channel);
+      } catch {}
+    };
+  } catch (err) {
+    console.warn('Aviso ao subscrever clientes realtime:', err);
+    return () => {};
+  }
 }
 
 export function subscreverAlteracoesBasesRecorrentes(onUpdate: (lista: BaseDiariaRecorrente[]) => void) {
   if (!supabase) return () => {};
-  const channel = supabase
-    .channel('public:bases_diarias_recorrentes')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'bases_diarias_recorrentes' }, async () => {
-      const atualizados = await carregarBasesDiariasRecorrentes();
-      onUpdate(atualizados);
-    })
-    .subscribe();
+  try {
+    const channel = criarCanalRealtime('bases_recorrentes');
+    if (!channel) return () => {};
+    channel
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bases_diarias_recorrentes' }, async () => {
+        try {
+          const atualizados = await carregarBasesDiariasRecorrentes();
+          onUpdate(atualizados);
+        } catch {}
+      })
+      .subscribe();
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
+    return () => {
+      try {
+        supabase.removeChannel(channel);
+      } catch {}
+    };
+  } catch (err) {
+    console.warn('Aviso ao subscrever bases recorrentes realtime:', err);
+    return () => {};
+  }
 }
 
 export function obterDiaSemanaDeData(dataStr: string): DiaSemana {
@@ -2713,32 +2800,52 @@ export function salvarAjusteAdhoc(chave: string, quantidade: number | null): voi
 
 export function subscreverAlteracoesAjustesAdhoc(onUpdate: (valores: Record<string, number>) => void) {
   if (!supabase) return () => {};
-  const channel = supabase
-    .channel('public:ajustes_producao_realtime_sync')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'ajustes_producao' }, async () => {
-      const atualizados = await carregarAjustesAdhocSupabase();
-      onUpdate(atualizados);
-    })
-    .subscribe();
+  try {
+    const channel = criarCanalRealtime('ajustes_adhoc');
+    if (!channel) return () => {};
+    channel
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ajustes_producao' }, async () => {
+        try {
+          const atualizados = await carregarAjustesAdhocSupabase();
+          onUpdate(atualizados);
+        } catch {}
+      })
+      .subscribe();
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
+    return () => {
+      try {
+        supabase.removeChannel(channel);
+      } catch {}
+    };
+  } catch (err) {
+    console.warn('Aviso ao subscrever ajustes adhoc realtime:', err);
+    return () => {};
+  }
 }
 
 export function subscreverAlteracoesEncomendas(onUpdate: (dados: Encomenda[]) => void) {
   if (!supabase) return () => {};
-  const channel = supabase
-    .channel('public:encomendas_realtime_sync')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'encomendas' }, async () => {
-      const dados = await carregarEncomendasSupabase();
-      onUpdate(dados);
-    })
-    .subscribe();
+  try {
+    const channel = criarCanalRealtime('encomendas');
+    if (!channel) return () => {};
+    channel
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'encomendas' }, async () => {
+        try {
+          const dados = await carregarEncomendasSupabase();
+          onUpdate(dados);
+        } catch {}
+      })
+      .subscribe();
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
+    return () => {
+      try {
+        supabase.removeChannel(channel);
+      } catch {}
+    };
+  } catch (err) {
+    console.warn('Aviso ao subscrever encomendas realtime:', err);
+    return () => {};
+  }
 }
 
 export function removerAjusteAdhoc(chave: string): void {
