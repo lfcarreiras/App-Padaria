@@ -1818,16 +1818,16 @@ export function PdfViewerModal({
                           </tr>
                         ))}
                         {/* Subtotal Padaria */}
-                        <tr className="bg-stone-100/90 font-black border-t-2 border-stone-400 border-b border-stone-400 text-stone-900">
-                          <td className="py-1 px-2 uppercase text-[9px] sticky left-0 bg-stone-100 print:static">
+                        <tr className="bg-stone-50/70 font-black border-t border-b border-stone-300 text-stone-900 print:bg-white">
+                          <td className="py-1 px-2 uppercase text-[9px] sticky left-0 bg-stone-50/70 print:static print:bg-white">
                             Subtotal Padaria
                           </td>
                           {(dadosGuiaConjunta.colunasRotas || []).map((col) => (
-                            <td key={col.carrinhaId} className="py-1 px-1 text-center font-mono border-l border-stone-300 text-[10px]">
+                            <td key={col.carrinhaId} className="py-1 px-1 text-center font-mono border-l border-stone-200 text-[10px] print:bg-white">
                               {dadosGuiaConjunta.totaisPadariaPorRota?.[col.carrinhaId] || 0}
                             </td>
                           ))}
-                          <td className="py-1 px-2 text-right font-mono border-l-2 border-stone-800 bg-stone-200 text-[10px]">
+                          <td className="py-1 px-2 text-right font-mono border-l-2 border-stone-800 bg-stone-100/60 text-[10px] print:bg-white">
                             {dadosGuiaConjunta.totalGeralPadaria ?? 0}
                           </td>
                         </tr>
@@ -1869,16 +1869,16 @@ export function PdfViewerModal({
                           </tr>
                         ))}
                         {/* Subtotal Pastelaria */}
-                        <tr className="bg-stone-100/90 font-black border-t-2 border-stone-400 border-b border-stone-400 text-stone-900">
-                          <td className="py-1 px-2 uppercase text-[9px] sticky left-0 bg-stone-100 print:static">
+                        <tr className="bg-stone-50/70 font-black border-t border-b border-stone-300 text-stone-900 print:bg-white">
+                          <td className="py-1 px-2 uppercase text-[9px] sticky left-0 bg-stone-50/70 print:static print:bg-white">
                             Subtotal Pastelaria
                           </td>
                           {(dadosGuiaConjunta.colunasRotas || []).map((col) => (
-                            <td key={col.carrinhaId} className="py-1 px-1 text-center font-mono border-l border-stone-300 text-[10px]">
+                            <td key={col.carrinhaId} className="py-1 px-1 text-center font-mono border-l border-stone-200 text-[10px] print:bg-white">
                               {dadosGuiaConjunta.totaisPastelariaPorRota?.[col.carrinhaId] || 0}
                             </td>
                           ))}
-                          <td className="py-1 px-2 text-right font-mono border-l-2 border-stone-800 bg-stone-200 text-[10px]">
+                          <td className="py-1 px-2 text-right font-mono border-l-2 border-stone-800 bg-stone-100/60 text-[10px] print:bg-white">
                             {dadosGuiaConjunta.totalGeralPastelaria ?? 0}
                           </td>
                         </tr>
@@ -1886,16 +1886,17 @@ export function PdfViewerModal({
                     )}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-stone-900 text-white font-black border-t-2 border-stone-950">
-                      <td className="py-1.5 px-2 uppercase text-[10px] tracking-wider sticky left-0 bg-stone-900 print:static print:text-black print:bg-stone-200">
+                    {/* Rodapé Total sem preenchimento / fundo branco para minimizar custos de toner/impressão */}
+                    <tr className="bg-white text-stone-950 font-black border-t-2 border-b-2 border-stone-900 print:bg-white print:text-black">
+                      <td className="py-1.5 px-2 uppercase text-[10px] tracking-wider sticky left-0 bg-white text-stone-950 font-black print:static print:bg-white print:text-black">
                         TOTAL A BORDO
                       </td>
                       {(dadosGuiaConjunta.colunasRotas || []).map((col) => (
-                        <td key={col.carrinhaId} className="py-1.5 px-1 text-center font-mono border-l border-stone-700 text-[11px] print:text-black print:border-stone-400">
+                        <td key={col.carrinhaId} className="py-1.5 px-1 text-center font-mono border-l border-stone-300 text-[11px] font-black text-stone-950 bg-white print:bg-white print:text-black">
                           {dadosGuiaConjunta.totaisPorRota?.[col.carrinhaId] || 0}
                         </td>
                       ))}
-                      <td className="py-1.5 px-2 text-right font-mono border-l-2 border-stone-700 bg-stone-950 text-amber-400 text-[11px] font-black print:text-black print:bg-stone-300">
+                      <td className="py-1.5 px-2 text-right font-mono border-l-2 border-stone-900 text-stone-950 text-[11px] font-black bg-white print:bg-white print:text-black">
                         {dadosGuiaConjunta.totalGeralUnidades ?? dadosGuiaConjunta.totalGeral ?? 0}
                       </td>
                     </tr>
