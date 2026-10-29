@@ -16,6 +16,7 @@ import {
   salvarClienteDb,
   eliminarClienteDb,
   subscreverAlteracoesClientes,
+  subscreverAlteracoesEncomendas,
   eliminarEncomendaDb,
   atualizarEncomendaDb,
   alternarTipoEntregaDb,
@@ -167,10 +168,14 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
     const unsubClientes = subscreverAlteracoesClientes((novaLista) => {
       setClientes(novaLista);
     });
+    const unsubEncomendas = subscreverAlteracoesEncomendas((novaLista) => {
+      setEncomendas(novaLista);
+    });
 
     return () => {
       window.removeEventListener('app_produtos_atualizados', handleProdutosAtualizados);
       unsubClientes();
+      unsubEncomendas();
     };
   }, [lojaTrabalhoId]);
 

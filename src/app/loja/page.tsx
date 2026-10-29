@@ -8,6 +8,7 @@ import { LOJAS_MOCK } from '../../lib/mockData';
 import { 
   carregarEncomendasSupabase, 
   carregarLojasSupabase,
+  subscreverAlteracoesEncomendas,
   atualizarEstadoEncomendaDb, 
   concluirEntregaComTimestampDb,
   alternarTipoEntregaDb,
@@ -83,6 +84,14 @@ export default function EntregaLojaPage({ embedded = false }: { embedded?: boole
       if (ljs && ljs.length > 0) setLojas(ljs);
     }
     carregar();
+
+    const unsub = subscreverAlteracoesEncomendas((novas) => {
+      setEncomendas(novas);
+    });
+
+    return () => {
+      unsub();
+    };
   }, []);
 
   const idLojaEfetiva = lojaAfetaId || selectedLojaId;
@@ -105,6 +114,9 @@ export default function EntregaLojaPage({ embedded = false }: { embedded?: boole
 
   // Encomendas filtradas de acordo com Loja (Isolamento Estrito), Estado, Calendário e Pesquisa
   const encomendasFiltradas = encomendas.filter((e) => {
+    // 0. Balcão é estrito para levantamentos em loja (entregas ao domicílio não aparecem no balcão)
+    if (e.tipo !== 'levantamento_loja') return false;
+
     // 1. Loja (Se não for admin e tiver loja afeta, o filtro é absoluto e inviolável)
     const idLojaFiltro = lojaAfetaId || (selectedLojaId !== 'todas' ? selectedLojaId : null);
     const matchLoja = idLojaFiltro ? e.loja_id === idLojaFiltro : true;
@@ -404,7 +416,7 @@ export default function EntregaLojaPage({ embedded = false }: { embedded?: boole
           </div>
         ) : (
           <div className="space-y-8">
-            {(['levantamento_loja', 'entrega_domicilio'] as TipoEntrega[]).map((tipo) => {
+            {(['levantamento_loja'] as TipoEntrega[]).map((tipo) => {
               const pedidosDoTipo = encomendasFiltradas.filter((e) => e.tipo === tipo);
               if (pedidosDoTipo.length === 0) return null;
 

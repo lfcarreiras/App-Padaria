@@ -145,7 +145,7 @@ export const FolhaDeCargaPdfDocument = ({
         </View>
         <View style={styles.gridCol}>
           <Text style={styles.label}>Condutor</Text>
-          <Text style={styles.val}>{carrinha.nome_condutor || 'Motorista'}</Text>
+          <Text style={styles.val}>{carrinha.nome_condutor || 'Condutor'}</Text>
         </View>
       </View>
 

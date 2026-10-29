@@ -135,7 +135,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!temAcessoProd) {
         return {
           valido: false,
-          erro: `O utilizador "${perfil.nome}" não tem permissão para operar o Cockpit do Centro de Produção.`,
+          erro: `O utilizador "${perfil.nome}" não tem permissão para operar o Cockpit do Centro de Fabrico.`,
         };
       }
       return { valido: true };
@@ -230,11 +230,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ? (utilizadorEncontrado.role !== 'admin' && utilizadorEncontrado.loja_id
             ? utilizadorEncontrado.loja_id
             : (lojaId || utilizadorEncontrado.loja_id || listaLojas[0].id))
+        : cockpitFinal === 'producao'
+        ? (lojaId || utilizadorEncontrado.loja_id || 'fabbbb00-0000-0000-0000-000000000001')
         : null;
     const lojaObj = listaLojas.find((l) => l.id === lojaIdFinal);
     const lojaNomeFinal =
       cockpitFinal === 'loja'
         ? (lojaObj?.nome || utilizadorEncontrado.loja_nome || listaLojas[0].nome)
+        : cockpitFinal === 'producao'
+        ? (lojaObj?.nome || utilizadorEncontrado.loja_nome || 'Centro de Fabrico')
         : null;
 
     // Login bem-sucedido

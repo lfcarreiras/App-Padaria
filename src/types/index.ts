@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'gerente_loja' | 'atendente' | 'padeiro_pasteleiro' | 'motorista' | 'operador_padaria' | 'operador_pastelaria';
+﻿export type Role = 'admin' | 'gerente_loja' | 'atendente' | 'padeiro_pasteleiro' | 'motorista' | 'condutor' | 'operador_padaria' | 'operador_pastelaria';
 
 export type CategoriaProduto = 'padaria' | 'pastelaria' | 'bebidas_outros';
 export type SetorProducao = 'padaria' | 'pastelaria';
@@ -262,5 +262,27 @@ export interface CartaoFornoProducao {
   historico_fornadas?: RegistoFornada[];
 }
 
+export interface LinhaCargaConjunta {
+  artigo: string;
+  setor: 'padaria' | 'pastelaria' | string;
+  unidade: string;
+  rotas: Record<string, number>;
+  total: number;
+}
 
+export interface ColunaCabecalhoRota {
+  id: string;
+  numero: number;
+  rota: string;
+  nome_condutor: string;
+  nome_carro: string;
+  matricula: string;
+}
 
+export interface DadosGuiaConjunta {
+  rotasCabecalho: ColunaCabecalhoRota[];
+  linhas: LinhaCargaConjunta[];
+  totaisPorRota: Record<string, number>;
+  totalGeral: number;
+  totalCaixasEstimadas: number;
+}

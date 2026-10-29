@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Carrinha, ClienteEmpresarialB2B, DiaSemana, Loja, Encomenda } from '../../types';
+import { Carrinha, ClienteEmpresarialB2B, DiaSemana, Loja, Encomenda, DadosGuiaConjunta } from '../../types';
 import { obterQuantidadeEfetivaClienteB2B, obterArtigosAjustadosClienteB2B } from '../../lib/encomendasService';
 import { 
   X, 
@@ -47,7 +47,8 @@ export interface LinhaArtigoFabrico {
 }
 
 export interface PdfViewerModalProps {
-  tipo: 'folha_carga' | 'comprovativo_b2b' | 'folha_fabrico';
+  tipo: 'folha_carga' | 'comprovativo_b2b' | 'folha_fabrico' | 'guia_carga_conjunta';
+  dadosGuiaConjunta?: DadosGuiaConjunta;
   isOpen: boolean;
   onClose: () => void;
   // Dados para Folha de Carga
@@ -76,6 +77,7 @@ export function PdfViewerModal({
   tipo,
   isOpen,
   onClose,
+  dadosGuiaConjunta,
   carrinha,
   diaSemana = 'seg',
   dataReferencia,
@@ -440,6 +442,24 @@ export function PdfViewerModal({
 
   // Partilha via WhatsApp
   const handlePartilharWhatsApp = () => {
+    if (tipo === 'guia_carga_conjunta' && dadosGuiaConjunta) {
+      const linhasRotas = dadosGuiaConjunta.colunasRotas.map((col) => {
+        const totalRota = dadosGuiaConjunta.totaisPorRota[col.carrinhaId] || 0;
+        return `🚐 *${col.rota}* (${col.nomeCondutor || 'Condutor'}): *${totalRota} un.*`;
+      }).join('\n');
+
+      const texto = encodeURIComponent(
+        `🍞 *PADARIA DA VILA — GUIA DE CARGA CONJUNTA (TODAS AS ROTAS)*\n` +
+        `Data: ${dadosGuiaConjunta.data || dataFormatada}\n\n` +
+        `*Resumo por Rota:*\n${linhasRotas}\n\n` +
+        `--------------------------------\n` +
+        `*TOTAL GERAL A CARREGAR: ${dadosGuiaConjunta.totalGeralUnidades} un.*\n` +
+        `(Padaria: ${dadosGuiaConjunta.totalGeralPadaria} un. | Pastelaria: ${dadosGuiaConjunta.totalGeralPastelaria} un.)\n` +
+        `Centro de Fabrico & Expedição Central`
+      );
+      window.open(`https://wa.me/?text=${texto}`, '_blank');
+      return;
+    }
     if (tipo === 'folha_fabrico') {
       if (modoFabricoModal === 'encomendas') {
         const nomeLojaAtiva = lojaModalFiltro === 'todas' ? 'Todas as Lojas' : (lojasComEncomendas[0]?.loja?.nome || lojaNome);
@@ -454,7 +474,7 @@ export function PdfViewerModal({
           `Setor: ${setorModalFiltro === 'todos' ? 'Todos' : setorModalFiltro.toUpperCase()}\n\n` +
           `*Resumo por Loja:*\n${linhasLojas || 'Sem encomendas'}\n\n` +
           `*TOTAL GERAL A FABRICAR:* ${totalGeralFabricoEncs} un. (${totalGeralEncsCount} encomendas)\n` +
-          `Centro de Produção & Unidade Fabril • Arouca`
+          `Centro de Fabrico & Unidade Fabril • Arouca`
         );
         window.open(`https://wa.me/?text=${texto}`, '_blank');
         return;
@@ -484,7 +504,7 @@ export function PdfViewerModal({
         `*Entidade:* ${clienteB2B.nome}\n` +
         `*Data:* ${dataFormatada} às ${horaAtual}\n` +
         `*Rota:* ${carrinha?.rota || 'Rota de Distribuição'} (${matriculaCarro || 'Viatura Padaria'})\n` +
-        `*Condutor:* ${nomeCondutor || 'Motorista'}\n\n` +
+        `*Condutor:* ${nomeCondutor || 'Condutor'}\n\n` +
         `*Artigos Entregues Conformes:*\n${itensResumo}\n\n` +
         `*Recebido por:* ${nomeRecebedor || 'Receção da Instituição'}\n` +
         `Obrigado pela preferência!`
@@ -516,7 +536,9 @@ export function PdfViewerModal({
           <div className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-amber-400" />
             <span className="font-black text-sm">
-              {tipo === 'folha_carga'
+              {tipo === 'guia_carga_conjunta'
+                ? `Guia de Carga Conjunta (Todas as Rotas) — ${dadosGuiaConjunta?.data || dataFormatada}`
+                : tipo === 'folha_carga'
                 ? `Folha de Carga Oficial — ${carrinha?.rota || 'Rota'}`
                 : tipo === 'folha_fabrico'
                 ? modoFabricoModal === 'encomendas'
@@ -637,7 +659,7 @@ export function PdfViewerModal({
           </div>
         )}
 
-        {/* Modal de Assinatura no Ecrã (Touchpad para motoristas) */}
+        {/* Modal de Assinatura no Ecrã (Touchpad para condutores) */}
         {modoAssinaturaAberto && (
           <div className="p-4 bg-indigo-50 border-b border-indigo-200 print:hidden space-y-3">
             <div className="flex items-center justify-between">
@@ -999,7 +1021,7 @@ export function PdfViewerModal({
                 </div>
               </div>
 
-              {/* Assinatura do Motorista na Folha de Carga */}
+              {/* Assinatura do Condutor na Folha de Carga */}
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200 text-xs">
                 <div>
                   <span className="font-bold text-gray-600 block mb-1">Responsável pelo Carregamento:</span>
@@ -1064,7 +1086,7 @@ export function PdfViewerModal({
                   <p className="text-gray-700"><span className="font-bold">Rota:</span> {carrinha?.rota || 'Rota de Entrega'}</p>
                   <p className="text-gray-700"><span className="font-bold">Viatura:</span> {carrinha?.nome_carro || 'Viatura Padaria'}</p>
                   <p className="text-gray-700"><span className="font-bold">Matrícula:</span> <span className="font-mono font-bold">{matriculaCarro || carrinha?.matricula || '42-AB-90'}</span></p>
-                  <p className="text-gray-700"><span className="font-bold">Motorista:</span> {nomeCondutor || carrinha?.nome_condutor || 'Motorista de Serviço'}</p>
+                  <p className="text-gray-700"><span className="font-bold">Condutor:</span> {nomeCondutor || carrinha?.nome_condutor || 'Condutor de Serviço'}</p>
                 </div>
               </div>
 
@@ -1175,7 +1197,7 @@ export function PdfViewerModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 border-t-2 border-stone-300 text-xs">
                 <div>
                   <span className="font-bold text-gray-600 block mb-1">Entregue por (Padaria da Vila):</span>
-                  <p className="text-gray-800 font-bold">{nomeCondutor || carrinha?.nome_condutor || 'Motorista de Serviço'}</p>
+                  <p className="text-gray-800 font-bold">{nomeCondutor || carrinha?.nome_condutor || 'Condutor de Serviço'}</p>
                   <p className="text-[11px] text-gray-500 font-mono mt-0.5">Viatura: {carrinha?.rota} ({matriculaCarro || 'Matrícula Oficial'})</p>
                 </div>
 
@@ -1226,7 +1248,7 @@ export function PdfViewerModal({
                     Fabrico Próprio de Pão Tradicional e Pastelaria Fina • Arouca
                   </p>
                   <p className="text-[11px] font-mono text-stone-500 mt-0.5">
-                    Centro de Produção & Unidade Fabril Central • Folha de Fabrico de Encomendas por Loja
+                    Centro de Fabrico & Unidade Fabril Central • Folha de Fabrico de Encomendas por Loja
                   </p>
                 </div>
                 <div className="text-left sm:text-right">
@@ -1498,7 +1520,7 @@ export function PdfViewerModal({
                     Fabrico Próprio de Pão Tradicional e Pastelaria Fina • Arouca
                   </p>
                   <p className="text-[11px] font-mono text-stone-500 mt-0.5">
-                    Centro de Produção & Unidade Fabril Central • Fabrico Diário
+                    Centro de Fabrico & Unidade Fabril Central • Fabrico Diário
                   </p>
                 </div>
                 <div className="text-left sm:text-right">
@@ -1678,6 +1700,214 @@ export function PdfViewerModal({
                     Assinatura / Visto do Chefe de Produção
                   </div>
                   <p className="text-[10px] text-stone-500 font-mono pt-1">Hora de Conclusão: _____ : _____</p>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* ============================================================== */}
+          {/* CASO 4: GUIA DE CARGA CONJUNTA (TODAS AS ROTAS 1 A 7)         */}
+          {/* ============================================================== */}
+          {tipo === 'guia_carga_conjunta' && dadosGuiaConjunta && (
+            <div className="space-y-4">
+              {/* Cabeçalho Compacto Oficial */}
+              <div className="border-b-2 border-stone-800 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-black tracking-tight text-stone-900 uppercase">
+                    Padaria da Vila
+                  </h1>
+                  <p className="text-xs text-stone-600">
+                    Fabrico Próprio de Pão Tradicional e Pastelaria Fina • Arouca
+                  </p>
+                  <p className="text-[11px] font-mono text-stone-500 mt-0.5">
+                    Centro de Fabrico & Expedição Central • Mapa Global de Carga
+                  </p>
+                </div>
+                <div className="text-left sm:text-right">
+                  <span className="inline-block px-3 py-1 rounded-lg border-2 border-stone-800 text-stone-900 bg-white font-black text-xs uppercase tracking-wider">
+                    Guia de Carga Conjunta (Todas as Rotas)
+                  </span>
+                  <p className="text-xs font-bold text-stone-900 mt-1">Data: {dadosGuiaConjunta.data || dataFormatada}</p>
+                  <p className="text-[11px] text-stone-600">
+                    {dadosGuiaConjunta.colunasRotas.length} rotas ativas (Bases + B2B + Domicílios)
+                  </p>
+                </div>
+              </div>
+
+              {/* Cartões Resumo Totais */}
+              <div className="grid grid-cols-3 gap-3 print:gap-2">
+                <div className="p-2.5 rounded-xl bg-white border border-stone-300">
+                  <span className="text-[9px] font-bold text-stone-600 uppercase block">Total Geral a Carga</span>
+                  <span className="text-xl font-black text-stone-950 font-mono">{dadosGuiaConjunta.totalGeralUnidades} un.</span>
+                  <span className="text-[9px] text-stone-500 block mt-0.5">todas as carrinhas</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-white border border-stone-300">
+                  <span className="text-[9px] font-bold text-stone-600 uppercase block">🥖 Padaria & Broas</span>
+                  <span className="text-xl font-black text-stone-950 font-mono">{dadosGuiaConjunta.totalGeralPadaria} un.</span>
+                  <span className="text-[9px] text-stone-500 block mt-0.5">pães e broas</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-white border border-stone-300">
+                  <span className="text-[9px] font-bold text-stone-600 uppercase block">🍰 Pastelaria</span>
+                  <span className="text-xl font-black text-stone-950 font-mono">{dadosGuiaConjunta.totalGeralPastelaria} un.</span>
+                  <span className="text-[9px] text-stone-500 block mt-0.5">pastelaria e doçaria</span>
+                </div>
+              </div>
+
+              {/* Tabela Matriz Compacta de Carga (Otimizada para 1-2 páginas A4) */}
+              <div className="overflow-x-auto print:overflow-visible">
+                <table className="w-full text-[10px] print:text-[9px] border border-stone-300 border-collapse">
+                  <thead>
+                    <tr className="bg-stone-100 text-stone-900 border-b-2 border-stone-800">
+                      <th className="py-1.5 px-2 text-left font-black w-44 sticky left-0 bg-stone-100 print:static">
+                        Artigo / Referência
+                      </th>
+                      {dadosGuiaConjunta.colunasRotas.map((col) => (
+                        <th key={col.carrinhaId} className="py-1.5 px-1 text-center font-bold border-l border-stone-200 min-w-[55px]">
+                          <div className="font-black text-stone-950 text-[10px] leading-tight">{col.rota}</div>
+                          <div className="text-[8px] text-stone-600 truncate max-w-[65px] mx-auto font-normal" title={col.nomeCondutor || 'Condutor'}>
+                            {col.nomeCondutor || 'Condutor'}
+                          </div>
+                          {col.matricula && (
+                            <div className="text-[7px] text-stone-400 font-mono leading-none">{col.matricula}</div>
+                          )}
+                        </th>
+                      ))}
+                      <th className="py-1.5 px-2 text-right font-black border-l-2 border-stone-800 bg-stone-200/80 w-16">
+                        TOTAL
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* SECÇÃO PADARIA */}
+                    {dadosGuiaConjunta.linhasPadaria.length > 0 && (
+                      <>
+                        <tr className="bg-stone-50 border-y border-stone-300">
+                          <td
+                            colSpan={dadosGuiaConjunta.colunasRotas.length + 2}
+                            className="py-1 px-2 font-black text-stone-800 uppercase tracking-wider text-[9px]"
+                          >
+                            🥖 Padaria Tradicional & Broas
+                          </td>
+                        </tr>
+                        {dadosGuiaConjunta.linhasPadaria.map((linha, idx) => (
+                          <tr key={`pad-${idx}`} className="border-b border-stone-100 hover:bg-stone-50/50">
+                            <td className="py-1 px-2 font-bold text-stone-900 sticky left-0 bg-white print:static">
+                              {linha.artigo}
+                            </td>
+                            {dadosGuiaConjunta.colunasRotas.map((col) => {
+                              const qtd = linha.quantidadesPorRota[col.carrinhaId] || 0;
+                              return (
+                                <td
+                                  key={col.carrinhaId}
+                                  className={`py-1 px-1 text-center border-l border-stone-100 font-mono ${
+                                    qtd > 0 ? 'font-black text-stone-950 bg-amber-50/30' : 'text-stone-300'
+                                  }`}
+                                >
+                                  {qtd > 0 ? qtd : '-'}
+                                </td>
+                              );
+                            })}
+                            <td className="py-1 px-2 text-right font-black font-mono text-stone-950 border-l-2 border-stone-800 bg-stone-100/60">
+                              {linha.totalArtigo}
+                            </td>
+                          </tr>
+                        ))}
+                        {/* Subtotal Padaria */}
+                        <tr className="bg-stone-100/90 font-black border-t-2 border-stone-400 border-b border-stone-400 text-stone-900">
+                          <td className="py-1 px-2 uppercase text-[9px] sticky left-0 bg-stone-100 print:static">
+                            Subtotal Padaria
+                          </td>
+                          {dadosGuiaConjunta.colunasRotas.map((col) => (
+                            <td key={col.carrinhaId} className="py-1 px-1 text-center font-mono border-l border-stone-300 text-[10px]">
+                              {dadosGuiaConjunta.totaisPadariaPorRota[col.carrinhaId] || 0}
+                            </td>
+                          ))}
+                          <td className="py-1 px-2 text-right font-mono border-l-2 border-stone-800 bg-stone-200 text-[10px]">
+                            {dadosGuiaConjunta.totalGeralPadaria}
+                          </td>
+                        </tr>
+                      </>
+                    )}
+
+                    {/* SECÇÃO PASTELARIA */}
+                    {dadosGuiaConjunta.linhasPastelaria.length > 0 && (
+                      <>
+                        <tr className="bg-stone-50 border-y border-stone-300">
+                          <td
+                            colSpan={dadosGuiaConjunta.colunasRotas.length + 2}
+                            className="py-1 px-2 font-black text-stone-800 uppercase tracking-wider text-[9px]"
+                          >
+                            🍰 Pastelaria Fina & Confeitaria
+                          </td>
+                        </tr>
+                        {dadosGuiaConjunta.linhasPastelaria.map((linha, idx) => (
+                          <tr key={`past-${idx}`} className="border-b border-stone-100 hover:bg-stone-50/50">
+                            <td className="py-1 px-2 font-bold text-stone-900 sticky left-0 bg-white print:static">
+                              {linha.artigo}
+                            </td>
+                            {dadosGuiaConjunta.colunasRotas.map((col) => {
+                              const qtd = linha.quantidadesPorRota[col.carrinhaId] || 0;
+                              return (
+                                <td
+                                  key={col.carrinhaId}
+                                  className={`py-1 px-1 text-center border-l border-stone-100 font-mono ${
+                                    qtd > 0 ? 'font-black text-stone-950 bg-amber-50/30' : 'text-stone-300'
+                                  }`}
+                                >
+                                  {qtd > 0 ? qtd : '-'}
+                                </td>
+                              );
+                            })}
+                            <td className="py-1 px-2 text-right font-black font-mono text-stone-950 border-l-2 border-stone-800 bg-stone-100/60">
+                              {linha.totalArtigo}
+                            </td>
+                          </tr>
+                        ))}
+                        {/* Subtotal Pastelaria */}
+                        <tr className="bg-stone-100/90 font-black border-t-2 border-stone-400 border-b border-stone-400 text-stone-900">
+                          <td className="py-1 px-2 uppercase text-[9px] sticky left-0 bg-stone-100 print:static">
+                            Subtotal Pastelaria
+                          </td>
+                          {dadosGuiaConjunta.colunasRotas.map((col) => (
+                            <td key={col.carrinhaId} className="py-1 px-1 text-center font-mono border-l border-stone-300 text-[10px]">
+                              {dadosGuiaConjunta.totaisPastelariaPorRota[col.carrinhaId] || 0}
+                            </td>
+                          ))}
+                          <td className="py-1 px-2 text-right font-mono border-l-2 border-stone-800 bg-stone-200 text-[10px]">
+                            {dadosGuiaConjunta.totalGeralPastelaria}
+                          </td>
+                        </tr>
+                      </>
+                    )}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-stone-900 text-white font-black border-t-2 border-stone-950">
+                      <td className="py-1.5 px-2 uppercase text-[10px] tracking-wider sticky left-0 bg-stone-900 print:static print:text-black print:bg-stone-200">
+                        TOTAL A BORDO
+                      </td>
+                      {dadosGuiaConjunta.colunasRotas.map((col) => (
+                        <td key={col.carrinhaId} className="py-1.5 px-1 text-center font-mono border-l border-stone-700 text-[11px] print:text-black print:border-stone-400">
+                          {dadosGuiaConjunta.totaisPorRota[col.carrinhaId] || 0}
+                        </td>
+                      ))}
+                      <td className="py-1.5 px-2 text-right font-mono border-l-2 border-stone-700 bg-stone-950 text-amber-400 text-[11px] font-black print:text-black print:bg-stone-300">
+                        {dadosGuiaConjunta.totalGeralUnidades}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              {/* Validação de Expedição e Condutores */}
+              <div className="grid grid-cols-2 gap-4 pt-3 border-t border-stone-300 text-[10px]">
+                <div className="p-2 rounded-xl bg-white border border-stone-300">
+                  <span className="font-bold text-stone-600 block mb-0.5">Chefe de Expedição / Fabrico:</span>
+                  <div className="py-1 text-stone-400 font-mono">Visto Expedição [ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ]</div>
+                  <p className="text-[9px] text-stone-500">Conforme Mapa Oficial de Carga</p>
+                </div>
+                <div className="p-2 rounded-xl bg-white border border-stone-300 text-right">
+                  <span className="font-bold text-stone-600 block mb-0.5">Conferência dos Condutores:</span>
+                  <div className="py-1 text-stone-400 font-mono">Conferido em Partida [ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ]</div>
+                  <p className="text-[9px] text-stone-500">Hora de Saída: _____ : _____</p>
                 </div>
               </div>
             </div>

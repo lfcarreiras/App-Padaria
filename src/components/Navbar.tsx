@@ -105,7 +105,7 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId = 'todas', onSele
                   ) : cockpitAtivo === 'producao' ? (
                     <>
                       <ChefHat className="h-3 w-3 text-slate-500 shrink-0" />
-                      <span>Centro de Produção</span>
+                      <span>Centro de Fabrico</span>
                     </>
                   ) : cockpitAtivo === 'carrinhas' ? (
                     <>
@@ -191,7 +191,7 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId = 'todas', onSele
                 <span className="text-[10px] text-gray-500 font-semibold block capitalize leading-tight">
                   {usuario.role === 'admin' ? t.roleAdmin :
                    usuario.role === 'gerente_loja' ? t.roleStoreManager :
-                   usuario.role === 'motorista' ? t.roleDriver :
+                   (usuario.role === 'motorista' || usuario.role === 'condutor') ? t.roleDriver :
                    usuario.role === 'padeiro_pasteleiro' || usuario.role === 'operador_padaria' || usuario.role === 'operador_pastelaria' ? t.roleBaker : t.roleCounter}
                 </span>
               </div>

@@ -1,4 +1,4 @@
-import { Loja, Carrinha, Produto, Encomenda, LogAuditoria, BaseFixaCarrinha, ClienteEmpresarialB2B, DiaSemana } from '../types';
+﻿import { Loja, Carrinha, Produto, Encomenda, LogAuditoria, BaseFixaCarrinha, ClienteEmpresarialB2B, DiaSemana } from '../types';
 
 export const LOJAS_MOCK: Loja[] = [
   {
@@ -28,6 +28,16 @@ export const LOJAS_MOCK: Loja[] = [
     "morada": "Arouca (Ponto de Venda)",
     "telefone": "210000003",
     "nif": "500100203",
+    "ativo": true,
+    "criado_em": "2026-09-12T14:49:25.355379+00:00"
+  },
+  {
+    "id": "fabbbb00-0000-0000-0000-000000000001",
+    "codigo": "FABRICO",
+    "nome": "Centro de Fabrico",
+    "morada": "Zona Operacional / Fabrico, Arouca",
+    "telefone": "210000000",
+    "nif": "500100200",
     "ativo": true,
     "criado_em": "2026-09-12T14:49:25.355379+00:00"
   }

@@ -11,6 +11,8 @@ import {
   carregarLojasSupabase,
   carregarCarrinhasSupabase,
   carregarProdutosSupabase,
+  subscreverAlteracoesCarrinhas,
+  subscreverAlteracoesEncomendas,
   carregarBaseFixaCarrinhas,
   carregarArtigosBaseFixa,
   carregarClientesEmpresariaisB2B,
@@ -79,7 +81,7 @@ export default function EntregasPage() {
   const router = useRouter();
   const { t } = useTranslation();
   const { podeEditar, podeLer, usuario, cockpitAtivo, loading, obterRotaInicial } = useAuth();
-  const currentUser = usuario || { id: 'user-motorista', nome: 'Rui Oliveira (Motorista Carrinha 1)', role: 'motorista' };
+  const currentUser = usuario || { id: 'user-motorista', nome: 'Rui Oliveira (Condutor Carrinha 1)', role: 'condutor' };
   const temPermissaoEdicao = podeEditar('entregas');
   const configMarca = obterConfiguracaoMarca();
 
@@ -156,10 +158,18 @@ export default function EntregasPage() {
     const unsubBases = subscreverAlteracoesBasesRecorrentes((novasBases) => {
       setBasesRecorrentes(novasBases);
     });
+    const unsubCarrinhas = subscreverAlteracoesCarrinhas((cars) => {
+      setCarrinhas(cars);
+    });
+    const unsubEncomendas = subscreverAlteracoesEncomendas((encs) => {
+      setEncomendas(encs);
+    });
 
     return () => {
       unsubB2B();
       unsubBases();
+      unsubCarrinhas();
+      unsubEncomendas();
     };
   }, []);
 
@@ -248,7 +258,7 @@ export default function EntregasPage() {
       loja_nome: lojaAtual.nome,
       painel: 'entregas',
       acao: 'Início de Rota de Entregas',
-      detalhes: `Motorista ${currentUser.nome} iniciou o circuito de distribuição da ${carrinhaObj?.identificador || 'Carrinha'}. Total de ${totalParagens} paragem(ns).`,
+      detalhes: `Condutor ${currentUser.nome} iniciou o circuito de distribuição da ${carrinhaObj?.identificador || 'Carrinha'}. Total de ${totalParagens} paragem(ns).`,
     });
   };
 
@@ -587,7 +597,7 @@ export default function EntregasPage() {
     );
   };
 
-  // Drag & drop de paragens na rota da carrinha (Reordenação do Motorista)
+  // Drag & drop de paragens na rota da carrinha (Reordenação do Condutor)
   const handleDropStop = (targetIndex: number) => {
     if (draggedStopIndex === null || draggedStopIndex === targetIndex) {
       setDraggedStopIndex(null);
@@ -962,7 +972,7 @@ export default function EntregasPage() {
                   <p className="text-[11px] text-gray-600 mt-0.5">
                     {infoRota.horaInicio && `Partida da Central: ${infoRota.horaInicio}`}
                     {infoRota.horaFim && ` • Retorno à Central: ${infoRota.horaFim}`}
-                    {!infoRota.horaInicio && 'As paragens serão desbloqueadas sequencialmente após iniciar a rota. O motorista pode reordenar as paragens arrastando os cartões.'}
+                    {!infoRota.horaInicio && 'As paragens serão desbloqueadas sequencialmente após iniciar a rota. O condutor pode reordenar as paragens arrastando os cartões.'}
                   </p>
                 </div>
               </div>
@@ -1117,7 +1127,7 @@ export default function EntregasPage() {
                       )}
                     </div>
                     <p className="text-[11px] text-stone-600">
-                      Clientes particulares fixos com entrega diária. O motorista pode ativar a pausa de férias de imediato no terreno.
+                      Clientes particulares fixos com entrega diária. O condutor pode ativar a pausa de férias de imediato no terreno.
                     </p>
                   </div>
                 </div>
@@ -1131,7 +1141,7 @@ export default function EntregasPage() {
                   const estaEmFerias = clienteEmModoFerias(base, hoje);
 
                   const rotuloPagamento: Record<string, string> = {
-                    dinheiro_ao_motorista: 'Dinheiro',
+                    dinheiro_ao_motorista: 'Dinheiro ao condutor',
                     conta_mensal: 'Mensal',
                     mbway_semanal: 'MBWay',
                     multibanco: 'Multibanco'
@@ -1171,7 +1181,7 @@ export default function EntregasPage() {
                           </p>
                         )}
 
-                        {/* Notas do Motorista */}
+                        {/* Notas do Condutor */}
                         {base.notas_motorista && (
                           <div className="text-[10px] bg-amber-50 text-amber-900 border border-amber-200/70 rounded-md px-2 py-1 mb-2 font-medium flex items-center gap-1">
                             <span className="font-bold">💡</span>
@@ -1508,7 +1518,7 @@ export default function EntregasPage() {
                       </div>
                     )}
 
-                    {/* Botões de Ação para o Motorista */}
+                    {/* Botões de Ação para o Condutor */}
                     <div className="pt-2 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs font-bold">
                       {/* Comprovativo de Entrega em PDF assinado */}
                       <button
@@ -1636,7 +1646,7 @@ export default function EntregasPage() {
         matriculaCarro={pdfCarrinhaSelecionada?.matricula}
       />
 
-      {/* Modal de Modo Férias (Motorista no Terreno) */}
+      {/* Modal de Modo Férias (Condutor no Terreno) */}
       {modalFeriasBase && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
           <div className="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-amber-300 space-y-4 text-xs">

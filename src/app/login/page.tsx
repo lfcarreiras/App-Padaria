@@ -60,6 +60,9 @@ export default function LoginPage() {
         lojaNome = lj.nome;
       } else if (localizacaoSelecionada === 'producao') {
         cockpit = 'producao';
+        const fab = lojas.find((l) => l.codigo === 'FABRICO' || l.id === 'fabbbb00-0000-0000-0000-000000000001');
+        lojaId = fab?.id || 'fabbbb00-0000-0000-0000-000000000001';
+        lojaNome = fab?.nome || 'Centro de Fabrico';
       } else if (localizacaoSelecionada === 'carrinhas') {
         cockpit = 'carrinhas';
       } else if (localizacaoSelecionada === 'gestao') {
@@ -140,14 +143,14 @@ export default function LoginPage() {
                 >
                   <option value="auto">🎯 Seleção Automática pelo Perfil / Loja Afeta</option>
                   <optgroup label="Lojas Físicas">
-                    {lojas.map((l) => (
+                    {lojas.filter((l) => l.codigo !== 'FABRICO' && l.id !== 'fabbbb00-0000-0000-0000-000000000001').map((l) => (
                       <option key={l.id} value={`loja:${l.id}`}>
                         {l.nome}
                       </option>
                     ))}
                   </optgroup>
                   <optgroup label="Fabrico">
-                    <option value="producao">Centro de Produção</option>
+                    <option value="producao">Centro de Fabrico</option>
                   </optgroup>
                   <optgroup label="Distribuição">
                     <option value="carrinhas">Distribuição e rotas</option>
@@ -163,7 +166,7 @@ export default function LoginPage() {
                   : localizacaoSelecionada.startsWith('loja:')
                   ? 'Acesso exclusivo aos menus de Encomendas e Balcão para a loja selecionada.'
                   : localizacaoSelecionada === 'producao'
-                  ? 'Acesso exclusivo ao ecrã tátil de Produção (Pool & Fornos).'
+                  ? 'Acesso exclusivo ao ecrã tátil de Fabrico (Fornos e Expedição).'
                   : localizacaoSelecionada === 'carrinhas'
                   ? 'Acesso exclusivo ao painel de Entregas e Rotas dos Carros.'
                   : 'Acesso exclusivo ao Cockpit de Gestão.'}

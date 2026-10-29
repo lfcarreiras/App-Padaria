@@ -16,6 +16,11 @@ import {
   eliminarLojaDb,
   carregarCarrinhasSupabase,
   salvarCarrinhaDb,
+  calcularDadosGuiaCargaConjunta,
+  subscreverAlteracoesCarrinhas,
+  subscreverAlteracoesBaseFixa,
+  subscreverAlteracoesAjustesAdhoc,
+  subscreverAlteracoesEncomendas,
   eliminarCarrinhaDb,
   carregarPerfisAcessoSupabase,
   salvarPerfilAcessoDb,
@@ -287,7 +292,8 @@ export default function AdminPage() {
 
   // Estados do Modal de PDF (Folha de Carga & Comprovativo B2B)
   const [pdfModalOpen, setPdfModalOpen] = useState<boolean>(false);
-  const [pdfModalTipo, setPdfModalTipo] = useState<'folha_carga' | 'comprovativo_b2b'>('folha_carga');
+  const [pdfModalTipo, setPdfModalTipo] = useState<'folha_carga' | 'comprovativo_b2b' | 'guia_carga_conjunta'>('folha_carga');
+  const [pdfDadosGuiaConjunta, setPdfDadosGuiaConjunta] = useState<DadosGuiaConjunta | undefined>(undefined);
   const [pdfCarrinhaSelecionada, setPdfCarrinhaSelecionada] = useState<Carrinha | undefined>(undefined);
   const [pdfClienteB2B, setPdfClienteB2B] = useState<ClienteEmpresarialB2B | undefined>(undefined);
   const [pdfItensCarga, setPdfItensCarga] = useState<LinhaArtigoCarga[]>([]);
@@ -372,10 +378,28 @@ export default function AdminPage() {
       if (Array.isArray(bases)) setBasesRecorrentes(bases);
     });
 
+    const unsubCarrinhas = subscreverAlteracoesCarrinhas((cars) => {
+      setCarrinhas(cars);
+    });
+    const unsubBaseFixa = subscreverAlteracoesBaseFixa((bfs) => {
+      setBaseFixaCarrinhas(bfs);
+    });
+    const unsubEncomendas = subscreverAlteracoesEncomendas((encs) => {
+      setEncomendas(encs);
+    });
+    const unsubAjustes = subscreverAlteracoesAjustesAdhoc(() => {
+      const bfAtualizada = carregarBaseFixaCarrinhas();
+      if (Array.isArray(bfAtualizada)) setBaseFixaCarrinhas(bfAtualizada);
+    });
+
     return () => {
       unsubB2B();
       unsubClientes();
       unsubBases();
+      unsubCarrinhas();
+      unsubBaseFixa();
+      unsubEncomendas();
+      unsubAjustes();
     };
   }, []);
 
@@ -856,6 +880,22 @@ export default function AdminPage() {
     setPdfModalTipo('comprovativo_b2b');
     setPdfClienteB2B(cliente);
     setPdfCarrinhaSelecionada(car);
+    setPdfModalOpen(true);
+  };
+
+  const abrirGuiaCargaConjuntaPdf = () => {
+    const dataAlvo = new Date().toISOString().split('T')[0];
+    const dados = calcularDadosGuiaCargaConjunta(
+      dataAlvo,
+      carrinhas,
+      baseFixaCarrinhas,
+      clientesB2B,
+      basesRecorrentes,
+      encomendas,
+      produtos
+    );
+    setPdfDadosGuiaConjunta(dados);
+    setPdfModalTipo('guia_carga_conjunta');
     setPdfModalOpen(true);
   };
 
@@ -2156,797 +2196,14 @@ export default function AdminPage() {
         {/* Abas de Navegação do Painel de Gestão */}
         <div className="flex bg-white p-1 rounded-2xl border border-gray-200 shadow-2xs mb-6 overflow-x-auto">
           <button
-            onClick={() => setActiveTab('metricas')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-              activeTab === 'metricas' ? 'bg-bakery-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <BarChart3 className="h-4 w-4" />
-            {t.tabMetrics}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('lojas_carrinhas')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-              activeTab === 'lojas_carrinhas' ? 'bg-bakery-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Store className="h-4 w-4" />
-            {t.tabStoresVans}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('database')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-              activeTab === 'database' ? 'bg-bakery-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <FileSpreadsheet className="h-4 w-4" />
-            {t.tabDatabase}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('logs')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-              activeTab === 'logs' ? 'bg-bakery-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Clock className="h-4 w-4" />
-            Auditoria ({logsAuditoria.length})
-          </button>
-
-          <button
-            onClick={() => setActiveTab('talao')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-              activeTab === 'talao' ? 'bg-bakery-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Printer className="h-4 w-4" />
-            {t.tabReceiptConfig}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('acessos')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-              activeTab === 'acessos' ? 'bg-bakery-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Users className="h-4 w-4" />
-            {t.tabAccess} ({perfis.length})
-          </button>
-        </div>
-
-        {/* ----------------- ABA 1: MÉTRICAS & REPORTS COM FILTROS TEMPORAIS ----------------- */}
-        {activeTab === 'metricas' && (
-          <div className="space-y-6">
-            {/* Barra de Filtros Combinados: Período Temporal + Formato de Entrega */}
-            <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              {/* Seleção do Período */}
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-xs font-bold text-gray-500 mr-1 flex items-center gap-1">
-                  <Calendar className="h-3.5 w-3.5 text-bakery-600" />
-                  {t.timePeriod}:
-                </span>
-                {[
-                  { id: 'dia', label: t.periodToday },
-                  { id: 'semana', label: t.periodWeek },
-                  { id: 'mes', label: t.periodMonth },
-                  { id: 'ano', label: t.periodYear },
-                  { id: 'todos', label: t.periodAll },
-                ].map((item) => (
-                  <button
-                    key={item.id}
                     type="button"
-                    onClick={() => setPeriodoSelecionado(item.id as any)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
-                      periodoSelecionado === item.id
-                        ? 'bg-bakery-600 text-white shadow-2xs'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
+                    onClick={() => abrirGuiaCargaConjuntaPdf()}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-black shadow-xs transition cursor-pointer"
+                    title="Gerar Guia de Carga Conjunta em formato tabela compacta para todas as rotas"
                   >
-                    {item.label}
+                    <FileText className="h-3.5 w-3.5" />
+                    <span>Guia Conjunta (Todas as Rotas)</span>
                   </button>
-                ))}
-              </div>
-
-              {/* Seleção de Formato de Entrega */}
-              <div className="flex items-center gap-1.5 bg-gray-50 p-1 rounded-xl border border-gray-200">
-                <span className="text-xs font-bold text-gray-500 px-2">{t.deliveryFormat}:</span>
-                <select
-                  value={formatoEntrega}
-                  onChange={(e) => setFormatoEntrega(e.target.value as any)}
-                  className="bg-white border border-gray-200 text-xs font-bold rounded-lg px-2.5 py-1 text-gray-900 focus:outline-hidden cursor-pointer"
-                >
-                  <option value="todos">{t.allFormats}</option>
-                  <option value="levantamento_loja">{t.pickupStore}</option>
-                  <option value="entrega_domicilio">{t.deliveryHome}</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Cartões de Indicadores Operacionais */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
-                <span className="text-xs text-gray-500 font-bold uppercase">{t.totalOrders}</span>
-                <p className="text-2xl font-black text-gray-900 mt-1">{totalVolumeEncomendas}</p>
-                <span className="text-[11px] text-emerald-600 font-bold mt-1 block">
-                  {periodoSelecionado === 'todos' ? t.periodAll : t.timePeriod}
-                </span>
-              </div>
-
-              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
-                <span className="text-xs text-gray-500 font-bold uppercase">{t.totalItems}</span>
-                <p className="text-2xl font-black text-amber-700 mt-1">{totalArtigos} un.</p>
-                <span className="text-[11px] text-gray-500 font-medium mt-1 block">
-                  Padaria & Pastelaria consolidados
-                </span>
-              </div>
-
-              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
-                <span className="text-xs text-gray-500 font-bold uppercase">{t.deliveryHome}</span>
-                <p className="text-2xl font-black text-blue-700 mt-1">{totalEntregas}</p>
-                <span className="text-[11px] text-blue-600 font-bold mt-1 block">
-                  {totalVolumeEncomendas > 0 ? ((totalEntregas / totalVolumeEncomendas) * 100).toFixed(0) : 0}% das encomendas
-                </span>
-              </div>
-
-              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
-                <span className="text-xs text-gray-500 font-bold uppercase">{t.pickupStore}</span>
-                <p className="text-2xl font-black text-amber-700 mt-1">{totalLevantamentos}</p>
-                <span className="text-[11px] text-amber-600 font-bold mt-1 block">
-                  {totalVolumeEncomendas > 0 ? ((totalLevantamentos / totalVolumeEncomendas) * 100).toFixed(0) : 0}% das encomendas
-                </span>
-              </div>
-
-              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
-                <span className="text-xs text-gray-500 font-bold uppercase">Taxa On-Time</span>
-                <p className={`text-2xl font-black mt-1 ${taxaPontualidade >= 90 ? 'text-emerald-700' : 'text-amber-700'}`}>
-                  {taxaPontualidade}%
-                </p>
-                <span className="text-[11px] text-gray-500 font-medium mt-1 block">
-                  {entregasNoPrazo.length} de {entregasFinalizadas.length} entregas a horas
-                </span>
-              </div>
-            </div>
-
-            {/* Canais de Origem das Encomendas */}
-            <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-bakery-600" />
-                  Origem das Encomendas por Canal
-                </h3>
-                <span className="text-xs text-gray-500 font-semibold">
-                  Total: {totalVolumeEncomendas} pedidos
-                </span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3.5 rounded-xl border border-stone-200 bg-stone-50/70">
-                  <div className="flex items-center gap-1.5 text-stone-700 text-xs font-bold mb-1">
-                    <Store className="h-3.5 w-3.5 text-stone-600" />
-                    <span>Presencial</span>
-                  </div>
-                  <p className="text-xl font-black text-stone-900">{canaisOrigemStats.presencial}</p>
-                  <p className="text-[10px] text-stone-500 font-semibold mt-0.5">
-                    {totalVolumeEncomendas > 0 ? ((canaisOrigemStats.presencial / totalVolumeEncomendas) * 100).toFixed(0) : 0}% do total
-                  </p>
-                </div>
-                <div className="p-3.5 rounded-xl border border-amber-200 bg-amber-50/70">
-                  <div className="flex items-center gap-1.5 text-amber-900 text-xs font-bold mb-1">
-                    <Phone className="h-3.5 w-3.5 text-amber-600" />
-                    <span>Telefone</span>
-                  </div>
-                  <p className="text-xl font-black text-amber-950">{canaisOrigemStats.telefone}</p>
-                  <p className="text-[10px] text-amber-700 font-semibold mt-0.5">
-                    {totalVolumeEncomendas > 0 ? ((canaisOrigemStats.telefone / totalVolumeEncomendas) * 100).toFixed(0) : 0}% do total
-                  </p>
-                </div>
-                <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/70">
-                  <div className="flex items-center gap-1.5 text-emerald-900 text-xs font-bold mb-1">
-                    <MessageSquare className="h-3.5 w-3.5 text-emerald-600" />
-                    <span>WhatsApp</span>
-                  </div>
-                  <p className="text-xl font-black text-emerald-950">{canaisOrigemStats.whatsapp}</p>
-                  <p className="text-[10px] text-emerald-700 font-semibold mt-0.5">
-                    {totalVolumeEncomendas > 0 ? ((canaisOrigemStats.whatsapp / totalVolumeEncomendas) * 100).toFixed(0) : 0}% do total
-                  </p>
-                </div>
-                <div className="p-3.5 rounded-xl border border-indigo-200 bg-indigo-50/70">
-                  <div className="flex items-center gap-1.5 text-indigo-900 text-xs font-bold mb-1">
-                    <Globe className="h-3.5 w-3.5 text-indigo-600" />
-                    <span>Site Online</span>
-                  </div>
-                  <p className="text-xl font-black text-indigo-950">{canaisOrigemStats.site_online}</p>
-                  <p className="text-[10px] text-indigo-700 font-semibold mt-0.5">
-                    {totalVolumeEncomendas > 0 ? ((canaisOrigemStats.site_online / totalVolumeEncomendas) * 100).toFixed(0) : 0}% do total
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Comparativo de Lojas & Necessidades de Produção */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Desempenho por Loja */}
-              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
-                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                  <Store className="h-4 w-4 text-bakery-600" />
-                  {t.storePerformance}
-                </h3>
-
-                <div className="space-y-3">
-                  {(lojas || []).map((l) => {
-                    const encsLoja = encomendasFiltradas.filter((e) => e?.loja_id === l?.id);
-                    const itensLoja = encsLoja.reduce((acc, curr) => 
-                      acc + (curr?.itens || []).reduce((iAcc, item) => iAcc + (Number(item?.quantidade) || 0), 0), 0
-                    );
-                    const pct = totalVolumeEncomendas > 0 ? (encsLoja.length / totalVolumeEncomendas) * 100 : 0;
-
-                    return (
-                      <div key={l?.id || Math.random()} className="space-y-1">
-                        <div className="flex justify-between text-xs font-bold">
-                          <span className="text-gray-800">{l?.nome || 'Loja'}</span>
-                          <span className="text-bakery-700">{encsLoja.length} enc. ({itensLoja} un.)</span>
-                        </div>
-                        <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                          <div
-                            className="bg-bakery-600 h-2 rounded-full transition-all duration-500"
-                            style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Necessidades Consolidadas de Fabrico */}
-              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
-                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                  <Layers className="h-4 w-4 text-amber-600" />
-                  {t.consolidatedNeeds}
-                </h3>
-
-                <div className="max-h-64 overflow-y-auto space-y-2 pr-1 text-xs">
-                  {itensProducaoConsolidados.length === 0 ? (
-                    <p className="text-gray-400 italic py-4 text-center">{t.noProductionItems}</p>
-                  ) : (
-                    itensProducaoConsolidados.map(([nome, dados]) => (
-                      <div key={nome} className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 border border-gray-100">
-                        <div>
-                          <span className="font-bold text-gray-900">{nome}</span>
-                          <span className="text-[10px] text-gray-500 block uppercase">
-                            <span className="inline-flex items-center gap-1.5">{dados.setor === 'padaria' ? <Flame className="w-3.5 h-3.5 text-amber-600" /> : <Layers className="w-3.5 h-3.5 text-purple-600" />}<span>{dados.setor === 'padaria' ? t.categoryBakery : t.categoryPastry}</span></span>
-                          </span>
-                        </div>
-                        <span className="font-black text-sm text-bakery-800">
-                          {dados.quantidade} {dados.unidade}
-                        </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Secção Top Clientes e Top Artigos */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Top Clientes */}
-              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
-                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                  <Award className="h-4 w-4 text-amber-600" />
-                  Top Clientes com Mais Encomendas
-                </h3>
-                {topClientes.length === 0 ? (
-                  <p className="text-gray-400 italic py-4 text-center text-xs">Sem dados de clientes no período selecionado.</p>
-                ) : (
-                  <div className="space-y-2 text-xs">
-                    {topClientes.map((c, idx) => (
-                      <div key={c.telefone || idx} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
-                        <div className="flex items-center gap-2.5">
-                          <span className={`flex h-6 w-6 items-center justify-center rounded-lg text-xs font-black ${
-                            idx === 0 ? 'bg-amber-400 text-stone-950 shadow-2xs' : 'bg-stone-200 text-stone-700'
-                          }`}>
-                            #{idx + 1}
-                          </span>
-                          <div>
-                            <p className="font-bold text-gray-900">{c.nome}</p>
-                            <p className="text-[11px] text-gray-500">{c.telefone} {c.morada ? `• ${c.morada}` : ''}</p>
-                          </div>
-                        </div>
-                        <span className="font-black text-sm text-bakery-800 bg-bakery-50 px-2 py-0.5 rounded-md border border-bakery-200">
-                          {c.total} enc.
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Top Artigos */}
-              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
-                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-emerald-600" />
-                  Top Artigos Mais Pedidos
-                </h3>
-                {topArtigos.length === 0 ? (
-                  <p className="text-gray-400 italic py-4 text-center text-xs">Sem dados de artigos no período selecionado.</p>
-                ) : (
-                  <div className="space-y-2 text-xs">
-                    {topArtigos.map((a, idx) => (
-                      <div key={a.nome} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
-                        <div className="flex items-center gap-2.5">
-                          <span className={`flex h-6 w-6 items-center justify-center rounded-lg text-xs font-black ${
-                            idx === 0 ? 'bg-amber-400 text-stone-950 shadow-2xs' : 'bg-stone-200 text-stone-700'
-                          }`}>
-                            #{idx + 1}
-                          </span>
-                          <div>
-                            <p className="font-bold text-gray-900">{a.nome}</p>
-                            <span className="text-[10px] text-gray-500 uppercase">
-                              <SectorBadge setor={a.setor} />
-                            </span>
-                          </div>
-                        </div>
-                        <span className="font-black text-sm text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                          {a.quantidade} un.
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Tabela de Detalhe Consolidado de Planeamento vs Real */}
-            <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3">
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-blue-600" />
-                    Detalhe Consolidado de Planeamento vs Real
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Auditoria de cumprimento dos horários de agendamento e tempos reais de entrega / levantamento
-                  </p>
-                </div>
-
-                {/* Filtro de Calendário para a Tabela */}
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-stone-400" />
-                  <span className="text-xs font-bold text-stone-600">Filtrar Data:</span>
-                  <input
-                    type="date"
-                    value={filtroDataConsolidada}
-                    onChange={(e) => setFiltroDataConsolidada(e.target.value)}
-                    className="px-2.5 py-1 text-xs font-bold rounded-lg border border-gray-300 bg-white"
-                  />
-                  {filtroDataConsolidada && (
-                    <button
-                      type="button"
-                      onClick={() => setFiltroDataConsolidada('')}
-                      className="text-xs text-stone-500 hover:text-stone-800 font-bold px-1.5 py-1 cursor-pointer"
-                    >
-                      Limpar
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-gray-200 bg-gray-50 text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">
-                      <th onClick={() => handleToggleSortConsolidada('codigo')} className="py-2.5 px-3 cursor-pointer hover:bg-gray-100 transition">
-                        <div className="flex items-center gap-1">
-                          <span>Código</span>
-                          <ArrowUpDown className="h-3 w-3 text-gray-400" />
-                        </div>
-                      </th>
-                      <th onClick={() => handleToggleSortConsolidada('cliente')} className="py-2.5 px-3 cursor-pointer hover:bg-gray-100 transition">
-                        <div className="flex items-center gap-1">
-                          <span>Cliente</span>
-                          <ArrowUpDown className="h-3 w-3 text-gray-400" />
-                        </div>
-                      </th>
-                      <th onClick={() => handleToggleSortConsolidada('formato')} className="py-2.5 px-3 cursor-pointer hover:bg-gray-100 transition">
-                        <div className="flex items-center gap-1">
-                          <span>Formato / Destino</span>
-                          <ArrowUpDown className="h-3 w-3 text-gray-400" />
-                        </div>
-                      </th>
-                      <th onClick={() => handleToggleSortConsolidada('data_agendamento')} className="py-2.5 px-3 cursor-pointer hover:bg-gray-100 transition">
-                        <div className="flex items-center gap-1">
-                          <span>Data</span>
-                          <ArrowUpDown className="h-3 w-3 text-gray-400" />
-                        </div>
-                      </th>
-                      <th onClick={() => handleToggleSortConsolidada('hora_agendamento')} className="py-2.5 px-3 cursor-pointer hover:bg-gray-100 transition">
-                        <div className="flex items-center gap-1">
-                          <span>Hora Planeada</span>
-                          <ArrowUpDown className="h-3 w-3 text-gray-400" />
-                        </div>
-                      </th>
-                      <th onClick={() => handleToggleSortConsolidada('hora_entrega_real')} className="py-2.5 px-3 cursor-pointer hover:bg-gray-100 transition">
-                        <div className="flex items-center gap-1">
-                          <span>Hora Real</span>
-                          <ArrowUpDown className="h-3 w-3 text-gray-400" />
-                        </div>
-                      </th>
-                      <th onClick={() => handleToggleSortConsolidada('pontualidade')} className="py-2.5 px-3 cursor-pointer hover:bg-gray-100 transition">
-                        <div className="flex items-center gap-1">
-                          <span>Pontualidade / Desvio</span>
-                          <ArrowUpDown className="h-3 w-3 text-gray-400" />
-                        </div>
-                      </th>
-                      <th onClick={() => handleToggleSortConsolidada('estado')} className="py-2.5 px-3 cursor-pointer hover:bg-gray-100 transition">
-                        <div className="flex items-center gap-1">
-                          <span>Estado</span>
-                          <ArrowUpDown className="h-3 w-3 text-gray-400" />
-                        </div>
-                      </th>
-                    </tr>
-                    {/* Linha de Filtros Em Cada Coluna */}
-                    <tr className="bg-stone-50 border-b border-gray-200 text-[10px]">
-                      <th className="p-1.5 font-normal">
-                        <input
-                          type="text"
-                          placeholder="Filtrar cód..."
-                          value={filtroConsolidada.codigo}
-                          onChange={(e) => setFiltroConsolidada(prev => ({ ...prev, codigo: e.target.value }))}
-                          className="w-full px-1.5 py-1 bg-white border border-gray-300 rounded font-normal text-xs"
-                        />
-                      </th>
-                      <th className="p-1.5 font-normal">
-                        <input
-                          type="text"
-                          placeholder="Nome/Tel..."
-                          value={filtroConsolidada.cliente}
-                          onChange={(e) => setFiltroConsolidada(prev => ({ ...prev, cliente: e.target.value }))}
-                          className="w-full px-1.5 py-1 bg-white border border-gray-300 rounded font-normal text-xs"
-                        />
-                      </th>
-                      <th className="p-1.5 font-normal">
-                        <select
-                          value={filtroConsolidada.formato}
-                          onChange={(e) => setFiltroConsolidada(prev => ({ ...prev, formato: e.target.value }))}
-                          className="w-full px-1 py-1 bg-white border border-gray-300 rounded font-normal text-xs"
-                        >
-                          <option value="todos">Todos</option>
-                          <option value="levantamento_loja">Loja</option>
-                          <option value="entrega_domicilio">Carrinha</option>
-                        </select>
-                      </th>
-                      <th className="p-1.5 font-normal">
-                        <input
-                          type="date"
-                          value={filtroConsolidada.data}
-                          onChange={(e) => setFiltroConsolidada(prev => ({ ...prev, data: e.target.value }))}
-                          className="w-full px-1 py-1 bg-white border border-gray-300 rounded font-normal text-xs"
-                        />
-                      </th>
-                      <th className="p-1.5 font-normal">
-                        <input
-                          type="text"
-                          placeholder="HH:MM"
-                          value={filtroConsolidada.horaPlaneada}
-                          onChange={(e) => setFiltroConsolidada(prev => ({ ...prev, horaPlaneada: e.target.value }))}
-                          className="w-full px-1.5 py-1 bg-white border border-gray-300 rounded font-normal text-xs"
-                        />
-                      </th>
-                      <th className="p-1.5 font-normal">
-                        <input
-                          type="text"
-                          placeholder="HH:MM"
-                          value={filtroConsolidada.horaReal}
-                          onChange={(e) => setFiltroConsolidada(prev => ({ ...prev, horaReal: e.target.value }))}
-                          className="w-full px-1.5 py-1 bg-white border border-gray-300 rounded font-normal text-xs"
-                        />
-                      </th>
-                      <th className="p-1.5 font-normal">
-                        <select
-                          value={filtroConsolidada.pontualidade}
-                          onChange={(e) => setFiltroConsolidada(prev => ({ ...prev, pontualidade: e.target.value }))}
-                          className="w-full px-1 py-1 bg-white border border-gray-300 rounded font-normal text-xs"
-                        >
-                          <option value="todos">Todos</option>
-                          <option value="no_prazo">No Prazo</option>
-                          <option value="atraso">Atraso</option>
-                          <option value="pendente">Por Entregar</option>
-                        </select>
-                      </th>
-                      <th className="p-1.5 font-normal">
-                        <div className="flex items-center gap-1">
-                          <select
-                            value={filtroConsolidada.estado}
-                            onChange={(e) => setFiltroConsolidada(prev => ({ ...prev, estado: e.target.value }))}
-                            className="w-full px-1 py-1 bg-white border border-gray-300 rounded font-normal text-xs"
-                          >
-                            <option value="todos">Todos</option>
-                            <option value="pendente">Pendente</option>
-                            <option value="em_producao">Em Produção</option>
-                            <option value="pronto_loja">Pronto</option>
-                            <option value="em_rota">Em Rota</option>
-                            <option value="entregue">Entregue</option>
-                            <option value="cancelado">Cancelado</option>
-                          </select>
-                          {(filtroConsolidada.codigo || filtroConsolidada.cliente || filtroConsolidada.formato !== 'todos' || filtroConsolidada.data || filtroConsolidada.horaPlaneada || filtroConsolidada.horaReal || filtroConsolidada.pontualidade !== 'todos' || filtroConsolidada.estado !== 'todos') && (
-                            <button
-                              type="button"
-                              onClick={() => setFiltroConsolidada({
-                                codigo: '', cliente: '', formato: 'todos', data: '', horaPlaneada: '', horaReal: '', pontualidade: 'todos', estado: 'todos'
-                              })}
-                              className="text-[9px] text-red-600 hover:underline font-bold px-1"
-                              title="Limpar filtros"
-                            ><X className="h-4 w-4" /></button>
-                          )}
-                        </div>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {encomendasTabelaConsolidada.length === 0 ? (
-                      <tr>
-                        <td colSpan={8} className="py-8 text-center text-gray-400 italic">
-                          Nenhuma encomenda encontrada para o filtro selecionado.
-                        </td>
-                      </tr>
-                    ) : (
-                      encomendasTabelaConsolidada.map((enc) => {
-                        const horaReal = enc.hora_entrega_real;
-                        const desvioMin = horaReal ? calcularDesvioMinutos(enc.hora_agendamento, horaReal) : null;
-                        const jaEntregue = enc.estado === 'entregue';
-
-                        return (
-                          <tr key={enc.id} className="hover:bg-gray-50 transition">
-                            <td className="py-2.5 px-3">
-                              <span className="font-mono font-bold text-gray-900 block">{enc.codigo}</span>
-                              <div className="mt-0.5">
-                                <OriginBadge origem={enc.canal_origem} compact />
-                              </div>
-                            </td>
-                            <td className="py-2.5 px-3">
-                              <p className="font-bold text-gray-900">{enc.cliente?.nome || 'Cliente'}</p>
-                              <p className="text-[10px] text-gray-500">{enc.cliente?.telefone || '—'}</p>
-                            </td>
-                            <td className="py-2.5 px-3">
-                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${
-                                enc.tipo === 'entrega_domicilio' ? 'bg-blue-50 text-blue-800' : 'bg-amber-50 text-amber-800'
-                              }`}>
-                                {enc.tipo === 'entrega_domicilio' ? <Truck className="h-3 w-3 text-cyan-600 shrink-0" /> : <Store className="h-3 w-3 text-amber-600 shrink-0" />}
-                                <span>{enc.tipo === 'entrega_domicilio' ? (enc.carrinha_nome || 'Carrinha') : enc.loja_nome}</span>
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-3 font-medium text-gray-700">{enc.data_agendamento}</td>
-                            <td className="py-2.5 px-3 font-bold text-stone-900 font-mono">{enc.hora_agendamento}</td>
-                            <td className="py-2.5 px-3 font-bold font-mono">
-                              {horaReal ? (
-                                <span className="text-gray-900 block">
-                                  {enc.data_entrega_real ? `${enc.data_entrega_real} ` : ''}{horaReal}
-                                </span>
-                              ) : (
-                                <span className="text-gray-400 font-normal italic">--:--</span>
-                              )}
-                            </td>
-                            <td className="py-2.5 px-3">
-                              {jaEntregue ? (
-                                desvioMin !== null && desvioMin <= 10 ? (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[10px]">
-                                    <CheckCircle2 className="h-3 w-3" /> No Prazo ({desvioMin <= 0 ? 'Adiantado' : `+${desvioMin}m`})
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 font-bold text-[10px]">
-                                    <Clock className="h-3 w-3" /> Atraso (+{desvioMin || 0}m)
-                                  </span>
-                                )
-                              ) : (
-                                <span className="text-gray-400 text-[10px] italic">Por entregar</span>
-                              )}
-                            </td>
-                            <td className="py-2.5 px-3">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                                jaEntregue
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : enc.estado === 'em_preparacao'
-                                  ? 'bg-amber-100 text-amber-800'
-                                  : enc.estado === 'pronto'
-                                  ? 'bg-blue-100 text-blue-800'
-                                  : 'bg-stone-100 text-stone-700'
-                              }`}>
-                                {jaEntregue
-                                  ? 'Entregue'
-                                  : enc.estado === 'em_preparacao'
-                                  ? 'Em Produção'
-                                  : enc.estado === 'pronto'
-                                  ? 'Em Distribuição'
-                                  : 'Encomendado'}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ----------------- ABA 2: LOJAS & CARRINHAS ----------------- */}
-        {activeTab === 'lojas_carrinhas' && (
-          <div className="space-y-6">
-            {/* Secção de Lojas */}
-            <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
-              <div className="flex items-center justify-between border-b pb-3">
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                    <Store className="h-4 w-4 text-bakery-600" />
-                    {t.storesSectionTitle}
-                  </h3>
-                  <p className="text-xs text-gray-500">{t.storesSectionDesc}</p>
-                </div>
-
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {lojas.map((l) => (
-                  <div key={l.id} className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-2 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono font-bold text-bakery-700 bg-bakery-50 px-2 py-0.5 rounded border border-bakery-200">
-                        {l.codigo}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setLojaEmEdicao(l)}
-                        className="flex items-center gap-1 font-bold text-blue-600 hover:text-blue-800 bg-white px-2 py-1 rounded-lg border border-gray-200 shadow-2xs hover:bg-blue-50 transition cursor-pointer"
-                        title="Editar dados desta loja"
-                      >
-                        <Edit3 className="h-3 w-3" /> {t.edit}
-                      </button>
-                    </div>
-
-                    <h4 className="font-bold text-sm text-gray-900">{l.nome}</h4>
-                    <p className="text-gray-600">{t.address}: {l.morada}</p>
-                    <p className="text-gray-600">{t.phone}: {l.telefone}</p>
-                    {l.nif && <p className="text-gray-600">{t.nif}: {l.nif}</p>}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Secção das Carrinhas da Frota */}
-            <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3">
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                    <Truck className="h-4 w-4 text-blue-600" />
-                    Frota de Distribuição — Rotas e Carros (1 a 7)
-                  </h3>
-                  <p className="text-xs text-gray-500">
-                    Gestão operacional das 7 rotas e viaturas ativas da frota de distribuição porta a porta.
-                  </p>
-                </div>
-
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {carrinhasBaseDiaria.map((c) => (
-                  <div
-                    key={c.id}
-                    className="p-4 rounded-xl border border-gray-200 bg-gray-50/60 space-y-2.5 text-xs hover:border-blue-300 transition"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono font-black text-gray-900 bg-white px-2 py-0.5 rounded border border-gray-300 shadow-2xs">
-                        {c.matricula}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setCarrinhaEmEdicao(c)}
-                        className="flex items-center gap-1 font-bold text-blue-700 hover:text-blue-900 bg-white px-2 py-1 rounded-lg border border-blue-200 hover:bg-blue-50 transition cursor-pointer"
-                        title="Editar dados desta rota e viatura"
-                      >
-                        <Edit3 className="h-3 w-3" /> {t.edit}
-                      </button>
-                    </div>
-
-                    <div className="space-y-1 pt-1">
-                      <div className="flex items-center justify-between">
-                        <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-900 font-black text-xs">
-                          {c.rota || c.identificador || `Rota ${c.numero || ''}`}
-                        </span>
-                        <span className="text-[11px] font-bold text-gray-700">
-                          {c.nome_carro || `Carro ${c.numero || ''}`}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-gray-600 truncate">
-                        <span className="font-bold text-gray-800">Condutor:</span> {c.nome_condutor || c.motorista_nome || 'A atribuir'}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => abrirFolhaCargaPdfModal(c.id)}
-                        className="w-full mt-1.5 py-1.5 px-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] shadow-2xs transition flex items-center justify-center gap-1 cursor-pointer"
-                        title="Gerar Folha de Carga em PDF para esta rota"
-                      >
-                        <FileText className="h-3 w-3" />
-                        Folha de Carga
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* SECÇÃO 1: BASE DIÁRIA POR CARRINHA (POR DIA DA SEMANA) */}
-            <div className="bg-white p-5 rounded-2xl border border-blue-200 shadow-xs space-y-4">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-gray-100 pb-3">
-                <div>
-                  <h3 className="text-sm font-black text-gray-900 flex items-center gap-2">
-                    <Layers className="h-4 w-4 text-blue-600" />
-                    Base Diária por Rota (Consolidado Rotas 1 a 7)
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Quantidades diárias consolidadas de cada artigo por rota (Rotas 1 a 7), somadas ao Mapa Diário e ao Centro de Produção.
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <select
-                      value=""
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          handleAdicionarArtigoBaseFixa(e.target.value);
-                        }
-                      }}
-                      className="text-xs font-bold bg-gray-50 border border-gray-300 rounded-xl px-2.5 py-2 text-gray-800 cursor-pointer"
-                    >
-                      <option value="">+ Escolher artigo do catálogo...</option>
-                      {produtos
-                        .filter((p) => !artigosGrelhaBaseFixa.includes(p.nome))
-                        .map((p) => (
-                          <option key={p.id} value={p.nome}>
-                            {p.nome}
-                          </option>
-                        ))}
-                    </select>
-
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="text"
-                        value={novoArtigoBaseFixa}
-                        onChange={(e) => setNovoArtigoBaseFixa(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleAdicionarArtigoBaseFixa(novoArtigoBaseFixa);
-                          }
-                        }}
-                        placeholder="Ou escrever novo artigo..."
-                        className="text-xs font-medium bg-white border border-gray-300 rounded-xl px-2.5 py-1.5 text-gray-800 w-44 focus:outline-hidden focus:border-blue-500"
-                      />
-                      {novoArtigoBaseFixa.trim() && (
-                        <button
-                          type="button"
-                          onClick={() => handleAdicionarArtigoBaseFixa(novoArtigoBaseFixa)}
-                          className="px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition cursor-pointer flex items-center gap-1"
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                          Adicionar
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleExportarExcelBaseFixaConsolidado}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 text-blue-900 text-xs font-bold hover:bg-blue-100 transition cursor-pointer"
-                    title="Exportar Excel consolidado das rotas de distribuição de carros (1 a 7) para todos os dias da semana"
-                  >
-                    <Download className="h-3.5 w-3.5 text-blue-700" />
-                    Excel Consolidado (.xlsx)
-                  </button>
-
                   <button
                     type="button"
                     onClick={() => abrirFolhaCargaPdfModal(carrinhaExportacaoId)}
@@ -3702,7 +2959,7 @@ export default function AdminPage() {
                             </td>
                             <td className="py-2.5 px-3 text-[11px]">
                               <div className="font-medium text-gray-700">
-                                {base.metodo_pagamento === 'dinheiro_ao_motorista' ? '💵 Dinheiro ao motorista' :
+                                {base.metodo_pagamento === 'dinheiro_ao_motorista' ? '💵 Dinheiro ao condutor' :
                                  base.metodo_pagamento === 'conta_mensal' ? '📑 Conta mensal' :
                                  base.metodo_pagamento === 'mbway_semanal' ? '📱 MBWay semanal' : '🏦 Multibanco'}
                               </div>
@@ -4594,7 +3851,7 @@ export default function AdminPage() {
                                 if (r === 'padeiro_pasteleiro' || r === 'operador_padaria' || r === 'operador_pastelaria') {
                                   return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-200">Padeiro / Pasteleiro</span>;
                                 }
-                                if (r === 'motorista') {
+                                if (r === 'motorista' || r === 'condutor') {
                                   return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-orange-100 text-orange-800 border border-orange-200">Motorista</span>;
                                 }
                                 return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-700">{r}</span>;
@@ -5109,7 +4366,7 @@ export default function AdminPage() {
                         p.role === 'admin' ? t.roleAdmin :
                         p.role === 'gerente_loja' ? t.roleStoreManager :
                         p.role === 'padeiro_pasteleiro' || p.role === 'operador_padaria' || p.role === 'operador_pastelaria' ? t.roleBaker :
-                        p.role === 'motorista' ? t.roleDriver : t.roleCounter;
+                        (p.role === 'motorista' || p.role === 'condutor') ? t.roleDriver : t.roleCounter;
 
                       const paineisUtilizador = [
                         { key: 'acesso_encomendas', label: t.navEncomendas, nivel: p.acesso_encomendas },
@@ -6711,6 +5968,7 @@ export default function AdminPage() {
         isOpen={pdfModalOpen}
         tipo={pdfModalTipo}
         onClose={() => setPdfModalOpen(false)}
+        dadosGuiaConjunta={pdfDadosGuiaConjunta}
         carrinha={pdfCarrinhaSelecionada}
         diaSemana={diaSemanaBaseFixa}
         dataReferencia={new Date().toISOString().split('T')[0]}
@@ -6722,7 +5980,7 @@ export default function AdminPage() {
                  e.estado !== 'cancelado'
         )}
         clienteB2B={pdfClienteB2B}
-        nomeCondutor="Rui Oliveira"
+        nomeCondutor={pdfCarrinhaSelecionada?.nome_condutor || "Condutor"}
         matriculaCarro={pdfCarrinhaSelecionada?.matricula}
       />
 

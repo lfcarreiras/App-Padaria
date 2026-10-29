@@ -1,5 +1,5 @@
-import { supabase } from './supabase';
-import { Encomenda, ItemEncomenda, EstadoEncomenda, EstadoProducaoItem, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, LogAuditoria, BaseFixaCarrinha, ClienteEmpresarialB2B, DiaSemana, BaseDiariaRecorrente, Role, PermissoesCargo, MatrizPermissoesCargos } from '../types';
+﻿import { supabase } from './supabase';
+import { Encomenda, ItemEncomenda, EstadoEncomenda, EstadoProducaoItem, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, LogAuditoria, BaseFixaCarrinha, ClienteEmpresarialB2B, DiaSemana, BaseDiariaRecorrente, Role, PermissoesCargo, MatrizPermissoesCargos, LinhaCargaConjunta, DadosGuiaConjunta, ColunaCabecalhoRota } from '../types';
 import { LOGS_AUDITORIA_MOCK, CARRINHAS_MOCK, COLUNAS_MAPA_DIARIO_OFICIAL, BASE_FIXA_CARRINHAS_INICIAL, CLIENTES_EMPRESARIAIS_B2B_INICIAIS } from './mockData';
 
 const REAL_DELIVERY_TIMESTAMPS_KEY = 'padaria_timestamps_entrega_real_v1';
@@ -923,17 +923,49 @@ export async function eliminarProdutoDb(produtoId: string) {
 // ---------------- LOJAS ---------------- //
 
 export async function carregarLojasSupabase(): Promise<Loja[]> {
-  if (!supabase) return [];
-  const { data, error } = await supabase
-    .from('lojas')
-    .select('*')
-    .order('codigo', { ascending: true });
+  if (!supabase) return [...LOJAS_MOCK];
+  try {
+    const { data, error } = await supabase
+      .from('lojas')
+      .select('*')
+      .order('codigo', { ascending: true });
 
-  if (error) {
-    console.error('Erro ao carregar lojas:', error);
-    return [];
+    if (!error && data && data.length > 0) {
+      const temFabrico = data.some((l) => l.codigo === 'FABRICO' || l.nome.toLowerCase().includes('fabrico'));
+      if (!temFabrico) {
+        const lojaFabrico = LOJAS_MOCK.find((l) => l.codigo === 'FABRICO') || {
+          id: 'fabbbb00-0000-0000-0000-000000000001',
+          codigo: 'FABRICO',
+          nome: 'Centro de Fabrico',
+          morada: 'Zona Operacional / Fabrico, Arouca',
+          telefone: '210000000',
+          nif: '500100200',
+          ativo: true,
+        };
+        await salvarLojaDb(lojaFabrico);
+        return [...data, lojaFabrico];
+      }
+      return data;
+    }
+  } catch (err) {
+    console.warn('Erro ao carregar lojas do Supabase:', err);
   }
-  return data || [];
+  return [...LOJAS_MOCK];
+}
+
+export function subscreverAlteracoesLojas(onUpdate: (lojas: Loja[]) => void) {
+  if (!supabase) return () => {};
+  const channel = supabase
+    .channel('public:lojas_realtime_sync')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'lojas' }, async () => {
+      const atualizados = await carregarLojasSupabase();
+      onUpdate(atualizados);
+    })
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
 }
 
 export async function salvarLojaDb(loja: Partial<Loja> & { codigo: string; nome: string; morada: string; telefone: string }) {
@@ -989,10 +1021,7 @@ export async function carregarCarrinhasSupabase(): Promise<Carrinha[]> {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          locaisRotas = parsed.filter((c: Carrinha) => {
-            const num = c.numero || parseInt(String(c.rota || c.identificador || '').replace(/\D+/g, '') || '99', 10);
-            return num >= 1 && num <= 7 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9' && c.rota !== 'Rota 8' && c.identificador !== 'Rota 8';
-          });
+          locaisRotas = parsed;
         }
       }
     } catch {}
@@ -1013,70 +1042,50 @@ export async function carregarCarrinhasSupabase(): Promise<Carrinha[]> {
       .select('*')
       .order('identificador', { ascending: true });
 
-    if (error || !data || data.length === 0) {
-      return locaisRotas
+    if (!error && data && data.length > 0) {
+      // Prioridade absoluta para a base central Supabase (Network-First)
+      const mapped: Carrinha[] = data.map((row) => {
+        const localMatch = locaisRotas.find((m) => m.id === row.id) || {};
+        const num = row.numero || localMatch.numero || parseInt(String(row.rota || row.identificador || '').replace(/\D+/g, '') || '0', 10);
+        return {
+          id: row.id,
+          loja_id: row.loja_id || 'a9982e9f-7899-4a7c-8ce3-bc30f16c99a2',
+          identificador: row.identificador || `Rota ${num}`,
+          matricula: row.matricula || localMatch.matricula || '---',
+          ativo: row.ativo !== false,
+          criado_em: row.criado_em,
+          rota: row.rota || `Rota ${num}`,
+          nome_carro: row.nome_carro || localMatch.nome_carro || `Carro ${num}`,
+          nome_condutor: row.nome_condutor || row.motorista_nome || localMatch.nome_condutor || '',
+          numero: num,
+        };
+      });
+
+      const filtered = mapped
         .filter((c) => {
           const num = c.numero || parseInt(String(c.rota || c.identificador || '').replace(/\D+/g, '') || '99', 10);
-          return num >= 1 && num <= 7 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9' && c.rota !== 'Rota 8' && c.identificador !== 'Rota 8';
+          return num >= 1 && num <= 7 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9' && c.rota !== 'Rota 8' && c.identificador !== 'Rota 8' && c.identificador !== 'Carocha';
         })
         .sort((a, b) => (a.numero || 0) - (b.numero || 0));
-    }
 
-    const merged: Carrinha[] = [...locaisRotas];
-    for (const row of data) {
-      const idx = merged.findIndex((m) => m.id === row.id);
-      if (idx !== -1) {
-        merged[idx] = {
-          ...merged[idx],
-          ...row,
-          rota: merged[idx].rota || row.rota || `Rota ${merged[idx].numero || idx + 1}`,
-          nome_carro: merged[idx].nome_carro || row.nome_carro || `Carro ${merged[idx].numero || idx + 1}`,
-          nome_condutor: merged[idx].nome_condutor || row.nome_condutor || merged[idx].motorista_nome || '',
-          matricula: row.matricula || merged[idx].matricula,
-        };
-      } else {
-        merged.push({
-          ...row,
-          rota: row.rota || `Rota ${merged.length + 1}`,
-          nome_carro: row.nome_carro || `Carro ${merged.length + 1}`,
-          nome_condutor: row.nome_condutor || '',
-          numero: row.numero || merged.length + 1,
-        });
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem(ROTAS_STORAGE_KEY, JSON.stringify(filtered));
+        } catch {}
       }
+
+      return filtered;
     }
-
-    const filtered = merged
-      .filter((c) => {
-        const num = c.numero || parseInt(String(c.rota || c.identificador || '').replace(/\D+/g, '') || '99', 10);
-        return num >= 1 && num <= 7 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9' && c.rota !== 'Rota 8' && c.identificador !== 'Rota 8' && c.identificador !== 'Carocha';
-      })
-      .map((c, i) => {
-        const num = c.numero && c.numero >= 1 && c.numero <= 7 ? c.numero : (parseInt(String(c.rota || c.identificador || '').replace(/\D+/g, '') || '0', 10) || i + 1);
-        const rotaPadrao = `Rota ${num}`;
-        return {
-          ...c,
-          numero: num,
-          rota: rotaPadrao,
-          identificador: rotaPadrao,
-        };
-      })
-      .sort((a, b) => (a.numero || 0) - (b.numero || 0));
-
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem(ROTAS_STORAGE_KEY, JSON.stringify(filtered));
-      } catch {}
-    }
-
-    return filtered;
-  } catch {
-    return locaisRotas
-      .filter((c) => {
-        const num = c.numero || parseInt(String(c.rota || c.identificador || '').replace(/\D+/g, '') || '99', 10);
-        return num >= 1 && num <= 7 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9' && c.rota !== 'Rota 8' && c.identificador !== 'Rota 8';
-      })
-      .sort((a, b) => (a.numero || 0) - (b.numero || 0));
+  } catch (err) {
+    console.warn('Erro ao carregar carrinhas do Supabase, a usar cache local:', err);
   }
+
+  return locaisRotas
+    .filter((c) => {
+      const num = c.numero || parseInt(String(c.rota || c.identificador || '').replace(/\D+/g, '') || '99', 10);
+      return num >= 1 && num <= 7 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 9' && c.rota !== 'Rota 8' && c.identificador !== 'Rota 8';
+    })
+    .sort((a, b) => (a.numero || 0) - (b.numero || 0));
 }
 
 export async function salvarCarrinhaDb(carrinha: Partial<Carrinha> & { identificador: string; matricula: string; loja_id?: string }) {
@@ -1097,6 +1106,7 @@ export async function salvarCarrinhaDb(carrinha: Partial<Carrinha> & { identific
         })
         .sort((a, b) => (a.numero || 0) - (b.numero || 0));
       localStorage.setItem(ROTAS_STORAGE_KEY, JSON.stringify(novaLista));
+      window.dispatchEvent(new Event('app_rotas_atualizadas'));
     } catch {}
   }
 
@@ -1106,6 +1116,11 @@ export async function salvarCarrinhaDb(carrinha: Partial<Carrinha> & { identific
     identificador: (carrinha.identificador || carrinha.rota || '').trim(),
     matricula: carrinha.matricula.trim(),
     ativo: carrinha.ativo !== undefined ? carrinha.ativo : true,
+    nome_condutor: carrinha.nome_condutor ? carrinha.nome_condutor.trim() : null,
+    nome_carro: carrinha.nome_carro ? carrinha.nome_carro.trim() : null,
+    numero: carrinha.numero || null,
+    rota: (carrinha.rota || carrinha.identificador || '').trim(),
+    atualizado_em: new Date().toISOString(),
   };
 
   if (carrinha.id) {
@@ -1115,7 +1130,7 @@ export async function salvarCarrinhaDb(carrinha: Partial<Carrinha> & { identific
       .eq('id', carrinha.id)
       .select()
       .maybeSingle();
-    if (error) console.warn('Erro ao atualizar carrinha:', error);
+    if (error) console.warn('Erro ao atualizar carrinha no Supabase:', error);
     return data || carrinha;
   } else {
     const { data, error } = await supabase
@@ -1123,9 +1138,24 @@ export async function salvarCarrinhaDb(carrinha: Partial<Carrinha> & { identific
       .insert(payload)
       .select()
       .maybeSingle();
-    if (error) console.warn('Erro ao criar carrinha:', error);
+    if (error) console.warn('Erro ao criar carrinha no Supabase:', error);
     return data || carrinha;
   }
+}
+
+export function subscreverAlteracoesCarrinhas(onUpdate: (lista: Carrinha[]) => void) {
+  if (!supabase) return () => {};
+  const channel = supabase
+    .channel('public:carrinhas_realtime_sync')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'carrinhas' }, async () => {
+      const atualizados = await carregarCarrinhasSupabase();
+      onUpdate(atualizados);
+    })
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
 }
 
 export async function eliminarCarrinhaDb(carrinhaId: string) {
@@ -1509,8 +1539,8 @@ export const PERFIS_INICIAIS: PerfilUtilizador[] = [
     email: 'carlos.padeiro@padaria.pt',
     password: '123',
     role: 'padeiro_pasteleiro',
-    loja_id: undefined,
-    loja_nome: 'Centro de Produção',
+    loja_id: 'fabbbb00-0000-0000-0000-000000000001',
+    loja_nome: 'Centro de Fabrico',
     acesso_encomendas: 'sem_acesso',
     acesso_producao: 'edicao',
     acesso_loja: 'sem_acesso',
@@ -1525,7 +1555,7 @@ export const PERFIS_INICIAIS: PerfilUtilizador[] = [
   },
   {
     id: 'user-motorista',
-    nome: 'Rui Oliveira (Motorista Carrinha 1)',
+    nome: 'Rui Oliveira (Condutor Carrinha 1)',
     telefone: '910 000 005',
     email: 'rui.motorista@padaria.pt',
     password: '123',
@@ -1984,11 +2014,39 @@ export function carregarArtigosBaseFixa(): string[] {
   return baseDefault;
 }
 
+export async function carregarArtigosBaseFixaSupabase(): Promise<string[]> {
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('configuracoes_sistema')
+        .select('valor')
+        .eq('chave', 'artigos_base_fixa')
+        .maybeSingle();
+
+      if (!error && data && data.valor && Array.isArray(data.valor) && data.valor.length > 0) {
+        const limpos = Array.from(new Set(data.valor.map((p: any) => String(p || '').trim()).filter(Boolean)));
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(ARTIGOS_BASE_FIXA_STORAGE_KEY, JSON.stringify(limpos));
+        }
+        return limpos;
+      }
+    } catch {}
+  }
+  return carregarArtigosBaseFixa();
+}
+
 export function salvarArtigosBaseFixa(artigos: string[]): void {
   const limpos = Array.from(new Set((artigos || []).map((p) => String(p || '').trim()).filter(Boolean)));
   if (typeof window !== 'undefined') {
     localStorage.setItem(ARTIGOS_BASE_FIXA_STORAGE_KEY, JSON.stringify(limpos));
     window.dispatchEvent(new Event('app_base_fixa_atualizada'));
+  }
+  if (supabase) {
+    supabase.from('configuracoes_sistema').upsert({
+      chave: 'artigos_base_fixa',
+      valor: limpos,
+      atualizado_em: new Date().toISOString()
+    }, { onConflict: 'chave' }).then(() => {}).catch(() => {});
   }
 }
 
@@ -2030,21 +2088,30 @@ export function carregarBaseFixaCarrinhas(): BaseFixaCarrinha[] {
 export const CONFIG_BASE_FIXA_PHONE_KEY = '000000003';
 
 export async function carregarBaseFixaCarrinhasSupabase(): Promise<BaseFixaCarrinha[]> {
-  if (typeof window !== 'undefined') {
-    const cached = localStorage.getItem(BASE_FIXA_CARRINHAS_STORAGE_KEY);
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed
-            .map(normalizarBaseFixaItem)
-            .filter((b) => b.carrinha_nome !== 'Rota 8' && b.carrinha_id !== 'e888db95-c427-4ed5-83fc-01403bd24cf8');
-        }
-      } catch (e) {}
-    }
-  }
-
   if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('bases_fixas_carrinhas')
+        .select('*');
+
+      if (!error && data && data.length > 0) {
+        const parsed = data.map((row: any) => ({
+          carrinha_id: row.carrinha_id,
+          carrinha_nome: row.carrinha_nome,
+          quantidades_por_produto: row.quantidades || {},
+          quantidades: row.quantidades || {},
+        })).map(normalizarBaseFixaItem)
+          .filter((b) => b.carrinha_nome !== 'Rota 8' && b.carrinha_id !== 'e888db95-c427-4ed5-83fc-01403bd24cf8');
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(BASE_FIXA_CARRINHAS_STORAGE_KEY, JSON.stringify(parsed));
+        }
+        return parsed;
+      }
+    } catch (err) {
+      console.warn('Aviso ao consultar tabela bases_fixas_carrinhas:', err);
+    }
+
     try {
       const { data } = await supabase
         .from('clientes')
@@ -2058,6 +2125,15 @@ export async function carregarBaseFixaCarrinhasSupabase(): Promise<BaseFixaCarri
           const normalizados = parsed
             .map(normalizarBaseFixaItem)
             .filter((b) => b.carrinha_nome !== 'Rota 8' && b.carrinha_id !== 'e888db95-c427-4ed5-83fc-01403bd24cf8');
+          // Migração automática imediata para bases_fixas_carrinhas
+          for (const b of normalizados) {
+            supabase.from('bases_fixas_carrinhas').upsert({
+              carrinha_id: b.carrinha_id,
+              carrinha_nome: b.carrinha_nome || `Rota`,
+              quantidades: b.quantidades_por_produto || b.quantidades || {},
+              atualizado_em: new Date().toISOString()
+            }, { onConflict: 'carrinha_id' }).then(() => {}).catch(() => {});
+          }
           if (typeof window !== 'undefined') {
             localStorage.setItem(BASE_FIXA_CARRINHAS_STORAGE_KEY, JSON.stringify(normalizados));
           }
@@ -2080,33 +2156,41 @@ export function salvarBaseFixaCarrinhas(dados: BaseFixaCarrinha[]): void {
   }
 
   if (supabase) {
+    for (const b of normalizados) {
+      supabase.from('bases_fixas_carrinhas').upsert({
+        carrinha_id: b.carrinha_id,
+        carrinha_nome: b.carrinha_nome || `Rota`,
+        quantidades: b.quantidades_por_produto || b.quantidades || {},
+        atualizado_em: new Date().toISOString()
+      }, { onConflict: 'carrinha_id' }).then(() => {}).catch(() => {});
+    }
+
     const jsonStr = JSON.stringify(normalizados);
     supabase
       .from('clientes')
-      .select('id')
-      .eq('telefone', CONFIG_BASE_FIXA_PHONE_KEY)
-      .maybeSingle()
-      .then(({ data: existente }) => {
-        if (existente) {
-          return supabase
-            .from('clientes')
-            .update({
-              nome: '[SISTEMA_BASE_FIXA_CARRINHAS]',
-              notas_entrega: jsonStr,
-            })
-            .eq('id', existente.id);
-        } else {
-          return supabase
-            .from('clientes')
-            .insert({
-              nome: '[SISTEMA_BASE_FIXA_CARRINHAS]',
-              telefone: CONFIG_BASE_FIXA_PHONE_KEY,
-              notas_entrega: jsonStr,
-            });
-        }
+      .update({
+        nome: '[SISTEMA_BASE_FIXA_CARRINHAS]',
+        notas_entrega: jsonStr,
       })
-      .catch((err) => console.warn('Aviso sincronizacao Base Fixa Supabase:', err));
+      .eq('telefone', CONFIG_BASE_FIXA_PHONE_KEY)
+      .then(() => {})
+      .catch(() => {});
   }
+}
+
+export function subscreverAlteracoesBaseFixa(onUpdate: (lista: BaseFixaCarrinha[]) => void) {
+  if (!supabase) return () => {};
+  const channel = supabase
+    .channel('public:bases_fixas_carrinhas_realtime_sync')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'bases_fixas_carrinhas' }, async () => {
+      const atualizados = await carregarBaseFixaCarrinhasSupabase();
+      onUpdate(atualizados);
+    })
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
 }
 
 export function carregarClientesEmpresariaisB2B(): ClienteEmpresarialB2B[] {
@@ -2501,19 +2585,31 @@ export function carregarAjustesAdhoc(): Record<string, number> {
 }
 
 export async function carregarAjustesAdhocSupabase(): Promise<Record<string, number>> {
-  if (typeof window !== 'undefined') {
-    const cached = localStorage.getItem(AJUSTES_ADHOC_STORAGE_KEY);
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        if (parsed && typeof parsed === 'object') {
-          return parsed.valores || {};
-        }
-      } catch (e) {}
-    }
-  }
-
   if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('ajustes_producao')
+        .select('*');
+
+      if (!error && data && data.length > 0) {
+        const valores: Record<string, number> = {};
+        for (const row of data) {
+          if (row.chave && row.quantidade !== undefined) {
+            valores[row.chave] = Number(row.quantidade);
+          }
+        }
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(AJUSTES_ADHOC_STORAGE_KEY, JSON.stringify({
+            valores,
+            atualizado_em: new Date().toISOString()
+          }));
+        }
+        return valores;
+      }
+    } catch (err) {
+      console.warn('Aviso ao consultar tabela ajustes_producao:', err);
+    }
+
     try {
       const { data } = await supabase
         .from('clientes')
@@ -2523,8 +2619,25 @@ export async function carregarAjustesAdhocSupabase(): Promise<Record<string, num
 
       if (data && data.notas_entrega) {
         const parsed = JSON.parse(data.notas_entrega);
-        if (parsed && typeof parsed === 'object') {
-          const valores = parsed.valores || parsed;
+        const valores = (parsed && parsed.valores) || parsed;
+        if (valores && typeof valores === 'object' && Object.keys(valores).length > 0) {
+          // Migração automática imediata para ajustes_producao
+          for (const [ch, q] of Object.entries(valores)) {
+            const partes = ch.split('_');
+            const dataStr = partes[0] || new Date().toISOString().split('T')[0];
+            const tipoAlvo = ch.includes('_base_') ? 'rota' : 'b2b';
+            const alvoId = partes[2] || '';
+            const produtoNome = partes.slice(3).join('_') || 'artigo';
+            supabase.from('ajustes_producao').upsert({
+              chave: ch,
+              data: dataStr,
+              tipo_alvo: tipoAlvo,
+              alvo_id: alvoId,
+              produto_nome: produtoNome,
+              quantidade: Math.max(0, Number(q) || 0),
+              atualizado_em: new Date().toISOString()
+            }, { onConflict: 'chave' }).then(() => {}).catch(() => {});
+          }
           if (typeof window !== 'undefined') {
             localStorage.setItem(AJUSTES_ADHOC_STORAGE_KEY, JSON.stringify({
               valores,
@@ -2558,41 +2671,74 @@ export function salvarAjusteAdhoc(chave: string, quantidade: number | null): voi
       }));
       window.dispatchEvent(new Event('app_ajustes_adhoc_atualizados'));
     } catch (e) {
-      console.error('Erro ao salvar ajuste ad-hoc:', e);
+      console.error('Erro ao salvar ajuste ad-hoc localmente:', e);
     }
   }
 
   if (supabase) {
+    if (quantidade === null || isNaN(quantidade)) {
+      supabase.from('ajustes_producao').delete().eq('chave', chave).then(() => {}).catch(() => {});
+    } else {
+      const partes = chave.split('_');
+      const dataStr = partes[0] || new Date().toISOString().split('T')[0];
+      const tipoAlvo = chave.includes('_base_') ? 'rota' : 'b2b';
+      const alvoId = partes[2] || '';
+      const produtoNome = partes.slice(3).join('_') || 'artigo';
+      supabase.from('ajustes_producao').upsert({
+        chave,
+        data: dataStr,
+        tipo_alvo: tipoAlvo,
+        alvo_id: alvoId,
+        produto_nome: produtoNome,
+        quantidade: Math.max(0, quantidade),
+        atualizado_em: new Date().toISOString()
+      }, { onConflict: 'chave' }).then(() => {}).catch(() => {});
+    }
+
     const jsonStr = JSON.stringify({
       valores: todos,
       atualizado_em: new Date().toISOString()
     });
     supabase
       .from('clientes')
-      .select('id')
-      .eq('telefone', CONFIG_AJUSTES_ADHOC_PHONE_KEY)
-      .maybeSingle()
-      .then(({ data: existente }) => {
-        if (existente) {
-          return supabase
-            .from('clientes')
-            .update({
-              nome: '[SISTEMA_AJUSTES_ADHOC_ROTAS]',
-              notas_entrega: jsonStr,
-            })
-            .eq('id', existente.id);
-        } else {
-          return supabase
-            .from('clientes')
-            .insert({
-              nome: '[SISTEMA_AJUSTES_ADHOC_ROTAS]',
-              telefone: CONFIG_AJUSTES_ADHOC_PHONE_KEY,
-              notas_entrega: jsonStr,
-            });
-        }
+      .update({
+        nome: '[SISTEMA_AJUSTES_ADHOC_ROTAS]',
+        notas_entrega: jsonStr,
       })
-      .catch((err) => console.warn('Aviso sincronizacao Ajustes Ad-hoc Supabase:', err));
+      .eq('telefone', CONFIG_AJUSTES_ADHOC_PHONE_KEY)
+      .then(() => {})
+      .catch(() => {});
   }
+}
+
+export function subscreverAlteracoesAjustesAdhoc(onUpdate: (valores: Record<string, number>) => void) {
+  if (!supabase) return () => {};
+  const channel = supabase
+    .channel('public:ajustes_producao_realtime_sync')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'ajustes_producao' }, async () => {
+      const atualizados = await carregarAjustesAdhocSupabase();
+      onUpdate(atualizados);
+    })
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
+export function subscreverAlteracoesEncomendas(onUpdate: (dados: Encomenda[]) => void) {
+  if (!supabase) return () => {};
+  const channel = supabase
+    .channel('public:encomendas_realtime_sync')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'encomendas' }, async () => {
+      const dados = await carregarEncomendasSupabase();
+      onUpdate(dados);
+    })
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
 }
 
 export function removerAjusteAdhoc(chave: string): void {
@@ -2703,4 +2849,188 @@ export function obterQuantidadeEfetivaClienteB2B(
     }
   }
   return { quantidade: 0, isAdhoc: false };
+}
+
+// ---------------- GUIA DE CARGA CONJUNTA (ROTAS 1 A 7) ---------------- //
+
+export function calcularDadosGuiaCargaConjunta(params: {
+  carrinhas: Carrinha[];
+  dataAlvo: string;
+  baseFixaCarrinhas: BaseFixaCarrinha[];
+  clientesB2B: ClienteEmpresarialB2B[];
+  basesRecorrentes: BaseDiariaRecorrente[];
+  encomendas: Encomenda[];
+  produtos: Produto[];
+  ajustesCustom?: Record<string, number>;
+}): DadosGuiaConjunta {
+  const { carrinhas, dataAlvo, baseFixaCarrinhas, clientesB2B, basesRecorrentes, encomendas, produtos, ajustesCustom } = params;
+  const diaSemanaAlvo = obterDiaSemanaDeData(dataAlvo);
+
+  const rotasAtivas = [...carrinhas]
+    .filter((c) => {
+      const num = c.numero || parseInt(String(c.rota || c.identificador || '').replace(/\D+/g, '') || '99', 10);
+      return num >= 1 && num <= 7 && c.matricula !== 'AAAAAA' && c.rota !== 'Rota 8' && c.identificador !== 'Rota 8';
+    })
+    .sort((a, b) => (a.numero || 0) - (b.numero || 0));
+
+  const rotasCabecalho: ColunaCabecalhoRota[] = rotasAtivas.map((c, i) => {
+    const num = c.numero || i + 1;
+    return {
+      id: c.id,
+      numero: num,
+      rota: c.rota || `Rota ${num}`,
+      nome_condutor: c.nome_condutor || 'A atribuir',
+      nome_carro: c.nome_carro || `Carro ${num}`,
+      matricula: c.matricula || '---',
+    };
+  });
+
+  const mapaArtigos = new Map<string, {
+    setor: string;
+    unidade: string;
+    rotas: Record<string, number>;
+    total: number;
+  }>();
+
+  const getOrCreateArtigo = (nomeRaw: string) => {
+    const nomeCanonico = normalizarNomeArtigoCanonico(nomeRaw);
+    if (!mapaArtigos.has(nomeCanonico)) {
+      const prodRef = produtos.find((p) => p.nome.toLowerCase() === nomeCanonico.toLowerCase());
+      const setor = prodRef?.categoria || (
+        nomeCanonico.toLowerCase().includes('bolo') ||
+        nomeCanonico.toLowerCase().includes('croissant') ||
+        nomeCanonico.toLowerCase().includes('nata') ||
+        nomeCanonico.toLowerCase().includes('pastel')
+          ? 'pastelaria'
+          : 'padaria'
+      );
+      const unidade = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
+      const rotasObj: Record<string, number> = {};
+      rotasAtivas.forEach((r) => { rotasObj[r.id] = 0; });
+      mapaArtigos.set(nomeCanonico, {
+        setor,
+        unidade,
+        rotas: rotasObj,
+        total: 0,
+      });
+    }
+    return mapaArtigos.get(nomeCanonico)!;
+  };
+
+  for (const car of rotasAtivas) {
+    // 1. Base Fixa
+    const bf = baseFixaCarrinhas.find((b) => b.carrinha_id === car.id);
+    const semanaBf = (bf?.quantidades_semanais || bf?.quantidades_semana || {}) as Record<string, Record<string, number>>;
+    const mapaBfDia = semanaBf?.[diaSemanaAlvo] || bf?.quantidades_por_produto || {};
+
+    const candidatosBf = new Set<string>();
+    Object.keys(mapaBfDia).forEach((a) => candidatosBf.add(a.trim()));
+    if (bf?.quantidades_semanais) {
+      Object.values(bf.quantidades_semanais).forEach((m) => {
+        Object.keys(m || {}).forEach((a) => candidatosBf.add(a.trim()));
+      });
+    }
+    if (bf?.quantidades_por_produto) {
+      Object.keys(bf.quantidades_por_produto).forEach((a) => candidatosBf.add(a.trim()));
+    }
+    obterArtigosAjustadosBaseRota(dataAlvo, car.id, ajustesCustom).forEach((a) => candidatosBf.add(a.trim()));
+
+    candidatosBf.forEach((artigo) => {
+      const { quantidade } = obterQuantidadeEfetivaBaseRota(dataAlvo, car.id, artigo, semanaBf, diaSemanaAlvo, ajustesCustom);
+      if (quantidade > 0) {
+        const entry = getOrCreateArtigo(artigo);
+        entry.rotas[car.id] = (entry.rotas[car.id] || 0) + quantidade;
+        entry.total += quantidade;
+      }
+    });
+
+    // 2. Bases Recorrentes (particulares fixos)
+    basesRecorrentes
+      .filter((b) => b.ativo && b.carrinha_id === car.id && !clienteEmModoFerias(b, dataAlvo))
+      .forEach((b) => {
+        const mapaDia = b.quantidades_semanais?.[diaSemanaAlvo] || {};
+        Object.entries(mapaDia).forEach(([artigo, qtd]) => {
+          const quantidade = Number(qtd) || 0;
+          if (quantidade > 0) {
+            const entry = getOrCreateArtigo(artigo);
+            entry.rotas[car.id] = (entry.rotas[car.id] || 0) + quantidade;
+            entry.total += quantidade;
+          }
+        });
+      });
+
+    // 3. Clientes B2B da carrinha
+    clientesB2B
+      .filter((cli) => cli.ativo && cli.carrinha_id === car.id)
+      .forEach((cli) => {
+        const semanaB2b = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
+        const mapaDiaB2b = semanaB2b?.[diaSemanaAlvo] || {};
+        const candidatosB2b = new Set<string>();
+        Object.keys(mapaDiaB2b).forEach((a) => candidatosB2b.add(a.trim()));
+        if (cli.quantidades_semanais) {
+          Object.values(cli.quantidades_semanais).forEach((m) => {
+            Object.keys(m || {}).forEach((a) => candidatosB2b.add(a.trim()));
+          });
+        }
+        obterArtigosAjustadosClienteB2B(dataAlvo, cli.id, ajustesCustom).forEach((a) => candidatosB2b.add(a.trim()));
+
+        candidatosB2b.forEach((artigo) => {
+          const { quantidade } = obterQuantidadeEfetivaClienteB2B(dataAlvo, cli.id, artigo, semanaB2b, diaSemanaAlvo, ajustesCustom);
+          if (quantidade > 0) {
+            const entry = getOrCreateArtigo(artigo);
+            entry.rotas[car.id] = (entry.rotas[car.id] || 0) + quantidade;
+            entry.total += quantidade;
+          }
+        });
+      });
+
+    // 4. Encomendas ao Domicílio
+    encomendas
+      .filter((e) => e.carrinha_id === car.id && e.data_agendamento === dataAlvo && e.tipo === 'entrega_domicilio' && e.estado !== 'cancelado')
+      .forEach((e) => {
+        (e.itens || []).forEach((item) => {
+          const quantidade = Number(item.quantidade) || 0;
+          if (quantidade > 0 && item.estado_producao !== 'recusado') {
+            const entry = getOrCreateArtigo(item.produto_nome);
+            entry.rotas[car.id] = (entry.rotas[car.id] || 0) + quantidade;
+            entry.total += quantidade;
+          }
+        });
+      });
+  }
+
+  const linhas: LinhaCargaConjunta[] = Array.from(mapaArtigos.entries())
+    .filter(([_, val]) => val.total > 0)
+    .map(([artigo, val]) => ({
+      artigo,
+      setor: val.setor,
+      unidade: val.unidade,
+      rotas: val.rotas,
+      total: val.total,
+    }))
+    .sort((a, b) => {
+      if (a.setor !== b.setor) return a.setor.localeCompare(b.setor);
+      return a.artigo.localeCompare(b.artigo);
+    });
+
+  const totaisPorRota: Record<string, number> = {};
+  rotasAtivas.forEach((r) => { totaisPorRota[r.id] = 0; });
+  let totalGeral = 0;
+
+  for (const l of linhas) {
+    rotasAtivas.forEach((r) => {
+      totaisPorRota[r.id] = (totaisPorRota[r.id] || 0) + (l.rotas[r.id] || 0);
+    });
+    totalGeral += l.total;
+  }
+
+  const totalCaixasEstimadas = Math.ceil(totalGeral / 25);
+
+  return {
+    rotasCabecalho,
+    linhas,
+    totaisPorRota,
+    totalGeral,
+    totalCaixasEstimadas,
+  };
 }

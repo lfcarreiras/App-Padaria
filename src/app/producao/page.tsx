@@ -38,6 +38,7 @@ import {
   BaseFixaCarrinha,
   ClienteEmpresarialB2B,
   DiaSemana,
+  DadosGuiaConjunta,
   BaseDiariaRecorrente
 } from '../../types';
 import { useTranslation } from '../../lib/i18n';
@@ -86,11 +87,7 @@ import { MatrizAjustesAdhoc } from '../../components/MatrizAjustesAdhoc';
 import { correspondePesquisaArtigo } from '../../lib/fuzzySearch';
 import EncomendasPage from '../encomendas/page';
 import EntregaLojaPage from '../loja/page';
-import { 
-  executarCompilacaoPoolNoturna, 
-  obterUltimoFechoNoturno, 
-  ResultadoFechoNoturno 
-} from '../../lib/poolNoturnaService';
+
 
 export default function ProducaoPage() {
   const router = useRouter();
@@ -139,10 +136,7 @@ export default function ProducaoPage() {
   const [dataInicioPersonalizada, setDataInicioPersonalizada] = useState('');
   const [dataFimPersonalizada, setDataFimPersonalizada] = useState('');
 
-  // Estados do Trigger.dev v3 Fecho Noturno (22h00)
-  const [ultimoFechoPool, setUltimoFechoPool] = useState<ResultadoFechoNoturno | null>(null);
-  const [executandoFecho, setExecutandoFecho] = useState<boolean>(false);
-  const [feedbackFecho, setFeedbackFecho] = useState<string | null>(null);
+  const [pdfDadosGuiaConjunta, setPdfDadosGuiaConjunta] = useState<DadosGuiaConjunta | undefined>(undefined);
 
   // Estados do Ecrã Encomendas
   const [buscaEncomendas, setBuscaEncomendas] = useState<string>('');
@@ -155,7 +149,7 @@ export default function ProducaoPage() {
 
   // Estados do Modal de PDF (Folhas de Carga, Comprovativos B2B & Folha de Fabrico)
   const [pdfModalOpen, setPdfModalOpen] = useState<boolean>(false);
-  const [pdfModalTipo, setPdfModalTipo] = useState<'folha_carga' | 'comprovativo_b2b' | 'folha_fabrico'>('folha_carga');
+  const [pdfModalTipo, setPdfModalTipo] = useState<'folha_carga' | 'comprovativo_b2b' | 'folha_fabrico' | 'guia_carga_conjunta'>('folha_carga');
   const [pdfCarrinhaSelecionada, setPdfCarrinhaSelecionada] = useState<Carrinha | undefined>(undefined);
   const [pdfClienteB2B, setPdfClienteB2B] = useState<ClienteEmpresarialB2B | undefined>(undefined);
   const [pdfItensCarga, setPdfItensCarga] = useState<LinhaArtigoCarga[]>([]);
@@ -183,7 +177,6 @@ export default function ProducaoPage() {
       sincronizarClientesB2BComSupabase().then((res) => {
         if (res && res.length > 0) setClientesB2B(res);
       });
-      setUltimoFechoPool(obterUltimoFechoNoturno());
       carregarBasesDiariasRecorrentes().then((bases) => {
         if (Array.isArray(bases)) setBasesRecorrentes(bases);
       });
@@ -198,10 +191,27 @@ export default function ProducaoPage() {
       setBasesRecorrentes(lista);
       setVersaoDados((v) => v + 1);
     });
+    const unsubCarrinhas = subscreverAlteracoesCarrinhas((cars) => {
+      setCarrinhas(cars);
+    });
+    const unsubBaseFixa = subscreverAlteracoesBaseFixa((bfs) => {
+      setBaseFixaCarrinhas(bfs);
+      setVersaoDados((v) => v + 1);
+    });
+    const unsubAjustes = subscreverAlteracoesAjustesAdhoc(() => {
+      setVersaoDados((v) => v + 1);
+    });
+    const unsubEncomendas = subscreverAlteracoesEncomendas((dados) => {
+      setEncomendas(dados);
+    });
 
     return () => {
       unsubB2B();
       unsubBases();
+      unsubCarrinhas();
+      unsubBaseFixa();
+      unsubAjustes();
+      unsubEncomendas();
     };
   }, []);
 
@@ -630,24 +640,21 @@ export default function ProducaoPage() {
     amanha
   ]);
 
-  // Executar Fecho Noturno Manual das 22h00 (Trigger.dev v3 Engine)
-  const handleExecutarFechoNoturnoManual = async () => {
-    setExecutandoFecho(true);
-    setFeedbackFecho(null);
-    try {
-      // Compilar para o dia seguinte (amanha)
-      const res = await executarCompilacaoPoolNoturna(amanha, currentUser);
-      setUltimoFechoPool(res);
-      setFeedbackFecho(`Fecho noturno concluído com sucesso para ${res.dataAlvo}! ${res.totalUnidades} unidades compiladas (${res.totalPadaria} pão, ${res.totalPastelaria} pastelaria, ~${res.totalCaixasEstimadas} caixas).`);
-      
-      // Atualizar lista de encomendas
-      const dados = await carregarEncomendasSupabase();
-      setEncomendas(dados);
-    } catch (err: any) {
-      setFeedbackFecho(`Erro no fecho noturno: ${err.message || 'Falha na compilação'}`);
-    } finally {
-      setExecutandoFecho(false);
-    }
+  const abrirGuiaCargaConjuntaPdf = (dataAlvoParam?: string) => {
+    const dataAlvo = dataAlvoParam || (dataGuiasCarga === 'amanha' ? amanha : hoje);
+    const dadosConjunta = calcularDadosGuiaCargaConjunta(
+      dataAlvo,
+      carrinhas,
+      baseFixaCarrinhas,
+      clientesB2B,
+      basesRecorrentes,
+      encomendas,
+      produtos
+    );
+    setPdfDadosGuiaConjunta(dadosConjunta);
+    setPdfDataReferencia(dataAlvo);
+    setPdfModalTipo('guia_carga_conjunta');
+    setPdfModalOpen(true);
   };
 
   // Preparar Itens de Folha de Carga por Carrinha
@@ -1803,6 +1810,14 @@ export default function ProducaoPage() {
                   <Calendar className="h-3.5 w-3.5 text-amber-600" />
                   <span>Amanhã ({amanha})</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => abrirGuiaCargaConjuntaPdf(dataGuiasCarga === 'amanha' ? amanha : hoje)}
+                  className="flex items-center gap-1.5 py-2 px-3.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-black shadow-xs transition cursor-pointer"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  <span>Guia Conjunta de Carga (Todas as Rotas)</span>
+                </button>
               </div>
             </div>
 
@@ -1854,7 +1869,7 @@ export default function ProducaoPage() {
 
                       <div className="mt-2 text-xs text-stone-500 font-medium">
                         <p><b>Viatura:</b> {car.nome_carro || car.modelo || 'Carrinha de Caixa'}</p>
-                        <p><b>Motorista:</b> {car.motorista_nome || 'Rui Oliveira'}</p>
+                        <p><b>Condutor:</b> {car.nome_condutor || car.motorista_nome || 'Condutor'}</p>
                       </div>
 
                       {/* Métricas de Carga de Madrugada */}
@@ -1916,6 +1931,7 @@ export default function ProducaoPage() {
       <PdfViewerModal
         isOpen={pdfModalOpen}
         tipo={pdfModalTipo}
+        dadosGuiaConjunta={pdfDadosGuiaConjunta}
         onClose={() => setPdfModalOpen(false)}
         carrinha={pdfCarrinhaSelecionada}
         diaSemana={(pdfModalTipo === 'folha_carga' ? (pdfDiaSemana || diaSemanaHoje) : (filtroPeriodo === 'amanha' ? obterDiaSemanaDeData(amanha) : diaSemanaHoje)) as any}

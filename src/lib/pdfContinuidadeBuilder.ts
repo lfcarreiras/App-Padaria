@@ -289,7 +289,7 @@ export function gerarPdfFolhaFabricoLojas(params: ParametrosFolhaFabricoPdf | st
 
     // 1. Cabeçalho Oficial da Loja (Wireframe sem fundo preenchido)
     p.drawRect(35, 750, 525, 42, null, '0.2 0.2 0.2');
-    p.drawText('PADARIA DA VILA - CENTRO DE PRODUÇÃO', 45, 776, 11, true, '0 0 0');
+    p.drawText('PADARIA DA VILA - CENTRO DE FABRICO', 45, 776, 11, true, '0 0 0');
     p.drawText(`FOLHA DE FABRICO DE ENCOMENDAS POR LOJA • OPERAÇÃO DE ${dataFormatada}`, 45, 764, 8, false, '0.2 0.2 0.2');
     p.drawText(`${loja.nome} • ${loja.morada || 'Arouca'}${loja.telefone ? ` • Tel: ${loja.telefone}` : ''}`, 45, 754, 7, false, '0.3 0.3 0.3');
 
