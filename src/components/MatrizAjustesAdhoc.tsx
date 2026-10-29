@@ -313,12 +313,6 @@ export function MatrizAjustesAdhoc({
 
     return lista.sort((a, b) => a.localeCompare(b));
   }, [baseFixaAtiva, ajustesAdhoc, carrinhaAtiva, pesquisaArtigo]);
-    if (pesquisaArtigo.trim()) {
-      lista = lista.filter((p) => correspondePesquisaArtigo(p, pesquisaArtigo));
-    }
-
-    return lista.sort((a, b) => a.localeCompare(b));
-  }, [baseFixaAtiva, ajustesAdhoc, carrinhaAtiva, pesquisaArtigo]);
 
   // Lista de Clientes B2B filtrados
   const clientesB2BFiltrados = useMemo(() => {
