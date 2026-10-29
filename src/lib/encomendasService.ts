@@ -1,6 +1,6 @@
-﻿import { supabase } from './supabase';
+import { supabase } from './supabase';
 import { Encomenda, ItemEncomenda, EstadoEncomenda, EstadoProducaoItem, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, LogAuditoria, BaseFixaCarrinha, ClienteEmpresarialB2B, DiaSemana, BaseDiariaRecorrente, Role, PermissoesCargo, MatrizPermissoesCargos, LinhaCargaConjunta, DadosGuiaConjunta, ColunaCabecalhoRota } from '../types';
-import { LOGS_AUDITORIA_MOCK, CARRINHAS_MOCK, COLUNAS_MAPA_DIARIO_OFICIAL, BASE_FIXA_CARRINHAS_INICIAL, CLIENTES_EMPRESARIAIS_B2B_INICIAIS } from './mockData';
+import { LOJAS_MOCK, LOGS_AUDITORIA_MOCK, CARRINHAS_MOCK, COLUNAS_MAPA_DIARIO_OFICIAL, BASE_FIXA_CARRINHAS_INICIAL, CLIENTES_EMPRESARIAIS_B2B_INICIAIS } from './mockData';
 
 const REAL_DELIVERY_TIMESTAMPS_KEY = 'padaria_timestamps_entrega_real_v1';
 const CANAL_ORIGEM_FALLBACK_KEY = 'padaria_canais_origem_v1';
