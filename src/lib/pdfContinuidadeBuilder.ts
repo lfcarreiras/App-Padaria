@@ -511,6 +511,7 @@ export function gerarPdfGuiaCargaConjunta(params: ParametrosFolhaCargaPdf | stri
   const colunasPadaria = dados.colunasGrelhaPadaria || [];
   const colunasPastelaria = dados.colunasGrelhaPastelaria || [];
   const grupos = dados.gruposRotasGrelha || [];
+  const colunasRotasAtivas = dados.colunasRotas || [];
 
   // ==============================================================
   // PÁGINA 1: TABELA 1 - PADARIA (34 COLUNAS DE PRODUTOS + ROTAS E CLIENTES)
@@ -525,8 +526,8 @@ export function gerarPdfGuiaCargaConjunta(params: ParametrosFolhaCargaPdf | stri
 
   function desenharCabecalhoPadaria(page: PdfPageWriter, startY: number): number {
     page.drawRect(xInicio, startY - 26, wTotalTabela, 26, null, '0 0 0');
-    page.drawText('PADARIA DA VILA - GUIA OFICIAL DE CARGA CONJUNTA • SECÇÃO PADARIA', xInicio + 8, startY - 11, 9, true, '0 0 0');
-    page.drawText(`Operação de ${dados.data || dataFormatada} • Mapa Global Consolidado (Rotas 1 a 7 & Clientes B2B) • BCP`, xInicio + 8, startY - 21, 6.5, false, '0.3 0.3 0.3');
+    page.drawText('PADARIA DA VILA - GUIA OFICIAL DE CARGA CONJUNTA • 1. SECÇÃO PADARIA', xInicio + 8, startY - 11, 9, true, '0 0 0');
+    page.drawText(`Operação de ${dados.data || dataFormatada} • (${colunasRotasAtivas.length} rotas ativas: Porta a Porta + Clientes Empresariais + Encomendas) • BCP`, xInicio + 8, startY - 21, 6.5, false, '0.3 0.3 0.3');
     page.drawText(`Total Padaria: ${dados.totalGeralPadaria ?? 0} un.`, xInicio + wTotalTabela - 130, startY - 16, 8, true, '0 0 0');
 
     const tableTop = startY - 30;
@@ -550,42 +551,75 @@ export function gerarPdfGuiaCargaConjunta(params: ParametrosFolhaCargaPdf | stri
   let currentY = 565;
   currentY = desenharCabecalhoPadaria(p, currentY);
 
-  grupos.forEach((grupo) => {
-    grupo.linhas.forEach((linha) => {
-      if (currentY - 11 < 35) {
+  const gruposPadaria = grupos.filter((g) => (g.totalPadariaRota || 0) > 0);
+
+  gruposPadaria.forEach((grupo) => {
+    const linhasComPadaria = (grupo.linhas || []).filter((linha) => {
+      const totPad = colunasPadaria.reduce((acc, col) => acc + (linha.quantidades[col.id] || 0), 0);
+      return totPad > 0;
+    });
+
+    if (linhasComPadaria.length === 0 && (grupo.totalPadariaRota || 0) === 0) return;
+
+    if (currentY - 14 - (linhasComPadaria.length * 9.5) < 35 && currentY < 500) {
+      p = doc.addPage();
+      currentY = 565;
+      currentY = desenharCabecalhoPadaria(p, currentY);
+    }
+
+    // 1. Linha Divisória de Cabeçalho da Rota com Subtotais por Coluna
+    const rowHeaderH = 11;
+    p.drawRect(xInicio, currentY - rowHeaderH, wTotalTabela, rowHeaderH, '0.94 0.94 0.94', '0.2 0.2 0.2');
+    const rotuloRotaHeader = `${grupo.rotaNome} — ${grupo.nomeCondutor || 'Condutor'} ${grupo.matricula ? '(' + grupo.matricula + ')' : ''}`.toUpperCase();
+    p.drawText(rotuloRotaHeader.slice(0, 36), xInicio + 4, currentY - (rowHeaderH - 3), 6.5, true, '0 0 0');
+
+    colunasPadaria.forEach((col, idx) => {
+      const cx = xInicio + wNomeColPad + idx * wColPad;
+      p.drawLine(cx, currentY, cx, currentY - rowHeaderH, '0.5 0.5 0.5', 0.4);
+      const q = grupo.totaisPadaria[col.id] || 0;
+      if (q > 0) {
+        const sq = String(q);
+        const posX = cx + wColPad / 2 - sq.length * 1.6;
+        p.drawText(sq, posX, currentY - (rowHeaderH - 3), 6, true, '0 0 0');
+      }
+    });
+
+    p.drawLine(xTotPad, currentY, xTotPad, currentY - rowHeaderH, '0 0 0', 0.8);
+    p.drawText(String(grupo.totalPadariaRota), xTotPad + 4, currentY - (rowHeaderH - 3), 6.5, true, '0 0 0');
+    currentY -= rowHeaderH;
+
+    // 2. Linhas discriminadas da rota (Porta a Porta, Clientes B2B, Encomendas)
+    linhasComPadaria.forEach((linha) => {
+      if (currentY - 10 < 35) {
         p = doc.addPage();
         currentY = 565;
         currentY = desenharCabecalhoPadaria(p, currentY);
       }
 
-      const isBaseRota = linha.tipo === 'rota_base';
-      const rowH = isBaseRota ? 11 : 9.5;
-      const strokeC = isBaseRota ? '0.3 0.3 0.3' : '0.85 0.85 0.85';
-      const fontSz = isBaseRota ? 6 : 5.2;
+      const rowH = 9.5;
+      p.drawRect(xInicio, currentY - rowH, wTotalTabela, rowH, null, '0.85 0.85 0.85');
 
-      p.drawRect(xInicio, currentY - rowH, wTotalTabela, rowH, null, strokeC);
+      const isBase = linha.tipo === 'rota_base';
+      const nomeText = isBase ? '   Porta a Porta' : `   ${linha.nomeExibicao.slice(0, 24)}`;
+      p.drawText(nomeText, xInicio + 4, currentY - (rowH - 3), 5.2, isBase, '0 0 0');
 
-      const nomeText = isBaseRota
-        ? linha.nomeExibicao
-        : `   ${linha.nomeExibicao.slice(0, 24)}`;
-      p.drawText(nomeText, xInicio + (isBaseRota ? 4 : 8), currentY - (rowH - 3), fontSz, isBaseRota, '0 0 0');
-
+      let totPadLinha = 0;
       colunasPadaria.forEach((col, idx) => {
         const cx = xInicio + wNomeColPad + idx * wColPad;
-        p.drawLine(cx, currentY, cx, currentY - rowH, isBaseRota ? '0.6 0.6 0.6' : '0.9 0.9 0.9', 0.3);
+        p.drawLine(cx, currentY, cx, currentY - rowH, '0.9 0.9 0.9', 0.3);
 
         const q = linha.quantidades[col.id] || 0;
         if (q > 0) {
+          totPadLinha += q;
           const sq = String(q);
           const posX = cx + wColPad / 2 - sq.length * 1.6;
-          p.drawText(sq, posX, currentY - (rowH - 3), isBaseRota ? 6.5 : 5.8, isBaseRota, '0 0 0');
+          p.drawText(sq, posX, currentY - (rowH - 3), 5.8, isBase, '0 0 0');
         }
       });
 
       p.drawLine(xTotPad, currentY, xTotPad, currentY - rowH, '0.4 0.4 0.4', 0.6);
-      if (linha.totalLinha > 0) {
-        const st = String(linha.totalLinha);
-        p.drawText(st, xTotPad + 4, currentY - (rowH - 3), 6, true, '0 0 0');
+      if (totPadLinha > 0) {
+        p.drawText(String(totPadLinha), xTotPad + 4, currentY - (rowH - 3), 6, true, '0 0 0');
       }
 
       currentY -= rowH;
@@ -630,8 +664,8 @@ export function gerarPdfGuiaCargaConjunta(params: ParametrosFolhaCargaPdf | stri
 
   function desenharCabecalhoPastelaria(page: PdfPageWriter, startY: number): number {
     page.drawRect(xInicio, startY - 26, wTotalTabela, 26, null, '0 0 0');
-    page.drawText('PADARIA DA VILA - GUIA OFICIAL DE CARGA CONJUNTA • SECÇÃO PASTELARIA', xInicio + 8, startY - 11, 9, true, '0 0 0');
-    page.drawText(`Operação de ${dados.data || dataFormatada} • Mapa Global Consolidado (Rotas 1 a 7 & Clientes B2B) • BCP`, xInicio + 8, startY - 21, 6.5, false, '0.3 0.3 0.3');
+    page.drawText('PADARIA DA VILA - GUIA OFICIAL DE CARGA CONJUNTA • 2. SECÇÃO PASTELARIA FINA', xInicio + 8, startY - 11, 9, true, '0 0 0');
+    page.drawText(`Operação de ${dados.data || dataFormatada} • (${colunasRotasAtivas.length} rotas ativas: Porta a Porta + Clientes Empresariais + Encomendas) • BCP`, xInicio + 8, startY - 21, 6.5, false, '0.3 0.3 0.3');
     page.drawText(`Total Pastelaria: ${dados.totalGeralPastelaria ?? 0} un.`, xInicio + wTotalTabela - 140, startY - 16, 8, true, '0 0 0');
 
     const tableTop = startY - 30;
@@ -654,42 +688,75 @@ export function gerarPdfGuiaCargaConjunta(params: ParametrosFolhaCargaPdf | stri
 
   currentY = desenharCabecalhoPastelaria(p, currentY);
 
-  grupos.forEach((grupo) => {
-    grupo.linhas.forEach((linha) => {
-      if (currentY - 11 < 80) {
+  const gruposPastelaria = grupos.filter((g) => (g.totalPastelariaRota || 0) > 0);
+
+  gruposPastelaria.forEach((grupo) => {
+    const linhasComPastelaria = (grupo.linhas || []).filter((linha) => {
+      const totPast = colunasPastelaria.reduce((acc, col) => acc + (linha.quantidades[col.id] || 0), 0);
+      return totPast > 0;
+    });
+
+    if (linhasComPastelaria.length === 0 && (grupo.totalPastelariaRota || 0) === 0) return;
+
+    if (currentY - 14 - (linhasComPastelaria.length * 9.5) < 80 && currentY < 500) {
+      p = doc.addPage();
+      currentY = 565;
+      currentY = desenharCabecalhoPastelaria(p, currentY);
+    }
+
+    // 1. Linha Divisória de Cabeçalho da Rota com Subtotais por Coluna
+    const rowHeaderH = 11;
+    p.drawRect(xInicio, currentY - rowHeaderH, wTotalTabela, rowHeaderH, '0.94 0.94 0.94', '0.2 0.2 0.2');
+    const rotuloRotaHeader = `${grupo.rotaNome} — ${grupo.nomeCondutor || 'Condutor'} ${grupo.matricula ? '(' + grupo.matricula + ')' : ''}`.toUpperCase();
+    p.drawText(rotuloRotaHeader.slice(0, 36), xInicio + 4, currentY - (rowHeaderH - 3), 6.5, true, '0 0 0');
+
+    colunasPastelaria.forEach((col, idx) => {
+      const cx = xInicio + wNomeColPast + idx * wColPast;
+      p.drawLine(cx, currentY, cx, currentY - rowHeaderH, '0.5 0.5 0.5', 0.4);
+      const q = grupo.totaisPastelaria[col.id] || 0;
+      if (q > 0) {
+        const sq = String(q);
+        const posX = cx + wColPast / 2 - sq.length * 2.0;
+        p.drawText(sq, posX, currentY - (rowHeaderH - 3), 6, true, '0 0 0');
+      }
+    });
+
+    p.drawLine(xTotPast, currentY, xTotPast, currentY - rowHeaderH, '0 0 0', 0.8);
+    p.drawText(String(grupo.totalPastelariaRota), xTotPast + 10, currentY - (rowHeaderH - 3), 6.5, true, '0 0 0');
+    currentY -= rowHeaderH;
+
+    // 2. Linhas discriminadas da rota (Porta a Porta, Clientes B2B, Encomendas)
+    linhasComPastelaria.forEach((linha) => {
+      if (currentY - 10 < 80) {
         p = doc.addPage();
         currentY = 565;
         currentY = desenharCabecalhoPastelaria(p, currentY);
       }
 
-      const isBaseRota = linha.tipo === 'rota_base';
-      const rowH = isBaseRota ? 11 : 9.5;
-      const strokeC = isBaseRota ? '0.3 0.3 0.3' : '0.85 0.85 0.85';
-      const fontSz = isBaseRota ? 6.5 : 5.5;
+      const rowH = 9.5;
+      p.drawRect(xInicio, currentY - rowH, wTotalTabela, rowH, null, '0.85 0.85 0.85');
 
-      p.drawRect(xInicio, currentY - rowH, wTotalTabela, rowH, null, strokeC);
+      const isBase = linha.tipo === 'rota_base';
+      const nomeText = isBase ? '   Porta a Porta' : `   ${linha.nomeExibicao.slice(0, 28)}`;
+      p.drawText(nomeText, xInicio + 4, currentY - (rowH - 3), 5.5, isBase, '0 0 0');
 
-      const nomeText = isBaseRota
-        ? linha.nomeExibicao
-        : `   ${linha.nomeExibicao.slice(0, 28)}`;
-      p.drawText(nomeText, xInicio + (isBaseRota ? 4 : 8), currentY - (rowH - 3), fontSz, isBaseRota, '0 0 0');
-
+      let totPastLinha = 0;
       colunasPastelaria.forEach((col, idx) => {
         const cx = xInicio + wNomeColPast + idx * wColPast;
-        p.drawLine(cx, currentY, cx, currentY - rowH, isBaseRota ? '0.6 0.6 0.6' : '0.9 0.9 0.9', 0.3);
+        p.drawLine(cx, currentY, cx, currentY - rowH, '0.9 0.9 0.9', 0.3);
 
         const q = linha.quantidades[col.id] || 0;
         if (q > 0) {
+          totPastLinha += q;
           const sq = String(q);
           const posX = cx + wColPast / 2 - sq.length * 2.0;
-          p.drawText(sq, posX, currentY - (rowH - 3), isBaseRota ? 7 : 6.2, isBaseRota, '0 0 0');
+          p.drawText(sq, posX, currentY - (rowH - 3), 6.2, isBase, '0 0 0');
         }
       });
 
       p.drawLine(xTotPast, currentY, xTotPast, currentY - rowH, '0.4 0.4 0.4', 0.6);
-      if (linha.totalLinha > 0) {
-        const st = String(linha.totalLinha);
-        p.drawText(st, xTotPast + 10, currentY - (rowH - 3), 6.5, true, '0 0 0');
+      if (totPastLinha > 0) {
+        p.drawText(String(totPastLinha), xTotPast + 10, currentY - (rowH - 3), 6.5, true, '0 0 0');
       }
 
       currentY -= rowH;

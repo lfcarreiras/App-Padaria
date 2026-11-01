@@ -1736,7 +1736,7 @@ export function PdfViewerModal({
                   </span>
                   <p className="text-xs font-bold text-stone-900 mt-1">Data: {dadosGuiaConjunta.data || dataFormatada}</p>
                   <p className="text-[11px] text-stone-600">
-                    {(dadosGuiaConjunta.colunasRotas || []).length} rotas ativas (Bases + B2B + Domicílios)
+                    {(dadosGuiaConjunta.colunasRotas || []).length} rotas ativas (Porta a Porta + Clientes Empresariais + Encomendas)
                   </p>
                 </div>
               </div>
@@ -1749,27 +1749,27 @@ export function PdfViewerModal({
                   <span className="text-[9px] text-stone-500 block mt-0.5">todas as carrinhas</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-white border border-stone-300">
-                  <span className="text-[9px] font-bold text-stone-600 uppercase block">🥖 Padaria & Broas</span>
+                  <span className="text-[9px] font-bold text-stone-600 uppercase block">🥖 Padaria</span>
                   <span className="text-xl font-black text-stone-950 font-mono">{dadosGuiaConjunta.totalGeralPadaria ?? 0} un.</span>
-                  <span className="text-[9px] text-stone-500 block mt-0.5">pães e broas</span>
+                  <span className="text-[9px] text-stone-500 block mt-0.5">pães</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-white border border-stone-300">
                   <span className="text-[9px] font-bold text-stone-600 uppercase block">🍰 Pastelaria</span>
                   <span className="text-xl font-black text-stone-950 font-mono">{dadosGuiaConjunta.totalGeralPastelaria ?? 0} un.</span>
-                  <span className="text-[9px] text-stone-500 block mt-0.5">pastelaria e doçaria</span>
+                  <span className="text-[9px] text-stone-500 block mt-0.5">pastelaria</span>
                 </div>
               </div>
 
-              {/* Tabela Grelha Oficial Conjunta (Conforme Docx: Padaria 34 Colunas e Pastelaria 18 Colunas) */}
+              {/* Tabela Grelha Oficial Conjunta */}
               {dadosGuiaConjunta.gruposRotasGrelha &&
               dadosGuiaConjunta.colunasGrelhaPadaria &&
               dadosGuiaConjunta.colunasGrelhaPastelaria ? (
                 <div className="space-y-6">
-                  {/* TABELA 1: PADARIA (34 COLUNAS) */}
+                  {/* TABELA 1: PADARIA */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between border-b-2 border-stone-800 pb-1">
                       <h2 className="text-xs sm:text-sm font-black text-stone-900 uppercase tracking-wide flex items-center gap-1.5">
-                        <span>🥖 1. SECÇÃO PADARIA & BROAS (34 COLUNAS)</span>
+                        <span>🥖 1. SECÇÃO PADARIA</span>
                       </h2>
                       <span className="text-[11px] font-bold text-stone-700 font-mono">
                         Total Padaria: {dadosGuiaConjunta.totalGeralPadaria} un.
@@ -1802,14 +1802,15 @@ export function PdfViewerModal({
                           </tr>
                         </thead>
                         <tbody>
-                          {dadosGuiaConjunta.gruposRotasGrelha.map((grupo) => {
-                            const linhasComPadaria = (grupo.linhas || []).filter((l) => {
-                              if (l.tipo === 'rota_base') return true;
-                              const totPadLinha = dadosGuiaConjunta.colunasGrelhaPadaria!.reduce((acc, c) => acc + (l.quantidades[c.id] || 0), 0);
-                              return totPadLinha > 0;
-                            });
+                          {dadosGuiaConjunta.gruposRotasGrelha
+                            .filter((grupo) => (grupo.totalPadariaRota || 0) > 0)
+                            .map((grupo) => {
+                              const linhasComPadaria = (grupo.linhas || []).filter((l) => {
+                                const totPadLinha = dadosGuiaConjunta.colunasGrelhaPadaria!.reduce((acc, c) => acc + (l.quantidades[c.id] || 0), 0);
+                                return totPadLinha > 0;
+                              });
 
-                            return (
+                              return (
                               <React.Fragment key={grupo.carrinhaId}>
                                 {/* Linha de Cabeçalho / Divisória da Rota */}
                                 <tr className="bg-stone-100/90 font-black border-t-2 border-b border-stone-700 text-stone-950">
@@ -1890,11 +1891,11 @@ export function PdfViewerModal({
                     </div>
                   </div>
 
-                  {/* TABELA 2: PASTELARIA (18 COLUNAS) */}
+                  {/* TABELA 2: PASTELARIA */}
                   <div className="space-y-2 pt-2">
                     <div className="flex items-center justify-between border-b-2 border-stone-800 pb-1">
                       <h2 className="text-xs sm:text-sm font-black text-stone-900 uppercase tracking-wide flex items-center gap-1.5">
-                        <span>🧁 2. SECÇÃO PASTELARIA FINA (18 COLUNAS)</span>
+                        <span>🧁 2. SECÇÃO PASTELARIA FINA</span>
                       </h2>
                       <span className="text-[11px] font-bold text-stone-700 font-mono">
                         Total Pastelaria: {dadosGuiaConjunta.totalGeralPastelaria} un.
@@ -1927,14 +1928,15 @@ export function PdfViewerModal({
                           </tr>
                         </thead>
                         <tbody>
-                          {dadosGuiaConjunta.gruposRotasGrelha.map((grupo) => {
-                            const linhasComPastelaria = (grupo.linhas || []).filter((l) => {
-                              if (l.tipo === 'rota_base') return true;
-                              const totPastLinha = dadosGuiaConjunta.colunasGrelhaPastelaria!.reduce((acc, c) => acc + (l.quantidades[c.id] || 0), 0);
-                              return totPastLinha > 0;
-                            });
+                          {dadosGuiaConjunta.gruposRotasGrelha
+                            .filter((grupo) => (grupo.totalPastelariaRota || 0) > 0)
+                            .map((grupo) => {
+                              const linhasComPastelaria = (grupo.linhas || []).filter((l) => {
+                                const totPastLinha = dadosGuiaConjunta.colunasGrelhaPastelaria!.reduce((acc, c) => acc + (l.quantidades[c.id] || 0), 0);
+                                return totPastLinha > 0;
+                              });
 
-                            return (
+                              return (
                               <React.Fragment key={grupo.carrinhaId}>
                                 {/* Linha de Cabeçalho / Divisória da Rota */}
                                 <tr className="bg-stone-100/90 font-black border-t-2 border-b border-stone-700 text-stone-950">

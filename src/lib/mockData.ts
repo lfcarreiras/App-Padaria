@@ -804,21 +804,7 @@ export const BASE_FIXA_CARRINHAS_INICIAL: BaseFixaCarrinha[] = [
         "Pão 7 Grãos Pequeno": 4,
         "Pão Croissant": 4
       },
-      "dom": {
-        "Pão Integral": 31,
-        "Pão de Centeio": 60,
-        "Pão Normal": 240,
-        "Padas de Centeio": 8,
-        "Padas Normais": 13,
-        "Padinhas": 24,
-        "Broa Amarela 0,5 kg": 1,
-        "Pão Saloio": 2,
-        "Pão Italiano": 23,
-        "Pão de Sementes": 10,
-        "Pão de Alfarroba": 2,
-        "Pão 7 Grãos Pequeno": 4,
-        "Pão Croissant": 4
-      }
+      "dom": {}
     }
   },
   {

@@ -1987,6 +1987,12 @@ export function normalizarBaseFixaItem(b: any): BaseFixaCarrinha {
     }
   });
 
+  // Regra de Negócio: ao domingo apenas a Rota 1 tem quantidades na base diária (porta a porta)
+  const isRota1 = infoId.id === '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75' || /rota 1/i.test(nomeLimpo);
+  if (!isRota1) {
+    semanaNormalizada.dom = {};
+  }
+
   return {
     carrinha_id: infoId.id,
     carrinha_nome: nomeLimpo,
@@ -3254,21 +3260,25 @@ export function calcularDadosGuiaCargaConjunta(
     COLUNAS_GRELHA_PASTELARIA.forEach((c) => { rotaTotaisPastelaria[c.id] = 0; });
 
     // 1. Base Fixa
+    // Regra de Negócio: ao domingo apenas a Rota 1 tem quantidades na base diária (porta a porta)
+    const isRota1 = car.numero === 1 || car.id === '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75' || /rota 1/i.test(car.rota || car.identificador || '');
     const bf = baseFixaCarrinhas.find((b) => b.carrinha_id === car.id);
     const semanaBf = (bf?.quantidades_semanais || bf?.quantidades_semana || {}) as Record<string, Record<string, number>>;
-    const mapaBfDia = semanaBf?.[diaSemanaAlvo] || bf?.quantidades_por_produto || {};
+    const mapaBfDia = (diaSemanaAlvo === 'dom' && !isRota1) ? {} : (semanaBf?.[diaSemanaAlvo] || bf?.quantidades_por_produto || {});
 
     const candidatosBf = new Set<string>();
-    Object.keys(mapaBfDia).forEach((a) => candidatosBf.add(a.trim()));
-    if (bf?.quantidades_semanais) {
-      Object.values(bf.quantidades_semanais).forEach((m) => {
-        Object.keys(m || {}).forEach((a) => candidatosBf.add(a.trim()));
-      });
+    if (!(diaSemanaAlvo === 'dom' && !isRota1)) {
+      Object.keys(mapaBfDia).forEach((a) => candidatosBf.add(a.trim()));
+      if (bf?.quantidades_semanais) {
+        Object.values(bf.quantidades_semanais).forEach((m) => {
+          Object.keys(m || {}).forEach((a) => candidatosBf.add(a.trim()));
+        });
+      }
+      if (bf?.quantidades_por_produto) {
+        Object.keys(bf.quantidades_por_produto).forEach((a) => candidatosBf.add(a.trim()));
+      }
+      obterArtigosAjustadosBaseRota(dataAlvo, car.id, ajustesCustom).forEach((a) => candidatosBf.add(a.trim()));
     }
-    if (bf?.quantidades_por_produto) {
-      Object.keys(bf.quantidades_por_produto).forEach((a) => candidatosBf.add(a.trim()));
-    }
-    obterArtigosAjustadosBaseRota(dataAlvo, car.id, ajustesCustom).forEach((a) => candidatosBf.add(a.trim()));
 
     const qtdsBaseLinha: Record<string, number> = {};
     let totalBaseLinha = 0;
@@ -3295,7 +3305,7 @@ export function calcularDadosGuiaCargaConjunta(
 
     // 2. Bases Recorrentes (particulares fixos)
     basesRecorrentes
-      .filter((b) => b.ativo && b.carrinha_id === car.id && !clienteEmModoFerias(b, dataAlvo))
+      .filter((b) => b.ativo && b.carrinha_id === car.id && !clienteEmModoFerias(b, dataAlvo) && !(diaSemanaAlvo === 'dom' && !isRota1))
       .forEach((b) => {
         const mapaDia = b.quantidades_semanais?.[diaSemanaAlvo] || {};
         Object.entries(mapaDia).forEach(([artigo, qtd]) => {
@@ -3319,17 +3329,18 @@ export function calcularDadosGuiaCargaConjunta(
         });
       });
 
-    // Linha de Cabeçalho / Base da Rota
-    const rotuloRota = `Rota ${numRota} ${car.nome_condutor ? car.nome_condutor : ''} ${car.matricula ? car.matricula : ''}`.trim();
-    linhasGrelhaRota.push({
-      tipo: 'rota_base',
-      id: `base-${car.id}`,
-      carrinhaId: car.id,
-      nomeExibicao: rotuloRota,
-      detalhe: 'Base Diária (Porta-a-Porta)',
-      quantidades: qtdsBaseLinha,
-      totalLinha: totalBaseLinha,
-    });
+    // Linha de Cabeçalho / Base da Rota: discriminar como 'Porta a Porta' apenas se tiver quantidades
+    if (totalBaseLinha > 0) {
+      linhasGrelhaRota.push({
+        tipo: 'rota_base',
+        id: `base-${car.id}`,
+        carrinhaId: car.id,
+        nomeExibicao: 'Porta a Porta',
+        detalhe: 'Base Diária (Porta-a-Porta)',
+        quantidades: qtdsBaseLinha,
+        totalLinha: totalBaseLinha,
+      });
+    }
 
     // 3. Clientes B2B da carrinha
     const clientesDaRota = clientesB2B.filter((cli) => cli.ativo && cli.carrinha_id === car.id);
@@ -3420,20 +3431,24 @@ export function calcularDadosGuiaCargaConjunta(
 
     const totPadRota = Object.values(rotaTotaisPadaria).reduce((acc, v) => acc + v, 0);
     const totPastRota = Object.values(rotaTotaisPastelaria).reduce((acc, v) => acc + v, 0);
+    const totGeralRota = totPadRota + totPastRota;
 
-    gruposRotasGrelha.push({
-      carrinhaId: car.id,
-      numeroRota: numRota,
-      rotaNome: car.rota || `Rota ${numRota}`,
-      nomeCondutor: car.nome_condutor || '',
-      matricula: car.matricula || '',
-      linhas: linhasGrelhaRota,
-      totaisPadaria: rotaTotaisPadaria,
-      totaisPastelaria: rotaTotaisPastelaria,
-      totalPadariaRota: totPadRota,
-      totalPastelariaRota: totPastRota,
-      totalGeralRota: totPadRota + totPastRota,
-    });
+    // Regra de Negócio: rotas com total geral a zero não devem aparecer na folha
+    if (totGeralRota > 0) {
+      gruposRotasGrelha.push({
+        carrinhaId: car.id,
+        numeroRota: numRota,
+        rotaNome: car.rota || `Rota ${numRota}`,
+        nomeCondutor: car.nome_condutor || '',
+        matricula: car.matricula || '',
+        linhas: linhasGrelhaRota,
+        totaisPadaria: rotaTotaisPadaria,
+        totaisPastelaria: rotaTotaisPastelaria,
+        totalPadariaRota: totPadRota,
+        totalPastelariaRota: totPastRota,
+        totalGeralRota,
+      });
+    }
   }
 
   const totaisColunasPadaria: Record<string, number> = {};
@@ -3506,10 +3521,12 @@ export function calcularDadosGuiaCargaConjunta(
   }
 
   const totalCaixasEstimadas = Math.ceil(totalGeral / 25);
+  const colunasRotasAtivas = colunasRotas.filter((c) => (totaisPorRota[c.carrinhaId] || 0) > 0);
+  const rotasCabecalhoAtivas = rotasCabecalho.filter((r) => (totaisPorRota[r.id] || 0) > 0);
 
   return {
     data: dataAlvo,
-    colunasRotas,
+    colunasRotas: colunasRotasAtivas.length > 0 ? colunasRotasAtivas : colunasRotas,
     linhasPadaria,
     linhasPastelaria,
     totaisPorRota,
@@ -3520,7 +3537,7 @@ export function calcularDadosGuiaCargaConjunta(
     totalGeralPastelaria,
     totalCaixasEstimadas,
 
-    rotasCabecalho,
+    rotasCabecalho: rotasCabecalhoAtivas.length > 0 ? rotasCabecalhoAtivas : rotasCabecalho,
     linhas,
     totalGeral,
 

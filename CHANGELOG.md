@@ -42,6 +42,32 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.36] - 2026-11-01
+
+### Fixed & Enhanced (Regra Estrita de Domingo para Rota 1, Ocultação de Rotas com Carga Zero, Nomenclaturas Oficiais e Discriminação "Porta a Porta")
+- **Regra Estrita de Domingo para Base Diária (Apenas Rota 1)**:
+  - Ao domingo (`dom`), única e exclusivamente a **Rota 1** tem quantidades na base diária (porta a porta). As Rotas 2 a 7 têm `dom: {}` garantido na base de dados Supabase e filtrado imperativamente pelo motor de cálculo (`normalizarBaseFixaItem` e `calcularDadosGuiaCargaConjunta`).
+  - Corrigida a base histórica de mock (`BASE_FIXA_CARRINHAS_INICIAL`) onde a Rota 4 continha indevidamente 422 unidades ao domingo.
+- **Ocultação de Rotas sem Carga (Total a Zero)**:
+  - Rotas com total geral a zero deixam de figurar na Guia de Carga Conjunta (tanto no modal de visualização/impressão da app como no PDF de continuidade anexado ao email automático das 23h15).
+  - Na Tabela 1 (Padaria), figuram apenas rotas com `totalPadariaRota > 0` (ex: Rotas 1 e 5 ao domingo).
+  - Na Tabela 2 (Pastelaria), figuram apenas rotas com `totalPastelariaRota > 0` (ex: Rota 1 ao domingo).
+  - As colunas ativas no cabeçalho adaptam-se dinamicamente ao número real de rotas em circulação (ex: `2 rotas ativas` ao domingo em vez de 7).
+- **Discriminação de Linhas e Nomenclatura "Porta a Porta"**:
+  - Dentro de cada rota, as linhas são claramente discriminadas:
+    - A base diária da carrinha passa a intitular-se formalmente **`Porta a Porta`** (substituindo a repetição redundante do nome da rota/condutor/matrícula) e só é exibida se tiver quantidades atribuídas.
+    - Cada cliente empresarial B2B surge na sua própria linha discriminada (ex: Cavadinha Cabeçais, Lanterna, Mercearia Ribeiro, Café Ribeiro, AICIA, Pedestre 142, Tasquinha da Quinta).
+    - As encomendas ao domicílio surgem em linhas dedicadas (`Enc: Nome`).
+- **Ajustes de Nomenclatura e Títulos de Secção**:
+  - Removida a menção a "Broas" no cartão resumo de Padaria: passa a **`🥖 Padaria`** e subtítulo **`pães`**.
+  - No cartão resumo de Pastelaria: subtítulo atualizado para **`pastelaria`**.
+  - No cabeçalho geral: a legenda foi atualizada para **`Porta a Porta + Clientes Empresariais + Encomendas`** (removida a designação "Bases + B2B + Domicílios").
+  - Nos títulos das secções, removida a menção ao número de colunas:
+    - **`🥖 1. SECÇÃO PADARIA`** (em vez de `PADARIA & BROAS (34 COLUNAS)`).
+    - **`🧁 2. SECÇÃO PASTELARIA FINA`** (em vez de `PASTELARIA FINA (18 COLUNAS)`).
+- **Auditoria de Clientes Empresariais de Domingo**:
+  - Confirmados os 37 clientes registados em Supabase: exatamente 7 clientes têm entregas ativas ao domingo (Rota 1: Cavadinha Cabeçais, Mercearia Ribeiro, Lanterna, Café Ribeiro; Rota 5: Tasquinha da Quinta, AICIA, Pedestre 142). Os restantes 30 clientes são escolas e estabelecimentos comerciais fechados ao domingo (`dom: 0 un.`).
+
 ## [v2.7.35] - 2026-11-01
 
 ### Fixed & Enhanced (Grelha Oficial de Carga Conjunta, Base Diária por Dia Estrito, Sincronização Supabase e Zero Desperdício de Tinta)
