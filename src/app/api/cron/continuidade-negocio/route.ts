@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { gerarEmailContinuidadeHTML, gerarEmailContinuidadeTexto } from '@/lib/emailContinuidadeTemplate';
-import { gerarPdfFolhaFabricoLojas, gerarPdfFolhaCargaCarrinhas } from '@/lib/pdfContinuidadeBuilder';
+import { gerarPdfFolhaFabricoLojas, gerarPdfGuiaCargaConjunta } from '@/lib/pdfContinuidadeBuilder';
 import {
   carregarLojasSupabase,
   carregarCarrinhasSupabase,
@@ -84,7 +84,7 @@ export async function GET(request: Request) {
       encomendas,
     });
 
-    const bufferCargas = gerarPdfFolhaCargaCarrinhas({
+    const bufferCargas = gerarPdfGuiaCargaConjunta({
       dataOperacao: partesData,
       dataFormatada: dataHojeFormatada,
       diaSemana: diaSemanaHoje,
@@ -98,7 +98,7 @@ export async function GET(request: Request) {
     });
 
     const nomeFicheiroFabrico = `Folha_Fabrico_${dataFicheiro}.pdf`;
-    const nomeFicheiroCarga = `Folha_Carga_Rotas_${dataFicheiro}.pdf`;
+    const nomeFicheiroCarga = `Guia_Carga_Conjunta_${dataFicheiro}.pdf`;
 
     // 5. Disparo através da API REST oficial da Resend com os dois PDFs em anexo
     const resendResponse = await fetch('https://api.resend.com/emails', {
@@ -112,7 +112,7 @@ export async function GET(request: Request) {
         to: emailsDestino,
         bcc: emailsBcc,
         reply_to: 'Inprooval Suporte <suporte@inprooval.pt>',
-        subject: `[Continuidade de Negócio] Planos de Fabrico & Carga • Dia atual - Padaria da Vila (${dataHojeFormatada})`,
+        subject: `[Continuidade de Negócio] Planos de Fabrico & Guia de Carga Conjunta • Dia atual - Padaria da Vila (${dataHojeFormatada})`,
         html: gerarEmailContinuidadeHTML(dataHojeFormatada),
         text: gerarEmailContinuidadeTexto(dataHojeFormatada),
         attachments: [

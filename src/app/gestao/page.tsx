@@ -624,13 +624,12 @@ export default function AdminPage() {
   }, [basesRecorrentes, filtroRotaBaseRecorrente, filtroBuscaBaseRecorrente, filtroEstadoBaseRecorrente]);
 
   const obterQtdBaseCarrinha = (carrinhaId: string, dia: DiaSemana, prodNome: string): number => {
-    const reg = (baseFixaCarrinhas || []).find((b) => b?.carrinha_id === carrinhaId);
+    const reg = (baseFixaCarrinhas || []).find((b) => b?.carrinha_id === carrinhaId || b?.carrinha_nome === carrinhaId);
     if (!reg) return 0;
     if (reg.quantidades_semanais && reg.quantidades_semanais[dia]) {
       return Number(reg.quantidades_semanais[dia][prodNome] || 0);
     }
-    const mapaGeral = reg.quantidades_por_produto || reg.quantidades || {};
-    return Number(mapaGeral[prodNome] || 0);
+    return 0;
   };
 
   const handleAlterarQtdBaseFixa = (carrinhaId: string, carrinhaNome: string, dia: DiaSemana, produtoNome: string, valor: number) => {
@@ -639,23 +638,22 @@ export default function AdminPage() {
     const idx = novaLista.findIndex((b) => b?.carrinha_id === carrinhaId || b?.carrinha_nome === carrinhaNome);
     if (idx >= 0) {
       const regAtual = novaLista[idx];
-      const mapaGeral = { ...(regAtual.quantidades_por_produto || regAtual.quantidades || {}) };
-      const semAtual = regAtual.quantidades_semanais || {
-        seg: { ...mapaGeral },
-        ter: { ...mapaGeral },
-        qua: { ...mapaGeral },
-        qui: { ...mapaGeral },
-        sex: { ...mapaGeral },
-        sab: { ...mapaGeral },
-        dom: { ...mapaGeral },
+      const semAtual = regAtual.quantidades_semanais ? {
+        seg: { ...(regAtual.quantidades_semanais.seg || {}) },
+        ter: { ...(regAtual.quantidades_semanais.ter || {}) },
+        qua: { ...(regAtual.quantidades_semanais.qua || {}) },
+        qui: { ...(regAtual.quantidades_semanais.qui || {}) },
+        sex: { ...(regAtual.quantidades_semanais.sex || {}) },
+        sab: { ...(regAtual.quantidades_semanais.sab || {}) },
+        dom: { ...(regAtual.quantidades_semanais.dom || {}) },
+      } : {
+        seg: {}, ter: {}, qua: {}, qui: {}, sex: {}, sab: {}, dom: {}
       };
       const mapaDia = { ...(semAtual[dia] || {}) };
       if (qtdLimpa <= 0) {
         delete mapaDia[produtoNome];
-        delete mapaGeral[produtoNome];
       } else {
         mapaDia[produtoNome] = qtdLimpa;
-        mapaGeral[produtoNome] = qtdLimpa;
       }
       const novaSemana = {
         ...semAtual,
@@ -666,8 +664,6 @@ export default function AdminPage() {
         carrinha_id: carrinhaId,
         carrinha_nome: carrinhaNome,
         quantidades_semanais: novaSemana,
-        quantidades_por_produto: mapaGeral,
-        quantidades: mapaGeral,
       };
     } else {
       const mapaInicial = qtdLimpa > 0 ? { [produtoNome]: qtdLimpa } : {};
@@ -679,8 +675,8 @@ export default function AdminPage() {
         carrinha_id: carrinhaId,
         carrinha_nome: carrinhaNome,
         quantidades_semanais: novaSemana,
-        quantidades_por_produto: mapaInicial,
-        quantidades: mapaInicial,
+        quantidades_por_produto: {},
+        quantidades: {},
       });
     }
     setBaseFixaCarrinhas(novaLista);
@@ -805,36 +801,6 @@ export default function AdminPage() {
     setTimeout(() => setFeedbackBaseFixa(null), 3500);
   };
 
-  const handleCopiarDiaParaTodaSemanaBaseFixa = (diaOrigem: DiaSemana) => {
-    const todosDias: DiaSemana[] = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
-    const novaLista = baseFixaCarrinhas.map((bf) => {
-      const semAtual = bf.quantidades_semanais || {
-        seg: { ...(bf.quantidades_por_produto || {}) },
-        ter: { ...(bf.quantidades_por_produto || {}) },
-        qua: { ...(bf.quantidades_por_produto || {}) },
-        qui: { ...(bf.quantidades_por_produto || {}) },
-        sex: { ...(bf.quantidades_por_produto || {}) },
-        sab: { ...(bf.quantidades_por_produto || {}) },
-        dom: { ...(bf.quantidades_por_produto || {}) },
-      };
-      const baseDia = { ...(semAtual[diaOrigem] || bf.quantidades_por_produto || {}) };
-      const novaSemana: any = {};
-      todosDias.forEach((d) => {
-        novaSemana[d] = { ...baseDia };
-      });
-      return {
-        ...bf,
-        quantidades_semanais: novaSemana,
-        quantidades_por_produto: baseDia,
-        quantidades: baseDia,
-      };
-    });
-    setBaseFixaCarrinhas(novaLista);
-    salvarBaseFixaCarrinhas(novaLista);
-    const nomeDia = DIAS_SEMANA_NOMES.find((d) => d.id === diaOrigem)?.label || diaOrigem;
-    setFeedbackBaseFixa(`Quantidades de ${nomeDia} replicadas para todos os dias da semana em todas as carrinhas!`);
-    setTimeout(() => setFeedbackBaseFixa(null), 3500);
-  };
 
   const abrirFolhaCargaPdfModal = (carId?: string) => {
     const alvoId = carId || carrinhaExportacaoId || carrinhas[0]?.id;
@@ -3083,16 +3049,6 @@ export default function AdminPage() {
                     </button>
                   ))}
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleCopiarDiaParaTodaSemanaBaseFixa(diaSemanaBaseFixa)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-blue-300 bg-white hover:bg-blue-50 text-blue-800 text-xs font-bold transition cursor-pointer shrink-0"
-                  title="Copiar quantidades deste dia para todos os outros dias da semana"
-                >
-                  <Copy className="h-3.5 w-3.5 text-blue-600" />
-                  Replicar {DIAS_SEMANA_NOMES.find((d) => d.id === diaSemanaBaseFixa)?.abrev} para Toda a Semana
-                </button>
               </div>
 
               {feedbackBaseFixa && (

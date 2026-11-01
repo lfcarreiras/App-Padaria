@@ -42,6 +42,30 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.35] - 2026-11-01
+
+### Fixed & Enhanced (Grelha Oficial de Carga Conjunta, Base Diária por Dia Estrito, Sincronização Supabase e Zero Desperdício de Tinta)
+- **Base Diária por Rota (Remoção da Replicação e Isolamento por Dia)**:
+  - Eliminado o botão e método de replicação semanal ("Replicar ... para Toda a Semana") no Cockpit de Gestão.
+  - A alteração de quantidades na Base Diária por Rota afeta única e exclusivamente o dia selecionado (seg, ter, qua, qui, sex, sab, dom), sem propagação nem sobrescrita dos restantes dias da semana.
+  - Sincronização direta e persistência em Supabase na tabela bases_fixas_carrinhas (com fallback de contingência na tabela clientes).
+- **Gestão de Acessos Sincronizada entre Dispositivos via Supabase**:
+  - A gestão de acessos e permissões no painel de gestão grava diretamente no Supabase e lê prioritariamente da nuvem com cache local de fallback, garantindo reflexão imediata ao aceder a partir de outro computador.
+  - Atualização dos perfis de sistema com os colaboradores e cargos reais (Luís Silva, Carocha, Praça, Liceu, Fabrico) e sem utilizadores fictícios.
+- **Eliminação Definitiva de Dados Dummy / Fictícios**:
+  - Removidas mais de 11.000 linhas de encomendas e logs fictícios de mockData.ts (ENCOMENDAS_MOCK = [], LOGS_AUDITORIA_MOCK = []), reduzindo o ficheiro de 600KB+ para 99KB e impedindo qualquer regeneração de dados dummy em novos deploys.
+- **Layout de Grelha da Folha de Carga Conjunta (Fiel ao Documento Oficial DOCX)**:
+  - Implementada a grelha oficial exata do mapa diário de expedição:
+    - **Tabela 1 - Padaria (34 Colunas)**: B. amarela 0.5kg, B. amarela 1 kg, B. amarela 2 kg, B. branca 0.5kg, B. branca 1kg, B c/ chouriço, Broa mistura, Canilha, Meia bola de carne, Mini pão centeio, Mini pão saloio, Padas Centeio, Padas Normais, Padinhas, P. 7 grãos peq., Pão alfarroba, Pão de bico, Pão de cachorro, Pão de canela, Pão de centeio, Pão de forma Gr., P. F. gr. Corte fino, P. forna pequeno, Pão de leite, Pão sementes, Pão integral, Pão italiano, Pão normal, Pão saloio, Tosta, Triga milha 0.3kg, Triga milha 0.5kg, Triga milha1 kg, Tri. milha Saloio.
+    - **Tabela 2 - Pastelaria (18 Colunas)**: Croiss. Choc., Croiss. Simples, Fatia Pizza, Lanche Choco., Lanche Fiambre, Lanche Misto, Meia Lua, Merendas, Pão c/ Chouriço, Pão Croissant, Pão Pizza, Pasteis, Pastel de Nata, Pastel Miniatura, Regueifa. Canela, Regueifa de Côco, Regueifa Doce, Trança Chocolate.
+    - **Linhas Agrupadas por Rota e Clientes B2B**: Cada Rota (1 a 7) possui a sua linha identificadora com condutor e matrícula, seguida das linhas dos clientes empresariais/paragens B2B afretados à carrinha, com totais por linha e totais por coluna no rodapé.
+  - Implementada tanto no modal de impressão da aplicação (PdfViewerModal.tsx com @page { size: A4 landscape; }) como no gerador nativo PDF do Plano de Continuidade de Negócio (pdfContinuidadeBuilder.ts).
+- **Resolução de Sobreposição de Texto na Folha de Fabrico**:
+  - Reestruturado o cabeçalho e rodapé dos subtotais por loja no gerador PDF, separando o título da loja (alinhado à esquerda) das métricas de unidades/setores (alinhadas à direita com largura calculada dinamicamente), eliminando qualquer colisão visual com lojas de nome longo como "PADARIA DA VILA II - LICEU".
+- **Zero Desperdício de Tinteiro e Eliminação de "Número de Caixas"**:
+  - Todos os documentos (ecrã, impressão e PDFs) utilizam fundos 100% brancos e linhas finas de contorno para máxima economia de toner da impressora.
+  - Eliminada qualquer referência a número de caixas ou estimativa de volume em toda a interface e nos documentos gerados.
+
 ## [v2.7.20] - 2026-10-27
 
 ### Fixed (Resolução de ReferenceError: Mail is not defined no Cockpit de Gestão)

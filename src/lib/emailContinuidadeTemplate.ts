@@ -7,8 +7,8 @@
 export function gerarEmailContinuidadeHTML(dataHoje: string, resumoOperacional?: string): string {
   const resumoHTML = resumoOperacional || `
     <ul style="margin: 0; padding-left: 18px; font-size: 13px; color: #292524; line-height: 1.6;">
-      <li style="margin-bottom: 4px;"><strong>Folha de Fabrico por Loja</strong></li>
-      <li><strong>Folhas de Carga de cada Rota</strong></li>
+      <li style="margin-bottom: 4px;"><strong>Folha de Fabrico de Encomendas por Loja</strong></li>
+      <li><strong>Guia de Carga Conjunta (Matriz consolidada de todas as rotas de entrega)</strong></li>
     </ul>
   `;
 
@@ -34,7 +34,7 @@ export function gerarEmailContinuidadeHTML(dataHoje: string, resumoOperacional?:
         Salvaguarda Operacional Noturna (00h15)
       </p>
       <h1 style="margin: 6px 0 0 0; font-size: 20px; font-weight: bold; color: #ffffff;">
-        Planos de Fabrico &amp; Carga • Dia atual (${dataHoje})
+        Planos de Fabrico &amp; Guia de Carga Conjunta • Dia atual (${dataHoje})
       </h1>
       <p style="margin: 4px 0 0 0; font-size: 13px; color: #a8a29e;">
         Padaria da Vila • Lojas, Fabrico e Distribuição
@@ -63,7 +63,7 @@ export function gerarEmailContinuidadeHTML(dataHoje: string, resumoOperacional?:
       <p style="font-size: 13px; color: #4b5563; line-height: 1.5;">
         <strong>Documentos Oficiais em Anexo:</strong><br />
         📄 <code>Folha_Fabrico_${dataHoje.replace(/\//g, '-')}.pdf</code> (Folha de Encomendas discriminada por loja)<br />
-        🚚 <code>Folha_Carga_Rotas_${dataHoje.replace(/\//g, '-')}.pdf</code> (Folha de Carga com Base Diária, B2B e Domicílios)
+        🚚 <code>Guia_Carga_Conjunta_${dataHoje.replace(/\//g, '-')}.pdf</code> (Guia de Carga Conjunta - Matriz consolidada de todas as rotas)
       </p>
 
       <!-- RODAPÉ APROVADO COM SALVAGUARDA BCP 00h15 -->
@@ -115,11 +115,11 @@ export function gerarEmailContinuidadeHTML(dataHoje: string, resumoOperacional?:
 }
 
 export function gerarEmailContinuidadeTexto(dataHoje: string, resumoOperacional?: string): string {
-  const resumoTexto = resumoOperacional || `• Folha de Fabrico por Loja\n• Folhas de Carga de cada Rota`;
+  const resumoTexto = resumoOperacional || `• Folha de Fabrico por Loja\n• Guia de Carga Conjunta (Matriz consolidada de todas as rotas)`;
 
   return `PLANOS DE PRODUÇÃO E CARGA • PADARIA DA VILA
 Salvaguarda Operacional Noturna (00h15)
-Planos de Fabrico & Carga • Dia atual
+Planos de Fabrico & Guia de Carga Conjunta • Dia atual
 Padaria da Vila • Lojas, Fabrico e Distribuição
 Data da Operação: ${dataHoje}
 
@@ -132,7 +132,7 @@ ${resumoTexto}
 
 Documentos Oficiais em Anexo:
 - Folha_Fabrico_${dataHoje.replace(/\//g, '-')}.pdf (Folha de Encomendas discriminada por loja)
-- Folha_Carga_Rotas_${dataHoje.replace(/\//g, '-')}.pdf (Folha de Carga com Base Diária, B2B e Domicílios)
+- Guia_Carga_Conjunta_${dataHoje.replace(/\//g, '-')}.pdf (Guia de Carga Conjunta - Matriz consolidada de todas as rotas)
 
 ____________________________________________________________________
 

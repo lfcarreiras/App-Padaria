@@ -5,7 +5,7 @@
  * Economia de Tinteiro: Layout Wireframe sem fundos preenchidos (100% fundo branco e linhas de contorno finas).
  */
 
-import {
+import type {
   Loja,
   Carrinha,
   Produto,
@@ -14,22 +14,22 @@ import {
   BaseDiariaRecorrente,
   BaseFixaCarrinha,
   DiaSemana,
-} from '@/types';
+} from '../types';
 import {
+  calcularDadosGuiaCargaConjunta,
   obterQuantidadeEfetivaBaseRota,
   obterQuantidadeEfetivaClienteB2B,
   obterArtigosAjustadosBaseRota,
   obterArtigosAjustadosClienteB2B,
   clienteEmModoFerias,
-} from '@/lib/encomendasService';
+} from './encomendasService';
 import {
   LOJAS_MOCK,
   CARRINHAS_MOCK,
+  PRODUTOS_MOCK,
   BASE_FIXA_CARRINHAS_INICIAL,
   CLIENTES_EMPRESARIAIS_B2B_INICIAIS,
-  PRODUTOS_MOCK,
-  ENCOMENDAS_MOCK,
-} from '@/lib/mockData';
+} from './mockData';
 
 export function wrapText(text: string, maxCharsPerLine: number): string[] {
   if (!text) return [''];
@@ -101,6 +101,38 @@ export class PdfPageWriter {
     this.content += `q ${color} rg BT ${font} ${size} Tf 1 0 0 1 ${x} ${y} Tm (${clean}) Tj ET Q\n`;
   }
 
+  drawRotatedText(text: string, x: number, y: number, size: number = 6.5, isBold: boolean = false, color: string = '0 0 0') {
+    const font = isBold ? '/F2' : '/F1';
+    let clean = text
+      .replace(/\\/g, '\\\\')
+      .replace(/\(/g, '\\(')
+      .replace(/\)/g, '\\)');
+
+    const winAnsiMap: Record<string, string> = {
+      'á': '\\341', 'à': '\\340', 'ã': '\\343', 'â': '\\342', 'ä': '\\344',
+      'é': '\\351', 'è': '\\350', 'ê': '\\352', 'ë': '\\353',
+      'í': '\\355', 'ì': '\\354', 'î': '\\356', 'ï': '\\357',
+      'ó': '\\363', 'ò': '\\362', 'õ': '\\365', 'ô': '\\364', 'ö': '\\366',
+      'ú': '\\372', 'ù': '\\371', 'û': '\\373', 'ü': '\\374',
+      'ç': '\\347', 'ñ': '\\361',
+      'Á': '\\301', 'À': '\\300', 'Ã': '\\303', 'Â': '\\302', 'Ä': '\\304',
+      'É': '\\311', 'È': '\\310', 'Ê': '\\312', 'Ë': '\\313',
+      'Í': '\\315', 'Ì': '\\314', 'Î': '\\316', 'Ï': '\\317',
+      'Ó': '\\323', 'Ò': '\\322', 'Õ': '\\325', 'Ô': '\\324', 'Ö': '\\326',
+      'Ú': '\\332', 'Ù': '\\331', 'Û': '\\332', 'Ü': '\\334',
+      'Ç': '\\307', 'Ñ': '\\321',
+      'º': '\\272', 'ª': '\\252',
+      '•': '\\225', '–': '\\226', '—': '\\227', '€': '\\200',
+      '✓': 'V', '✕': 'X',
+      '⏰': '', '🥖': '', '🧁': '', '🚚': '', '🏪': '', '🏬': '', '⚠️': 'Obs:'
+    };
+
+    clean = clean.replace(/[\u0080-\uffff]/g, (c) => winAnsiMap[c] || '');
+
+    // Rotação de 90 graus (de baixo para cima): [0 1 -1 0 x y]
+    this.content += `q ${color} rg BT ${font} ${size} Tf 0 1 -1 0 ${x} ${y} Tm (${clean}) Tj ET Q\n`;
+  }
+
   drawRect(x: number, y: number, w: number, h: number, fillColor: string | null = null, strokeColor: string | null = null) {
     let cmd = 'q\n';
     if (fillColor) cmd += `${fillColor} rg\n`;
@@ -120,11 +152,13 @@ export class PdfPageWriter {
 
 export class NativePdfDocument {
   title: string;
+  orientation: 'portrait' | 'landscape';
   pages: PdfPageWriter[] = [];
   currentPage: PdfPageWriter;
 
-  constructor(title: string) {
+  constructor(title: string, orientation: 'portrait' | 'landscape' = 'portrait') {
     this.title = title;
+    this.orientation = orientation;
     this.currentPage = new PdfPageWriter();
     this.pages.push(this.currentPage);
   }
@@ -154,11 +188,14 @@ export class NativePdfDocument {
     }
 
     const pagesObjId = objects.length + 1;
+    const isLandscape = this.orientation === 'landscape';
+    const mediaBoxStr = isLandscape ? '[0 0 842 595]' : '[0 0 595 842]';
+    const footerX = isLandscape ? 280 : 160;
 
     for (let i = 0; i < this.pages.length; i++) {
       const p = this.pages[i];
       const footer = `Folha de Continuidade - Padaria da Vila | Página ${i + 1} de ${this.pages.length} | Inprooval Sistemas`;
-      p.drawText(footer, 160, 20, 7, false, '0.4 0.4 0.4');
+      p.drawText(footer, footerX, 15, 7, false, '0.4 0.4 0.4');
 
       const streamLen = Buffer.byteLength(p.content, 'utf-8');
       const cId = addObj(`<< /Length ${streamLen} >>\nstream\n${p.content}\nendstream`);
@@ -166,7 +203,7 @@ export class NativePdfDocument {
     }
 
     for (let i = 0; i < this.pages.length; i++) {
-      const pId = addObj(`<< /Type /Page /Parent ${pagesObjId} 0 R /MediaBox [0 0 595 842] /Contents ${contentObjIds[i]} 0 R /Resources << /Font << /F1 ${f1Obj} 0 R /F2 ${f2Obj} 0 R >> >> >>`);
+      const pId = addObj(`<< /Type /Page /Parent ${pagesObjId} 0 R /MediaBox ${mediaBoxStr} /Contents ${contentObjIds[i]} 0 R /Resources << /Font << /F1 ${f1Obj} 0 R /F2 ${f2Obj} 0 R >> >> >>`);
       pageObjIds[i] = pId;
     }
 
@@ -393,22 +430,18 @@ export function gerarPdfFolhaFabricoLojas(params: ParametrosFolhaFabricoPdf | st
       });
     }
 
-    // 4. Subtotal da Loja
-    if (currentY - 20 < 55) {
+    // 4. Subtotal da Loja (Sem sobreposição de texto e 100% fundo branco)
+    if (currentY - 24 < 55) {
       p = doc.addPage();
       currentY = 790;
     }
-    p.drawRect(35, currentY - 16, 525, 16, null, '0.2 0.2 0.2');
-    p.drawText(`SUBTOTAL ${loja.nome.toUpperCase()}`, 45, currentY - 11, 7.5, true, '0 0 0');
-    p.drawText(
-      `${encsLoja.length} Encomendas • Padaria: ${totalPadariaLoja} un. • Pastelaria: ${totalPastelariaLoja} un. • Total a Produzir: ${totalUnidadesLoja} un.`,
-      170,
-      currentY - 11,
-      7.5,
-      true,
-      '0 0 0'
-    );
-    currentY -= 24;
+    p.drawRect(35, currentY - 18, 525, 18, null, '0.2 0.2 0.2');
+    p.drawText(`SUBTOTAL ${loja.nome.toUpperCase()}`, 42, currentY - 12, 7.5, true, '0 0 0');
+    const strMetricas = `${encsLoja.length} Enc. • Padaria: ${totalPadariaLoja} un. • Pastelaria: ${totalPastelariaLoja} un. • Total a Produzir: ${totalUnidadesLoja} un.`;
+    const wMetricas = strMetricas.length * 3.8;
+    const posMetricasX = Math.max(240, 555 - wMetricas);
+    p.drawText(strMetricas, posMetricasX, currentY - 12, 7.5, true, '0 0 0');
+    currentY -= 26;
 
     // 5. Bloco de Assinaturas (Sem preenchimento a tinta)
     if (currentY - 26 < 45) {
@@ -424,11 +457,11 @@ export function gerarPdfFolhaFabricoLojas(params: ParametrosFolhaFabricoPdf | st
 }
 
 /**
- * Constrói o PDF Oficial: Folha de Carga Segregada das Rotas 1 a 7
- * Réplica exata do layout e conteúdo da aplicação (tabela da Base Diária sem caixas,
- * desdobramento de cada cliente B2B em sub-tabela própria e desdobramento de encomendas ao domicílio).
+ * Constrói o PDF Oficial: Guia de Carga Conjunta (Matriz de Todas as Rotas)
+ * Layout Wireframe profissional otimizado para impressão (100% fundo branco, sem caixas e sem fundos preenchidos a tinta no rodapé).
+ * Consolida Rotas 1 a 7 com identificação do condutor, matrícula, segregação por Padaria e Pastelaria, subtotais e total a bordo.
  */
-export function gerarPdfFolhaCargaCarrinhas(params: ParametrosFolhaCargaPdf | string): Buffer {
+export function gerarPdfGuiaCargaConjunta(params: ParametrosFolhaCargaPdf | string): Buffer {
   let dataOperacao = '';
   let dataFormatada = '';
   let diaSemana: DiaSemana = 'seg';
@@ -447,7 +480,7 @@ export function gerarPdfFolhaCargaCarrinhas(params: ParametrosFolhaCargaPdf | st
     baseFixaCarrinhas = BASE_FIXA_CARRINHAS_INICIAL;
     clientesB2B = CLIENTES_EMPRESARIAIS_B2B_INICIAIS;
     produtos = PRODUTOS_MOCK;
-    encomendas = ENCOMENDAS_MOCK;
+    encomendas = [];
   } else {
     dataOperacao = params.dataOperacao;
     dataFormatada = params.dataFormatada;
@@ -461,392 +494,255 @@ export function gerarPdfFolhaCargaCarrinhas(params: ParametrosFolhaCargaPdf | st
     ajustesAdhoc = params.ajustesAdhoc;
   }
 
-  const doc = new NativePdfDocument(`Folha_Carga_Rotas_${dataFormatada.replace(/\//g, '-')}`);
-
-  // Filtrar apenas viaturas de entrega (Rotas 1 a 7, excluindo Rota 8 / Fábrica), ordenadas por número
-  const carrinhasRotas = carrinhas
-    .filter(
-      (c) =>
-        c.ativo !== false &&
-        c.identificador !== 'Rota 8' &&
-        c.id !== 'carrinha-8' &&
-        c.id !== 'e888db95-c427-4ed5-83fc-01403bd24cf8' &&
-        c.numero !== 8 &&
-        c.rota !== 'Rota 8'
-    )
-    .sort((a, b) => (a.numero || 0) - (b.numero || 0));
-
-  carrinhasRotas.forEach((car, idx) => {
-    if (idx > 0) doc.addPage();
-    let p = doc.currentPage;
-
-    // 1. CÁLCULO REAL DA BASE DIÁRIA DA CARRINHA
-    const bf = baseFixaCarrinhas.find((b) => b.carrinha_id === car.id);
-    const semana = (bf?.quantidades_semanais || bf?.quantidades_semana || {}) as Record<string, Record<string, number>>;
-    const mapaDia = semana?.[diaSemana] || bf?.quantidades_por_produto || {};
-
-    const mapaItens = new Map<string, { quantidade: number; categoria: 'padaria' | 'pastelaria'; unidade: string }>();
-
-    const candidatos = new Set<string>();
-    Object.keys(mapaDia).forEach((a) => candidatos.add(a.trim()));
-    if (bf?.quantidades_semanais) {
-      Object.values(bf.quantidades_semanais).forEach((m) => {
-        Object.keys(m || {}).forEach((a) => candidatos.add(a.trim()));
-      });
-    }
-    if (bf?.quantidades_por_produto) {
-      Object.keys(bf.quantidades_por_produto).forEach((a) => candidatos.add(a.trim()));
-    }
-    obterArtigosAjustadosBaseRota(dataOperacao, car.id, ajustesAdhoc).forEach((a) => candidatos.add(a.trim()));
-
-    candidatos.forEach((artigo) => {
-      const { quantidade } = obterQuantidadeEfetivaBaseRota(dataOperacao, car.id, artigo, semana, diaSemana, ajustesAdhoc);
-      if (quantidade > 0) {
-        const prodRef = produtos.find((pr) => pr.nome.toLowerCase() === artigo.toLowerCase());
-        const cat: 'padaria' | 'pastelaria' =
-          prodRef?.categoria ||
-          (artigo.toLowerCase().includes('bolo') || artigo.toLowerCase().includes('croissant') ? 'pastelaria' : 'padaria');
-        const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
-        mapaItens.set(artigo.trim(), { quantidade, categoria: cat, unidade: unid });
-      }
-    });
-
-    // 1.1 Quantidades das Bases Diárias Recorrentes desta rota (excluindo clientes em Modo Férias)
-    basesRecorrentes
-      .filter((b) => b.ativo && b.carrinha_id === car.id && !clienteEmModoFerias(b, dataOperacao))
-      .forEach((b) => {
-        const mapaRec = b.quantidades_semanais?.[diaSemana] || {};
-        Object.entries(mapaRec).forEach(([artigo, qtd]) => {
-          const quantidade = Number(qtd) || 0;
-          if (quantidade > 0) {
-            const prodRef = produtos.find((pr) => pr.nome.toLowerCase() === artigo.toLowerCase());
-            const cat =
-              prodRef?.categoria ||
-              (artigo.toLowerCase().includes('bolo') || artigo.toLowerCase().includes('croissant') ? 'pastelaria' : 'padaria');
-            const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
-            const atual = mapaItens.get(artigo.trim());
-            if (atual) {
-              atual.quantidade += quantidade;
-            } else {
-              mapaItens.set(artigo.trim(), { quantidade, categoria: cat, unidade: unid });
-            }
-          }
-        });
-      });
-
-    const itensBaseDiaria: { nome: string; categoria: string; unidade: string; quantidade: number }[] = [];
-    mapaItens.forEach((val, nome) => {
-      itensBaseDiaria.push({
-        nome,
-        categoria: val.categoria,
-        unidade: val.unidade,
-        quantidade: val.quantidade,
-      });
-    });
-    itensBaseDiaria.sort((a, b) => {
-      if (a.categoria !== b.categoria) return a.categoria.localeCompare(b.categoria);
-      return a.nome.localeCompare(b.nome);
-    });
-
-    const totalBaseDiaria = itensBaseDiaria.reduce((acc, it) => acc + it.quantidade, 0);
-
-    // 2. CÁLCULO REAL DOS CLIENTES B2B DESTA ROTA
-    const clientesB2BRota = clientesB2B
-      .filter((cli) => cli.ativo && cli.carrinha_id === car.id)
-      .map((cli) => {
-        const semanaCli = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
-        const mapaDiaCli = semanaCli[diaSemana] || {};
-        const candidatosCli = new Set<string>();
-        Object.keys(mapaDiaCli).forEach((a) => candidatosCli.add(a.trim()));
-        if (cli.quantidades_semanais) {
-          Object.values(cli.quantidades_semanais).forEach((m) => {
-            Object.keys(m || {}).forEach((a) => candidatosCli.add(a.trim()));
-          });
-        }
-        if (cli.produtos_predefinidos) {
-          Object.keys(cli.produtos_predefinidos).forEach((a) => candidatosCli.add(a.trim()));
-        }
-        obterArtigosAjustadosClienteB2B(dataOperacao, cli.id, ajustesAdhoc).forEach((a) => candidatosCli.add(a.trim()));
-
-        const itensDoCli = Array.from(candidatosCli)
-          .map((artigo) => {
-            let qtd = Number(mapaDiaCli[artigo] || 0);
-            const { quantidade } = obterQuantidadeEfetivaClienteB2B(dataOperacao, cli.id, artigo, semanaCli, diaSemana, ajustesAdhoc);
-            qtd = quantidade;
-            return {
-              artigo: String(artigo || '').trim(),
-              quantidade: qtd,
-            };
-          })
-          .filter((it) => it.quantidade > 0);
-
-        const totalCli = itensDoCli.reduce((acc, it) => acc + it.quantidade, 0);
-        return {
-          ...cli,
-          itensDoCli,
-          totalCli,
-        };
-      })
-      .filter((cli) => cli.totalCli > 0);
-
-    const totalB2B = clientesB2BRota.reduce((acc, cli) => acc + cli.totalCli, 0);
-
-    // 3. CÁLCULO REAL DAS ENCOMENDAS ADICIONAIS AO DOMICÍLIO
-    const encomendasDomicilio = encomendas
-      .filter((enc) => {
-        const matchesCar = enc.carrinha_id === car.id;
-        const matchesData = enc.data_agendamento === dataOperacao;
-        const matchesTipo = enc.tipo === 'entrega_domicilio';
-        const naoCancelada = enc.estado !== 'cancelado';
-        return matchesCar && matchesData && matchesTipo && naoCancelada;
-      })
-      .map((enc) => {
-        const itensValidos = (enc.itens || [])
-          .filter((it) => it.estado_producao !== 'recusado' && Number(it.quantidade) > 0)
-          .map((it) => ({
-            produto_nome: String(it.produto_nome || '').trim(),
-            quantidade: Number(it.quantidade),
-          }));
-        const totalEnc = itensValidos.reduce((acc, it) => acc + it.quantidade, 0);
-        return {
-          ...enc,
-          itensValidos,
-          totalEnc,
-        };
-      })
-      .filter((enc) => enc.totalEnc > 0);
-
-    const totalEncomendas = encomendasDomicilio.reduce((acc, enc) => acc + enc.totalEnc, 0);
-    const totalGeralCarga = totalBaseDiaria + totalB2B + totalEncomendas;
-
-    // Header Principal da Viatura (Wireframe sem preenchimento a tinta)
-    p.drawRect(35, 750, 525, 42, null, '0.2 0.2 0.2');
-    p.drawText('PADARIA DA VILA - EXPEDIÇÃO E LOGÍSTICA DE ROTAS', 45, 776, 11, true, '0 0 0');
-    p.drawText(`GUIA OFICIAL DE CARGA DE EXPEDIÇÃO • OPERAÇÃO DE ${dataFormatada}`, 45, 764, 8, false, '0.2 0.2 0.2');
-    p.drawText('Centro de Expedição e Logística • Padaria da Vila Arouca', 45, 754, 7, false, '0.3 0.3 0.3');
-
-    p.drawRect(435, 755, 115, 32, null, '0.3 0.3 0.3');
-    p.drawText('GUIA DE CARGA', 442, 774, 6.5, true, '0 0 0');
-    p.drawText(`Data: ${dataFormatada}`, 442, 763, 7.5, true, '0 0 0');
-
-    // Identificação da Rota (Box Wireframe)
-    p.drawRect(35, 720, 525, 22, null, '0.3 0.3 0.3');
-    p.drawText(`Rota: ${car.rota || car.identificador}`, 45, 727, 8, true, '0 0 0');
-    p.drawText(`Viatura: ${car.nome_carro || 'Viatura'}`, 180, 727, 7.5, false, '0 0 0');
-    p.drawText(`Matrícula: ${car.matricula || '00-00-00'}`, 305, 727, 8, true, '0 0 0');
-    p.drawText(`Condutor: ${car.nome_condutor || 'Manuel Silva'}`, 415, 727, 8, true, '0 0 0');
-
-    // Resumo de Carga Total da Viatura (4 Caixas Wireframe - SEM QUALQUER REFERÊNCIA A CAIXAS)
-    p.drawRect(35, 686, 125, 28, null, '0.3 0.3 0.3');
-    p.drawText('1. BASE DIÁRIA ROTA', 42, 702, 6.5, true, '0.4 0.4 0.4');
-    p.drawText(`${totalBaseDiaria} un.`, 42, 690, 10, true, '0 0 0');
-    p.drawText(`${itensBaseDiaria.length} artigos rota`, 82, 690, 6.5, false, '0.4 0.4 0.4');
-
-    p.drawRect(168, 686, 125, 28, null, '0.3 0.3 0.3');
-    p.drawText('2. CLIENTES B2B', 175, 702, 6.5, true, '0.4 0.4 0.4');
-    p.drawText(`${totalB2B} un.`, 175, 690, 10, true, '0 0 0');
-    p.drawText(`${clientesB2BRota.length} paragens`, 218, 690, 6.5, false, '0.4 0.4 0.4');
-
-    p.drawRect(301, 686, 125, 28, null, '0.3 0.3 0.3');
-    p.drawText('3. ENCOMENDAS', 308, 702, 6.5, true, '0.4 0.4 0.4');
-    p.drawText(`${totalEncomendas} un.`, 308, 690, 10, true, '0 0 0');
-    p.drawText(`${encomendasDomicilio.length} entregas`, 350, 690, 6.5, false, '0.4 0.4 0.4');
-
-    p.drawRect(434, 686, 126, 28, null, '0.2 0.2 0.2');
-    p.drawText('TOTAL A BORDO', 441, 702, 6.5, true, '0.4 0.4 0.4');
-    p.drawText(`${totalGeralCarga} un.`, 441, 690, 10, true, '0 0 0');
-    p.drawText('unidades a bordo', 488, 690, 6.5, false, '0.4 0.4 0.4');
-
-    let currentY = 672;
-
-    // 1. QUANTIDADES DA BASE DIÁRIA (ABASTECIMENTO ROTA)
-    p.drawRect(35, currentY - 14, 525, 14, null, '0.2 0.2 0.2');
-    p.drawText('1. QUANTIDADES DA BASE DIÁRIA CARREGADAS NA VIATURA (PORTA-A-PORTA)', 42, currentY - 10, 7, true, '0 0 0');
-    p.drawText(`${itensBaseDiaria.length} artigos na rota`, 430, currentY - 10, 6.5, false, '0.3 0.3 0.3');
-    currentY -= 14;
-
-    p.drawRect(35, currentY - 12, 525, 12, null, '0.3 0.3 0.3');
-    p.drawText('Artigo / Produto', 42, currentY - 9, 6.5, true, '0 0 0');
-    p.drawText('Setor', 260, currentY - 9, 6.5, true, '0 0 0');
-    p.drawText('Quantidade Base', 380, currentY - 9, 6.5, true, '0 0 0');
-    p.drawText('Conferência / Visto', 470, currentY - 9, 6.5, true, '0 0 0');
-    currentY -= 12;
-
-    if (itensBaseDiaria.length === 0) {
-      p.drawRect(35, currentY - 14, 525, 14, null, '0.5 0.5 0.5');
-      p.drawText('Sem artigos de base diária configurados para esta rota.', 45, currentY - 10, 7, false, '0.4 0.4 0.4');
-      currentY -= 18;
-    } else {
-      itensBaseDiaria.forEach((it) => {
-        if (currentY - 12 < 65) {
-          p = doc.addPage();
-          currentY = 790;
-          p.drawRect(35, currentY - 14, 525, 14, null, '0.3 0.3 0.3');
-          p.drawText(`${car.rota || car.identificador} - Base Diária (Continuação) • ${dataFormatada}`, 45, currentY - 10, 7.5, true, '0.2 0.2 0.2');
-          currentY -= 20;
-        }
-
-        p.drawRect(35, currentY - 12, 525, 12, null, '0.6 0.6 0.6');
-        p.drawText(it.nome.slice(0, 38), 42, currentY - 9, 7, true, '0 0 0');
-        p.drawText(it.categoria === 'pastelaria' ? 'Pastelaria' : 'Padaria', 260, currentY - 9, 6.5, false, '0.3 0.3 0.3');
-        p.drawText(`${it.quantidade} ${it.unidade}`, 380, currentY - 9, 7.5, true, '0 0 0');
-        p.drawText('[ ] Conferido na saída', 470, currentY - 9, 6.5, false, '0 0 0');
-        currentY -= 12;
-      });
-
-      // Subtotal Base Diária
-      p.drawRect(35, currentY - 13, 525, 13, null, '0.3 0.3 0.3');
-      p.drawText('SUBTOTAL BASE DIÁRIA (ROTA)', 42, currentY - 9.5, 7, true, '0 0 0');
-      p.drawText(`${totalBaseDiaria} un.`, 380, currentY - 9.5, 7.5, true, '0 0 0');
-      p.drawText('Conforme padrão de saída', 470, currentY - 9.5, 6.5, false, '0.4 0.4 0.4');
-      currentY -= 18;
-    }
-
-    // 2. DESDOBRAMENTO DE CLIENTES EMPRESARIAIS (B2B)
-    if (currentY - 26 < 65) {
-      p = doc.addPage();
-      currentY = 790;
-    }
-    p.drawRect(35, currentY - 14, 525, 14, null, '0.2 0.2 0.2');
-    p.drawText('2. DESDOBRAMENTO DE ENTREGAS POR CLIENTE EMPRESARIAL (B2B)', 42, currentY - 10, 7, true, '0 0 0');
-    p.drawText(`${clientesB2BRota.length} clientes com carga hoje`, 430, currentY - 10, 6.5, false, '0.3 0.3 0.3');
-    currentY -= 14;
-
-    if (clientesB2BRota.length === 0) {
-      p.drawRect(35, currentY - 14, 525, 14, null, '0.5 0.5 0.5');
-      p.drawText(`Esta rota não tem entregas de clientes empresariais (B2B) agendadas para ${diaSemana.toUpperCase()}.`, 42, currentY - 10, 6.5, false, '0.4 0.4 0.4');
-      currentY -= 20;
-    } else {
-      clientesB2BRota.forEach((cli) => {
-        const heightNeeded = 14 + 11 + (cli.itensDoCli.length * 11) + 4;
-        if (currentY - heightNeeded < 65) {
-          p = doc.addPage();
-          currentY = 790;
-          p.drawRect(35, currentY - 14, 525, 14, null, '0.3 0.3 0.3');
-          p.drawText(`${car.rota || car.identificador} - Clientes B2B (Continuação) • ${dataFormatada}`, 45, currentY - 10, 7.5, true, '0.2 0.2 0.2');
-          currentY -= 20;
-        }
-
-        // Cabeçalho do Cliente B2B
-        p.drawRect(35, currentY - 13, 525, 13, null, '0.4 0.4 0.4');
-        const cliInfo = `${cli.nome}${cli.morada ? ` • ${cli.morada}` : ''}${cli.telefone ? ` • Tel: ${cli.telefone}` : ''}${cli.nif ? ` • NIF: ${cli.nif}` : ''}`;
-        p.drawText(cliInfo.slice(0, 75), 42, currentY - 9.5, 7, true, '0 0 0');
-        p.drawText(`Total Cliente: ${cli.totalCli} un.`, 430, currentY - 9.5, 7.5, true, '0 0 0');
-        currentY -= 13;
-
-        // Sub-tabela de Artigos do Cliente B2B
-        p.drawRect(35, currentY - 11, 525, 11, null, '0.3 0.3 0.3');
-        p.drawText('Artigo / Produto', 42, currentY - 8.5, 6.5, true, '0 0 0');
-        p.drawText('Quantidade', 380, currentY - 8.5, 6.5, true, '0 0 0');
-        p.drawText('Conferência de Entrega', 470, currentY - 8.5, 6.5, true, '0 0 0');
-        currentY -= 11;
-
-        cli.itensDoCli.forEach((item) => {
-          p.drawRect(35, currentY - 11, 525, 11, null, '0.6 0.6 0.6');
-          p.drawText(item.artigo.slice(0, 48), 42, currentY - 8.5, 7, false, '0 0 0');
-          p.drawText(`${item.quantidade} un.`, 380, currentY - 8.5, 7.5, true, '0 0 0');
-          p.drawText('[ ] Entregue Conforme', 470, currentY - 8.5, 6.5, false, '0 0 0');
-          currentY -= 11;
-        });
-
-        currentY -= 5;
-      });
-
-      // Subtotal B2B
-      p.drawRect(35, currentY - 13, 525, 13, null, '0.3 0.3 0.3');
-      p.drawText('SUBTOTAL CLIENTES B2B', 42, currentY - 9.5, 7, true, '0 0 0');
-      p.drawText(`${totalB2B} un. (${clientesB2BRota.length} paragens)`, 380, currentY - 9.5, 7.5, true, '0 0 0');
-      currentY -= 18;
-    }
-
-    // 3. DESDOBRAMENTO DE ENCOMENDAS ADICIONAIS AO DOMICÍLIO
-    if (currentY - 26 < 65) {
-      p = doc.addPage();
-      currentY = 790;
-    }
-    p.drawRect(35, currentY - 14, 525, 14, null, '0.2 0.2 0.2');
-    p.drawText('3. DESDOBRAMENTO DE ENCOMENDAS ADICIONAIS AO DOMICÍLIO', 42, currentY - 10, 7, true, '0 0 0');
-    p.drawText(`${encomendasDomicilio.length} entregas domicílio`, 430, currentY - 10, 6.5, false, '0.3 0.3 0.3');
-    currentY -= 14;
-
-    if (encomendasDomicilio.length === 0) {
-      p.drawRect(35, currentY - 14, 525, 14, null, '0.5 0.5 0.5');
-      p.drawText('Nenhuma encomenda adicional ao domicílio afeta a esta viatura para a data selecionada.', 42, currentY - 10, 6.5, false, '0.4 0.4 0.4');
-      currentY -= 20;
-    } else {
-      encomendasDomicilio.forEach((enc) => {
-        const heightNeeded = 14 + 11 + (enc.itensValidos.length * 11) + 4;
-        if (currentY - heightNeeded < 65) {
-          p = doc.addPage();
-          currentY = 790;
-          p.drawRect(35, currentY - 14, 525, 14, null, '0.3 0.3 0.3');
-          p.drawText(`${car.rota || car.identificador} - Encomendas (Continuação) • ${dataFormatada}`, 45, currentY - 10, 7.5, true, '0.2 0.2 0.2');
-          currentY -= 20;
-        }
-
-        // Cabeçalho da Encomenda
-        p.drawRect(35, currentY - 13, 525, 13, null, '0.4 0.4 0.4');
-        const encInfo = `${enc.codigo || '#ENC'} • ${enc.cliente?.nome || 'Cliente'}${enc.cliente?.telefone ? ` (Tel: ${enc.cliente.telefone})` : ''} - ${enc.cliente?.morada || 'Arouca'}${enc.hora_agendamento ? ` • ⏰ ${enc.hora_agendamento}` : ''}`;
-        p.drawText(encInfo.slice(0, 75), 42, currentY - 9.5, 7, true, '0 0 0');
-        p.drawText(`Total Encomenda: ${enc.totalEnc} un.`, 430, currentY - 9.5, 7.5, true, '0 0 0');
-        currentY -= 13;
-
-        // Sub-tabela de Artigos da Encomenda
-        p.drawRect(35, currentY - 11, 525, 11, null, '0.3 0.3 0.3');
-        p.drawText('Artigo / Encomenda', 42, currentY - 8.5, 6.5, true, '0 0 0');
-        p.drawText('Quantidade', 380, currentY - 8.5, 6.5, true, '0 0 0');
-        p.drawText('Conferência de Entrega', 470, currentY - 8.5, 6.5, true, '0 0 0');
-        currentY -= 11;
-
-        enc.itensValidos.forEach((item) => {
-          p.drawRect(35, currentY - 11, 525, 11, null, '0.6 0.6 0.6');
-          p.drawText(item.produto_nome.slice(0, 48), 42, currentY - 8.5, 7, false, '0 0 0');
-          p.drawText(`${item.quantidade} un.`, 380, currentY - 8.5, 7.5, true, '0 0 0');
-          p.drawText('[ ] Entregue Conforme', 470, currentY - 8.5, 6.5, false, '0 0 0');
-          currentY -= 11;
-        });
-
-        currentY -= 5;
-      });
-
-      // Subtotal Encomendas
-      p.drawRect(35, currentY - 13, 525, 13, null, '0.3 0.3 0.3');
-      p.drawText('SUBTOTAL ENCOMENDAS ADICIONAIS', 42, currentY - 9.5, 7, true, '0 0 0');
-      p.drawText(`${totalEncomendas} un. (${encomendasDomicilio.length} entregas)`, 380, currentY - 9.5, 7.5, true, '0 0 0');
-      currentY -= 18;
-    }
-
-    // 4. RESUMO GERAL CONSOLIDADO DA GUIA DE CARGA E ASSINATURAS (SEM QUALQUER MENÇÃO A CAIXAS)
-    if (currentY - 48 < 50) {
-      p = doc.addPage();
-      currentY = 790;
-    }
-    p.drawRect(35, currentY - 22, 525, 22, null, '0.2 0.2 0.2');
-    p.drawText('Resumo Consolidado de Carga:', 45, currentY - 10, 6.5, true, '0.3 0.3 0.3');
-    p.drawText(
-      `1. Base Diária: ${totalBaseDiaria} un. • 2. B2B: ${totalB2B} un. • 3. Encomendas: ${totalEncomendas} un.`,
-      45,
-      currentY - 18,
-      7,
-      false,
-      '0 0 0'
-    );
-    p.drawText(`TOTAL GERAL A BORDO: ${totalGeralCarga} un.`, 370, currentY - 11, 8.5, true, '0 0 0');
-    p.drawText('Carga total conferida', 370, currentY - 19, 6.5, false, '0.4 0.4 0.4');
-    currentY -= 26;
-
-    // Assinaturas
-    p.drawRect(35, currentY - 22, 525, 22, null, '0.3 0.3 0.3');
-    p.drawText(
-      `Responsável Carregamento: ${car.nome_condutor || 'Condutor'} (${car.matricula || 'Frota'})`,
-      45,
-      currentY - 14,
-      7,
-      false,
-      '0.2 0.2 0.2'
-    );
-    p.drawText('Conferência Expedição: Visto [                    ]', 330, currentY - 14, 7, false, '0.2 0.2 0.2');
+  const dados = calcularDadosGuiaCargaConjunta({
+    dataAlvo: dataOperacao,
+    carrinhas,
+    baseFixaCarrinhas,
+    clientesB2B,
+    basesRecorrentes,
+    encomendas,
+    produtos,
+    ajustesCustom: ajustesAdhoc,
   });
 
+  const doc = new NativePdfDocument(`Guia_Carga_Conjunta_${dataFormatada.replace(/\//g, '-')}`, 'landscape');
+  let p = doc.currentPage;
+
+  const colunasPadaria = dados.colunasGrelhaPadaria || [];
+  const colunasPastelaria = dados.colunasGrelhaPastelaria || [];
+  const grupos = dados.gruposRotasGrelha || [];
+
+  // ==============================================================
+  // PÁGINA 1: TABELA 1 - PADARIA (34 COLUNAS DE PRODUTOS + ROTAS E CLIENTES)
+  // Layout horizontal idêntico ao modelo físico de fábrica (Word docx anexo)
+  // ==============================================================
+  const xInicio = 22;
+  const wTotalTabela = 798;
+  const wNomeColPad = 152;
+  const wColPad = 18; // 34 colunas * 18 = 612 pt
+  const wTotPadCol = 34; // 152 + 612 + 34 = 798 pt
+  const xTotPad = xInicio + wNomeColPad + 34 * wColPad;
+
+  function desenharCabecalhoPadaria(page: PdfPageWriter, startY: number): number {
+    page.drawRect(xInicio, startY - 26, wTotalTabela, 26, null, '0 0 0');
+    page.drawText('PADARIA DA VILA - GUIA OFICIAL DE CARGA CONJUNTA • SECÇÃO PADARIA', xInicio + 8, startY - 11, 9, true, '0 0 0');
+    page.drawText(`Operação de ${dados.data || dataFormatada} • Mapa Global Consolidado (Rotas 1 a 7 & Clientes B2B) • BCP`, xInicio + 8, startY - 21, 6.5, false, '0.3 0.3 0.3');
+    page.drawText(`Total Padaria: ${dados.totalGeralPadaria ?? 0} un.`, xInicio + wTotalTabela - 130, startY - 16, 8, true, '0 0 0');
+
+    const tableTop = startY - 30;
+    const headerH = 72;
+    page.drawRect(xInicio, tableTop - headerH, wTotalTabela, headerH, null, '0 0 0');
+
+    page.drawText('Rota / Cliente / Paragem', xInicio + 6, tableTop - 45, 7.5, true, '0 0 0');
+
+    colunasPadaria.forEach((col, idx) => {
+      const cx = xInicio + wNomeColPad + idx * wColPad;
+      page.drawLine(cx, tableTop, cx, tableTop - headerH, '0.7 0.7 0.7', 0.4);
+      page.drawRotatedText(col.label, cx + 11.5, tableTop - 68, 5.2, true, '0 0 0');
+    });
+
+    page.drawLine(xTotPad, tableTop, xTotPad, tableTop - headerH, '0 0 0', 0.8);
+    page.drawText('TOT', xTotPad + 8, tableTop - 45, 7, true, '0 0 0');
+
+    return tableTop - headerH;
+  }
+
+  let currentY = 565;
+  currentY = desenharCabecalhoPadaria(p, currentY);
+
+  grupos.forEach((grupo) => {
+    grupo.linhas.forEach((linha) => {
+      if (currentY - 11 < 35) {
+        p = doc.addPage();
+        currentY = 565;
+        currentY = desenharCabecalhoPadaria(p, currentY);
+      }
+
+      const isBaseRota = linha.tipo === 'rota_base';
+      const rowH = isBaseRota ? 11 : 9.5;
+      const strokeC = isBaseRota ? '0.3 0.3 0.3' : '0.85 0.85 0.85';
+      const fontSz = isBaseRota ? 6 : 5.2;
+
+      p.drawRect(xInicio, currentY - rowH, wTotalTabela, rowH, null, strokeC);
+
+      const nomeText = isBaseRota
+        ? linha.nomeExibicao
+        : `   ${linha.nomeExibicao.slice(0, 24)}`;
+      p.drawText(nomeText, xInicio + (isBaseRota ? 4 : 8), currentY - (rowH - 3), fontSz, isBaseRota, '0 0 0');
+
+      colunasPadaria.forEach((col, idx) => {
+        const cx = xInicio + wNomeColPad + idx * wColPad;
+        p.drawLine(cx, currentY, cx, currentY - rowH, isBaseRota ? '0.6 0.6 0.6' : '0.9 0.9 0.9', 0.3);
+
+        const q = linha.quantidades[col.id] || 0;
+        if (q > 0) {
+          const sq = String(q);
+          const posX = cx + wColPad / 2 - sq.length * 1.6;
+          p.drawText(sq, posX, currentY - (rowH - 3), isBaseRota ? 6.5 : 5.8, isBaseRota, '0 0 0');
+        }
+      });
+
+      p.drawLine(xTotPad, currentY, xTotPad, currentY - rowH, '0.4 0.4 0.4', 0.6);
+      if (linha.totalLinha > 0) {
+        const st = String(linha.totalLinha);
+        p.drawText(st, xTotPad + 4, currentY - (rowH - 3), 6, true, '0 0 0');
+      }
+
+      currentY -= rowH;
+    });
+  });
+
+  // Linha de Rodapé TOTAL PADARIA
+  if (currentY - 14 < 35) {
+    p = doc.addPage();
+    currentY = 565;
+    currentY = desenharCabecalhoPadaria(p, currentY);
+  }
+  p.drawLine(xInicio, currentY, xInicio + wTotalTabela, currentY, '0 0 0', 1.2);
+  p.drawLine(xInicio, currentY - 13, xInicio + wTotalTabela, currentY - 13, '0 0 0', 1.2);
+  p.drawText('TOTAL PADARIA', xInicio + 5, currentY - 9.5, 7, true, '0 0 0');
+
+  colunasPadaria.forEach((col, idx) => {
+    const cx = xInicio + wNomeColPad + idx * wColPad;
+    p.drawLine(cx, currentY, cx, currentY - 13, '0.5 0.5 0.5', 0.5);
+    const totCol = dados.totaisColunasPadaria?.[col.id] || 0;
+    if (totCol > 0) {
+      const stc = String(totCol);
+      const posX = cx + wColPad / 2 - stc.length * 1.6;
+      p.drawText(stc, posX, currentY - 9.5, 6, true, '0 0 0');
+    }
+  });
+
+  p.drawLine(xTotPad, currentY, xTotPad, currentY - 13, '0 0 0', 1.2);
+  const stTotPad = String(dados.totalGeralPadaria ?? 0);
+  p.drawText(stTotPad, xTotPad + 4, currentY - 9.5, 7, true, '0 0 0');
+
+  // ==============================================================
+  // PÁGINA 2: TABELA 2 - PASTELARIA (18 COLUNAS DE PRODUTOS + ASSINATURAS)
+  // ==============================================================
+  p = doc.addPage();
+  currentY = 565;
+
+  const wNomeColPast = 186;
+  const wColPast = 31; // 18 colunas * 31 = 558 pt
+  const wTotPastCol = 54; // 186 + 558 + 54 = 798 pt
+  const xTotPast = xInicio + wNomeColPast + 18 * wColPast;
+
+  function desenharCabecalhoPastelaria(page: PdfPageWriter, startY: number): number {
+    page.drawRect(xInicio, startY - 26, wTotalTabela, 26, null, '0 0 0');
+    page.drawText('PADARIA DA VILA - GUIA OFICIAL DE CARGA CONJUNTA • SECÇÃO PASTELARIA', xInicio + 8, startY - 11, 9, true, '0 0 0');
+    page.drawText(`Operação de ${dados.data || dataFormatada} • Mapa Global Consolidado (Rotas 1 a 7 & Clientes B2B) • BCP`, xInicio + 8, startY - 21, 6.5, false, '0.3 0.3 0.3');
+    page.drawText(`Total Pastelaria: ${dados.totalGeralPastelaria ?? 0} un.`, xInicio + wTotalTabela - 140, startY - 16, 8, true, '0 0 0');
+
+    const tableTop = startY - 30;
+    const headerH = 60;
+    page.drawRect(xInicio, tableTop - headerH, wTotalTabela, headerH, null, '0 0 0');
+
+    page.drawText('Rota / Cliente / Paragem', xInicio + 6, tableTop - 38, 8, true, '0 0 0');
+
+    colunasPastelaria.forEach((col, idx) => {
+      const cx = xInicio + wNomeColPast + idx * wColPast;
+      page.drawLine(cx, tableTop, cx, tableTop - headerH, '0.7 0.7 0.7', 0.4);
+      page.drawRotatedText(col.label, cx + 18, tableTop - 56, 6, true, '0 0 0');
+    });
+
+    page.drawLine(xTotPast, tableTop, xTotPast, tableTop - headerH, '0 0 0', 0.8);
+    page.drawText('TOTAL', xTotPast + 12, tableTop - 38, 7.5, true, '0 0 0');
+
+    return tableTop - headerH;
+  }
+
+  currentY = desenharCabecalhoPastelaria(p, currentY);
+
+  grupos.forEach((grupo) => {
+    grupo.linhas.forEach((linha) => {
+      if (currentY - 11 < 80) {
+        p = doc.addPage();
+        currentY = 565;
+        currentY = desenharCabecalhoPastelaria(p, currentY);
+      }
+
+      const isBaseRota = linha.tipo === 'rota_base';
+      const rowH = isBaseRota ? 11 : 9.5;
+      const strokeC = isBaseRota ? '0.3 0.3 0.3' : '0.85 0.85 0.85';
+      const fontSz = isBaseRota ? 6.5 : 5.5;
+
+      p.drawRect(xInicio, currentY - rowH, wTotalTabela, rowH, null, strokeC);
+
+      const nomeText = isBaseRota
+        ? linha.nomeExibicao
+        : `   ${linha.nomeExibicao.slice(0, 28)}`;
+      p.drawText(nomeText, xInicio + (isBaseRota ? 4 : 8), currentY - (rowH - 3), fontSz, isBaseRota, '0 0 0');
+
+      colunasPastelaria.forEach((col, idx) => {
+        const cx = xInicio + wNomeColPast + idx * wColPast;
+        p.drawLine(cx, currentY, cx, currentY - rowH, isBaseRota ? '0.6 0.6 0.6' : '0.9 0.9 0.9', 0.3);
+
+        const q = linha.quantidades[col.id] || 0;
+        if (q > 0) {
+          const sq = String(q);
+          const posX = cx + wColPast / 2 - sq.length * 2.0;
+          p.drawText(sq, posX, currentY - (rowH - 3), isBaseRota ? 7 : 6.2, isBaseRota, '0 0 0');
+        }
+      });
+
+      p.drawLine(xTotPast, currentY, xTotPast, currentY - rowH, '0.4 0.4 0.4', 0.6);
+      if (linha.totalLinha > 0) {
+        const st = String(linha.totalLinha);
+        p.drawText(st, xTotPast + 10, currentY - (rowH - 3), 6.5, true, '0 0 0');
+      }
+
+      currentY -= rowH;
+    });
+  });
+
+  // Linha de Rodapé TOTAL PASTELARIA
+  p.drawLine(xInicio, currentY, xInicio + wTotalTabela, currentY, '0 0 0', 1.2);
+  p.drawLine(xInicio, currentY - 14, xInicio + wTotalTabela, currentY - 14, '0 0 0', 1.2);
+  p.drawText('TOTAL PASTELARIA', xInicio + 5, currentY - 10, 7.5, true, '0 0 0');
+
+  colunasPastelaria.forEach((col, idx) => {
+    const cx = xInicio + wNomeColPast + idx * wColPast;
+    p.drawLine(cx, currentY, cx, currentY - 14, '0.5 0.5 0.5', 0.5);
+    const totCol = dados.totaisColunasPastelaria?.[col.id] || 0;
+    if (totCol > 0) {
+      const stc = String(totCol);
+      const posX = cx + wColPast / 2 - stc.length * 2.0;
+      p.drawText(stc, posX, currentY - 10, 6.5, true, '0 0 0');
+    }
+  });
+
+  p.drawLine(xTotPast, currentY, xTotPast, currentY - 14, '0 0 0', 1.2);
+  const stTotPast = String(dados.totalGeralPastelaria ?? 0);
+  p.drawText(stTotPast, xTotPast + 10, currentY - 10, 7.5, true, '0 0 0');
+  currentY -= 20;
+
+  // ==============================================================
+  // RESUMO GERAL CONSOLIDADO & ASSINATURAS (100% FUNDO BRANCO, SEM CAIXAS)
+  // ==============================================================
+  p.drawLine(xInicio, currentY, xInicio + wTotalTabela, currentY, '0 0 0', 1.2);
+  p.drawLine(xInicio, currentY - 18, xInicio + wTotalTabela, currentY - 18, '0 0 0', 1.2);
+
+  p.drawText('TOTAL GERAL A BORDO (PADARIA + PASTELARIA)', xInicio + 6, currentY - 12.5, 8.5, true, '0 0 0');
+  const grandTotStr = `${dados.totalGeralUnidades ?? dados.totalGeral ?? 0} un.`;
+  p.drawText(grandTotStr, xInicio + wTotalTabela - 75, currentY - 12.5, 9.5, true, '0 0 0');
+  currentY -= 26;
+
+  // Assinaturas de Conferência
+  const wAssinatura = (wTotalTabela - 20) / 2;
+  p.drawRect(xInicio, currentY - 24, wAssinatura, 24, null, '0.3 0.3 0.3');
+  p.drawText('Chefe de Expedição / Fabrico: Visto [                    ]', xInicio + 8, currentY - 15, 7, false, '0.2 0.2 0.2');
+
+  p.drawRect(xInicio + wAssinatura + 20, currentY - 24, wAssinatura, 24, null, '0.3 0.3 0.3');
+  p.drawText('Conferência dos Condutores: Conferido em Partida [                    ] • Hora: ____ : ____', xInicio + wAssinatura + 26, currentY - 15, 6.5, false, '0.2 0.2 0.2');
+
   return doc.toBuffer();
+}
+
+/**
+ * Constrói o PDF Oficial da Folha de Carga (Guia de Carga Conjunta - Matriz de Todas as Rotas)
+ * Substitui o modelo antigo segregado de carrinhas pelo formato consolidado solicitado pela gerência.
+ */
+export function gerarPdfFolhaCargaCarrinhas(params: ParametrosFolhaCargaPdf | string): Buffer {
+  return gerarPdfGuiaCargaConjunta(params);
 }

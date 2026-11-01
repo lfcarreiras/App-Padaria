@@ -386,12 +386,14 @@ export function PdfViewerModal({
     const existing = document.getElementById('dynamic-pdf-page-size');
     if (existing) existing.remove();
 
+    const isLandscape = tipo === 'guia_carga_conjunta';
+
     const styleEl = document.createElement('style');
     styleEl.id = 'dynamic-pdf-page-size';
     styleEl.textContent = `
       @page { 
-        size: A4 portrait !important; 
-        margin: 8mm !important; 
+        size: ${isLandscape ? 'A4 landscape' : 'A4 portrait'} !important; 
+        margin: ${isLandscape ? '4mm' : '8mm'} !important; 
       }
       body > *:not(#pdf-print-root) {
         display: none !important;
@@ -536,7 +538,7 @@ export function PdfViewerModal({
 
   return createPortal(
     <div id="pdf-print-root" className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 sm:p-4 backdrop-blur-xs overflow-y-auto print:p-0 print:bg-white print:static">
-      <div className="bg-white rounded-3xl max-w-4xl w-full shadow-2xl border border-gray-300 overflow-hidden flex flex-col max-h-[95vh] print:max-h-none print:shadow-none print:border-none print:w-full print:overflow-visible">
+      <div className={`bg-white rounded-3xl ${tipo === 'guia_carga_conjunta' ? 'max-w-[98vw]' : 'max-w-4xl'} w-full shadow-2xl border border-gray-300 overflow-hidden flex flex-col max-h-[95vh] print:max-h-none print:shadow-none print:border-none print:w-full print:overflow-visible`}>
         {/* Barra Superior de Ações (Oculta na impressão física) */}
         <div className="p-4 bg-gray-900 text-white flex flex-wrap items-center justify-between gap-3 print:hidden">
           <div className="flex items-center gap-2">
@@ -1758,151 +1760,415 @@ export function PdfViewerModal({
                 </div>
               </div>
 
-              {/* Tabela Matriz Compacta de Carga (Otimizada para 1-2 páginas A4) */}
-              <div className="overflow-x-auto print:overflow-visible">
-                <table className="w-full text-[10px] print:text-[9px] border border-stone-300 border-collapse">
-                  <thead>
-                    <tr className="bg-stone-100 text-stone-900 border-b-2 border-stone-800">
-                      <th className="py-1.5 px-2 text-left font-black w-44 sticky left-0 bg-stone-100 print:static">
-                        Artigo / Referência
-                      </th>
-                      {(dadosGuiaConjunta.colunasRotas || []).map((col) => (
-                        <th key={col.carrinhaId} className="py-1.5 px-1 text-center font-bold border-l border-stone-200 min-w-[55px]">
-                          <div className="font-black text-stone-950 text-[10px] leading-tight">{col.rota}</div>
-                          <div className="text-[8px] text-stone-600 truncate max-w-[65px] mx-auto font-normal" title={col.nomeCondutor || 'Condutor'}>
-                            {col.nomeCondutor || 'Condutor'}
-                          </div>
-                          {col.matricula && (
-                            <div className="text-[7px] text-stone-400 font-mono leading-none">{col.matricula}</div>
-                          )}
-                        </th>
-                      ))}
-                      <th className="py-1.5 px-2 text-right font-black border-l-2 border-stone-800 bg-stone-200/80 w-16">
-                        TOTAL
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {/* SECÇÃO PADARIA */}
-                    {(dadosGuiaConjunta.linhasPadaria || []).length > 0 && (
-                      <>
-                        <tr className="bg-stone-50 border-y border-stone-300">
-                          <td
-                            colSpan={(dadosGuiaConjunta.colunasRotas || []).length + 2}
-                            className="py-1 px-2 font-black text-stone-800 uppercase tracking-wider text-[9px]"
-                          >
-                            🥖 Padaria Tradicional & Broas
-                          </td>
-                        </tr>
-                        {(dadosGuiaConjunta.linhasPadaria || []).map((linha, idx) => (
-                          <tr key={`pad-${idx}`} className="border-b border-stone-100 hover:bg-stone-50/50">
-                            <td className="py-1 px-2 font-bold text-stone-900 sticky left-0 bg-white print:static">
-                              {linha.artigo}
-                            </td>
-                            {(dadosGuiaConjunta.colunasRotas || []).map((col) => {
-                              const qtd = linha.quantidadesPorRota?.[col.carrinhaId] || 0;
-                              return (
-                                <td
-                                  key={col.carrinhaId}
-                                  className={`py-1 px-1 text-center border-l border-stone-100 font-mono ${
-                                    qtd > 0 ? 'font-black text-stone-950 bg-amber-50/30' : 'text-stone-300'
-                                  }`}
-                                >
-                                  {qtd > 0 ? qtd : '-'}
-                                </td>
-                              );
-                            })}
-                            <td className="py-1 px-2 text-right font-black font-mono text-stone-950 border-l-2 border-stone-800 bg-stone-100/60">
-                              {linha.totalArtigo}
-                            </td>
-                          </tr>
-                        ))}
-                        {/* Subtotal Padaria */}
-                        <tr className="bg-stone-50/70 font-black border-t border-b border-stone-300 text-stone-900 print:bg-white">
-                          <td className="py-1 px-2 uppercase text-[9px] sticky left-0 bg-stone-50/70 print:static print:bg-white">
-                            Subtotal Padaria
-                          </td>
-                          {(dadosGuiaConjunta.colunasRotas || []).map((col) => (
-                            <td key={col.carrinhaId} className="py-1 px-1 text-center font-mono border-l border-stone-200 text-[10px] print:bg-white">
-                              {dadosGuiaConjunta.totaisPadariaPorRota?.[col.carrinhaId] || 0}
-                            </td>
-                          ))}
-                          <td className="py-1 px-2 text-right font-mono border-l-2 border-stone-800 bg-stone-100/60 text-[10px] print:bg-white">
-                            {dadosGuiaConjunta.totalGeralPadaria ?? 0}
-                          </td>
-                        </tr>
-                      </>
-                    )}
+              {/* Tabela Grelha Oficial Conjunta (Conforme Docx: Padaria 34 Colunas e Pastelaria 18 Colunas) */}
+              {dadosGuiaConjunta.gruposRotasGrelha &&
+              dadosGuiaConjunta.colunasGrelhaPadaria &&
+              dadosGuiaConjunta.colunasGrelhaPastelaria ? (
+                <div className="space-y-6">
+                  {/* TABELA 1: PADARIA (34 COLUNAS) */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between border-b-2 border-stone-800 pb-1">
+                      <h2 className="text-xs sm:text-sm font-black text-stone-900 uppercase tracking-wide flex items-center gap-1.5">
+                        <span>🥖 1. SECÇÃO PADARIA & BROAS (34 COLUNAS)</span>
+                      </h2>
+                      <span className="text-[11px] font-bold text-stone-700 font-mono">
+                        Total Padaria: {dadosGuiaConjunta.totalGeralPadaria} un.
+                      </span>
+                    </div>
 
-                    {/* SECÇÃO PASTELARIA */}
-                    {(dadosGuiaConjunta.linhasPastelaria || []).length > 0 && (
-                      <>
-                        <tr className="bg-stone-50 border-y border-stone-300">
-                          <td
-                            colSpan={(dadosGuiaConjunta.colunasRotas || []).length + 2}
-                            className="py-1 px-2 font-black text-stone-800 uppercase tracking-wider text-[9px]"
-                          >
-                            🍰 Pastelaria Fina & Confeitaria
-                          </td>
-                        </tr>
-                        {(dadosGuiaConjunta.linhasPastelaria || []).map((linha, idx) => (
-                          <tr key={`past-${idx}`} className="border-b border-stone-100 hover:bg-stone-50/50">
-                            <td className="py-1 px-2 font-bold text-stone-900 sticky left-0 bg-white print:static">
-                              {linha.artigo}
+                    <div className="overflow-x-auto print:overflow-visible border border-stone-400 bg-white">
+                      <table className="w-full text-[9px] print:text-[8px] border-collapse">
+                        <thead>
+                          <tr className="bg-white text-stone-900 border-b-2 border-stone-800">
+                            <th className="py-1 px-1.5 text-left font-black w-48 min-w-[180px] sticky left-0 bg-white z-10 border-r border-stone-400 print:static">
+                              Rota / Paragem B2B
+                            </th>
+                            {dadosGuiaConjunta.colunasGrelhaPadaria.map((col) => (
+                              <th
+                                key={col.id}
+                                className="p-0.5 text-center font-bold border-r border-stone-300 w-6 min-w-[22px] max-w-[28px] align-bottom bg-white"
+                                title={col.label}
+                              >
+                                <div className="h-28 flex items-end justify-center pb-1">
+                                  <span className="[writing-mode:vertical-rl] rotate-180 text-[8px] font-bold tracking-tighter whitespace-nowrap text-stone-900 leading-tight">
+                                    {col.label}
+                                  </span>
+                                </div>
+                              </th>
+                            ))}
+                            <th className="py-1 px-1.5 text-right font-black border-l-2 border-stone-800 bg-white w-14 min-w-[48px]">
+                              TOTAL
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {dadosGuiaConjunta.gruposRotasGrelha.map((grupo) => {
+                            const linhasComPadaria = (grupo.linhas || []).filter((l) => {
+                              if (l.tipo === 'rota_base') return true;
+                              const totPadLinha = dadosGuiaConjunta.colunasGrelhaPadaria!.reduce((acc, c) => acc + (l.quantidades[c.id] || 0), 0);
+                              return totPadLinha > 0;
+                            });
+
+                            return (
+                              <React.Fragment key={grupo.carrinhaId}>
+                                {/* Linha de Cabeçalho / Divisória da Rota */}
+                                <tr className="bg-stone-100/90 font-black border-t-2 border-b border-stone-700 text-stone-950">
+                                  <td className="py-1 px-1.5 sticky left-0 bg-stone-100/95 z-10 border-r border-stone-400 font-black uppercase text-[9px] print:static">
+                                    {grupo.rotaNome} — {grupo.nomeCondutor || 'Condutor'} {grupo.matricula ? `(${grupo.matricula})` : ''}
+                                  </td>
+                                  {dadosGuiaConjunta.colunasGrelhaPadaria.map((col) => {
+                                    const q = grupo.totaisPadaria[col.id] || 0;
+                                    return (
+                                      <td
+                                        key={col.id}
+                                        className="py-0.5 px-0.5 text-center font-mono text-[8px] font-bold border-r border-stone-300 bg-stone-50/70"
+                                      >
+                                        {q > 0 ? q : '-'}
+                                      </td>
+                                    );
+                                  })}
+                                  <td className="py-1 px-1.5 text-right font-mono font-black border-l-2 border-stone-800 text-[9px] bg-stone-100">
+                                    {grupo.totalPadariaRota}
+                                  </td>
+                                </tr>
+
+                                {/* Linhas de Clientes B2B, Base e Domicílios */}
+                                {linhasComPadaria.map((linha, lIdx) => {
+                                  const totLinhaPad = dadosGuiaConjunta.colunasGrelhaPadaria!.reduce((acc, c) => acc + (linha.quantidades[c.id] || 0), 0);
+                                  return (
+                                    <tr
+                                      key={linha.id || lIdx}
+                                      className="border-b border-stone-200 hover:bg-stone-50/50 bg-white"
+                                    >
+                                      <td className="py-0.5 px-1.5 sticky left-0 bg-white z-10 border-r border-stone-300 truncate max-w-[190px] font-medium text-stone-900 print:static">
+                                        <span className={linha.tipo === 'rota_base' ? 'font-bold text-stone-700' : 'text-stone-900'}>
+                                          {linha.nomeExibicao}
+                                        </span>
+                                      </td>
+                                      {dadosGuiaConjunta.colunasGrelhaPadaria!.map((col) => {
+                                        const q = linha.quantidades[col.id] || 0;
+                                        return (
+                                          <td
+                                            key={col.id}
+                                            className={`py-0.5 px-0.5 text-center font-mono text-[8px] border-r border-stone-200 ${
+                                              q > 0 ? 'font-black text-stone-950' : 'text-stone-300'
+                                            }`}
+                                          >
+                                            {q > 0 ? q : '-'}
+                                          </td>
+                                        );
+                                      })}
+                                      <td className="py-0.5 px-1.5 text-right font-mono font-bold text-[8px] border-l-2 border-stone-800 text-stone-950">
+                                        {totLinhaPad}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </React.Fragment>
+                            );
+                          })}
+                        </tbody>
+                        <tfoot>
+                          <tr className="bg-white text-stone-950 font-black border-t-2 border-b-2 border-stone-900 print:bg-white print:text-black">
+                            <td className="py-1.5 px-2 uppercase text-[9px] tracking-wider sticky left-0 bg-white text-stone-950 font-black border-r border-stone-400 print:static print:bg-white print:text-black">
+                              TOTAL PADARIA
                             </td>
-                            {(dadosGuiaConjunta.colunasRotas || []).map((col) => {
-                              const qtd = linha.quantidadesPorRota?.[col.carrinhaId] || 0;
-                              return (
-                                <td
-                                  key={col.carrinhaId}
-                                  className={`py-1 px-1 text-center border-l border-stone-100 font-mono ${
-                                    qtd > 0 ? 'font-black text-stone-950 bg-amber-50/30' : 'text-stone-300'
-                                  }`}
-                                >
-                                  {qtd > 0 ? qtd : '-'}
-                                </td>
-                              );
-                            })}
-                            <td className="py-1 px-2 text-right font-black font-mono text-stone-950 border-l-2 border-stone-800 bg-stone-100/60">
-                              {linha.totalArtigo}
+                            {dadosGuiaConjunta.colunasGrelhaPadaria.map((col) => (
+                              <td
+                                key={col.id}
+                                className="py-1 px-0.5 text-center font-mono border-r border-stone-300 text-[8px] font-black text-stone-950 bg-white print:bg-white print:text-black"
+                              >
+                                {dadosGuiaConjunta.totaisColunasPadaria?.[col.id] || 0}
+                              </td>
+                            ))}
+                            <td className="py-1.5 px-1.5 text-right font-mono border-l-2 border-stone-900 text-stone-950 text-[10px] font-black bg-white print:bg-white print:text-black">
+                              {dadosGuiaConjunta.totalGeralPadaria}
                             </td>
                           </tr>
-                        ))}
-                        {/* Subtotal Pastelaria */}
-                        <tr className="bg-stone-50/70 font-black border-t border-b border-stone-300 text-stone-900 print:bg-white">
-                          <td className="py-1 px-2 uppercase text-[9px] sticky left-0 bg-stone-50/70 print:static print:bg-white">
-                            Subtotal Pastelaria
-                          </td>
-                          {(dadosGuiaConjunta.colunasRotas || []).map((col) => (
-                            <td key={col.carrinhaId} className="py-1 px-1 text-center font-mono border-l border-stone-200 text-[10px] print:bg-white">
-                              {dadosGuiaConjunta.totaisPastelariaPorRota?.[col.carrinhaId] || 0}
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* TABELA 2: PASTELARIA (18 COLUNAS) */}
+                  <div className="space-y-2 pt-2">
+                    <div className="flex items-center justify-between border-b-2 border-stone-800 pb-1">
+                      <h2 className="text-xs sm:text-sm font-black text-stone-900 uppercase tracking-wide flex items-center gap-1.5">
+                        <span>🧁 2. SECÇÃO PASTELARIA FINA (18 COLUNAS)</span>
+                      </h2>
+                      <span className="text-[11px] font-bold text-stone-700 font-mono">
+                        Total Pastelaria: {dadosGuiaConjunta.totalGeralPastelaria} un.
+                      </span>
+                    </div>
+
+                    <div className="overflow-x-auto print:overflow-visible border border-stone-400 bg-white">
+                      <table className="w-full text-[9px] print:text-[8px] border-collapse">
+                        <thead>
+                          <tr className="bg-white text-stone-900 border-b-2 border-stone-800">
+                            <th className="py-1 px-1.5 text-left font-black w-48 min-w-[180px] sticky left-0 bg-white z-10 border-r border-stone-400 print:static">
+                              Rota / Paragem B2B
+                            </th>
+                            {dadosGuiaConjunta.colunasGrelhaPastelaria.map((col) => (
+                              <th
+                                key={col.id}
+                                className="p-0.5 text-center font-bold border-r border-stone-300 w-8 min-w-[28px] max-w-[34px] align-bottom bg-white"
+                                title={col.label}
+                              >
+                                <div className="h-28 flex items-end justify-center pb-1">
+                                  <span className="[writing-mode:vertical-rl] rotate-180 text-[8px] font-bold tracking-tighter whitespace-nowrap text-stone-900 leading-tight">
+                                    {col.label}
+                                  </span>
+                                </div>
+                              </th>
+                            ))}
+                            <th className="py-1 px-1.5 text-right font-black border-l-2 border-stone-800 bg-white w-14 min-w-[48px]">
+                              TOTAL
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {dadosGuiaConjunta.gruposRotasGrelha.map((grupo) => {
+                            const linhasComPastelaria = (grupo.linhas || []).filter((l) => {
+                              if (l.tipo === 'rota_base') return true;
+                              const totPastLinha = dadosGuiaConjunta.colunasGrelhaPastelaria!.reduce((acc, c) => acc + (l.quantidades[c.id] || 0), 0);
+                              return totPastLinha > 0;
+                            });
+
+                            return (
+                              <React.Fragment key={grupo.carrinhaId}>
+                                {/* Linha de Cabeçalho / Divisória da Rota */}
+                                <tr className="bg-stone-100/90 font-black border-t-2 border-b border-stone-700 text-stone-950">
+                                  <td className="py-1 px-1.5 sticky left-0 bg-stone-100/95 z-10 border-r border-stone-400 font-black uppercase text-[9px] print:static">
+                                    {grupo.rotaNome} — {grupo.nomeCondutor || 'Condutor'} {grupo.matricula ? `(${grupo.matricula})` : ''}
+                                  </td>
+                                  {dadosGuiaConjunta.colunasGrelhaPastelaria.map((col) => {
+                                    const q = grupo.totaisPastelaria[col.id] || 0;
+                                    return (
+                                      <td
+                                        key={col.id}
+                                        className="py-0.5 px-0.5 text-center font-mono text-[8px] font-bold border-r border-stone-300 bg-stone-50/70"
+                                      >
+                                        {q > 0 ? q : '-'}
+                                      </td>
+                                    );
+                                  })}
+                                  <td className="py-1 px-1.5 text-right font-mono font-black border-l-2 border-stone-800 text-[9px] bg-stone-100">
+                                    {grupo.totalPastelariaRota}
+                                  </td>
+                                </tr>
+
+                                {/* Linhas de Clientes B2B, Base e Domicílios */}
+                                {linhasComPastelaria.map((linha, lIdx) => {
+                                  const totLinhaPast = dadosGuiaConjunta.colunasGrelhaPastelaria!.reduce((acc, c) => acc + (linha.quantidades[c.id] || 0), 0);
+                                  return (
+                                    <tr
+                                      key={linha.id || lIdx}
+                                      className="border-b border-stone-200 hover:bg-stone-50/50 bg-white"
+                                    >
+                                      <td className="py-0.5 px-1.5 sticky left-0 bg-white z-10 border-r border-stone-300 truncate max-w-[190px] font-medium text-stone-900 print:static">
+                                        <span className={linha.tipo === 'rota_base' ? 'font-bold text-stone-700' : 'text-stone-900'}>
+                                          {linha.nomeExibicao}
+                                        </span>
+                                      </td>
+                                      {dadosGuiaConjunta.colunasGrelhaPastelaria!.map((col) => {
+                                        const q = linha.quantidades[col.id] || 0;
+                                        return (
+                                          <td
+                                            key={col.id}
+                                            className={`py-0.5 px-0.5 text-center font-mono text-[8px] border-r border-stone-200 ${
+                                              q > 0 ? 'font-black text-stone-950' : 'text-stone-300'
+                                            }`}
+                                          >
+                                            {q > 0 ? q : '-'}
+                                          </td>
+                                        );
+                                      })}
+                                      <td className="py-0.5 px-1.5 text-right font-mono font-bold text-[8px] border-l-2 border-stone-800 text-stone-950">
+                                        {totLinhaPast}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </React.Fragment>
+                            );
+                          })}
+                        </tbody>
+                        <tfoot>
+                          <tr className="bg-white text-stone-950 font-black border-t-2 border-b-2 border-stone-900 print:bg-white print:text-black">
+                            <td className="py-1.5 px-2 uppercase text-[9px] tracking-wider sticky left-0 bg-white text-stone-950 font-black border-r border-stone-400 print:static print:bg-white print:text-black">
+                              TOTAL PASTELARIA
                             </td>
+                            {dadosGuiaConjunta.colunasGrelhaPastelaria.map((col) => (
+                              <td
+                                key={col.id}
+                                className="py-1 px-0.5 text-center font-mono border-r border-stone-300 text-[8px] font-black text-stone-950 bg-white print:bg-white print:text-black"
+                              >
+                                {dadosGuiaConjunta.totaisColunasPastelaria?.[col.id] || 0}
+                              </td>
+                            ))}
+                            <td className="py-1.5 px-1.5 text-right font-mono border-l-2 border-stone-900 text-stone-950 text-[10px] font-black bg-white print:bg-white print:text-black">
+                              {dadosGuiaConjunta.totalGeralPastelaria}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Resumo Consolidado Final */}
+                  <div className="p-3 bg-white border-2 border-stone-900 rounded-xl flex items-center justify-between text-xs font-black">
+                    <span className="uppercase tracking-wider">TOTAL GERAL A BORDO (PADARIA + PASTELARIA)</span>
+                    <span className="text-base font-mono font-black text-stone-950">
+                      {dadosGuiaConjunta.totalGeralUnidades ?? dadosGuiaConjunta.totalGeral ?? 0} un.
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="overflow-x-auto print:overflow-visible">
+                  <table className="w-full text-[10px] print:text-[9px] border border-stone-300 border-collapse">
+                    <thead>
+                      <tr className="bg-stone-100 text-stone-900 border-b-2 border-stone-800">
+                        <th className="py-1.5 px-2 text-left font-black w-44 sticky left-0 bg-stone-100 print:static">
+                          Artigo / Referência
+                        </th>
+                        {(dadosGuiaConjunta.colunasRotas || []).map((col) => (
+                          <th key={col.carrinhaId} className="py-1.5 px-1 text-center font-bold border-l border-stone-200 min-w-[55px]">
+                            <div className="font-black text-stone-950 text-[10px] leading-tight">{col.rota}</div>
+                            <div className="text-[8px] text-stone-600 truncate max-w-[65px] mx-auto font-normal" title={col.nomeCondutor || 'Condutor'}>
+                              {col.nomeCondutor || 'Condutor'}
+                            </div>
+                            {col.matricula && (
+                              <div className="text-[7px] text-stone-400 font-mono leading-none">{col.matricula}</div>
+                            )}
+                          </th>
+                        ))}
+                        <th className="py-1.5 px-2 text-right font-black border-l-2 border-stone-800 bg-stone-200/80 w-16">
+                          TOTAL
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {/* SECÇÃO PADARIA */}
+                      {(dadosGuiaConjunta.linhasPadaria || []).length > 0 && (
+                        <>
+                          <tr className="bg-stone-50 border-y border-stone-300">
+                            <td
+                              colSpan={(dadosGuiaConjunta.colunasRotas || []).length + 2}
+                              className="py-1 px-2 font-black text-stone-800 uppercase tracking-wider text-[9px]"
+                            >
+                              🥖 Padaria Tradicional & Broas
+                            </td>
+                          </tr>
+                          {(dadosGuiaConjunta.linhasPadaria || []).map((linha, idx) => (
+                            <tr key={`pad-${idx}`} className="border-b border-stone-100 hover:bg-stone-50/50">
+                              <td className="py-1 px-2 font-bold text-stone-900 sticky left-0 bg-white print:static">
+                                {linha.artigo}
+                              </td>
+                              {(dadosGuiaConjunta.colunasRotas || []).map((col) => {
+                                const qtd = linha.quantidadesPorRota?.[col.carrinhaId] || 0;
+                                return (
+                                  <td
+                                    key={col.carrinhaId}
+                                    className={`py-1 px-1 text-center border-l border-stone-100 font-mono ${
+                                      qtd > 0 ? 'font-black text-stone-950 bg-amber-50/30' : 'text-stone-300'
+                                    }`}
+                                  >
+                                    {qtd > 0 ? qtd : '-'}
+                                  </td>
+                                );
+                              })}
+                              <td className="py-1 px-2 text-right font-black font-mono text-stone-950 border-l-2 border-stone-800 bg-stone-100/60">
+                                {linha.totalArtigo}
+                              </td>
+                            </tr>
                           ))}
-                          <td className="py-1 px-2 text-right font-mono border-l-2 border-stone-800 bg-stone-100/60 text-[10px] print:bg-white">
-                            {dadosGuiaConjunta.totalGeralPastelaria ?? 0}
-                          </td>
-                        </tr>
-                      </>
-                    )}
-                  </tbody>
-                  <tfoot>
-                    {/* Rodapé Total sem preenchimento / fundo branco para minimizar custos de toner/impressão */}
-                    <tr className="bg-white text-stone-950 font-black border-t-2 border-b-2 border-stone-900 print:bg-white print:text-black">
-                      <td className="py-1.5 px-2 uppercase text-[10px] tracking-wider sticky left-0 bg-white text-stone-950 font-black print:static print:bg-white print:text-black">
-                        TOTAL A BORDO
-                      </td>
-                      {(dadosGuiaConjunta.colunasRotas || []).map((col) => (
-                        <td key={col.carrinhaId} className="py-1.5 px-1 text-center font-mono border-l border-stone-300 text-[11px] font-black text-stone-950 bg-white print:bg-white print:text-black">
-                          {dadosGuiaConjunta.totaisPorRota?.[col.carrinhaId] || 0}
+                          {/* Subtotal Padaria */}
+                          <tr className="bg-stone-50/70 font-black border-t border-b border-stone-300 text-stone-900 print:bg-white">
+                            <td className="py-1 px-2 uppercase text-[9px] sticky left-0 bg-stone-50/70 print:static print:bg-white">
+                              Subtotal Padaria
+                            </td>
+                            {(dadosGuiaConjunta.colunasRotas || []).map((col) => (
+                              <td key={col.carrinhaId} className="py-1 px-1 text-center font-mono border-l border-stone-200 text-[10px] print:bg-white">
+                                {dadosGuiaConjunta.totaisPadariaPorRota?.[col.carrinhaId] || 0}
+                              </td>
+                            ))}
+                            <td className="py-1 px-2 text-right font-mono border-l-2 border-stone-800 bg-stone-100/60 text-[10px] print:bg-white">
+                              {dadosGuiaConjunta.totalGeralPadaria ?? 0}
+                            </td>
+                          </tr>
+                        </>
+                      )}
+
+                      {/* SECÇÃO PASTELARIA */}
+                      {(dadosGuiaConjunta.linhasPastelaria || []).length > 0 && (
+                        <>
+                          <tr className="bg-stone-50 border-y border-stone-300">
+                            <td
+                              colSpan={(dadosGuiaConjunta.colunasRotas || []).length + 2}
+                              className="py-1 px-2 font-black text-stone-800 uppercase tracking-wider text-[9px]"
+                            >
+                              🍰 Pastelaria Fina & Confeitaria
+                            </td>
+                          </tr>
+                          {(dadosGuiaConjunta.linhasPastelaria || []).map((linha, idx) => (
+                            <tr key={`past-${idx}`} className="border-b border-stone-100 hover:bg-stone-50/50">
+                              <td className="py-1 px-2 font-bold text-stone-900 sticky left-0 bg-white print:static">
+                                {linha.artigo}
+                              </td>
+                              {(dadosGuiaConjunta.colunasRotas || []).map((col) => {
+                                const qtd = linha.quantidadesPorRota?.[col.carrinhaId] || 0;
+                                return (
+                                  <td
+                                    key={col.carrinhaId}
+                                    className={`py-1 px-1 text-center border-l border-stone-100 font-mono ${
+                                      qtd > 0 ? 'font-black text-stone-950 bg-amber-50/30' : 'text-stone-300'
+                                    }`}
+                                  >
+                                    {qtd > 0 ? qtd : '-'}
+                                  </td>
+                                );
+                              })}
+                              <td className="py-1 px-2 text-right font-black font-mono text-stone-950 border-l-2 border-stone-800 bg-stone-100/60">
+                                {linha.totalArtigo}
+                              </td>
+                            </tr>
+                          ))}
+                          {/* Subtotal Pastelaria */}
+                          <tr className="bg-stone-50/70 font-black border-t border-b border-stone-300 text-stone-900 print:bg-white">
+                            <td className="py-1 px-2 uppercase text-[9px] sticky left-0 bg-stone-50/70 print:static print:bg-white">
+                              Subtotal Pastelaria
+                            </td>
+                            {(dadosGuiaConjunta.colunasRotas || []).map((col) => (
+                              <td key={col.carrinhaId} className="py-1 px-1 text-center font-mono border-l border-stone-200 text-[10px] print:bg-white">
+                                {dadosGuiaConjunta.totaisPastelariaPorRota?.[col.carrinhaId] || 0}
+                              </td>
+                            ))}
+                            <td className="py-1 px-2 text-right font-mono border-l-2 border-stone-800 bg-stone-100/60 text-[10px] print:bg-white">
+                              {dadosGuiaConjunta.totalGeralPastelaria ?? 0}
+                            </td>
+                          </tr>
+                        </>
+                      )}
+                    </tbody>
+                    <tfoot>
+                      {/* Rodapé Total sem preenchimento / fundo branco para minimizar custos de toner/impressão */}
+                      <tr className="bg-white text-stone-950 font-black border-t-2 border-b-2 border-stone-900 print:bg-white print:text-black">
+                        <td className="py-1.5 px-2 uppercase text-[10px] tracking-wider sticky left-0 bg-white text-stone-950 font-black print:static print:bg-white print:text-black">
+                          TOTAL A BORDO
                         </td>
-                      ))}
-                      <td className="py-1.5 px-2 text-right font-mono border-l-2 border-stone-900 text-stone-950 text-[11px] font-black bg-white print:bg-white print:text-black">
-                        {dadosGuiaConjunta.totalGeralUnidades ?? dadosGuiaConjunta.totalGeral ?? 0}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
+                        {(dadosGuiaConjunta.colunasRotas || []).map((col) => (
+                          <td key={col.carrinhaId} className="py-1.5 px-1 text-center font-mono border-l border-stone-300 text-[11px] font-black text-stone-950 bg-white print:bg-white print:text-black">
+                            {dadosGuiaConjunta.totaisPorRota?.[col.carrinhaId] || 0}
+                          </td>
+                        ))}
+                        <td className="py-1.5 px-2 text-right font-mono border-l-2 border-stone-900 text-stone-950 text-[11px] font-black bg-white print:bg-white print:text-black">
+                          {dadosGuiaConjunta.totalGeralUnidades ?? dadosGuiaConjunta.totalGeral ?? 0}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
 
               {/* Validação de Expedição e Condutores */}
               <div className="grid grid-cols-2 gap-4 pt-3 border-t border-stone-300 text-[10px]">

@@ -299,6 +299,36 @@ export interface ColunaCabecalhoRota {
   nomeCarro?: string;
 }
 
+export interface ColunaGrelhaProduto {
+  id: string;
+  label: string;
+  alias: string[];
+}
+
+export interface LinhaGrelhaCarga {
+  tipo: 'rota_base' | 'cliente_b2b' | 'encomenda_domicilio';
+  id: string;
+  carrinhaId: string;
+  nomeExibicao: string;
+  detalhe?: string;
+  quantidades: Record<string, number>;
+  totalLinha: number;
+}
+
+export interface GrupoRotaGrelha {
+  carrinhaId: string;
+  numeroRota: number;
+  rotaNome: string;
+  nomeCondutor: string;
+  matricula: string;
+  linhas: LinhaGrelhaCarga[];
+  totaisPadaria: Record<string, number>;
+  totaisPastelaria: Record<string, number>;
+  totalPadariaRota: number;
+  totalPastelariaRota: number;
+  totalGeralRota: number;
+}
+
 export interface DadosGuiaConjunta {
   data?: string;
   colunasRotas: ColunaRotaGuia[];
@@ -315,4 +345,10 @@ export interface DadosGuiaConjunta {
   rotasCabecalho?: ColunaCabecalhoRota[];
   linhas?: LinhaCargaConjunta[];
   totalGeral?: number;
+
+  colunasGrelhaPadaria?: ColunaGrelhaProduto[];
+  colunasGrelhaPastelaria?: ColunaGrelhaProduto[];
+  gruposRotasGrelha?: GrupoRotaGrelha[];
+  totaisColunasPadaria?: Record<string, number>;
+  totaisColunasPastelaria?: Record<string, number>;
 }

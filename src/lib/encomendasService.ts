@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Encomenda, ItemEncomenda, EstadoEncomenda, EstadoProducaoItem, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, LogAuditoria, BaseFixaCarrinha, ClienteEmpresarialB2B, DiaSemana, BaseDiariaRecorrente, Role, PermissoesCargo, MatrizPermissoesCargos, LinhaCargaConjunta, DadosGuiaConjunta, ColunaCabecalhoRota } from '../types';
+import type { Encomenda, ItemEncomenda, EstadoEncomenda, EstadoProducaoItem, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, LogAuditoria, BaseFixaCarrinha, ClienteEmpresarialB2B, DiaSemana, BaseDiariaRecorrente, Role, PermissoesCargo, MatrizPermissoesCargos, LinhaCargaConjunta, DadosGuiaConjunta, ColunaCabecalhoRota, ColunaRotaGuia, LinhaGuiaConjuntaSecao, ColunaGrelhaProduto, LinhaGrelhaCarga, GrupoRotaGrelha } from '../types';
 import { LOJAS_MOCK, LOGS_AUDITORIA_MOCK, CARRINHAS_MOCK, COLUNAS_MAPA_DIARIO_OFICIAL, BASE_FIXA_CARRINHAS_INICIAL, CLIENTES_EMPRESARIAIS_B2B_INICIAIS } from './mockData';
 
 const REAL_DELIVERY_TIMESTAMPS_KEY = 'padaria_timestamps_entrega_real_v1';
@@ -1518,7 +1518,7 @@ export function normalizarPerfil(p: any): PerfilUtilizador {
 export const PERFIS_INICIAIS: PerfilUtilizador[] = [
   {
     id: 'user-admin',
-    nome: 'Administrador Geral',
+    nome: 'Luís Silva',
     telefone: '910 000 001',
     email: 'admin@padaria.pt',
     password: 'admin',
@@ -1538,31 +1538,31 @@ export const PERFIS_INICIAIS: PerfilUtilizador[] = [
     ativo: true,
   },
   {
-    id: 'user-gerente',
-    nome: 'António Silva (Gerente)',
-    telefone: '910 000 002',
-    email: 'antonio.silva@padaria.pt',
+    id: 'user-carocha',
+    nome: 'Carocha',
+    telefone: '910 000 003',
+    email: 'carocha@padaria.pt',
     password: '123',
-    role: 'gerente_loja',
-    loja_id: 'a9982e9f-7899-4a7c-8ce3-bc30f16c99a2',
-    loja_nome: 'Padaria da Vila I - Praça',
+    role: 'atendente',
+    loja_id: 'cb8972e2-9011-4f81-a90a-be45612f00c3',
+    loja_nome: 'Padaria da Vila III - Carocha',
     acesso_encomendas: 'edicao',
-    acesso_producao: 'leitura',
+    acesso_producao: 'sem_acesso',
     acesso_loja: 'edicao',
-    acesso_entregas: 'leitura',
-    acesso_gestao: 'leitura',
+    acesso_entregas: 'sem_acesso',
+    acesso_gestao: 'sem_acesso',
     painel_encomendas: true,
-    painel_producao: true,
+    painel_producao: false,
     painel_loja: true,
-    painel_entregas: true,
-    painel_gestao: true,
+    painel_entregas: false,
+    painel_gestao: false,
     ativo: true,
   },
   {
-    id: 'user-balcao',
-    nome: 'Marta Santos (Operador Balcão)',
-    telefone: '910 000 003',
-    email: 'marta.santos@padaria.pt',
+    id: 'user-praca',
+    nome: 'Praça',
+    telefone: '910 000 002',
+    email: 'praca@padaria.pt',
     password: '123',
     role: 'atendente',
     loja_id: 'a9982e9f-7899-4a7c-8ce3-bc30f16c99a2',
@@ -1580,10 +1580,31 @@ export const PERFIS_INICIAIS: PerfilUtilizador[] = [
     ativo: true,
   },
   {
-    id: 'user-padeiro',
-    nome: 'Carlos Ferreira (Padeiro / Pasteleiro)',
+    id: 'user-liceu',
+    nome: 'Liceu',
     telefone: '910 000 004',
-    email: 'carlos.padeiro@padaria.pt',
+    email: 'liceu@padaria.pt',
+    password: '123',
+    role: 'atendente',
+    loja_id: 'b11234ef-5678-90ab-cdef-1234567890ab',
+    loja_nome: 'Padaria da Vila II - Liceu',
+    acesso_encomendas: 'edicao',
+    acesso_producao: 'sem_acesso',
+    acesso_loja: 'edicao',
+    acesso_entregas: 'sem_acesso',
+    acesso_gestao: 'sem_acesso',
+    painel_encomendas: true,
+    painel_producao: false,
+    painel_loja: true,
+    painel_entregas: false,
+    painel_gestao: false,
+    ativo: true,
+  },
+  {
+    id: 'user-fabrico',
+    nome: 'Fabrico',
+    telefone: '910 000 005',
+    email: 'fabrico@padaria.pt',
     password: '123',
     role: 'padeiro_pasteleiro',
     loja_id: 'fabbbb00-0000-0000-0000-000000000001',
@@ -1600,32 +1621,36 @@ export const PERFIS_INICIAIS: PerfilUtilizador[] = [
     painel_gestao: false,
     ativo: true,
   },
-  {
-    id: 'user-motorista',
-    nome: 'Rui Oliveira (Condutor Carrinha 1)',
-    telefone: '910 000 005',
-    email: 'rui.motorista@padaria.pt',
-    password: '123',
-    role: 'motorista',
-    loja_id: 'a9982e9f-7899-4a7c-8ce3-bc30f16c99a2',
-    loja_nome: 'Rota 1 - Matriz',
-    acesso_encomendas: 'sem_acesso',
-    acesso_producao: 'sem_acesso',
-    acesso_loja: 'leitura',
-    acesso_entregas: 'edicao',
-    acesso_gestao: 'sem_acesso',
-    painel_encomendas: false,
-    painel_producao: false,
-    painel_loja: true,
-    painel_entregas: true,
-    painel_gestao: false,
-    ativo: true,
-  },
 ];
 
 const CONFIG_PHONE_KEY = '000000000';
 
 export async function carregarPerfisAcessoSupabase(): Promise<PerfilUtilizador[]> {
+  // 1. Tentar carregar sempre de Supabase primeiro para sincronização cross-device em tempo real
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('clientes')
+        .select('notas_entrega')
+        .eq('telefone', CONFIG_PHONE_KEY)
+        .maybeSingle();
+
+      if (!error && data && data.notas_entrega) {
+        const parsed = JSON.parse(data.notas_entrega);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const normalizados = parsed.map(normalizarPerfil);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('app_perfis_utilizadores', JSON.stringify(normalizados));
+          }
+          return normalizados;
+        }
+      }
+    } catch (err) {
+      console.warn('Erro ao carregar perfis do Supabase, tentando cache local:', err);
+    }
+  }
+
+  // 2. Fallback para cache local apenas se offline ou erro
   if (typeof window !== 'undefined') {
     const cached = localStorage.getItem('app_perfis_utilizadores');
     if (cached) {
@@ -1638,35 +1663,13 @@ export async function carregarPerfisAcessoSupabase(): Promise<PerfilUtilizador[]
     }
   }
 
-  if (!supabase) return PERFIS_INICIAIS.map(normalizarPerfil);
-
-  try {
-    const { data } = await supabase
-      .from('clientes')
-      .select('notas_entrega')
-      .eq('telefone', CONFIG_PHONE_KEY)
-      .maybeSingle();
-
-    if (data && data.notas_entrega) {
-      const parsed = JSON.parse(data.notas_entrega);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        const normalizados = parsed.map(normalizarPerfil);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('app_perfis_utilizadores', JSON.stringify(normalizados));
-        }
-        return normalizados;
-      }
-    }
-  } catch (err) {
-    console.warn('Usando perfis predefinidos:', err);
-  }
-
   return PERFIS_INICIAIS.map(normalizarPerfil);
 }
 
 export async function salvarTodosPerfisSupabase(perfis: PerfilUtilizador[]) {
   if (typeof window !== 'undefined') {
     localStorage.setItem('app_perfis_utilizadores', JSON.stringify(perfis));
+    window.dispatchEvent(new Event('app_perfis_atualizados'));
   }
 
   if (!supabase) return;
@@ -1784,10 +1787,6 @@ export async function carregarLogsAuditoriaSupabase(): Promise<LogAuditoria[]> {
     }
   }
 
-  // 3. Fallback estruturado se a base de dados for inicializada pela primeira vez
-  if (todosLogs.length === 0 && LOGS_AUDITORIA_MOCK && LOGS_AUDITORIA_MOCK.length > 0) {
-    todosLogs = [...LOGS_AUDITORIA_MOCK];
-  }
 
   // 4. Deduplicar por ID e filtrar estritamente pelos últimos 7 dias para rastreabilidade de utilização
   const idsVistos = new Set<string>();
@@ -1969,18 +1968,22 @@ export function normalizarBaseFixaItem(b: any): BaseFixaCarrinha {
 
   const todosDias: DiaSemana[] = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
   const origemSemana = b?.quantidades_semanais || {};
+  const temSemanaDefinida = Boolean(
+    b?.quantidades_semanais &&
+    Object.keys(b.quantidades_semanais).some((k) => ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'].includes(k))
+  );
   const semanaNormalizada: Record<DiaSemana, Record<string, number>> = {
-    seg: normalizarMapaQuantidades(origemSemana.seg || mapaQtds),
-    ter: normalizarMapaQuantidades(origemSemana.ter || mapaQtds),
-    qua: normalizarMapaQuantidades(origemSemana.qua || mapaQtds),
-    qui: normalizarMapaQuantidades(origemSemana.qui || mapaQtds),
-    sex: normalizarMapaQuantidades(origemSemana.sex || mapaQtds),
-    sab: normalizarMapaQuantidades(origemSemana.sab || mapaQtds),
-    dom: normalizarMapaQuantidades(origemSemana.dom || mapaQtds),
+    seg: normalizarMapaQuantidades(origemSemana.seg || (temSemanaDefinida ? {} : mapaQtds)),
+    ter: normalizarMapaQuantidades(origemSemana.ter || (temSemanaDefinida ? {} : mapaQtds)),
+    qua: normalizarMapaQuantidades(origemSemana.qua || (temSemanaDefinida ? {} : mapaQtds)),
+    qui: normalizarMapaQuantidades(origemSemana.qui || (temSemanaDefinida ? {} : mapaQtds)),
+    sex: normalizarMapaQuantidades(origemSemana.sex || (temSemanaDefinida ? {} : mapaQtds)),
+    sab: normalizarMapaQuantidades(origemSemana.sab || (temSemanaDefinida ? {} : mapaQtds)),
+    dom: normalizarMapaQuantidades(origemSemana.dom || (temSemanaDefinida ? {} : mapaQtds)),
   };
   todosDias.forEach((d) => {
     if (!semanaNormalizada[d] || typeof semanaNormalizada[d] !== 'object') {
-      semanaNormalizada[d] = { ...mapaQtds };
+      semanaNormalizada[d] = {};
     }
   });
 
@@ -2142,13 +2145,27 @@ export async function carregarBaseFixaCarrinhasSupabase(): Promise<BaseFixaCarri
         .select('*');
 
       if (!error && data && data.length > 0) {
-        const parsed = data.map((row: any) => ({
-          carrinha_id: row.carrinha_id,
-          carrinha_nome: row.carrinha_nome,
-          quantidades_por_produto: row.quantidades || {},
-          quantidades: row.quantidades || {},
-        })).map(normalizarBaseFixaItem)
-          .filter((b) => b.carrinha_nome !== 'Rota 8' && b.carrinha_id !== 'e888db95-c427-4ed5-83fc-01403bd24cf8');
+        const parsed = data.map((row: any) => {
+          const q = row.quantidades || {};
+          const temSemanas = Boolean(q.seg || q.ter || q.qua || q.qui || q.sex || q.sab || q.dom || q.quantidades_semanais);
+          const semana = q.quantidades_semanais || (temSemanas ? {
+            seg: q.seg || {},
+            ter: q.ter || {},
+            qua: q.qua || {},
+            qui: q.qui || {},
+            sex: q.sex || {},
+            sab: q.sab || {},
+            dom: q.dom || {},
+          } : undefined);
+
+          return normalizarBaseFixaItem({
+            carrinha_id: row.carrinha_id,
+            carrinha_nome: row.carrinha_nome,
+            quantidades_semanais: semana,
+            quantidades_por_produto: q,
+            quantidades: q,
+          });
+        }).filter((b) => b.carrinha_nome !== 'Rota 8' && b.carrinha_id !== 'e888db95-c427-4ed5-83fc-01403bd24cf8');
 
         if (typeof window !== 'undefined') {
           localStorage.setItem(BASE_FIXA_CARRINHAS_STORAGE_KEY, JSON.stringify(parsed));
@@ -2207,7 +2224,17 @@ export function salvarBaseFixaCarrinhas(dados: BaseFixaCarrinha[]): void {
       supabase.from('bases_fixas_carrinhas').upsert({
         carrinha_id: b.carrinha_id,
         carrinha_nome: b.carrinha_nome || `Rota`,
-        quantidades: b.quantidades_por_produto || b.quantidades || {},
+        quantidades: {
+          ...b.quantidades_por_produto,
+          quantidades_semanais: b.quantidades_semanais,
+          seg: b.quantidades_semanais?.seg || {},
+          ter: b.quantidades_semanais?.ter || {},
+          qua: b.quantidades_semanais?.qua || {},
+          qui: b.quantidades_semanais?.qui || {},
+          sex: b.quantidades_semanais?.sex || {},
+          sab: b.quantidades_semanais?.sab || {},
+          dom: b.quantidades_semanais?.dom || {},
+        },
         atualizado_em: new Date().toISOString()
       }, { onConflict: 'carrinha_id' }).then(() => {}).catch(() => {});
     }
@@ -3005,7 +3032,107 @@ export function obterQuantidadeEfetivaClienteB2B(
   return { quantidade: 0, isAdhoc: false };
 }
 
-// ---------------- GUIA DE CARGA CONJUNTA (ROTAS 1 A 7) ---------------- //
+// ---------------- GUIA DE CARGA CONJUNTA (ROTAS 1 A 7) - GRELHA OFICIAL ---------------- //
+
+export const COLUNAS_GRELHA_PADARIA: ColunaGrelhaProduto[] = [
+  { id: 'b_amarela_05', label: 'B. amarela 0.5kg', alias: ['broa amarela 0,5 kg', 'broa amarela 0.5kg', 'b. amarela 0.5kg', 'b. amarela 0,5kg'] },
+  { id: 'b_amarela_1', label: 'B. amarela 1 kg', alias: ['broa amarela 1 kg', 'broa amarela 1kg', 'b. amarela 1 kg', 'b. amarela 1kg'] },
+  { id: 'b_amarela_2', label: 'B. amarela 2 kg', alias: ['broa amarela 2 kg', 'broa amarela 2kg', 'b. amarela 2 kg', 'b. amarela 2kg'] },
+  { id: 'b_branca_05', label: 'B. branca 0.5kg', alias: ['broa branca 0,5 kg', 'broa branca 0.5kg', 'b. branca 0.5kg', 'b. branca 0,5kg'] },
+  { id: 'b_branca_1', label: 'B. branca 1kg', alias: ['broa branca 1 kg', 'broa branca 1kg', 'b. branca 1kg', 'b. branca 1 kg'] },
+  { id: 'b_chourico', label: 'B c/ chouriço', alias: ['broa com chouriço', 'bola com chouriço', 'b c/ chouriço', 'broa c/ chouriço', 'bola c/ chouriço', 'b. chourico'] },
+  { id: 'broa_mistura', label: 'Broa mistura', alias: ['broa de mistura', 'broa mistura', 'broa de centeio 0,5 kg'] },
+  { id: 'canilha', label: 'Canilha', alias: ['canilha'] },
+  { id: 'meia_bola_carne', label: 'Meia bola de carne', alias: ['meia bola de carne', 'meia bola carne', 'bola de carne'] },
+  { id: 'mini_pao_centeio', label: 'Mini pão centeio', alias: ['mini pão de centeio', 'mini pão centeio', 'mini pao centeio'] },
+  { id: 'mini_pao_saloio', label: 'Mini pão saloio', alias: ['mini pão saloio', 'mini pao saloio'] },
+  { id: 'padas_centeio', label: 'Padas Centeio', alias: ['padas de centeio', 'padas centeio'] },
+  { id: 'padas_normais', label: 'Padas Normais', alias: ['padas normais'] },
+  { id: 'padinhas', label: 'Padinhas', alias: ['padinhas'] },
+  { id: 'pao_7_graos_peq', label: 'P. 7 grãos peq.', alias: ['pão 7 grãos pequeno', 'p. 7 grãos peq.', 'pão 7 grãos', 'p. 7 graos peq.', 'pao 7 graos'] },
+  { id: 'pao_alfarroba', label: 'Pão alfarroba', alias: ['pão de alfarroba', 'pão alfarroba', 'pao alfarroba'] },
+  { id: 'pao_bico', label: 'Pão de bico', alias: ['pão de bico', 'pão bico', 'pao bico'] },
+  { id: 'pao_cachorro', label: 'Pão de cachorro', alias: ['pão de cachorro', 'pão cachorro', 'pao cachorro'] },
+  { id: 'pao_canela', label: 'Pão de canela', alias: ['pão de canela', 'pão canela', 'pao canela'] },
+  { id: 'pao_centeio', label: 'Pão de centeio', alias: ['pão de centeio', 'pão centeio', 'pao centeio'] },
+  { id: 'pao_forma_gr', label: 'Pão de forma Gr.', alias: ['pão de forma grande', 'pão de forma gr.', 'pao de forma gr.', 'pao forma grande'] },
+  { id: 'pao_forma_corte_fino', label: 'P. F. gr. Corte fino', alias: ['pão de forma grande (corte fino)', 'p. f. gr. corte fino', 'pao de forma corte fino', 'corte fino'] },
+  { id: 'pao_forma_peq', label: 'P. forna pequeno', alias: ['pão de forma pequeno', 'p. forna pequeno', 'pão forma pequeno', 'p. forma pequeno', 'pao forma pequeno'] },
+  { id: 'pao_leite', label: 'Pão de leite', alias: ['pão de leite', 'pao de leite', 'pão leite'] },
+  { id: 'pao_sementes', label: 'Pão sementes', alias: ['pão de sementes', 'pão sementes', 'pao sementes'] },
+  { id: 'pao_integral', label: 'Pão integral', alias: ['pão integral', 'pao integral'] },
+  { id: 'pao_italiano', label: 'Pão italiano', alias: ['pão italiano', 'pao italiano'] },
+  { id: 'pao_normal', label: 'Pão normal', alias: ['pão normal', 'pao normal', 'carcaça', 'carcaças'] },
+  { id: 'pao_saloio', label: 'Pão saloio', alias: ['pão saloio', 'pao saloio'] },
+  { id: 'tosta', label: 'Tosta', alias: ['tosta', 'tostas'] },
+  { id: 'triga_milha_03', label: 'Triga milha 0.3kg', alias: ['triga milha 0,3 kg', 'triga milha 0.3kg', 'triga milha 0,3kg'] },
+  { id: 'triga_milha_05', label: 'Triga milha 0.5kg', alias: ['triga milha 0,5 kg', 'triga milha 0.5kg', 'triga milha 0,5kg'] },
+  { id: 'triga_milha_1', label: 'Triga milha1 kg', alias: ['triga milha 1 kg', 'triga milha 1kg', 'triga milha1 kg', 'triga milha 1,0 kg'] },
+  { id: 'triga_milha_saloio', label: 'Tri. milha Saloio', alias: ['triga milha saloio', 'tri. milha saloio', 'triga saloio'] },
+];
+
+export const COLUNAS_GRELHA_PASTELARIA: ColunaGrelhaProduto[] = [
+  { id: 'croiss_choc', label: 'Croiss. Choc.', alias: ['croissant de chocolate', 'croiss. choc.', 'croissant choc', 'croissant chocolate'] },
+  { id: 'croiss_simples', label: 'Croiss. Simples', alias: ['croissant simples', 'croiss. simples'] },
+  { id: 'fatia_pizza', label: 'Fatia Pizza', alias: ['fatia de pizza', 'fatia pizza'] },
+  { id: 'lanche_choco', label: 'Lanche Choco.', alias: ['lanche de chocolate', 'lanche choco.', 'lanche choc', 'lanche chocolate'] },
+  { id: 'lanche_fiambre', label: 'Lanche Fiambre', alias: ['lanche de fiambre', 'lanche fiambre'] },
+  { id: 'lanche_misto', label: 'Lanche Misto', alias: ['lanche misto'] },
+  { id: 'meia_lua', label: 'Meia Lua', alias: ['meia lua'] },
+  { id: 'merendas', label: 'Merendas', alias: ['merendas', 'merenda'] },
+  { id: 'pao_chourico', label: 'Pão c/ Chouriço', alias: ['pão com chouriço', 'pão c/ chouriço', 'pao com chourico'] },
+  { id: 'pao_croissant', label: 'Pão Croissant', alias: ['pão croissant', 'pao croissant'] },
+  { id: 'pao_pizza', label: 'Pão Pizza', alias: ['pão pizza', 'pao pizza'] },
+  { id: 'pasteis', label: 'Pasteis', alias: ['pasteis', 'pastéis'] },
+  { id: 'pastel_nata', label: 'Pastel de Nata', alias: ['pastel de nata', 'nata', 'natas'] },
+  { id: 'pastel_miniatura', label: 'Pastel Miniatura', alias: ['pastel miniatura', 'miniaturas', 'pasteis miniatura'] },
+  { id: 'regueifa_canela', label: 'Regueifa. Canela', alias: ['regueifa de canela', 'regueifa. canela', 'regueifa canela'] },
+  { id: 'regueifa_coco', label: 'Regueifa de Côco', alias: ['regueifa de côco', 'regueifa de coco', 'regueifa coco', 'regueifa côco'] },
+  { id: 'regueifa_doce', label: 'Regueifa Doce', alias: ['regueifa doce', 'regueifa branca'] },
+  { id: 'tranca_chocolate', label: 'Trança Chocolate', alias: ['trança de chocolate', 'trança chocolate', 'trança de creme', 'trança regueifa branca'] },
+];
+
+export function identificarColunaGrelha(artigoNome: string): { coluna: ColunaGrelhaProduto; setor: 'padaria' | 'pastelaria' } | null {
+  const norm = (artigoNome || '').toLowerCase().trim()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ');
+
+  for (const c of COLUNAS_GRELHA_PADARIA) {
+    if (c.label.toLowerCase() === artigoNome.toLowerCase()) return { coluna: c, setor: 'padaria' };
+    for (const a of c.alias) {
+      const an = a.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      if (norm === an) return { coluna: c, setor: 'padaria' };
+    }
+  }
+
+  for (const c of COLUNAS_GRELHA_PASTELARIA) {
+    if (c.label.toLowerCase() === artigoNome.toLowerCase()) return { coluna: c, setor: 'pastelaria' };
+    for (const a of c.alias) {
+      const an = a.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      if (norm === an) return { coluna: c, setor: 'pastelaria' };
+    }
+  }
+
+  for (const c of COLUNAS_GRELHA_PADARIA) {
+    for (const a of c.alias) {
+      const an = a.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      if (an.length > 4 && (norm.includes(an) || an.includes(norm))) {
+        return { coluna: c, setor: 'padaria' };
+      }
+    }
+  }
+
+  for (const c of COLUNAS_GRELHA_PASTELARIA) {
+    for (const a of c.alias) {
+      const an = a.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      if (an.length > 4 && (norm.includes(an) || an.includes(norm))) {
+        return { coluna: c, setor: 'pastelaria' };
+      }
+    }
+  }
+
+  return null;
+}
 
 export function calcularDadosGuiaCargaConjunta(
   arg1: any,
@@ -3115,7 +3242,17 @@ export function calcularDadosGuiaCargaConjunta(
     return mapaArtigos.get(nomeCanonico)!;
   };
 
-  for (const car of rotasAtivas) {
+  const gruposRotasGrelha: GrupoRotaGrelha[] = [];
+
+  for (let i = 0; i < rotasAtivas.length; i++) {
+    const car = rotasAtivas[i];
+    const numRota = car.numero || i + 1;
+    const linhasGrelhaRota: LinhaGrelhaCarga[] = [];
+    const rotaTotaisPadaria: Record<string, number> = {};
+    const rotaTotaisPastelaria: Record<string, number> = {};
+    COLUNAS_GRELHA_PADARIA.forEach((c) => { rotaTotaisPadaria[c.id] = 0; });
+    COLUNAS_GRELHA_PASTELARIA.forEach((c) => { rotaTotaisPastelaria[c.id] = 0; });
+
     // 1. Base Fixa
     const bf = baseFixaCarrinhas.find((b) => b.carrinha_id === car.id);
     const semanaBf = (bf?.quantidades_semanais || bf?.quantidades_semana || {}) as Record<string, Record<string, number>>;
@@ -3133,12 +3270,26 @@ export function calcularDadosGuiaCargaConjunta(
     }
     obterArtigosAjustadosBaseRota(dataAlvo, car.id, ajustesCustom).forEach((a) => candidatosBf.add(a.trim()));
 
+    const qtdsBaseLinha: Record<string, number> = {};
+    let totalBaseLinha = 0;
+
     candidatosBf.forEach((artigo) => {
       const { quantidade } = obterQuantidadeEfetivaBaseRota(dataAlvo, car.id, artigo, semanaBf, diaSemanaAlvo, ajustesCustom);
       if (quantidade > 0) {
         const entry = getOrCreateArtigo(artigo);
         entry.rotas[car.id] = (entry.rotas[car.id] || 0) + quantidade;
         entry.total += quantidade;
+
+        const colMatch = identificarColunaGrelha(artigo);
+        if (colMatch) {
+          qtdsBaseLinha[colMatch.coluna.id] = (qtdsBaseLinha[colMatch.coluna.id] || 0) + quantidade;
+          totalBaseLinha += quantidade;
+          if (colMatch.setor === 'padaria') {
+            rotaTotaisPadaria[colMatch.coluna.id] += quantidade;
+          } else {
+            rotaTotaisPastelaria[colMatch.coluna.id] += quantidade;
+          }
+        }
       }
     });
 
@@ -3153,49 +3304,146 @@ export function calcularDadosGuiaCargaConjunta(
             const entry = getOrCreateArtigo(artigo);
             entry.rotas[car.id] = (entry.rotas[car.id] || 0) + quantidade;
             entry.total += quantidade;
+
+            const colMatch = identificarColunaGrelha(artigo);
+            if (colMatch) {
+              qtdsBaseLinha[colMatch.coluna.id] = (qtdsBaseLinha[colMatch.coluna.id] || 0) + quantidade;
+              totalBaseLinha += quantidade;
+              if (colMatch.setor === 'padaria') {
+                rotaTotaisPadaria[colMatch.coluna.id] += quantidade;
+              } else {
+                rotaTotaisPastelaria[colMatch.coluna.id] += quantidade;
+              }
+            }
           }
         });
       });
+
+    // Linha de Cabeçalho / Base da Rota
+    const rotuloRota = `Rota ${numRota} ${car.nome_condutor ? car.nome_condutor : ''} ${car.matricula ? car.matricula : ''}`.trim();
+    linhasGrelhaRota.push({
+      tipo: 'rota_base',
+      id: `base-${car.id}`,
+      carrinhaId: car.id,
+      nomeExibicao: rotuloRota,
+      detalhe: 'Base Diária (Porta-a-Porta)',
+      quantidades: qtdsBaseLinha,
+      totalLinha: totalBaseLinha,
+    });
 
     // 3. Clientes B2B da carrinha
-    clientesB2B
-      .filter((cli) => cli.ativo && cli.carrinha_id === car.id)
-      .forEach((cli) => {
-        const semanaB2b = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
-        const mapaDiaB2b = semanaB2b?.[diaSemanaAlvo] || {};
-        const candidatosB2b = new Set<string>();
-        Object.keys(mapaDiaB2b).forEach((a) => candidatosB2b.add(a.trim()));
-        if (cli.quantidades_semanais) {
-          Object.values(cli.quantidades_semanais).forEach((m) => {
-            Object.keys(m || {}).forEach((a) => candidatosB2b.add(a.trim()));
-          });
-        }
-        obterArtigosAjustadosClienteB2B(dataAlvo, cli.id, ajustesCustom).forEach((a) => candidatosB2b.add(a.trim()));
-
-        candidatosB2b.forEach((artigo) => {
-          const { quantidade } = obterQuantidadeEfetivaClienteB2B(dataAlvo, cli.id, artigo, semanaB2b, diaSemanaAlvo, ajustesCustom);
-          if (quantidade > 0) {
-            const entry = getOrCreateArtigo(artigo);
-            entry.rotas[car.id] = (entry.rotas[car.id] || 0) + quantidade;
-            entry.total += quantidade;
-          }
+    const clientesDaRota = clientesB2B.filter((cli) => cli.ativo && cli.carrinha_id === car.id);
+    clientesDaRota.forEach((cli) => {
+      const semanaB2b = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
+      const mapaDiaB2b = semanaB2b?.[diaSemanaAlvo] || {};
+      const candidatosB2b = new Set<string>();
+      Object.keys(mapaDiaB2b).forEach((a) => candidatosB2b.add(a.trim()));
+      if (cli.quantidades_semanais) {
+        Object.values(cli.quantidades_semanais).forEach((m) => {
+          Object.keys(m || {}).forEach((a) => candidatosB2b.add(a.trim()));
         });
+      }
+      obterArtigosAjustadosClienteB2B(dataAlvo, cli.id, ajustesCustom).forEach((a) => candidatosB2b.add(a.trim()));
+
+      const qtdsCliLinha: Record<string, number> = {};
+      let totalCliLinha = 0;
+
+      candidatosB2b.forEach((artigo) => {
+        const { quantidade } = obterQuantidadeEfetivaClienteB2B(dataAlvo, cli.id, artigo, semanaB2b, diaSemanaAlvo, ajustesCustom);
+        if (quantidade > 0) {
+          const entry = getOrCreateArtigo(artigo);
+          entry.rotas[car.id] = (entry.rotas[car.id] || 0) + quantidade;
+          entry.total += quantidade;
+
+          const colMatch = identificarColunaGrelha(artigo);
+          if (colMatch) {
+            qtdsCliLinha[colMatch.coluna.id] = (qtdsCliLinha[colMatch.coluna.id] || 0) + quantidade;
+            totalCliLinha += quantidade;
+            if (colMatch.setor === 'padaria') {
+              rotaTotaisPadaria[colMatch.coluna.id] += quantidade;
+            } else {
+              rotaTotaisPastelaria[colMatch.coluna.id] += quantidade;
+            }
+          }
+        }
       });
+
+      linhasGrelhaRota.push({
+        tipo: 'cliente_b2b',
+        id: cli.id,
+        carrinhaId: car.id,
+        nomeExibicao: cli.nome,
+        detalhe: cli.morada,
+        quantidades: qtdsCliLinha,
+        totalLinha: totalCliLinha,
+      });
+    });
 
     // 4. Encomendas ao Domicílio
-    encomendas
-      .filter((e) => e.carrinha_id === car.id && e.data_agendamento === dataAlvo && e.tipo === 'entrega_domicilio' && e.estado !== 'cancelado')
-      .forEach((e) => {
-        (e.itens || []).forEach((item) => {
-          const quantidade = Number(item.quantidade) || 0;
-          if (quantidade > 0 && item.estado_producao !== 'recusado') {
-            const entry = getOrCreateArtigo(item.produto_nome);
-            entry.rotas[car.id] = (entry.rotas[car.id] || 0) + quantidade;
-            entry.total += quantidade;
+    const encsRota = encomendas.filter(
+      (e) => e.carrinha_id === car.id && e.data_agendamento === dataAlvo && e.tipo === 'entrega_domicilio' && e.estado !== 'cancelado'
+    );
+    encsRota.forEach((e) => {
+      const qtdsEncLinha: Record<string, number> = {};
+      let totalEncLinha = 0;
+      (e.itens || []).forEach((item) => {
+        const quantidade = Number(item.quantidade) || 0;
+        if (quantidade > 0 && item.estado_producao !== 'recusado') {
+          const entry = getOrCreateArtigo(item.produto_nome);
+          entry.rotas[car.id] = (entry.rotas[car.id] || 0) + quantidade;
+          entry.total += quantidade;
+
+          const colMatch = identificarColunaGrelha(item.produto_nome);
+          if (colMatch) {
+            qtdsEncLinha[colMatch.coluna.id] = (qtdsEncLinha[colMatch.coluna.id] || 0) + quantidade;
+            totalEncLinha += quantidade;
+            if (colMatch.setor === 'padaria') {
+              rotaTotaisPadaria[colMatch.coluna.id] += quantidade;
+            } else {
+              rotaTotaisPastelaria[colMatch.coluna.id] += quantidade;
+            }
           }
-        });
+        }
       });
+      if (totalEncLinha > 0) {
+        linhasGrelhaRota.push({
+          tipo: 'encomenda_domicilio',
+          id: e.id,
+          carrinhaId: car.id,
+          nomeExibicao: `Enc: ${e.cliente?.nome || e.codigo}`,
+          detalhe: e.cliente?.telefone,
+          quantidades: qtdsEncLinha,
+          totalLinha: totalEncLinha,
+        });
+      }
+    });
+
+    const totPadRota = Object.values(rotaTotaisPadaria).reduce((acc, v) => acc + v, 0);
+    const totPastRota = Object.values(rotaTotaisPastelaria).reduce((acc, v) => acc + v, 0);
+
+    gruposRotasGrelha.push({
+      carrinhaId: car.id,
+      numeroRota: numRota,
+      rotaNome: car.rota || `Rota ${numRota}`,
+      nomeCondutor: car.nome_condutor || '',
+      matricula: car.matricula || '',
+      linhas: linhasGrelhaRota,
+      totaisPadaria: rotaTotaisPadaria,
+      totaisPastelaria: rotaTotaisPastelaria,
+      totalPadariaRota: totPadRota,
+      totalPastelariaRota: totPastRota,
+      totalGeralRota: totPadRota + totPastRota,
+    });
   }
+
+  const totaisColunasPadaria: Record<string, number> = {};
+  const totaisColunasPastelaria: Record<string, number> = {};
+  COLUNAS_GRELHA_PADARIA.forEach((c) => {
+    totaisColunasPadaria[c.id] = gruposRotasGrelha.reduce((acc, g) => acc + (g.totaisPadaria[c.id] || 0), 0);
+  });
+  COLUNAS_GRELHA_PASTELARIA.forEach((c) => {
+    totaisColunasPastelaria[c.id] = gruposRotasGrelha.reduce((acc, g) => acc + (g.totaisPastelaria[c.id] || 0), 0);
+  });
 
   const linhas: LinhaCargaConjunta[] = Array.from(mapaArtigos.entries())
     .filter(([_, val]) => val.total > 0)
@@ -3275,5 +3523,11 @@ export function calcularDadosGuiaCargaConjunta(
     rotasCabecalho,
     linhas,
     totalGeral,
+
+    colunasGrelhaPadaria: COLUNAS_GRELHA_PADARIA,
+    colunasGrelhaPastelaria: COLUNAS_GRELHA_PASTELARIA,
+    gruposRotasGrelha,
+    totaisColunasPadaria,
+    totaisColunasPastelaria,
   };
 }

@@ -1,5 +1,5 @@
 import { gerarEmailContinuidadeHTML, gerarEmailContinuidadeTexto } from '../src/lib/emailContinuidadeTemplate.ts';
-import { gerarPdfFolhaFabricoLojas, gerarPdfFolhaCargaCarrinhas } from '../src/lib/pdfContinuidadeBuilder.ts';
+import { gerarPdfFolhaFabricoLojas, gerarPdfGuiaCargaConjunta } from '../src/lib/pdfContinuidadeBuilder.ts';
 
 async function main() {
   const apiKey = process.env.RESEND_API_KEY;
@@ -22,13 +22,13 @@ async function main() {
   console.log(`[Teste 00h15] Gerando documentos BCP para o dia atual: ${dataHojeStr}...`);
 
   const bufferFabrico = gerarPdfFolhaFabricoLojas(dataHojeStr);
-  const bufferCargas = gerarPdfFolhaCargaCarrinhas(dataHojeStr);
+  const bufferCargas = gerarPdfGuiaCargaConjunta(dataHojeStr);
 
   console.log(`[Teste] Folha de Fabrico PDF gerada: ${bufferFabrico.length} bytes`);
-  console.log(`[Teste] Folha de Carga Carrinhas PDF gerada: ${bufferCargas.length} bytes`);
+  console.log(`[Teste] Guia de Carga Conjunta PDF gerada: ${bufferCargas.length} bytes`);
 
   const nomeFicheiroFabrico = `Folha_Fabrico_${dataHojeStr.replace(/\//g, '-')}.pdf`;
-  const nomeFicheiroCarga = `Folha_Carga_Rotas_${dataHojeStr.replace(/\//g, '-')}.pdf`;
+  const nomeFicheiroCarga = `Guia_Carga_Conjunta_${dataHojeStr.replace(/\//g, '-')}.pdf`;
 
   console.log('[Teste] Enviando email com logos oficiais e 2 anexos PDF via Resend API...');
 
@@ -43,7 +43,7 @@ async function main() {
       to: emailsDestino,
       bcc: emailsBcc,
       reply_to: 'Inprooval Suporte <suporte@inprooval.pt>',
-      subject: `[Continuidade de Negócio] Planos de Fabrico & Carga • Dia atual - Padaria da Vila (${dataHojeStr})`,
+      subject: `[Continuidade de Negócio] Planos de Fabrico & Guia de Carga Conjunta • Dia atual - Padaria da Vila (${dataHojeStr})`,
       html: gerarEmailContinuidadeHTML(dataHojeStr),
       text: gerarEmailContinuidadeTexto(dataHojeStr),
       attachments: [
