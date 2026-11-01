@@ -1806,7 +1806,7 @@ export function PdfViewerModal({
                             .filter((grupo) => (grupo.totalPadariaRota || 0) > 0)
                             .map((grupo) => {
                               const linhasComPadaria = (grupo.linhas || []).filter((l) => {
-                                const totPadLinha = dadosGuiaConjunta.colunasGrelhaPadaria!.reduce((acc, c) => acc + (l.quantidades[c.id] || 0), 0);
+                                const totPadLinha = (dadosGuiaConjunta.colunasGrelhaPadaria || []).reduce((acc, c) => acc + (l.quantidades?.[c.id] || 0), 0);
                                 return totPadLinha > 0;
                               });
 
@@ -1818,7 +1818,7 @@ export function PdfViewerModal({
                                     {grupo.rotaNome} — {grupo.nomeCondutor || 'Condutor'} {grupo.matricula ? `(${grupo.matricula})` : ''}
                                   </td>
                                   {dadosGuiaConjunta.colunasGrelhaPadaria.map((col) => {
-                                    const q = grupo.totaisPadaria[col.id] || 0;
+                                    const q = grupo.totaisPadaria?.[col.id] || 0;
                                     return (
                                       <td
                                         key={col.id}
@@ -1835,7 +1835,7 @@ export function PdfViewerModal({
 
                                 {/* Linhas de Clientes B2B, Base e Domicílios */}
                                 {linhasComPadaria.map((linha, lIdx) => {
-                                  const totLinhaPad = dadosGuiaConjunta.colunasGrelhaPadaria!.reduce((acc, c) => acc + (linha.quantidades[c.id] || 0), 0);
+                                  const totLinhaPad = (dadosGuiaConjunta.colunasGrelhaPadaria || []).reduce((acc, c) => acc + (linha.quantidades?.[c.id] || 0), 0);
                                   return (
                                     <tr
                                       key={linha.id || lIdx}
@@ -1847,7 +1847,7 @@ export function PdfViewerModal({
                                         </span>
                                       </td>
                                       {dadosGuiaConjunta.colunasGrelhaPadaria!.map((col) => {
-                                        const q = linha.quantidades[col.id] || 0;
+                                        const q = linha.quantidades?.[col.id] || 0;
                                         return (
                                           <td
                                             key={col.id}
@@ -1932,7 +1932,7 @@ export function PdfViewerModal({
                             .filter((grupo) => (grupo.totalPastelariaRota || 0) > 0)
                             .map((grupo) => {
                               const linhasComPastelaria = (grupo.linhas || []).filter((l) => {
-                                const totPastLinha = dadosGuiaConjunta.colunasGrelhaPastelaria!.reduce((acc, c) => acc + (l.quantidades[c.id] || 0), 0);
+                                const totPastLinha = (dadosGuiaConjunta.colunasGrelhaPastelaria || []).reduce((acc, c) => acc + (l.quantidades?.[c.id] || 0), 0);
                                 return totPastLinha > 0;
                               });
 
@@ -1944,7 +1944,7 @@ export function PdfViewerModal({
                                     {grupo.rotaNome} — {grupo.nomeCondutor || 'Condutor'} {grupo.matricula ? `(${grupo.matricula})` : ''}
                                   </td>
                                   {dadosGuiaConjunta.colunasGrelhaPastelaria.map((col) => {
-                                    const q = grupo.totaisPastelaria[col.id] || 0;
+                                    const q = grupo.totaisPastelaria?.[col.id] || 0;
                                     return (
                                       <td
                                         key={col.id}
@@ -1961,7 +1961,7 @@ export function PdfViewerModal({
 
                                 {/* Linhas de Clientes B2B, Base e Domicílios */}
                                 {linhasComPastelaria.map((linha, lIdx) => {
-                                  const totLinhaPast = dadosGuiaConjunta.colunasGrelhaPastelaria!.reduce((acc, c) => acc + (linha.quantidades[c.id] || 0), 0);
+                                  const totLinhaPast = (dadosGuiaConjunta.colunasGrelhaPastelaria || []).reduce((acc, c) => acc + (linha.quantidades?.[c.id] || 0), 0);
                                   return (
                                     <tr
                                       key={linha.id || lIdx}
@@ -1973,7 +1973,7 @@ export function PdfViewerModal({
                                         </span>
                                       </td>
                                       {dadosGuiaConjunta.colunasGrelhaPastelaria!.map((col) => {
-                                        const q = linha.quantidades[col.id] || 0;
+                                        const q = linha.quantidades?.[col.id] || 0;
                                         return (
                                           <td
                                             key={col.id}

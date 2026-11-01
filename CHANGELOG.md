@@ -42,6 +42,19 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.37] - 2026-11-01
+
+### Fixed & Enhanced (Desbloqueio do Botão Guia Conjunta de Carga, Remoção de Blindagem Estrita em Código e Resolução Universal de Aliases de Rotas)
+- **Desbloqueio e Blindagem Defensiva do Botão "Guia Conjunta de Carga (Todas as Rotas)"**:
+  - Implementado tratamento robusto com try/catch em `abrirGuiaCargaConjuntaPdf` nos Cockpits de Produção e Gestão, assegurando que o modal abre sempre de forma fluida e sem bloquear.
+  - Blindagem contra valores nulos/indefinidos em `identificarColunaGrelha` e `getOrCreateArtigo` (`p?.nome`, `safeArtigoNome`).
+  - Adicionado encadeamento opcional defensivo (`optional chaining` `?.`) na renderização das grelhas de Padaria e Pastelaria no `PdfViewerModal.tsx`, eliminando qualquer risco de `TypeError` em runtime.
+  - Sincronização correta das propriedades `diaSemana` e `dataReferencia` ao abrir a Guia Conjunta para a data selecionada (hoje ou amanhã).
+- **Remoção de Regra Rígida em Código para Domingo**:
+  - Eliminada a blindagem fixa em código que forçava exclusivamente a Rota 1 ao domingo. O sistema respeita dinamicamente as parametrizações configuradas no Supabase e no Cockpit de Gestão para cada carrinha e cliente em qualquer dia da semana, conferindo total flexibilidade operacional.
+- **Resolução Universal de Rotas por Aliases (UUID e car-X)**:
+  - Todas as correspondências de rotas para Base Fixa, Clientes Empresariais B2B, Bases Recorrentes e Encomendas ao Domicílio utilizam `obterAliasesCarrinha`, assegurando que clientes e carrinhas mapeados por UUID ou identificador `car-1` a `car-7` são sempre cruzados e exibidos sem omissões.
+
 ## [v2.7.36] - 2026-11-01
 
 ### Fixed & Enhanced (Regra Estrita de Domingo para Rota 1, Ocultação de Rotas com Carga Zero, Nomenclaturas Oficiais e Discriminação "Porta a Porta")

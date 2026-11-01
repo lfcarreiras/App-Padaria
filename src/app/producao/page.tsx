@@ -654,21 +654,25 @@ export default function ProducaoPage() {
   ]);
 
   const abrirGuiaCargaConjuntaPdf = (dataAlvoParam?: string) => {
-    const dataAlvo = dataAlvoParam || (dataGuiasCarga === 'amanha' ? amanha : hoje);
-    const dadosConjunta = calcularDadosGuiaCargaConjunta(
-      dataAlvo,
-      carrinhas,
-      baseFixaCarrinhas,
-      clientesB2B,
-      basesRecorrentes,
-      encomendas,
-      produtos,
-      ajustesAdhoc
-    );
-    setPdfDadosGuiaConjunta(dadosConjunta);
-    setPdfDataReferencia(dataAlvo);
-    setPdfModalTipo('guia_carga_conjunta');
-    setPdfModalOpen(true);
+    try {
+      const dataAlvo = dataAlvoParam || (dataGuiasCarga === 'amanha' ? amanha : hoje);
+      const dadosConjunta = calcularDadosGuiaCargaConjunta(
+        dataAlvo,
+        carrinhas,
+        baseFixaCarrinhas,
+        clientesB2B,
+        basesRecorrentes,
+        encomendas,
+        produtos,
+        ajustesAdhoc
+      );
+      setPdfDadosGuiaConjunta(dadosConjunta);
+      setPdfDataReferencia(dataAlvo);
+      setPdfModalTipo('guia_carga_conjunta');
+      setPdfModalOpen(true);
+    } catch (err) {
+      console.error('Erro ao abrir Guia Conjunta de Carga:', err);
+    }
   };
 
   // Preparar Itens de Folha de Carga por Carrinha
@@ -1948,8 +1952,16 @@ export default function ProducaoPage() {
         dadosGuiaConjunta={pdfDadosGuiaConjunta}
         onClose={() => setPdfModalOpen(false)}
         carrinha={pdfCarrinhaSelecionada}
-        diaSemana={(pdfModalTipo === 'folha_carga' ? (pdfDiaSemana || diaSemanaHoje) : (filtroPeriodo === 'amanha' ? obterDiaSemanaDeData(amanha) : diaSemanaHoje)) as any}
-        dataReferencia={pdfModalTipo === 'folha_carga' ? (pdfDataReferencia || (dataGuiasCarga === 'amanha' ? amanha : hoje)) : (filtroPeriodo === 'amanha' ? amanha : hoje)}
+        diaSemana={(pdfModalTipo === 'guia_carga_conjunta'
+          ? obterDiaSemanaDeData(pdfDataReferencia || (dataGuiasCarga === 'amanha' ? amanha : hoje))
+          : pdfModalTipo === 'folha_carga'
+          ? (pdfDiaSemana || diaSemanaHoje)
+          : (filtroPeriodo === 'amanha' ? obterDiaSemanaDeData(amanha) : diaSemanaHoje)) as any}
+        dataReferencia={pdfModalTipo === 'guia_carga_conjunta'
+          ? (pdfDataReferencia || (dataGuiasCarga === 'amanha' ? amanha : hoje))
+          : pdfModalTipo === 'folha_carga'
+          ? (pdfDataReferencia || (dataGuiasCarga === 'amanha' ? amanha : hoje))
+          : (filtroPeriodo === 'amanha' ? amanha : hoje)}
         itensCarga={pdfItensCarga}
         itensFabrico={pdfItensFabrico}
         lojaNome={selectedLojaId === 'todas' ? 'Todas as Lojas' : (lojas.find((l) => l.id === selectedLojaId)?.nome || 'Loja')}

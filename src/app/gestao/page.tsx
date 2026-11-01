@@ -857,20 +857,24 @@ export default function AdminPage() {
   };
 
   const abrirGuiaCargaConjuntaPdf = () => {
-    const dataAlvo = new Date().toISOString().split('T')[0];
-    const dados = calcularDadosGuiaCargaConjunta(
-      dataAlvo,
-      carrinhas,
-      baseFixaCarrinhas,
-      clientesB2B,
-      basesRecorrentes,
-      encomendas,
-      produtos,
-      ajustesAdhoc
-    );
-    setPdfDadosGuiaConjunta(dados);
-    setPdfModalTipo('guia_carga_conjunta');
-    setPdfModalOpen(true);
+    try {
+      const dataAlvo = new Date().toISOString().split('T')[0];
+      const dados = calcularDadosGuiaCargaConjunta(
+        dataAlvo,
+        carrinhas,
+        baseFixaCarrinhas,
+        clientesB2B,
+        basesRecorrentes,
+        encomendas,
+        produtos,
+        ajustesAdhoc
+      );
+      setPdfDadosGuiaConjunta(dados);
+      setPdfModalTipo('guia_carga_conjunta');
+      setPdfModalOpen(true);
+    } catch (err) {
+      console.error('Erro ao abrir Guia Conjunta de Carga no Cockpit de Gestão:', err);
+    }
   };
 
   const handleExportarExcelBaseFixaConsolidado = () => {
@@ -6727,7 +6731,7 @@ export default function AdminPage() {
         onClose={() => setPdfModalOpen(false)}
         dadosGuiaConjunta={pdfDadosGuiaConjunta}
         carrinha={pdfCarrinhaSelecionada}
-        diaSemana={diaSemanaBaseFixa}
+        diaSemana={pdfModalTipo === 'guia_carga_conjunta' ? (obterDiaSemanaDeData(new Date().toISOString().split('T')[0]) as any) : diaSemanaBaseFixa}
         dataReferencia={new Date().toISOString().split('T')[0]}
         itensCarga={pdfItensCarga}
         clientesB2BRota={clientesB2B.filter((cli) => cli.ativo && cli.carrinha_id === pdfCarrinhaSelecionada?.id)}

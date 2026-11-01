@@ -1987,12 +1987,6 @@ export function normalizarBaseFixaItem(b: any): BaseFixaCarrinha {
     }
   });
 
-  // Regra de Negócio: ao domingo apenas a Rota 1 tem quantidades na base diária (porta a porta)
-  const isRota1 = infoId.id === '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75' || /rota 1/i.test(nomeLimpo);
-  if (!isRota1) {
-    semanaNormalizada.dom = {};
-  }
-
   return {
     carrinha_id: infoId.id,
     carrinha_nome: nomeLimpo,
@@ -3099,12 +3093,14 @@ export const COLUNAS_GRELHA_PASTELARIA: ColunaGrelhaProduto[] = [
 ];
 
 export function identificarColunaGrelha(artigoNome: string): { coluna: ColunaGrelhaProduto; setor: 'padaria' | 'pastelaria' } | null {
-  const norm = (artigoNome || '').toLowerCase().trim()
+  if (!artigoNome) return null;
+  const safeArtigoNome = String(artigoNome || '').trim();
+  const norm = safeArtigoNome.toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .replace(/\s+/g, ' ');
 
   for (const c of COLUNAS_GRELHA_PADARIA) {
-    if (c.label.toLowerCase() === artigoNome.toLowerCase()) return { coluna: c, setor: 'padaria' };
+    if (c.label.toLowerCase() === safeArtigoNome.toLowerCase()) return { coluna: c, setor: 'padaria' };
     for (const a of c.alias) {
       const an = a.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       if (norm === an) return { coluna: c, setor: 'padaria' };
@@ -3112,7 +3108,7 @@ export function identificarColunaGrelha(artigoNome: string): { coluna: ColunaGre
   }
 
   for (const c of COLUNAS_GRELHA_PASTELARIA) {
-    if (c.label.toLowerCase() === artigoNome.toLowerCase()) return { coluna: c, setor: 'pastelaria' };
+    if (c.label.toLowerCase() === safeArtigoNome.toLowerCase()) return { coluna: c, setor: 'pastelaria' };
     for (const a of c.alias) {
       const an = a.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       if (norm === an) return { coluna: c, setor: 'pastelaria' };
@@ -3226,7 +3222,7 @@ export function calcularDadosGuiaCargaConjunta(
   const getOrCreateArtigo = (nomeRaw: string) => {
     const nomeCanonico = normalizarNomeArtigoCanonico(nomeRaw);
     if (!mapaArtigos.has(nomeCanonico)) {
-      const prodRef = produtos.find((p) => p.nome.toLowerCase() === nomeCanonico.toLowerCase());
+      const prodRef = produtos.find((p) => (p?.nome || '').toLowerCase() === (nomeCanonico || '').toLowerCase());
       const setor = prodRef?.categoria || (
         nomeCanonico.toLowerCase().includes('bolo') ||
         nomeCanonico.toLowerCase().includes('croissant') ||
@@ -3253,6 +3249,7 @@ export function calcularDadosGuiaCargaConjunta(
   for (let i = 0; i < rotasAtivas.length; i++) {
     const car = rotasAtivas[i];
     const numRota = car.numero || i + 1;
+    const aliasesCar = obterAliasesCarrinha(car.id);
     const linhasGrelhaRota: LinhaGrelhaCarga[] = [];
     const rotaTotaisPadaria: Record<string, number> = {};
     const rotaTotaisPastelaria: Record<string, number> = {};
@@ -3260,25 +3257,35 @@ export function calcularDadosGuiaCargaConjunta(
     COLUNAS_GRELHA_PASTELARIA.forEach((c) => { rotaTotaisPastelaria[c.id] = 0; });
 
     // 1. Base Fixa
-    // Regra de Negócio: ao domingo apenas a Rota 1 tem quantidades na base diária (porta a porta)
-    const isRota1 = car.numero === 1 || car.id === '1eaaa9bd-e3de-4b06-9c80-d1e464bcdc75' || /rota 1/i.test(car.rota || car.identificador || '');
-    const bf = baseFixaCarrinhas.find((b) => b.carrinha_id === car.id);
+    const bf = baseFixaCarrinhas.find((b) => aliasesCar.includes(b.carrinha_id) || obterAliasesCarrinha(b.carrinha_id).some((a) => aliasesCar.includes(a)));
     const semanaBf = (bf?.quantidades_semanais || bf?.quantidades_semana || {}) as Record<string, Record<string, number>>;
-    const mapaBfDia = (diaSemanaAlvo === 'dom' && !isRota1) ? {} : (semanaBf?.[diaSemanaAlvo] || bf?.quantidades_por_produto || {});
+    const mapaBfDia = semanaBf?.[diaSemanaAlvo] || bf?.quantidades_por_produto || {};
 
     const candidatosBf = new Set<string>();
-    if (!(diaSemanaAlvo === 'dom' && !isRota1)) {
-      Object.keys(mapaBfDia).forEach((a) => candidatosBf.add(a.trim()));
-      if (bf?.quantidades_semanais) {
-        Object.values(bf.quantidades_semanais).forEach((m) => {
-          Object.keys(m || {}).forEach((a) => candidatosBf.add(a.trim()));
-        });
-      }
-      if (bf?.quantidades_por_produto) {
-        Object.keys(bf.quantidades_por_produto).forEach((a) => candidatosBf.add(a.trim()));
-      }
-      obterArtigosAjustadosBaseRota(dataAlvo, car.id, ajustesCustom).forEach((a) => candidatosBf.add(a.trim()));
+    Object.keys(mapaBfDia).forEach((a) => {
+      const art = (a || '').trim();
+      if (art) candidatosBf.add(art);
+    });
+    if (bf?.quantidades_semanais) {
+      Object.values(bf.quantidades_semanais).forEach((m) => {
+        if (m && typeof m === 'object') {
+          Object.keys(m).forEach((a) => {
+            const art = (a || '').trim();
+            if (art) candidatosBf.add(art);
+          });
+        }
+      });
     }
+    if (bf?.quantidades_por_produto) {
+      Object.keys(bf.quantidades_por_produto).forEach((a) => {
+        const art = (a || '').trim();
+        if (art) candidatosBf.add(art);
+      });
+    }
+    obterArtigosAjustadosBaseRota(dataAlvo, car.id, ajustesCustom).forEach((a) => {
+      const art = (a || '').trim();
+      if (art) candidatosBf.add(art);
+    });
 
     const qtdsBaseLinha: Record<string, number> = {};
     let totalBaseLinha = 0;
@@ -3305,7 +3312,7 @@ export function calcularDadosGuiaCargaConjunta(
 
     // 2. Bases Recorrentes (particulares fixos)
     basesRecorrentes
-      .filter((b) => b.ativo && b.carrinha_id === car.id && !clienteEmModoFerias(b, dataAlvo) && !(diaSemanaAlvo === 'dom' && !isRota1))
+      .filter((b) => b.ativo && (aliasesCar.includes(b.carrinha_id) || obterAliasesCarrinha(b.carrinha_id).some((a) => aliasesCar.includes(a))) && !clienteEmModoFerias(b, dataAlvo))
       .forEach((b) => {
         const mapaDia = b.quantidades_semanais?.[diaSemanaAlvo] || {};
         Object.entries(mapaDia).forEach(([artigo, qtd]) => {
@@ -3343,18 +3350,29 @@ export function calcularDadosGuiaCargaConjunta(
     }
 
     // 3. Clientes B2B da carrinha
-    const clientesDaRota = clientesB2B.filter((cli) => cli.ativo && cli.carrinha_id === car.id);
+    const clientesDaRota = clientesB2B.filter((cli) => cli.ativo && (aliasesCar.includes(cli.carrinha_id) || obterAliasesCarrinha(cli.carrinha_id).some((a) => aliasesCar.includes(a))));
     clientesDaRota.forEach((cli) => {
       const semanaB2b = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
       const mapaDiaB2b = semanaB2b?.[diaSemanaAlvo] || {};
       const candidatosB2b = new Set<string>();
-      Object.keys(mapaDiaB2b).forEach((a) => candidatosB2b.add(a.trim()));
+      Object.keys(mapaDiaB2b).forEach((a) => {
+        const art = (a || '').trim();
+        if (art) candidatosB2b.add(art);
+      });
       if (cli.quantidades_semanais) {
         Object.values(cli.quantidades_semanais).forEach((m) => {
-          Object.keys(m || {}).forEach((a) => candidatosB2b.add(a.trim()));
+          if (m && typeof m === 'object') {
+            Object.keys(m).forEach((a) => {
+              const art = (a || '').trim();
+              if (art) candidatosB2b.add(art);
+            });
+          }
         });
       }
-      obterArtigosAjustadosClienteB2B(dataAlvo, cli.id, ajustesCustom).forEach((a) => candidatosB2b.add(a.trim()));
+      obterArtigosAjustadosClienteB2B(dataAlvo, cli.id, ajustesCustom).forEach((a) => {
+        const art = (a || '').trim();
+        if (art) candidatosB2b.add(art);
+      });
 
       const qtdsCliLinha: Record<string, number> = {};
       let totalCliLinha = 0;
@@ -3392,7 +3410,10 @@ export function calcularDadosGuiaCargaConjunta(
 
     // 4. Encomendas ao Domicílio
     const encsRota = encomendas.filter(
-      (e) => e.carrinha_id === car.id && e.data_agendamento === dataAlvo && e.tipo === 'entrega_domicilio' && e.estado !== 'cancelado'
+      (e) => (aliasesCar.includes(e.carrinha_id || '') || obterAliasesCarrinha(e.carrinha_id || '').some((a) => aliasesCar.includes(a))) &&
+             e.data_agendamento === dataAlvo &&
+             e.tipo === 'entrega_domicilio' &&
+             e.estado !== 'cancelado'
     );
     encsRota.forEach((e) => {
       const qtdsEncLinha: Record<string, number> = {};
