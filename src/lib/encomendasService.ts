@@ -1967,10 +1967,15 @@ export function normalizarBaseFixaItem(b: any): BaseFixaCarrinha {
   );
 
   const todosDias: DiaSemana[] = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
-  const origemSemana = b?.quantidades_semanais || {};
+  const origemSemana =
+    b?.quantidades_semanais ||
+    b?.quantidades?.quantidades_semanais ||
+    (b?.quantidades && typeof b.quantidades === 'object' && ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'].some((k: string) => k in b.quantidades)
+      ? b.quantidades
+      : {});
   const temSemanaDefinida = Boolean(
-    b?.quantidades_semanais &&
-    Object.keys(b.quantidades_semanais).some((k) => ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'].includes(k))
+    origemSemana &&
+    Object.keys(origemSemana).some((k) => ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'].includes(k))
   );
   const semanaNormalizada: Record<DiaSemana, Record<string, number>> = {
     seg: normalizarMapaQuantidades(origemSemana.seg || (temSemanaDefinida ? {} : mapaQtds)),
@@ -3258,7 +3263,7 @@ export function calcularDadosGuiaCargaConjunta(
 
     // 1. Base Fixa
     const bf = baseFixaCarrinhas.find((b) => aliasesCar.includes(b.carrinha_id) || obterAliasesCarrinha(b.carrinha_id).some((a) => aliasesCar.includes(a)));
-    const semanaBf = (bf?.quantidades_semanais || bf?.quantidades_semana || {}) as Record<string, Record<string, number>>;
+    const semanaBf = (bf?.quantidades_semanais || bf?.quantidades_semana || (bf?.quantidades as any)?.quantidades_semanais || (bf?.quantidades && typeof bf.quantidades === 'object' && ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'].some((k: string) => k in (bf.quantidades as any)) ? bf.quantidades : {})) as Record<string, Record<string, number>>;
     const mapaBfDia = semanaBf?.[diaSemanaAlvo] || bf?.quantidades_por_produto || {};
 
     const candidatosBf = new Set<string>();
@@ -3452,10 +3457,10 @@ export function calcularDadosGuiaCargaConjunta(
 
     const totPadRota = Object.values(rotaTotaisPadaria).reduce((acc, v) => acc + v, 0);
     const totPastRota = Object.values(rotaTotaisPastelaria).reduce((acc, v) => acc + v, 0);
-    const totGeralRota = totPadRota + totPastRota;
+    const totalGeralRota = totPadRota + totPastRota;
 
     // Regra de Negócio: rotas com total geral a zero não devem aparecer na folha
-    if (totGeralRota > 0) {
+    if (totalGeralRota > 0) {
       gruposRotasGrelha.push({
         carrinhaId: car.id,
         numeroRota: numRota,

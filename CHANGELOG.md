@@ -42,6 +42,17 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.38] - 2026-11-01
+
+### Fixed & Operational (Correção de ReferenceError em totalGeralRota e Leitura Resiliente da Base Diária de Supabase)
+- **Eliminação de ReferenceError na Guia Conjunta de Carga**:
+  - Corrigido identificador da variável `totalGeralRota` (que se encontrava declarada como `totGeralRota`) no fecho do objeto de grupo de rotas em `src/lib/encomendasService.ts`. Esta discrepância causava um `ReferenceError: totalGeralRota is not defined` no motor de JavaScript no momento do clique, impedindo a abertura do modal (`setPdfModalOpen`).
+- **Extração Resiliente de Quantidades Semanais de Supabase**:
+  - Atualizada a função `normalizarBaseFixaItem` e `calcularDadosGuiaCargaConjunta` para inspecionar `quantidades_semanais`, `quantidades.quantidades_semanais` e as chaves de dias de semana em `quantidades` (jsonb da tabela `base_fixa_carrinhas`).
+  - Desta forma, as quantidades configuradas no Supabase (como a Base Diária de domingo da Rota 1 com 438 unidades e zero nas restantes rotas) são carregadas fielmente e sem qualquer dependência de filtros fixos em código.
+- **Sucesso e Verificação Operacional**:
+  - Teste automatizado executado com sucesso e `npm run typecheck` com 0 erros.
+
 ## [v2.7.37] - 2026-11-01
 
 ### Fixed & Enhanced (Desbloqueio do Botão Guia Conjunta de Carga, Remoção de Blindagem Estrita em Código e Resolução Universal de Aliases de Rotas)
