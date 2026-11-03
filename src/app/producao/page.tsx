@@ -397,7 +397,7 @@ export default function ProducaoPage() {
       produtos,
       ajustesCustom: ajustesAdhoc,
       selectedLojaId,
-      selectedCarrinhaId,
+      selectedCarrinhaId: 'todas',
       filtroTipologia,
       setorAtivo,
     });
@@ -417,7 +417,6 @@ export default function ProducaoPage() {
     produtos,
     ajustesAdhoc,
     selectedLojaId,
-    selectedCarrinhaId,
     filtroPeriodo,
     hoje,
     amanha,
