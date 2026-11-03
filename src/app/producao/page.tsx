@@ -422,18 +422,11 @@ export default function ProducaoPage() {
     hoje,
     amanha,
     dataInicioPersonalizada,
-    filtroTipologia,
-    setorAtivo,
-    pesquisaTexto,
-  ]);
-    dataInicioPersonalizada,
     dataFimPersonalizada,
-    hoje,
-    amanha,
-    setorAtivo,
     filtroTipologia,
+    setorAtivo,
     pesquisaTexto,
-    versaoDados
+    versaoDados,
   ]);
 
   // Lista de Encomendas Filtradas para o ecrã de Produção
