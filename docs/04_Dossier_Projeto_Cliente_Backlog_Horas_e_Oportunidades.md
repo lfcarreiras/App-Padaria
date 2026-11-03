@@ -109,7 +109,7 @@ Em conformidade com a governação do Agente 7 do Inprooval Swarm, todos os iten
 
 | Parcela do Orçamento | Valor Orçamentado (s/ IVA) | Condições de Pagamento | Discriminação Exata do que Está Incluído |
 | :--- | :---: | :---: | :--- |
-| **1. Pacote Operacional Turn-Key — Setup, Implementação & Bolsa de Horas** | **5.500,00 €** | 50% na Adjudicação (`2.750,00 €`)<br/>50% no Go-Live (`2.750,00 €`) | • **Plafond Global de 110 Horas** de Engenharia, Consultoria e Suporte (taxa bonificada de `50,00 €/h`).<br/>• Configuração completa das **4 Lojas Físicas** (*Matriz/Fábrica, Praça, Mercado, Centro*), **Centro de Produção (3 Fornos)** e **7 Carrinhas / Rotas (1 a 7)**.<br/>• Login da equipa por Cockpit com isolamento de postos e subdomínio oficial `app.padariadavila.com`.<br/>• Centro de Produção com Alerta Urgente ($\le 3\text{h}$), triagem parcelar, botão incondicional de conclusão e **Folha de Fabrico de Encomendas discriminada por loja**.<br/>• Logística de Distribuição com **Folha de Carga Segregada em PDF A4** (Base Diária, 21 Clientes B2B sem 0 un., Encomendas ao Domicílio e Resumo Consolidado com caixas estimadas).<br/>• Base Semanal (`quantidades_semanais` 7 dias), Modo Férias em tempo real e Normalização Canónica de 57 artigos.<br/>• Calibração da impressora térmica **Epson M249A TM-T20 (80mm / 68mm úteis)** e App de Pedidos Diretos do Cliente (`/encomendar`).<br/>• Cockpit de Gestão executivo (KPIs On-Time, Logs, RBAC) + Formação prática à equipa e acompanhamento de Go-Live. |
+| **1. Pacote Operacional — Setup, Implementação & Bolsa de Horas** | **2.500,00 €** | 50% na Adjudicação (`1.250,00 €`)<br/>50% no Go-Live (`1.250,00 €`) | • **Plafond Equivalente de 31,25 Horas** de Engenharia, Consultoria e Suporte (taxa contratual de `80,00 €/h`).<br/>• Configuração completa das **4 Lojas Físicas** (*Matriz/Fábrica, Praça, Mercado, Centro*), **Centro de Produção (3 Fornos)** e **7 Carrinhas / Rotas (1 a 7)**.<br/>• Login da equipa por Cockpit com isolamento de postos e subdomínio oficial `app.padariadavila.com`.<br/>• Centro de Produção com Alerta Urgente ($\le 3\text{h}$), triagem parcelar, botão incondicional de conclusão e **Folha de Fabrico de Encomendas discriminada por loja**.<br/>• Logística de Distribuição com **Folha de Carga Segregada em PDF A4** (Base Diária, 21 Clientes B2B sem 0 un., Encomendas ao Domicílio e Resumo Consolidado com caixas estimadas).<br/>• Base Semanal (`quantidades_semanais` 7 dias), Modo Férias em tempo real e Normalização Canónica de 57 artigos.<br/>• Calibração da impressora térmica **Epson M249A TM-T20 (80mm / 68mm úteis)** e App de Pedidos Diretos do Cliente (`/encomendar`).<br/>• Cockpit de Gestão executivo (KPIs On-Time, Logs, RBAC) + Formação prática à equipa e acompanhamento de Go-Live. |
 | **2. Manutenção Mensal, Cloud & Suporte Operacional** | **250,00 € / mês**<br/>*(ou 300,00 €/mês com Portal de Clientes)* | Mensal | • Infraestrutura Cloud de alta disponibilidade (Vercel + Supabase PostgreSQL em tempo real).<br/>• Backups automáticos diários, monitorização de segurança, auditoria contínua e conformidade RGPD.<br/>• Suporte técnico prioritário, correções preventivas e manutenção evolutiva do ecossistema. |
 
 ---
@@ -147,42 +147,40 @@ flowchart TD
 > [!IMPORTANT]
 > **Secção Confidencial de Controlo Interno Inprooval®** — Automaticamente ocultada na geração de PDFs para o cliente.
 
-### 6.1. Resumo da Bolsa de Horas vs. Orçamento (Plafond Global: `110,00 Horas` @ `50,00 €/hora`)
+### 6.1. Resumo da Bolsa de Horas vs. Orçamento (Plafond Base: `2.500,00 €` / `31,25 Horas` @ `80,00 €/hora`)
 
-| Indicador da Bolsa de Horas | Pacote Global Turn-Key (`5.500,00 € + IVA`) | Valor a Preço de Tabela Mercado (@ 150 €/h) |
+| Indicador da Bolsa de Horas | Pacote Base (`2.500,00 € + IVA`) | Valor @ Taxa Contratual (80,00 €/h) |
 | :--- | :---: | :---: |
-| **Plafond Total de Horas Orçamentadas** | **110,00 horas (`5.500,00 €`)** | 16.500,00 € |
-| **Horas Consumidas em Engenharia (Sprints 1 a 10 — `v2.7.19`)** | 30,00 horas (`1.500,00 €`) | 4.500,00 € |
-| **Horas Consumidas em Consultoria Externa & Reuniões de Terreno** | 4,50 horas (`225,00 €`) | 675,00 € |
-| **TOTAL DE HORAS CONSUMIDAS (até 24/10/2026 — `v2.7.19`)** | **34,50 horas (`1.725,00 €`)** | **5.175,00 €** |
-| **SALDO REMANESCENTE NA BOLSA DE HORAS (p/ Formação & Go-Live)** | **🟢 + 75,50 horas (`+ 3.775,00 €`)** | **+ 11.325,00 €** |
+| **Plafond Total de Horas Orçamentadas** | **31,25 horas (`2.500,00 €`)** | 2.500,00 € |
+| **Horas Consumidas em Engenharia (Sprints 1 a 10 — `v2.7.19`)** | 30,00 horas | 2.400,00 € |
+| **Horas Consumidas em Consultoria Externa & Reuniões de Terreno** | 4,50 horas | 360,00 € |
+| **TOTAL DE HORAS CONSUMIDAS (até 24/10/2026 — `v2.7.19`)** | **34,50 horas** | **2.760,00 €** |
+| **SALDO REMANESCENTE NA BOLSA DE HORAS** | ⚠️ **- 3,25 horas (`- 260,00 €`)** | Excesso de 3,25h / Faturação a 80 €/h |
 | **Percentagem de Execução & Readiness Score (Bulletproof Swarm)** | **100% Concluído — Score 99,6% (`v2.7.19`)** | **BULLETPROOF GOLD** |
 
 ### 6.2. Discriminação Cronológica de Horas Consumidas por Sprint
 
-| Sprint / Fase | Período | Tipo de Esforço | Entregáveis Principais | Horas | Valor (@ 50 €/h) |
+| Sprint / Fase | Período | Tipo de Esforço | Entregáveis Principais | Horas | Valor (@ 80 €/h) |
 | :--- | :---: | :---: | :--- | :---: | :---: |
-| **Kick-off Inicial** | 07/09/2026 | Consultoria Externa (Online) | Levantamento inicial de requisitos operacionais | 1,00 h | 50,00 € |
-| **Sprint 1** | 07/09 – 15/09 | Engenharia Antigravity | Arquitetura Next.js, Supabase PostgreSQL e RBAC (`v1.0`–`v1.3.1`) | 3,80 h | 190,00 € |
-| **Sprint 2** | 16/09 – 22/09 | Engenharia Antigravity | Balcão, Fabrico, Rotas GPS, On-Time e Logs (`v1.4`–`v1.8`) | 4,25 h | 212,50 € |
-| **Sprint 3** | 23/09 – 02/10 | Engenharia Antigravity | Multi-Loja, Talão Térmico 80mm e Exportação Excel | 3,15 h | 157,50 € |
-| **Sprint 4** | 03/10 – 10/10 | Engenharia Antigravity | Studio CMS Nativo (`/cms`), Blindagem Cenário A, Portal Cliente v1 e Canais | 5,44 h | 272,00 € |
-| **Reunião Arouca** | 10/10/2026 | Consultoria Externa (Presencial) | Demonstração ao vivo à gerência, recolha de 22 requisitos e proposta | 1,75 h | 87,50 € |
-| **Sprint 5 (`v2.0.0`)** | 10/10 – 11/10 | Engenharia Antigravity | Implementação dos 22 requisitos de Arouca (Carrinhas, B2B, 3 Fornos, Mapa Diário) | 2,86 h | 143,00 € |
-| **Sprint 6 (`v2.1.0`–`v2.1.3`)** | 11/10 – 12/10 | Engenharia & Swarm Hardening | Triagem parcelar artigo a artigo, estado parcelar na App Cliente, WhatsApp automático e certificação Bulletproof Swarm (`99,1%`) | 2,00 h | 100,00 € |
-| **Sprint 7 (`v2.4.0`–`v2.5.7`)** | 18/10 – 22/10 | Engenharia & Refinamento UI | Unificação de rotas, calibração 68mm TM-T20, base diária semanal, matriz B2B e PDFs A4 | 4,15 h | 207,50 € |
-| **Sprint 8 (`v2.6.0`)** | 22/10/2026 | Engenharia & Cibersegurança | Subdomínio `app.padariadavila.com`, chaves criptográficas por ecrã, proteção middleware e bloqueio total anti-indexação | 1,10 h | 55,00 € |
-| **Sprint 9 (`v2.7.0`–`v2.7.7`)** | 23/10 – 24/10 | Engenharia & Omnichannel | Estabilização das 7 rotas, arquitetura omnichannel B2B/particulares e motor de Modo Férias em tempo real | 2,75 h | 137,50 € |
-| **Sprint 10 (`v2.7.8`–`v2.7.19`)** | 24/10/2026 | Engenharia & Resiliência | Normalização canónica (57 artigos), segregação estrita da Folha de Carga, Fabrico por loja, Produção sem bloqueios, tolerância B2B e consumo direto Supabase | 2,25 h | 112,50 € |
-| **TOTAL ACUMULADO** | **07/09 – 24/10** | **Híbrido (AGY + Terreno)** | **Solução Integral `v2.7.17` em Produção no Subdomínio Oficial** | **34,50 h** | **1.725,00 €** |
+| **Kick-off Inicial** | 07/09/2026 | Consultoria Externa (Online) | Levantamento inicial de requisitos operacionais | 1,00 h | 80,00 € |
+| **Sprint 1** | 07/09 – 15/09 | Engenharia Antigravity | Arquitetura Next.js, Supabase PostgreSQL e RBAC (`v1.0`–`v1.3.1`) | 3,80 h | 304,00 € |
+| **Sprint 2** | 16/09 – 22/09 | Engenharia Antigravity | Balcão, Fabrico, Rotas GPS, On-Time e Logs (`v1.4`–`v1.8`) | 4,25 h | 340,00 € |
+| **Sprint 3** | 23/09 – 02/10 | Engenharia Antigravity | Multi-Loja, Talão Térmico 80mm e Exportação Excel | 3,15 h | 252,00 € |
+| **Sprint 4** | 03/10 – 10/10 | Engenharia Antigravity | Studio CMS Nativo (`/cms`), Blindagem Cenário A, Portal Cliente v1 e Canais | 5,44 h | 435,20 € |
+| **Reunião Arouca** | 10/10/2026 | Consultoria Externa (Presencial) | Demonstração ao vivo à gerência, recolha de 22 requisitos e proposta | 1,75 h | 140,00 € |
+| **Sprint 5 (`v2.0.0`)** | 10/10 – 11/10 | Engenharia Antigravity | Implementação dos 22 requisitos de Arouca (Carrinhas, B2B, 3 Fornos, Mapa Diário) | 2,86 h | 228,80 € |
+| **Sprint 6 (`v2.1.0`–`v2.1.3`)** | 11/10 – 12/10 | Engenharia & Swarm Hardening | Triagem parcelar artigo a artigo, estado parcelar na App Cliente, WhatsApp automático e certificação Bulletproof Swarm (`99,1%`) | 2,00 h | 160,00 € |
+| **Sprint 7 (`v2.4.0`–`v2.5.7`)** | 18/10 – 22/10 | Engenharia & Refinamento UI | Unificação de rotas, calibração 68mm TM-T20, base diária semanal, matriz B2B e PDFs A4 | 4,15 h | 332,00 € |
+| **Sprint 8 (`v2.6.0`)** | 22/10/2026 | Engenharia & Cibersegurança | Subdomínio `app.padariadavila.com`, chaves criptográficas por ecrã, proteção middleware e bloqueio total anti-indexação | 1,10 h | 88,00 € |
+| **Sprint 9 (`v2.7.0`–`v2.7.7`)** | 23/10 – 24/10 | Engenharia & Omnichannel | Estabilização das 7 rotas, arquitetura omnichannel B2B/particulares e motor de Modo Férias em tempo real | 2,75 h | 220,00 € |
+| **Sprint 10 (`v2.7.8`–`v2.7.19`)** | 24/10/2026 | Engenharia & Resiliência | Normalização canónica (57 artigos), segregação estrita da Folha de Carga, Fabrico por loja, Produção sem bloqueios, tolerância B2B e consumo direto Supabase | 2,25 h | 180,00 € |
+| **TOTAL ACUMULADO** | **07/09 – 24/10** | **Híbrido (AGY + Terreno)** | **Solução Integral `v2.7.17` em Produção no Subdomínio Oficial** | **34,50 h** | **2.760,00 €** |
 
-### 6.3. Cláusula de Sucesso & Escalação de Valor Hora para Novos Desenvolvimentos
+### 6.3. Condições de Faturação e Horas Adicionais
 
-* **Valor Hora Bonificado no Pacote de Arranque:** **50,00 € / hora + IVA** (válido para o plafond contratado de 110 horas de setup e acompanhamento de Go-Live).
-* **Gatilho de Sucesso:** Entrada oficial em exploração operacional (Go-Live) na Padaria da Vila e validação das 7 rotas, das 4 lojas e da Produção no terreno.
-* **Escalação de Valor Hora Institucional Pós-Sucesso:** Em caso de sucesso, o valor hora de referência passa para **150,00 € / hora + IVA** para:
-  1. **Novos desenvolvimentos da Padaria da Vila:** Faturação Certificada AT via API (Fase 2), WhatsApp Business Cloud API silencioso, Pagamentos Online MB WAY e Fichas Técnicas/MRP (Fase 3), bem como pacotes adicionais de suporte/desenvolvimento fora do contrato mensal.
-  2. **Novos Projetos & Novos Clientes Inprooval®:** Adoção institucional de **150,00 € / hora + IVA** como taxa padrão de tabela para novas propostas comerciais e orçamentação de soluções digitais.
+* **Taxa de Faturação Contratual:** **80,00 € / hora + IVA** para todo o projeto Padaria da Vila.
+* **Orçamento Base:** **2.500,00 € + IVA** (equivalente a 31,25 horas a 80,00 €/h).
+* **Faturação de Horas Adicionais:** Quaisquer horas de acompanhamento, formação presencial no terreno ou novos desenvolvimentos fora do âmbito inicial (Faturação AT via API, WhatsApp Cloud API silencioso, MRP de Fichas Técnicas) são faturadas à taxa acordada de **80,00 € / hora + IVA**.
 <!-- INTERNAL_END -->
 
 ---
@@ -193,8 +191,8 @@ flowchart TD
    - Na panificação e pastelaria real, um pedido urgente com vários artigos raramente é "tudo ou nada" — muitas vezes há pão pronto a sair da fornada, mas um artigo específico de pastelaria já não pode ser produzido a tempo. A introdução da **decisão artigo a artigo (`✓ Produzir` vs. `✕ Não Produzir`)** e da **Folha de Fabrico discriminada por loja** resolve o atrito diário entre fábrica, balcões e clientes.
 2. **Aprendizagem Técnica (Segregação Estrita de Carga & Normalização Canónica):**
    - Separar de forma inegociável a Base Diária de abastecimento, os Clientes B2B (suprimindo entidades a 0 un.) e as Encomendas ao Domicílio na Folha de Carga elimina erros de carga de madrugada. A normalização canónica (`normalizarNomeArtigoCanonico`) impede a proliferação de sinónimos que distorcem o cálculo da farinha.
-3. **Aprendizagem Comercial (Demonstração de Valor e Bolsa Confortável):**
-   - Uma bolsa transparente de 110 horas com taxa bonificada de 50 €/h cria uma relação de confiança absoluta com o cliente, demonstrando o compromisso de estar presente no terreno até à estabilização completa da operação.
+3. **Aprendizagem Comercial (Demonstração de Valor e Faturação Rigorosa):**
+   - Um modelo transparente de faturação a **80,00 € / hora** cria uma relação de confiança absoluta com o cliente, assegurando rigor e clareza no acompanhamento até à estabilização completa da operação.
 
 ---
 

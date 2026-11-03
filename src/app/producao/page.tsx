@@ -21,6 +21,7 @@ import {
   subscreverAlteracoesAjustesAdhoc,
   subscreverAlteracoesEncomendas,
   calcularDadosGuiaCargaConjunta,
+  calcularPoolFabricoConsolidada,
   carregarBasesDiariasRecorrentes,
   clienteEmModoFerias,
   subscreverAlteracoesBasesRecorrentes,
@@ -380,213 +381,51 @@ export default function ProducaoPage() {
 
   // Pool Consolidada de Fabrico por Artigo para a Fila de Produção (Bases Diárias + Clientes Empresariais + Encomendas)
   const poolArtigosConsolidada = useMemo(() => {
-    const mapa: Record<string, {
-      produto_nome: string;
-      setor: SetorProducao;
-      unidade: string;
-      qtd_bases_diarias: number;
-      qtd_clientes_b2b: number;
-      qtd_encomendas: number;
-      quantidade_total: number;
-      encomendas_count: number;
-      encomendas_codigos: string[];
-      personalizacoes: string[];
-    }> = {};
-
-    const registrarOuObter = (nome: string, setorFallback?: SetorProducao) => {
-      const chave = nome.trim().toLowerCase();
-      if (!mapa[chave]) {
-        const prodRef = produtos.find((p) => p.nome.toLowerCase() === chave);
-        const setor: SetorProducao = prodRef?.categoria || setorFallback || (
-          chave.includes('bolo') || chave.includes('croissant') || chave.includes('pastel') || chave.includes('nata')
-            ? 'pastelaria'
-            : 'padaria'
-        );
-        const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
-        mapa[chave] = {
-          produto_nome: prodRef?.nome || nome,
-          setor,
-          unidade: unid,
-          qtd_bases_diarias: 0,
-          qtd_clientes_b2b: 0,
-          qtd_encomendas: 0,
-          quantidade_total: 0,
-          encomendas_count: 0,
-          encomendas_codigos: [],
-          personalizacoes: [],
-        };
-      }
-      return mapa[chave];
-    };
-
     const dataAlvo = filtroPeriodo === 'amanha' 
       ? amanha 
       : filtroPeriodo === 'personalizado' && dataInicioPersonalizada 
       ? dataInicioPersonalizada 
       : hoje;
-    const diaSemanaAlvo: DiaSemana = obterDiaSemanaDeData(dataAlvo);
 
-    // 1. BASES DIÁRIAS (Rotas 1 a 7, excluindo Rota 8)
-    const rotasValidas = carrinhas.filter((c) => c.rota !== 'Rota 8' && c.numero !== 8);
-    rotasValidas.forEach((car) => {
-      const bf = baseFixaCarrinhas.find((b) => b.carrinha_id === car.id);
-      const semana = (bf?.quantidades_semanais || bf?.quantidades_semana || {}) as Record<string, Record<string, number>>;
-      const mapaDia = semana?.[diaSemanaAlvo] || bf?.quantidades_por_produto || {};
-
-      // Coletar união de todos os artigos possíveis da carrinha + ajustes ad-hoc da data
-      const candidatos = new Set<string>();
-      Object.keys(mapaDia).forEach((a) => candidatos.add(a.trim()));
-      if (bf?.quantidades_semanais) {
-        Object.values(bf.quantidades_semanais).forEach((m) => {
-          Object.keys(m || {}).forEach((a) => candidatos.add(a.trim()));
-        });
-      }
-      if (bf?.quantidades_por_produto) {
-        Object.keys(bf.quantidades_por_produto).forEach((a) => candidatos.add(a.trim()));
-      }
-      obterArtigosAjustadosBaseRota(dataAlvo, car.id).forEach((a) => candidatos.add(a.trim()));
-
-      candidatos.forEach((artigo) => {
-        const { quantidade } = obterQuantidadeEfetivaBaseRota(dataAlvo, car.id, artigo, semana, diaSemanaAlvo);
-        if (quantidade > 0) {
-          const artigoCanonico = artigo.trim();
-          const entry = registrarOuObter(artigoCanonico);
-          entry.qtd_bases_diarias += quantidade;
-        }
-      });
+    let lista = calcularPoolFabricoConsolidada({
+      dataAlvo,
+      carrinhas,
+      baseFixaCarrinhas,
+      clientesB2B,
+      basesRecorrentes,
+      encomendas,
+      produtos,
+      ajustesCustom: ajustesAdhoc,
+      selectedLojaId,
+      selectedCarrinhaId,
+      filtroTipologia,
+      setorAtivo,
     });
-
-    // 1.1 BASES DIÁRIAS RECORRENTES (PORTA-A-PORTA - Exclui automaticamente quem está em Modo Férias)
-    basesRecorrentes.forEach((base) => {
-      if (!base.ativo) return;
-      if (clienteEmModoFerias(base, dataAlvo)) return; // FÉRIAS ATIVAS -> NÃO PRODUZ PÃO
-      if (selectedCarrinhaId !== 'todas' && base.carrinha_id !== selectedCarrinhaId) return;
-
-      const mapaDia = base.quantidades_semanais?.[diaSemanaAlvo] || {};
-      Object.entries(mapaDia).forEach(([artigo, qtd]) => {
-        const quantidade = Number(qtd) || 0;
-        if (quantidade > 0) {
-          const entry = registrarOuObter(artigo);
-          entry.qtd_bases_diarias += quantidade;
-        }
-      });
-    });
-
-    // 2. CLIENTES EMPRESARIAIS (B2B)
-    const clientesValidos = clientesB2B.filter((cli) => {
-      if (!cli.ativo) return false;
-      if (cli.carrinha_id) {
-        const car = carrinhas.find((c) => c.id === cli.carrinha_id);
-        if (car && (car.rota === 'Rota 8' || car.numero === 8)) return false;
-      }
-      return true;
-    });
-
-    clientesValidos.forEach((cli) => {
-      const semana = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
-      const mapaDia = semana?.[diaSemanaAlvo] || cli.produtos_predefinidos || {};
-
-      // Coletar união de artigos do cliente B2B + ajustes ad-hoc da data
-      const candidatos = new Set<string>();
-      Object.keys(mapaDia).forEach((a) => candidatos.add(a.trim()));
-      if (cli.quantidades_semanais) {
-        Object.values(cli.quantidades_semanais).forEach((m) => {
-          Object.keys(m || {}).forEach((a) => candidatos.add(a.trim()));
-        });
-      }
-      if (cli.produtos_predefinidos) {
-        Object.keys(cli.produtos_predefinidos).forEach((a) => candidatos.add(a.trim()));
-      }
-      obterArtigosAjustadosClienteB2B(dataAlvo, cli.id).forEach((a) => candidatos.add(a.trim()));
-
-      candidatos.forEach((artigo) => {
-        const { quantidade } = obterQuantidadeEfetivaClienteB2B(dataAlvo, cli.id, artigo, semana, diaSemanaAlvo);
-        if (quantidade > 0) {
-          const entry = registrarOuObter(artigo);
-          entry.qtd_clientes_b2b += quantidade;
-        }
-      });
-    });
-
-    // 3. ENCOMENDAS (Balcão, Loja e Entregas)
-    encomendas.forEach((enc) => {
-      // Filtrar por loja se selecionada
-      if (selectedLojaId !== 'todas' && enc.loja_id !== selectedLojaId) return;
-
-      // Filtrar por data
-      if (filtroPeriodo === 'hoje' && enc.data_agendamento !== hoje) return;
-      if (filtroPeriodo === 'amanha' && enc.data_agendamento !== amanha) return;
-      if (filtroPeriodo === 'personalizado') {
-        if (dataInicioPersonalizada && enc.data_agendamento < dataInicioPersonalizada) return;
-        if (dataFimPersonalizada && enc.data_agendamento > dataFimPersonalizada) return;
-      }
-
-      // Não somar encomendas canceladas
-      if (enc.estado === 'cancelado') return;
-
-      enc.itens.forEach((item) => {
-        // Se o item foi recusado parcialmente pela produção, não entra na pool
-        if (item.estado_producao === 'recusado') return;
-
-        const artigoCanonico = (item.produto_nome || '').trim();
-        const entry = registrarOuObter(artigoCanonico, item.setor);
-        entry.qtd_encomendas += item.quantidade;
-
-        if (!entry.encomendas_codigos.includes(enc.codigo)) {
-          entry.encomendas_codigos.push(enc.codigo);
-          entry.encomendas_count += 1;
-        }
-
-        if (item.notas_personalizacao && !entry.personalizacoes.includes(item.notas_personalizacao)) {
-          entry.personalizacoes.push(item.notas_personalizacao);
-        }
-      });
-    });
-
-    // Calcular quantidade_total e filtrar por tipologia
-    let lista = Object.values(mapa).map((item) => {
-      let qtdFiltrada = 0;
-      if (filtroTipologia === 'todas') {
-        qtdFiltrada = item.qtd_bases_diarias + item.qtd_clientes_b2b + item.qtd_encomendas;
-      } else if (filtroTipologia === 'bases_diarias') {
-        qtdFiltrada = item.qtd_bases_diarias;
-      } else if (filtroTipologia === 'clientes_b2b') {
-        qtdFiltrada = item.qtd_clientes_b2b;
-      } else if (filtroTipologia === 'encomendas') {
-        qtdFiltrada = item.qtd_encomendas;
-      }
-
-      return {
-        ...item,
-        quantidade_total: qtdFiltrada,
-      };
-    });
-
-    // Manter apenas artigos com quantidade > 0 na tipologia selecionada
-    lista = lista.filter((item) => item.quantidade_total > 0);
-
-    // Filtrar por setor (se padaria ou pastelaria)
-    if (setorAtivo !== 'todos') {
-      lista = lista.filter((item) => item.setor === setorAtivo);
-    }
 
     // Filtrar por pesquisa de artigo com correspondência inteligente (tolerância a gralhas como "bor" -> "broa")
     if (pesquisaTexto.trim()) {
       lista = lista.filter((item) => correspondePesquisaArtigo(item.produto_nome, pesquisaTexto));
     }
 
-    return lista.sort((a, b) => {
-      if (a.setor !== b.setor) return a.setor.localeCompare(b.setor);
-      return b.quantidade_total - a.quantidade_total;
-    });
+    return lista;
   }, [
     encomendas,
     carrinhas,
     baseFixaCarrinhas,
     clientesB2B,
+    basesRecorrentes,
     produtos,
+    ajustesAdhoc,
     selectedLojaId,
+    selectedCarrinhaId,
     filtroPeriodo,
+    hoje,
+    amanha,
+    dataInicioPersonalizada,
+    filtroTipologia,
+    setorAtivo,
+    pesquisaTexto,
+  ]);
     dataInicioPersonalizada,
     dataFimPersonalizada,
     hoje,

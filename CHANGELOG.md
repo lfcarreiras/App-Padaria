@@ -42,6 +42,24 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.39] - 2026-11-03
+
+### Fixed & Operational (Réplica Exata da Folha de Fabrico e Guia de Carga Repartida em 2 Folhas com Letra 8 no BCP)
+- **Folha de Fabrico do BCP como Réplica Exata da Aplicação**:
+  - **Unificação da Pool de Produção (`calcularPoolFabricoConsolidada`)**: Exportada lógica centralizada em `src/lib/encomendasService.ts` que consolida com rigor matemático as 3 origens de consumo diário: Bases Diárias das carrinhas (rotas 1 a 7, respeitando o modo férias), Clientes Empresariais (B2B) e Encomendas ativas. Consumida de forma idêntica tanto pelo ecrã de Produção da app (`src/app/producao/page.tsx`) como pelo gerador de PDF de contingência (`src/lib/pdfContinuidadeBuilder.ts`) e o cron diário (`src/app/api/cron/continuidade-negocio/route.ts`).
+  - **Estruturação em Dois Cadernos Oficiais no PDF**:
+    - **Caderno 1 (Folha Diária de Fabrico Consolidada)**: Tabela de produção da amassadura e forno com totais a produzir, 4 cartões de resumo (Total Geral, Padaria, Pastelaria, Linhas), Tabela de Padaria com Subtotal, Tabela de Pastelaria com Subtotal, discriminação de quantidades `Base: X • B2B: Y • Enc: Z`, contagem de encomendas, personalizações de cliente, checkboxes de controlo operacional (`[ ] Cozido` / `[ ] Confeção`) e assinaturas de turno.
+    - **Caderno 2 (Folha de Fabrico de Encomendas Discriminadas por Loja e Domicílio)**: Agrupamento de todas as encomendas por Loja e novo agrupador resiliente `Entregas ao Domicílio & Expedição Geral` (eliminando o descarte anterior de encomendas de domicílio ou sem loja), cada uma com card dedicado, hora, contacto, morada, itens e checkboxes de conferência de embalamento.
+  - **Parâmetro de Auditoria no Cron**: Adicionado suporte opcional ao parâmetro `?data=YYYY-MM-DD` no endpoint `/api/cron/continuidade-negocio` para facilitar testes manuais e auditorias pontuais de contingência.
+- **Guia de Carga Conjunta BCP Repartida por 2 Folhas Horizontais com Tamanho de Letra 8**:
+  - **Secção de Padaria (34 colunas divididas em 2 folhas horizontais de 17 colunas)**:
+    - *Folha 1 (Parte 1 de 2)*: Colunas 1 a 17 (`b_amarela_05` a `pao_bico`) com largura de 33.5 pt por coluna, coluna de Rota/Cliente de 180 pt e coluna de Subtotal P1 de 48.5 pt. Células de dados e totais formatados com **tamanho de letra 8**! Cabeçalhos de produto rodados a 7.5 pt bold.
+    - *Folha 2 (Parte 2 de 2)*: Colunas 18 a 34 (`pao_cachorro` a `triga_milha_saloio`) com a mesma grelha e coluna de Total Geral Padaria (48.5 pt). Células e totais com **tamanho de letra 8**!
+  - **Secção de Pastelaria (18 colunas divididas em 2 folhas horizontais de 9 colunas)**:
+    - *Folha 3 (Parte 1 de 2)*: Colunas 1 a 9 (`croiss_choc` a `pao_chourico`) com largura confortável de 61 pt por coluna, coluna de Rota/Cliente de 190 pt e coluna de Subtotal P1 de 59 pt. Células de dados e totais com **tamanho de letra 8**! Cabeçalhos de produto rodados a 8 pt bold.
+    - *Folha 4 (Parte 2 de 2)*: Colunas 10 a 18 (`pao_croissant` a `tranca_chocolate`) com a mesma grelha, coluna de Total Geral Pastelaria (59 pt) e **tamanho de letra 8**! Inclui no rodapé o Resumo Geral Consolidado a Bordo (Padaria + Pastelaria) e o bloco de assinaturas de visto de expedição e conferência dos condutores.
+  - **Economia de Tinteiro (Ink Economy)**: 100% fundo branco sem blocos sólidos de cor preta ou cinzenta escura, garantindo máxima durabilidade dos consumíveis de impressão fabril.
+
 ## [v2.7.38] - 2026-11-01
 
 ### Fixed & Operational (Correção de ReferenceError em totalGeralRota e Leitura Resiliente da Base Diária de Supabase)

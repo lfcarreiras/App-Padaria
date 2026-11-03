@@ -352,3 +352,32 @@ export interface DadosGuiaConjunta {
   totaisColunasPadaria?: Record<string, number>;
   totaisColunasPastelaria?: Record<string, number>;
 }
+
+export interface LinhaArtigoFabrico {
+  produto_nome: string;
+  setor: 'padaria' | 'pastelaria' | string;
+  quantidade_total: number;
+  unidade?: string;
+  encomendas_count?: number;
+  encomendas_codigos?: string[];
+  personalizacoes?: string[];
+  qtd_bases_diarias?: number;
+  qtd_clientes_b2b?: number;
+  qtd_encomendas?: number;
+}
+
+export interface ParametrosCalculoFabricoConsolidado {
+  dataAlvo: string;
+  carrinhas: Carrinha[];
+  baseFixaCarrinhas: BaseFixaCarrinha[];
+  clientesB2B: ClienteEmpresarialB2B[];
+  basesRecorrentes?: BaseDiariaRecorrente[];
+  encomendas: Encomenda[];
+  produtos: Produto[];
+  ajustesCustom?: Record<string, number>;
+  selectedLojaId?: string;
+  selectedCarrinhaId?: string;
+  filtroTipologia?: 'todas' | 'bases_diarias' | 'clientes_b2b' | 'encomendas';
+  setorAtivo?: 'todos' | 'padaria' | 'pastelaria';
+  pesquisaTexto?: string;
+}

@@ -125,13 +125,13 @@ flowchart LR
 > [!IMPORTANT]
 > **Secção Confidencial de Controlo Interno Inprooval®** — Omitida na partilha externa com clientes.
 
-* **Auditoria da Bolsa de Horas vs. Pacote Comercial (110 Horas @ 50,00 €/h = 5.500,00 € + IVA):**
-  - O projeto foi formalmente dimensionado e fechado no pacote turn-key de **5.500,00 € + IVA**, contemplando uma pool de **110,00 horas** de consultoria, desenvolvimento e suporte ao Go-Live (taxa bonificada de 50 €/h no setup).
-  - **Horas Consumidas na Engenharia (Sprints 1 a 10 — 07/09 a 24/10/2026):** **`34,50 horas`** (`1.725,00 €` ao custo interno imputado).
-  - **Saldo Remanescente Disponível para Formação & Go-Live:** **🟢 `+ 75,50 horas` (`+ 3.775,00 €`)**.
-  - Este saldo garante uma margem de segurança excecional para a Inprooval® prestar acompanhamento presencial diário em Arouca durante os primeiros dias de exploração real.
-* **Cláusula de Escalação de Valor Hora Institucional:**
-  - Fixação da taxa padrão da Inprooval® em **150,00 € / hora + IVA** para todos os desenvolvimentos posteriores ao Go-Live (Faturação AT Moloni, WhatsApp Cloud API, MRP) e para novas propostas comerciais a clientes do setor.
+* **Auditoria da Bolsa de Horas vs. Pacote Comercial (Orçamento Base: 2.500,00 € + IVA @ 80,00 €/h):**
+  - O projeto foi formalmente dimensionado no pacote de **2.500,00 € + IVA**, contemplando um plafond contratual equivalente de **31,25 horas** à taxa horária acordada de **80,00 € / hora + IVA**.
+  - **Horas Consumidas (Sprints 1 a 10 — 07/09 a 24/10/2026):** **`34,50 horas`** (`2.760,00 €` ao valor faturável contratual de 80,00 €/h).
+  - **Saldo Face ao Plafond Base:** **⚠️ `- 3,25 horas` (`- 260,00 €`)**.
+  - A totalidade do âmbito técnico foi integralmente desenvolvida e certificada. As horas excedentes e todo o acompanhamento presencial de formação e Go-Live no terreno são faturados à taxa acordada de **80,00 € / hora + IVA**.
+* **Taxa de Faturação Contratual:**
+  - Fixação da taxa horária do projeto em **80,00 € / hora + IVA** para todo o acompanhamento e desenvolvimentos futuros da Padaria da Vila (Faturação AT Moloni, WhatsApp Cloud API, MRP).
 <!-- INTERNAL_END -->
 
 ---

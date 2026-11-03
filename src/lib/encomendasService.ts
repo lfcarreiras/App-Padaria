@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { Encomenda, ItemEncomenda, EstadoEncomenda, EstadoProducaoItem, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, LogAuditoria, BaseFixaCarrinha, ClienteEmpresarialB2B, DiaSemana, BaseDiariaRecorrente, Role, PermissoesCargo, MatrizPermissoesCargos, LinhaCargaConjunta, DadosGuiaConjunta, ColunaCabecalhoRota, ColunaRotaGuia, LinhaGuiaConjuntaSecao, ColunaGrelhaProduto, LinhaGrelhaCarga, GrupoRotaGrelha } from '../types';
+import type { Encomenda, ItemEncomenda, EstadoEncomenda, EstadoProducaoItem, Cliente, Produto, Loja, Carrinha, PerfilUtilizador, LogAuditoria, BaseFixaCarrinha, ClienteEmpresarialB2B, DiaSemana, BaseDiariaRecorrente, Role, PermissoesCargo, MatrizPermissoesCargos, LinhaCargaConjunta, DadosGuiaConjunta, ColunaCabecalhoRota, ColunaRotaGuia, LinhaGuiaConjuntaSecao, ColunaGrelhaProduto, LinhaGrelhaCarga, GrupoRotaGrelha, LinhaArtigoFabrico, ParametrosCalculoFabricoConsolidado } from '../types';
 import { LOJAS_MOCK, LOGS_AUDITORIA_MOCK, CARRINHAS_MOCK, COLUNAS_MAPA_DIARIO_OFICIAL, BASE_FIXA_CARRINHAS_INICIAL, CLIENTES_EMPRESARIAIS_B2B_INICIAIS } from './mockData';
 
 const REAL_DELIVERY_TIMESTAMPS_KEY = 'padaria_timestamps_entrega_real_v1';
@@ -3573,4 +3573,234 @@ export function calcularDadosGuiaCargaConjunta(
     totaisColunasPadaria,
     totaisColunasPastelaria,
   };
+}
+
+/**
+ * Calcula a Pool Diária de Fabrico Consolidada
+ * Consolida todas as necessidades de produção para a data alvo:
+ * 1. Base Diária de Carrinhas (Rotas 1 a 7, excluindo Rota 8)
+ * 2. Bases Recorrentes (Porta-a-porta particulares fixos, excluindo quem está em férias)
+ * 3. Clientes Empresariais (B2B, excluindo Rota 8)
+ * 4. Encomendas agendadas para a data (balcão e domicílio, excluindo canceladas e itens recusados)
+ * Garante paridade total entre o Cockpit de Produção e o caderno BCP.
+ */
+export function calcularPoolFabricoConsolidada(params: ParametrosCalculoFabricoConsolidado): LinhaArtigoFabrico[] {
+  const {
+    dataAlvo,
+    carrinhas,
+    baseFixaCarrinhas,
+    clientesB2B,
+    basesRecorrentes = [],
+    encomendas,
+    produtos,
+    ajustesCustom,
+    selectedLojaId = 'todas',
+    selectedCarrinhaId = 'todas',
+    filtroTipologia = 'todas',
+    setorAtivo = 'todos',
+  } = params;
+
+  const diaSemanaAlvo: DiaSemana = obterDiaSemanaDeData(dataAlvo);
+  const mapa: Record<string, LinhaArtigoFabrico> = {};
+
+  const registrarOuObter = (nome: string, setorFallback?: 'padaria' | 'pastelaria' | string): LinhaArtigoFabrico => {
+    const chave = (nome || '').trim().toLowerCase();
+    if (!mapa[chave]) {
+      const prodRef = produtos.find((p) => (p.nome || '').trim().toLowerCase() === chave);
+      const setor: 'padaria' | 'pastelaria' = prodRef?.categoria || (setorFallback as any) || (
+        chave.includes('bolo') || chave.includes('croissant') || chave.includes('pastel') || chave.includes('nata') || chave.includes('doce')
+          ? 'pastelaria'
+          : 'padaria'
+      );
+      const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
+      mapa[chave] = {
+        produto_nome: prodRef?.nome || nome.trim(),
+        setor,
+        unidade: unid,
+        qtd_bases_diarias: 0,
+        qtd_clientes_b2b: 0,
+        qtd_encomendas: 0,
+        quantidade_total: 0,
+        encomendas_count: 0,
+        encomendas_codigos: [],
+        personalizacoes: [],
+      };
+    }
+    return mapa[chave];
+  };
+
+  // 1. BASES DIÁRIAS (Rotas 1 a 7, excluindo Rota 8)
+  const rotasValidas = carrinhas.filter((c) => {
+    if (selectedCarrinhaId !== 'todas' && c.id !== selectedCarrinhaId) return false;
+    return c.rota !== 'Rota 8' && c.numero !== 8;
+  });
+
+  rotasValidas.forEach((car) => {
+    const aliasesCar = obterAliasesCarrinha(car.id);
+    const bf = baseFixaCarrinhas.find((b) => aliasesCar.includes(b.carrinha_id) || obterAliasesCarrinha(b.carrinha_id).some((a) => aliasesCar.includes(a)));
+    const semanaBf = (bf?.quantidades_semanais || bf?.quantidades_semana || (bf?.quantidades as any)?.quantidades_semanais || (bf?.quantidades && typeof bf.quantidades === 'object' && ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'].some((k: string) => k in (bf.quantidades as any)) ? bf.quantidades : {})) as Record<string, Record<string, number>>;
+    const mapaDia = semanaBf?.[diaSemanaAlvo] || bf?.quantidades_por_produto || {};
+
+    const candidatos = new Set<string>();
+    Object.keys(mapaDia).forEach((a) => {
+      const art = (a || '').trim();
+      if (art) candidatos.add(art);
+    });
+    if (bf?.quantidades_semanais) {
+      Object.values(bf.quantidades_semanais).forEach((m) => {
+        if (m && typeof m === 'object') {
+          Object.keys(m).forEach((a) => {
+            const art = (a || '').trim();
+            if (art) candidatos.add(art);
+          });
+        }
+      });
+    }
+    if (bf?.quantidades_por_produto) {
+      Object.keys(bf.quantidades_por_produto).forEach((a) => {
+        const art = (a || '').trim();
+        if (art) candidatos.add(art);
+      });
+    }
+    obterArtigosAjustadosBaseRota(dataAlvo, car.id, ajustesCustom).forEach((a) => {
+      const art = (a || '').trim();
+      if (art) candidatos.add(art);
+    });
+
+    candidatos.forEach((artigo) => {
+      const { quantidade } = obterQuantidadeEfetivaBaseRota(dataAlvo, car.id, artigo, semanaBf, diaSemanaAlvo, ajustesCustom);
+      if (quantidade > 0) {
+        const entry = registrarOuObter(artigo);
+        entry.qtd_bases_diarias = (entry.qtd_bases_diarias || 0) + quantidade;
+      }
+    });
+  });
+
+  // 1.1 BASES DIÁRIAS RECORRENTES (PORTA-A-PORTA - Exclui automaticamente quem está em Modo Férias)
+  basesRecorrentes.forEach((base) => {
+    if (!base.ativo) return;
+    if (clienteEmModoFerias(base, dataAlvo)) return;
+    if (selectedCarrinhaId !== 'todas' && base.carrinha_id !== selectedCarrinhaId) return;
+
+    const mapaDia = base.quantidades_semanais?.[diaSemanaAlvo] || {};
+    Object.entries(mapaDia).forEach(([artigo, qtd]) => {
+      const quantidade = Number(qtd) || 0;
+      if (quantidade > 0) {
+        const entry = registrarOuObter(artigo);
+        entry.qtd_bases_diarias = (entry.qtd_bases_diarias || 0) + quantidade;
+      }
+    });
+  });
+
+  // 2. CLIENTES EMPRESARIAIS (B2B)
+  const clientesValidos = clientesB2B.filter((cli) => {
+    if (!cli.ativo) return false;
+    if (cli.carrinha_id) {
+      const car = carrinhas.find((c) => c.id === cli.carrinha_id);
+      if (car && (car.rota === 'Rota 8' || car.numero === 8)) return false;
+      if (selectedCarrinhaId !== 'todas' && cli.carrinha_id !== selectedCarrinhaId) return false;
+    }
+    return true;
+  });
+
+  clientesValidos.forEach((cli) => {
+    const semana = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
+    const mapaDia = semana?.[diaSemanaAlvo] || cli.produtos_predefinidos || {};
+
+    const candidatos = new Set<string>();
+    Object.keys(mapaDia).forEach((a) => {
+      const art = (a || '').trim();
+      if (art) candidatos.add(art);
+    });
+    if (cli.quantidades_semanais) {
+      Object.values(cli.quantidades_semanais).forEach((m) => {
+        if (m && typeof m === 'object') {
+          Object.keys(m).forEach((a) => {
+            const art = (a || '').trim();
+            if (art) candidatos.add(art);
+          });
+        }
+      });
+    }
+    if (cli.produtos_predefinidos) {
+      Object.keys(cli.produtos_predefinidos).forEach((a) => {
+        const art = (a || '').trim();
+        if (art) candidatos.add(art);
+      });
+    }
+    obterArtigosAjustadosClienteB2B(dataAlvo, cli.id, ajustesCustom).forEach((a) => {
+      const art = (a || '').trim();
+      if (art) candidatos.add(art);
+    });
+
+    candidatos.forEach((artigo) => {
+      const { quantidade } = obterQuantidadeEfetivaClienteB2B(dataAlvo, cli.id, artigo, semana, diaSemanaAlvo, ajustesCustom);
+      if (quantidade > 0) {
+        const entry = registrarOuObter(artigo);
+        entry.qtd_clientes_b2b = (entry.qtd_clientes_b2b || 0) + quantidade;
+      }
+    });
+  });
+
+  // 3. ENCOMENDAS (Balcão, Loja e Entregas)
+  encomendas.forEach((enc) => {
+    if (selectedLojaId !== 'todas' && enc.loja_id && enc.loja_id !== selectedLojaId) return;
+    if (enc.data_agendamento !== dataAlvo) return;
+    if (enc.estado === 'cancelado') return;
+
+    (enc.itens || []).forEach((item) => {
+      if (item.estado_producao === 'recusado') return;
+      const qtd = Number(item.quantidade) || 0;
+      if (qtd <= 0) return;
+
+      const artigoCanonico = (item.produto_nome || '').trim();
+      const entry = registrarOuObter(artigoCanonico, item.setor);
+      entry.qtd_encomendas = (entry.qtd_encomendas || 0) + qtd;
+
+      if (enc.codigo && !(entry.encomendas_codigos || []).includes(enc.codigo)) {
+        if (!entry.encomendas_codigos) entry.encomendas_codigos = [];
+        entry.encomendas_codigos.push(enc.codigo);
+        entry.encomendas_count = (entry.encomendas_count || 0) + 1;
+      }
+
+      if (item.notas_personalizacao && !(entry.personalizacoes || []).includes(item.notas_personalizacao)) {
+        if (!entry.personalizacoes) entry.personalizacoes = [];
+        entry.personalizacoes.push(item.notas_personalizacao);
+      }
+    });
+  });
+
+  // 4. Calcular quantidade total e filtrar
+  let lista = Object.values(mapa).map((item) => {
+    let qtdFiltrada = 0;
+    const base = item.qtd_bases_diarias || 0;
+    const b2b = item.qtd_clientes_b2b || 0;
+    const enc = item.qtd_encomendas || 0;
+
+    if (filtroTipologia === 'todas') {
+      qtdFiltrada = base + b2b + enc;
+    } else if (filtroTipologia === 'bases_diarias') {
+      qtdFiltrada = base;
+    } else if (filtroTipologia === 'clientes_b2b') {
+      qtdFiltrada = b2b;
+    } else if (filtroTipologia === 'encomendas') {
+      qtdFiltrada = enc;
+    }
+
+    return {
+      ...item,
+      quantidade_total: qtdFiltrada,
+    };
+  });
+
+  lista = lista.filter((item) => item.quantidade_total > 0);
+
+  if (setorAtivo !== 'todos') {
+    lista = lista.filter((item) => item.setor === setorAtivo);
+  }
+
+  return lista.sort((a, b) => {
+    if (a.setor !== b.setor) return a.setor.localeCompare(b.setor);
+    return b.quantidade_total - a.quantidade_total;
+  });
 }

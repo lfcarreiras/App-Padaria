@@ -33,13 +33,18 @@ export async function GET(request: Request) {
     }
 
     // 2. Determinar a data da operação de hoje (Disparo diário às 00h15 - Fuso horário Portugal Continental)
+    const url = new URL(request.url);
+    const dataParam = url.searchParams.get('data'); // Opcional para simulação/auditoria
+
     const agora = new Date();
-    const partesData = new Intl.DateTimeFormat('en-CA', {
+    const partesDataHoje = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'Europe/Lisbon',
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
     }).format(agora); // 'YYYY-MM-DD'
+
+    const partesData = dataParam && /^\d{4}-\d{2}-\d{2}$/.test(dataParam) ? dataParam : partesDataHoje;
 
     const [ano, mes, dia] = partesData.split('-');
     const dataHojeFormatada = `${dia}/${mes}/${ano}`;
@@ -82,6 +87,12 @@ export async function GET(request: Request) {
       dataFormatada: dataHojeFormatada,
       lojas,
       encomendas,
+      carrinhas,
+      baseFixaCarrinhas,
+      clientesB2B,
+      basesRecorrentes,
+      produtos,
+      ajustesAdhoc,
     });
 
     const bufferCargas = gerarPdfGuiaCargaConjunta({
