@@ -3194,7 +3194,7 @@ export function calcularDadosGuiaCargaConjunta(
     return {
       carrinhaId: c.id,
       numeroRota: num,
-      rota: c.rota || `Rota ${num}`,
+      rota: (c.rota || `Rota ${num}`).replace(/\s*[-—].*$/, '').trim(),
       nomeCondutor: c.nome_condutor || 'A atribuir',
       matricula: c.matricula || '---',
       nomeCarro: c.nome_carro || `Carro ${num}`,
@@ -3206,7 +3206,7 @@ export function calcularDadosGuiaCargaConjunta(
     return {
       id: c.id,
       numero: num,
-      rota: c.rota || `Rota ${num}`,
+      rota: (c.rota || `Rota ${num}`).replace(/\s*[-—].*$/, '').trim(),
       nome_condutor: c.nome_condutor || 'A atribuir',
       nome_carro: c.nome_carro || `Carro ${num}`,
       matricula: c.matricula || '---',
@@ -3464,7 +3464,7 @@ export function calcularDadosGuiaCargaConjunta(
       gruposRotasGrelha.push({
         carrinhaId: car.id,
         numeroRota: numRota,
-        rotaNome: car.rota || `Rota ${numRota}`,
+        rotaNome: (car.rota || `Rota ${numRota}`).replace(/\s*[-—].*$/, '').trim(),
         nomeCondutor: car.nome_condutor || '',
         matricula: car.matricula || '',
         linhas: linhasGrelhaRota,

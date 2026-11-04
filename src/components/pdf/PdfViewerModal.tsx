@@ -1843,7 +1843,7 @@ export function PdfViewerModal({
                                   {/* Linha Cabeçalho da Rota com Totais da Parte 1 */}
                                   <tr className="bg-stone-100/90 font-black border-t-2 border-b border-stone-700 text-stone-950">
                                     <td className="py-1 px-1.5 sticky left-0 bg-stone-100/95 z-10 border-r border-stone-400 font-black uppercase text-xs print:text-[10px] print:static">
-                                      {grupo.rotaNome.toUpperCase()}
+                                      {grupo.rotaNome.replace(/\s*[-—].*$/, '').trim().toUpperCase()}
                                     </td>
                                     {colunasPadariaP1.map((col) => {
                                       const q = grupo.totaisPadaria?.[col.id] || 0;
@@ -1982,7 +1982,7 @@ export function PdfViewerModal({
                                   {/* Linha Cabeçalho da Rota com Total Geral Padaria */}
                                   <tr className="bg-stone-100/90 font-black border-t-2 border-b border-stone-700 text-stone-950">
                                     <td className="py-1 px-1.5 sticky left-0 bg-stone-100/95 z-10 border-r border-stone-400 font-black uppercase text-xs print:text-[10px] print:static">
-                                      {grupo.rotaNome.toUpperCase()}
+                                      {grupo.rotaNome.replace(/\s*[-—].*$/, '').trim().toUpperCase()}
                                     </td>
                                     {colunasPadariaP2.map((col) => {
                                       const q = grupo.totaisPadaria?.[col.id] || 0;
@@ -2123,7 +2123,7 @@ export function PdfViewerModal({
                                   {/* Linha Cabeçalho da Rota com Totais da Parte 1 */}
                                   <tr className="bg-stone-100/90 font-black border-t-2 border-b border-stone-700 text-stone-950">
                                     <td className="py-1 px-1.5 sticky left-0 bg-stone-100/95 z-10 border-r border-stone-400 font-black uppercase text-xs print:text-[10.5px] print:static">
-                                      {grupo.rotaNome.toUpperCase()}
+                                      {grupo.rotaNome.replace(/\s*[-—].*$/, '').trim().toUpperCase()}
                                     </td>
                                     {colunasPastelariaP1.map((col) => {
                                       const q = grupo.totaisPastelaria?.[col.id] || 0;
@@ -2262,7 +2262,7 @@ export function PdfViewerModal({
                                   {/* Linha Cabeçalho da Rota com Total Geral Pastelaria */}
                                   <tr className="bg-stone-100/90 font-black border-t-2 border-b border-stone-700 text-stone-950">
                                     <td className="py-1 px-1.5 sticky left-0 bg-stone-100/95 z-10 border-r border-stone-400 font-black uppercase text-xs print:text-[10.5px] print:static">
-                                      {grupo.rotaNome.toUpperCase()}
+                                      {grupo.rotaNome.replace(/\s*[-—].*$/, '').trim().toUpperCase()}
                                     </td>
                                     {colunasPastelariaP2.map((col) => {
                                       const q = grupo.totaisPastelaria?.[col.id] || 0;

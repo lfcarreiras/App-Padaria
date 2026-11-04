@@ -42,6 +42,13 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.42] - 2026-11-04
+
+### Fixed & Operational (Sanitização Estrita dos Nomes das Rotas na Guia de Carga Conjunta)
+- **Eliminação Definitiva de Motoristas e Matrículas nos Cabeçalhos das Rotas**:
+  - Implementada sanitização por regex (`.replace(/\s*[-—].*$/, '').trim()`) em `encomendasService.ts`, `PdfViewerModal.tsx` e `pdfContinuidadeBuilder.ts`.
+  - Assegurado que tanto na interface web (modal) como nos PDFs impressos e enviados por email do BCP, as linhas de cabeçalho das rotas apresentam única e exclusivamente a designação da rota (ex.: `ROTA 1`, `ROTA 2`), sem exibição de nomes de motoristas (`FERNANDO SOUSA`, `GONÇALO VILAR`) ou matrículas (`35-FP-08`, `CG-30-IT`).
+
 ## [v2.7.41] - 2026-11-04
 
 ### Fixed & Operational (Folha de Fabrico por Email Focada em Encomendas & Rotas Limpas na Guia de Carga)

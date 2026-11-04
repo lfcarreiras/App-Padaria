@@ -846,7 +846,7 @@ export function gerarPdfGuiaCargaConjunta(params: ParametrosFolhaCargaPdf | stri
       // 1. Linha Divisória de Cabeçalho da Rota com Subtotais por Coluna (Letra 8)
       const rowHeaderH = 13;
       p.drawRect(xInicio, curY - rowHeaderH, wTotalTabela, rowHeaderH, '0.94 0.94 0.94', '0.2 0.2 0.2');
-      const rotuloRotaHeader = grupo.rotaNome.toUpperCase();
+      const rotuloRotaHeader = (grupo.rotaNome || '').replace(/\s*[-—].*$/, '').trim().toUpperCase();
       p.drawText(rotuloRotaHeader.slice(0, 34), xInicio + 4, curY - (rowHeaderH - 3.5), 8, true, '0 0 0');
 
       let totGrupoParte = 0;
@@ -1022,7 +1022,7 @@ export function gerarPdfGuiaCargaConjunta(params: ParametrosFolhaCargaPdf | stri
       // 1. Linha Divisória de Cabeçalho da Rota com Subtotais por Coluna (Letra 8)
       const rowHeaderH = 13;
       p.drawRect(xInicio, curY - rowHeaderH, wTotalTabela, rowHeaderH, '0.94 0.94 0.94', '0.2 0.2 0.2');
-      const rotuloRotaHeader = grupo.rotaNome.toUpperCase();
+      const rotuloRotaHeader = (grupo.rotaNome || '').replace(/\s*[-—].*$/, '').trim().toUpperCase();
       p.drawText(rotuloRotaHeader.slice(0, 36), xInicio + 4, curY - (rowHeaderH - 3.5), 8, true, '0 0 0');
 
       let totGrupoParte = 0;
