@@ -42,6 +42,22 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.41] - 2026-11-04
+
+### Fixed & Operational (Folha de Fabrico por Email Focada em Encomendas & Rotas Limpas na Guia de Carga)
+- **Folha de Fabrico do BCP Exclusiva para Encomendas (`gerarPdfFolhaFabricoLojas`)**:
+  - Removido o Caderno 1 com a consolidação de Bases Diárias e Clientes B2B do email de continuidade de negócio.
+  - O PDF gerado reflete agora com precisão visual de 100% o documento oficial da app ("Folha de Fabrico de Encomendas por Loja"):
+    - Cabeçalho: *PADARIA DA VILA • Folha de Fabrico de Encomendas por Loja • Data • Todas as Lojas*.
+    - 4 Caixas de Resumo: Total Encomendas, Total a Produzir, Padaria e Pastelaria (apenas sobre encomendas do dia).
+    - Agrupamento por Loja e Entregas ao Domicílio com Banner dedicado e total da loja.
+    - Cada encomenda em card individual com código, hora, tipo (Domicílio / Balcão), nome e telefone do cliente, morada de entrega (quando aplicável) e notas.
+    - Tabela de artigos encomendados com setor, quantidade destacada, personalizações/especificações e caixas de verificação `[ ] Pronto / Embalado` e conferência de embalamento.
+    - Subtotal por Loja e bloco oficial de assinaturas (*Chefe de Turno de Fabrico* e *Conferência de Expedição para Lojas*).
+  - Normalização flexível de datas que garante que 100% das encomendas do dia de hoje (ex: `ENC-Carocha-2097` e `ENC-Carocha-3851`) são identificadas e impressas sem qualquer perda.
+- **Simplificação das Linhas de Rota na Guia de Carga Conjunta (App e Email BCP)**:
+  - Tanto na impressão da app ([`PdfViewerModal.tsx`](file:///G:/O%20meu%20disco/2.%20Áreas/Inprooval/02.%20Clientes%20&%20Projetos/Padaria%20da%20Vila/03.%20Engenharia%20&%20Código/app-encomendas-padaria/src/components/pdf/PdfViewerModal.tsx)) como no PDF enviado por email ([`pdfContinuidadeBuilder.ts`](file:///G:/O%20meu%20disco/2.%20Áreas/Inprooval/02.%20Clientes%20&%20Projetos/Padaria%20da%20Vila/03.%20Engenharia%20&%20Código/app-encomendas-padaria/src/lib/pdfContinuidadeBuilder.ts)), as linhas divisórias de rota passam a apresentar unicamente a designação da rota (ex: `ROTA 1`, `ROTA 2`, etc.), eliminando o nome do condutor e a matrícula.
+
 ## [v2.7.40] - 2026-11-04
 
 ### Enhanced & Usability (Guia de Carga Conjunta Impressa na App Dividida por 2 Páginas por Tabela com Letra Grande e Alta Legibilidade)
