@@ -42,6 +42,22 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.40] - 2026-11-04
+
+### Enhanced & Usability (Guia de Carga Conjunta Impressa na App Dividida por 2 Páginas por Tabela com Letra Grande e Alta Legibilidade)
+- **Divisão das Tabelas de Padaria e Pastelaria por 2 Páginas Cada no Modal e Impressão Nativa da App (`PdfViewerModal.tsx`)**:
+  - **Secção de Padaria (34 Colunas divididas em 2 Páginas)**:
+    - **Página 1 (Parte 1 de 2: Colunas 1 a 17)**: De `Broa Amarela 0.5kg` a `Pão de Bico`, com colunas largas (~36px a 42px), números em fonte `text-xs print:text-[10px] font-bold` (ou `font-black`), cabeçalhos verticais com altura confortável e coluna final de `SUBTOTAL P1`.
+    - **Página 2 (Parte 2 de 2: Colunas 18 a 34)**: De `Pão de Cachorro` a `Triga Milha Saloio`, com quebra forçada de página (`page-break-before: always; break-before: page`), mini-cabeçalho de página para identificação imediata na impressão, grelha idêntica e coluna final `TOTAL PADARIA` refletindo o total consolidado da rota/linha na padaria.
+  - **Secção de Pastelaria (18 Colunas divididas em 2 Páginas)**:
+    - **Página 3 (Parte 1 de 2: Colunas 1 a 9)**: De `Croissant Chocolate` a `Pão com Chouriço`, com colunas generosas (~55px a 70px), números de alta legibilidade `text-xs print:text-[10.5px] font-bold`, quebra de página automática e coluna final de `SUBTOTAL P1`.
+    - **Página 4 (Parte 2 de 2: Colunas 10 a 18)**: De `Pão de Croissant` a `Trança de Chocolate`, com quebra de página automática, coluna final `TOTAL PASTELARIA`, seguido pelo Cartão de `TOTAL GERAL A BORDO (PADARIA + PASTELARIA)` e o bloco oficial de conferência/assinaturas para motoristas e expedição.
+  - **Acessibilidade Visual**:
+    - Letras e números deixaram de estar comprimidos em colunas microscópicas de 22px / 28px, garantindo que colaboradores ou motoristas com dificuldades de visão consigam ler confortavelmente os valores tanto no ecrã como no papel impresso.
+  - **Uniformização de Designações**:
+    - Nas linhas de Base Diária das carrinhas, a designação é apresentada como `Porta a Porta` em vez do nome da rota duplicado.
+    - Rotas com 0 unidades totais na secção são automaticamente omitidas para não poluir a folha de carga.
+
 ## [v2.7.39] - 2026-11-03
 
 ### Fixed & Operational (Réplica Exata da Folha de Fabrico e Guia de Carga Repartida em 2 Folhas com Letra 8 no BCP)
