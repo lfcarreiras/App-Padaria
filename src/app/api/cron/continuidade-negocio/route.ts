@@ -14,7 +14,12 @@ import {
 } from '@/lib/encomendasService';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 export const runtime = 'nodejs';
+
+export async function POST(request: Request) {
+  return GET(request);
+}
 
 export async function GET(request: Request) {
   try {
@@ -114,6 +119,7 @@ export async function GET(request: Request) {
     // 5. Disparo através da API REST oficial da Resend com os dois PDFs em anexo
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
+      cache: 'no-store',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
