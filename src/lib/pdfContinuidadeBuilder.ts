@@ -482,7 +482,7 @@ export function gerarPdfFolhaFabricoLojas(params: ParametrosFolhaFabricoPdf | st
     // Linha divisória sutil
     page.drawLine(xMargin, startY - 48, xMargin + wContent, startY - 48, '0.8 0.8 0.8', 0.5);
 
-    // 4 Caixas Resumo Globais
+    // 4 Caixas Resumo Globais (sem transbordo de texto)
     const cardY = startY - 86;
     const cardH = 34;
     const cardW = 125;
@@ -492,29 +492,33 @@ export function gerarPdfFolhaFabricoLojas(params: ParametrosFolhaFabricoPdf | st
     const c1X = xMargin;
     page.drawRect(c1X, cardY, cardW, cardH, null, '0.3 0.3 0.3');
     page.drawText('TOTAL ENCOMENDAS', c1X + 8, cardY + 23, 6.5, true, '0.4 0.4 0.4');
-    page.drawText(`${totalGeralEncsCount}`, c1X + 8, cardY + 9, 13, true, '0 0 0');
-    page.drawText(`${gruposLojaFabrico.length} loja(s) ativa(s)`, c1X + 38, cardY + 9, 6.5, false, '0.5 0.5 0.5');
+    const s1Val = `${totalGeralEncsCount}`;
+    page.drawText(s1Val, c1X + 8, cardY + 9, 13, true, '0 0 0');
+    page.drawText('encomendas', c1X + 12 + s1Val.length * 8, cardY + 9.5, 6.5, false, '0.5 0.5 0.5');
 
     // Card 2: TOTAL A PRODUZIR
     const c2X = c1X + cardW + gap;
     page.drawRect(c2X, cardY, cardW, cardH, null, '0.3 0.3 0.3');
     page.drawText('TOTAL A PRODUZIR', c2X + 8, cardY + 23, 6.5, true, '0.4 0.4 0.4');
-    page.drawText(`${totalGeralFabricoUnidades} un.`, c2X + 8, cardY + 9, 13, true, '0 0 0');
-    page.drawText('artigos encomendados', c2X + 64, cardY + 9, 6.5, false, '0.5 0.5 0.5');
+    const s2Val = `${totalGeralFabricoUnidades} un.`;
+    page.drawText(s2Val, c2X + 8, cardY + 9, 13, true, '0 0 0');
+    page.drawText('artigos', c2X + 12 + s2Val.length * 7.5, cardY + 9.5, 6.5, false, '0.5 0.5 0.5');
 
     // Card 3: PADARIA
     const c3X = c2X + cardW + gap;
     page.drawRect(c3X, cardY, cardW, cardH, null, '0.3 0.3 0.3');
     page.drawText('PADARIA', c3X + 8, cardY + 23, 6.5, true, '0.4 0.4 0.4');
-    page.drawText(`${totalGeralPadaria} un.`, c3X + 8, cardY + 9, 13, true, '0 0 0');
-    page.drawText('pães e broas', c3X + 64, cardY + 9, 6.5, false, '0.5 0.5 0.5');
+    const s3Val = `${totalGeralPadaria} un.`;
+    page.drawText(s3Val, c3X + 8, cardY + 9, 13, true, '0 0 0');
+    page.drawText('pães', c3X + 12 + s3Val.length * 7.5, cardY + 9.5, 6.5, false, '0.5 0.5 0.5');
 
     // Card 4: PASTELARIA
     const c4X = c3X + cardW + gap;
     page.drawRect(c4X, cardY, cardW, cardH, null, '0.3 0.3 0.3');
     page.drawText('PASTELARIA', c4X + 8, cardY + 23, 6.5, true, '0.4 0.4 0.4');
-    page.drawText(`${totalGeralPastelaria} un.`, c4X + 8, cardY + 9, 13, true, '0 0 0');
-    page.drawText('pastelaria e doçaria', c4X + 64, cardY + 9, 6.5, false, '0.5 0.5 0.5');
+    const s4Val = `${totalGeralPastelaria} un.`;
+    page.drawText(s4Val, c4X + 8, cardY + 9, 13, true, '0 0 0');
+    page.drawText('pastelaria', c4X + 12 + s4Val.length * 7.5, cardY + 9.5, 6.5, false, '0.5 0.5 0.5');
 
     return cardY - 14;
   }
@@ -707,6 +711,15 @@ export function gerarPdfFolhaFabricoLojas(params: ParametrosFolhaFabricoPdf | st
   return doc.toBuffer();
 }
 
+function extrairApenasNomeRota(rotaOuNome: string, numeroRota?: number): string {
+  if (numeroRota && numeroRota >= 1 && numeroRota <= 20) {
+    return `ROTA ${numeroRota}`;
+  }
+  let limpo = (rotaOuNome || '').replace(/\s*[\u2014\u2013\-\(].*$/, '').trim();
+  if (!limpo && numeroRota) return `ROTA ${numeroRota}`;
+  return (limpo || 'ROTA').toUpperCase();
+}
+
 /**
  * Constrói o PDF Oficial: Guia de Carga Conjunta (Matriz de Todas as Rotas)
  * Layout Wireframe profissional otimizado para impressão (100% fundo branco, sem caixas e sem fundos preenchidos a tinta).
@@ -794,8 +807,8 @@ export function gerarPdfGuiaCargaConjunta(params: ParametrosFolhaCargaPdf | stri
   function desenharCabecalhoPadariaParte(page: PdfPageWriter, startY: number, cols: typeof colunasPadariaP1, parteNum: 1 | 2): number {
     page.drawRect(xInicio, startY - 26, wTotalTabela, 26, null, '0 0 0');
     const subtituloParte = parteNum === 1
-      ? '1. SECÇÃO PADARIA (PARTE 1 DE 2: COLUNAS 1 A 17)'
-      : '1. SECÇÃO PADARIA (PARTE 2 DE 2: COLUNAS 18 A 34)';
+      ? '1. SECÇÃO PADARIA (PARTE 1 DE 2)'
+      : '1. SECÇÃO PADARIA (PARTE 2 DE 2)';
     page.drawText(`PADARIA DA VILA - GUIA OFICIAL DE CARGA CONJUNTA • ${subtituloParte}`, xInicio + 8, startY - 11, 9, true, '0 0 0');
     page.drawText(`Operação de ${dados.data || dataFormatada} • (${colunasRotasAtivas.length} rotas ativas: Porta a Porta + Clientes Empresariais + Encomendas) • BCP`, xInicio + 8, startY - 21, 6.5, false, '0.3 0.3 0.3');
 
@@ -805,21 +818,21 @@ export function gerarPdfGuiaCargaConjunta(params: ParametrosFolhaCargaPdf | stri
     page.drawText(badgeTexto, xInicio + wTotalTabela - 140, startY - 16, 8, true, '0 0 0');
 
     const tableTop = startY - 30;
-    const headerH = 72;
+    const headerH = 82;
     page.drawRect(xInicio, tableTop - headerH, wTotalTabela, headerH, null, '0 0 0');
-    page.drawText('Rota / Cliente / Paragem', xInicio + 6, tableTop - 45, 8, true, '0 0 0');
+    page.drawText('Rota / Cliente / Paragem', xInicio + 6, tableTop - 50, 8, true, '0 0 0');
 
     cols.forEach((col, idx) => {
       const cx = xInicio + wNomeColPad + idx * wColPad;
       page.drawLine(cx, tableTop, cx, tableTop - headerH, '0.7 0.7 0.7', 0.4);
-      page.drawRotatedText(col.label, cx + 20, tableTop - 68, 7.5, true, '0 0 0');
+      page.drawRotatedText(col.label.slice(0, 16), cx + 18, tableTop - 76, 7, true, '0 0 0');
     });
 
     page.drawLine(xTotPad, tableTop, xTotPad, tableTop - headerH, '0 0 0', 0.8);
     const labelTotCol = parteNum === 1 ? 'SUBTOTAL' : 'TOTAL';
     const subLabelTotCol = parteNum === 1 ? '(P1)' : 'PADARIA';
-    page.drawText(labelTotCol, xTotPad + 4, tableTop - 38, 7, true, '0 0 0');
-    page.drawText(subLabelTotCol, xTotPad + 4, tableTop - 50, 7, true, '0 0 0');
+    page.drawText(labelTotCol, xTotPad + 4, tableTop - 42, 7, true, '0 0 0');
+    page.drawText(subLabelTotCol, xTotPad + 4, tableTop - 54, 7, true, '0 0 0');
 
     return tableTop - headerH;
   }
@@ -846,7 +859,7 @@ export function gerarPdfGuiaCargaConjunta(params: ParametrosFolhaCargaPdf | stri
       // 1. Linha Divisória de Cabeçalho da Rota com Subtotais por Coluna (Letra 8)
       const rowHeaderH = 13;
       p.drawRect(xInicio, curY - rowHeaderH, wTotalTabela, rowHeaderH, '0.94 0.94 0.94', '0.2 0.2 0.2');
-      const rotuloRotaHeader = (grupo.rotaNome || '').replace(/\s*[-—].*$/, '').trim().toUpperCase();
+      const rotuloRotaHeader = extrairApenasNomeRota(grupo.rotaNome, grupo.numeroRota);
       p.drawText(rotuloRotaHeader.slice(0, 34), xInicio + 4, curY - (rowHeaderH - 3.5), 8, true, '0 0 0');
 
       let totGrupoParte = 0;
@@ -948,90 +961,75 @@ export function gerarPdfGuiaCargaConjunta(params: ParametrosFolhaCargaPdf | stri
   renderizarTabelaPadaria(colunasPadariaP2, 2);
 
   // ==============================================================
-  // 2. SECÇÃO PASTELARIA FINA - REPARTIDA POR 2 FOLHAS HORIZONTAIS COM LETRA 8
-  // Total de 18 colunas:
-  // - Parte 1: 9 colunas (0 a 8) + Subtotal P1
-  // - Parte 2: 9 colunas (9 a 17) + Total Pastelaria + Assinaturas
+  // 2. SECÇÃO PASTELARIA FINA - 1 ÚNICA PÁGINA (FOLHA 3) COM LETRA 8
+  // Total de 18 colunas unificadas numa única folha horizontal
   // ==============================================================
-  const colunasPastelariaP1 = colunasPastelaria.slice(0, 9);
-  const colunasPastelariaP2 = colunasPastelaria.slice(9, 18);
+  const colunasPastelariaUnica = colunasPastelaria; // Todas as 18 colunas
 
-  const wNomeColPast = 190;
-  const wColPast = 61; // 9 colunas * 61 = 549 pt
-  const wTotPastCol = 59; // 190 + 549 + 59 = 798 pt
-  const xTotPast = xInicio + wNomeColPast + 9 * wColPast; // 22 + 190 + 549 = 761 pt
-
-  const subtotalGeralPastP1 = colunasPastelariaP1.reduce((acc, col) => acc + (dados.totaisColunasPastelaria?.[col.id] || 0), 0);
-  const subtotalGeralPastP2 = colunasPastelariaP2.reduce((acc, col) => acc + (dados.totaisColunasPastelaria?.[col.id] || 0), 0);
+  const wNomeColPast = 150;
+  const wColPast = 33.33; // 18 colunas * 33.33 = 600 pt
+  const wTotPastCol = 48; // 150 + 600 + 48 = 798 pt
+  const xTotPast = xInicio + wNomeColPast + 18 * wColPast; // 22 + 150 + 600 = 772 pt
 
   const gruposPastelaria = grupos.filter((g) => (g.totalPastelariaRota || 0) > 0);
 
-  function desenharCabecalhoPastelariaParte(page: PdfPageWriter, startY: number, cols: typeof colunasPastelariaP1, parteNum: 1 | 2): number {
+  function desenharCabecalhoPastelaria(page: PdfPageWriter, startY: number): number {
     page.drawRect(xInicio, startY - 26, wTotalTabela, 26, null, '0 0 0');
-    const subtituloParte = parteNum === 1
-      ? '2. SECÇÃO PASTELARIA FINA (PARTE 1 DE 2: COLUNAS 1 A 9)'
-      : '2. SECÇÃO PASTELARIA FINA (PARTE 2 DE 2: COLUNAS 10 A 18)';
-    page.drawText(`PADARIA DA VILA - GUIA OFICIAL DE CARGA CONJUNTA • ${subtituloParte}`, xInicio + 8, startY - 11, 9, true, '0 0 0');
+    page.drawText('PADARIA DA VILA - GUIA OFICIAL DE CARGA CONJUNTA • 2. SECÇÃO PASTELARIA FINA', xInicio + 8, startY - 11, 9, true, '0 0 0');
     page.drawText(`Operação de ${dados.data || dataFormatada} • (${colunasRotasAtivas.length} rotas ativas: Porta a Porta + Clientes Empresariais + Encomendas) • BCP`, xInicio + 8, startY - 21, 6.5, false, '0.3 0.3 0.3');
 
-    const badgeTexto = parteNum === 1
-      ? `Subtotal P1: ${subtotalGeralPastP1} un.`
-      : `Total Pastelaria: ${dados.totalGeralPastelaria ?? 0} un.`;
+    const badgeTexto = `Total Pastelaria: ${dados.totalGeralPastelaria ?? 0} un.`;
     page.drawText(badgeTexto, xInicio + wTotalTabela - 150, startY - 16, 8, true, '0 0 0');
 
     const tableTop = startY - 30;
-    const headerH = 65;
+    const headerH = 82; // Altura generosa para acomodar texto vertical sem corte
     page.drawRect(xInicio, tableTop - headerH, wTotalTabela, headerH, null, '0 0 0');
-    page.drawText('Rota / Cliente / Paragem', xInicio + 6, tableTop - 40, 8, true, '0 0 0');
+    page.drawText('Rota / Cliente / Paragem', xInicio + 6, tableTop - 50, 8, true, '0 0 0');
 
-    cols.forEach((col, idx) => {
+    colunasPastelariaUnica.forEach((col, idx) => {
       const cx = xInicio + wNomeColPast + idx * wColPast;
       page.drawLine(cx, tableTop, cx, tableTop - headerH, '0.7 0.7 0.7', 0.4);
-      page.drawRotatedText(col.label, cx + 33, tableTop - 60, 8, true, '0 0 0');
+      // Inicia em tableTop - 76, texto com max 16 chars termina em tableTop - 18, com margem de segurança de 18pt abaixo da linha superior
+      page.drawRotatedText(col.label.slice(0, 16), cx + 19.5, tableTop - 76, 7, true, '0 0 0');
     });
 
     page.drawLine(xTotPast, tableTop, xTotPast, tableTop - headerH, '0 0 0', 0.8);
-    const labelTotCol = parteNum === 1 ? 'SUBTOTAL' : 'TOTAL';
-    const subLabelTotCol = parteNum === 1 ? '(P1)' : 'PASTELARIA';
-    page.drawText(labelTotCol, xTotPast + 8, tableTop - 34, 7.5, true, '0 0 0');
-    page.drawText(subLabelTotCol, xTotPast + 8, tableTop - 46, 7.5, true, '0 0 0');
+    page.drawText('TOTAL', xTotPast + 6, tableTop - 42, 7.5, true, '0 0 0');
+    page.drawText('PASTELARIA', xTotPast + 6, tableTop - 54, 7, true, '0 0 0');
 
     return tableTop - headerH;
   }
 
-  function renderizarTabelaPastelaria(cols: typeof colunasPastelariaP1, parteNum: 1 | 2) {
+  function renderizarTabelaPastelaria() {
     let curY = 565;
-    curY = desenharCabecalhoPastelariaParte(p, curY, cols, parteNum);
+    curY = desenharCabecalhoPastelaria(p, curY);
 
     gruposPastelaria.forEach((grupo) => {
       const linhasComPastelaria = (grupo.linhas || []).filter((linha) => {
-        const totPast = colunasPastelaria.reduce((acc, col) => acc + (linha.quantidades[col.id] || 0), 0);
+        const totPast = colunasPastelariaUnica.reduce((acc, col) => acc + (linha.quantidades[col.id] || 0), 0);
         return totPast > 0;
       });
 
       if (linhasComPastelaria.length === 0 && (grupo.totalPastelariaRota || 0) === 0) return;
 
       const espacoNecessario = 13 + (linhasComPastelaria.length * 12);
-      const margemInferior = parteNum === 2 ? 85 : 35;
-      if (curY - espacoNecessario < margemInferior && curY < 500) {
+      if (curY - espacoNecessario < 85 && curY < 500) {
         p = doc.addPage();
         curY = 565;
-        curY = desenharCabecalhoPastelariaParte(p, curY, cols, parteNum);
+        curY = desenharCabecalhoPastelaria(p, curY);
       }
 
       // 1. Linha Divisória de Cabeçalho da Rota com Subtotais por Coluna (Letra 8)
       const rowHeaderH = 13;
       p.drawRect(xInicio, curY - rowHeaderH, wTotalTabela, rowHeaderH, '0.94 0.94 0.94', '0.2 0.2 0.2');
-      const rotuloRotaHeader = (grupo.rotaNome || '').replace(/\s*[-—].*$/, '').trim().toUpperCase();
+      const rotuloRotaHeader = extrairApenasNomeRota(grupo.rotaNome, grupo.numeroRota);
       p.drawText(rotuloRotaHeader.slice(0, 36), xInicio + 4, curY - (rowHeaderH - 3.5), 8, true, '0 0 0');
 
-      let totGrupoParte = 0;
-      cols.forEach((col, idx) => {
+      colunasPastelariaUnica.forEach((col, idx) => {
         const cx = xInicio + wNomeColPast + idx * wColPast;
         p.drawLine(cx, curY, cx, curY - rowHeaderH, '0.5 0.5 0.5', 0.4);
         const q = grupo.totaisPastelaria[col.id] || 0;
         if (q > 0) {
-          totGrupoParte += q;
           const sq = String(q);
           const posX = cx + wColPast / 2 - sq.length * 2.2;
           p.drawText(sq, posX, curY - (rowHeaderH - 3.5), 8, true, '0 0 0');
@@ -1039,35 +1037,31 @@ export function gerarPdfGuiaCargaConjunta(params: ParametrosFolhaCargaPdf | stri
       });
 
       p.drawLine(xTotPast, curY, xTotPast, curY - rowHeaderH, '0 0 0', 0.8);
-      const valTotGrupo = parteNum === 1 ? totGrupoParte : grupo.totalPastelariaRota;
-      const strValTotGrupo = String(valTotGrupo);
+      const strValTotGrupo = String(grupo.totalPastelariaRota);
       p.drawText(strValTotGrupo, xTotPast + wTotPastCol / 2 - strValTotGrupo.length * 2.2, curY - (rowHeaderH - 3.5), 8, true, '0 0 0');
       curY -= rowHeaderH;
 
       // 2. Linhas discriminadas da rota (Porta a Porta, Clientes B2B, Encomendas)
       linhasComPastelaria.forEach((linha) => {
-        const margemInfLinha = parteNum === 2 ? 85 : 35;
-        if (curY - 12 < margemInfLinha) {
+        if (curY - 12 < 85) {
           p = doc.addPage();
           curY = 565;
-          curY = desenharCabecalhoPastelariaParte(p, curY, cols, parteNum);
+          curY = desenharCabecalhoPastelaria(p, curY);
         }
 
         const rowH = 12;
         p.drawRect(xInicio, curY - rowH, wTotalTabela, rowH, null, '0.85 0.85 0.85');
 
         const isBase = linha.tipo === 'rota_base';
-        const nomeText = isBase ? '   Porta a Porta' : `   ${linha.nomeExibicao.slice(0, 28)}`;
+        const nomeText = isBase ? '   Porta a Porta' : `   ${linha.nomeExibicao.slice(0, 24)}`;
         p.drawText(nomeText, xInicio + 4, curY - (rowH - 3), isBase ? 8 : 7.5, isBase, '0 0 0');
 
-        let totLinhaParte = 0;
-        cols.forEach((col, idx) => {
+        colunasPastelariaUnica.forEach((col, idx) => {
           const cx = xInicio + wNomeColPast + idx * wColPast;
           p.drawLine(cx, curY, cx, curY - rowH, '0.9 0.9 0.9', 0.3);
 
           const q = linha.quantidades[col.id] || 0;
           if (q > 0) {
-            totLinhaParte += q;
             const sq = String(q);
             const posX = cx + wColPast / 2 - sq.length * 2.2;
             p.drawText(sq, posX, curY - (rowH - 3), 8, isBase, '0 0 0');
@@ -1075,9 +1069,7 @@ export function gerarPdfGuiaCargaConjunta(params: ParametrosFolhaCargaPdf | stri
         });
 
         p.drawLine(xTotPast, curY, xTotPast, curY - rowH, '0.4 0.4 0.4', 0.6);
-        const valTotLinha = parteNum === 1
-          ? totLinhaParte
-          : colunasPastelaria.reduce((acc, c) => acc + (linha.quantidades[c.id] || 0), 0);
+        const valTotLinha = colunasPastelariaUnica.reduce((acc, c) => acc + (linha.quantidades[c.id] || 0), 0);
         if (valTotLinha > 0) {
           const strTotL = String(valTotLinha);
           p.drawText(strTotL, xTotPast + wTotPastCol / 2 - strTotL.length * 2.2, curY - (rowH - 3), 8, true, '0 0 0');
@@ -1087,24 +1079,20 @@ export function gerarPdfGuiaCargaConjunta(params: ParametrosFolhaCargaPdf | stri
       });
     });
 
-    // Linha de Rodapé TOTAL PASTELARIA
-    const margemInfRodape = parteNum === 2 ? 80 : 35;
-    if (curY - 15 < margemInfRodape) {
+    // Linha de Rodapé TOTAL GERAL PASTELARIA
+    if (curY - 15 < 80) {
       p = doc.addPage();
       curY = 565;
-      curY = desenharCabecalhoPastelariaParte(p, curY, cols, parteNum);
+      curY = desenharCabecalhoPastelaria(p, curY);
     }
     p.drawLine(xInicio, curY, xInicio + wTotalTabela, curY, '0 0 0', 1.2);
     p.drawLine(xInicio, curY - 15, xInicio + wTotalTabela, curY - 15, '0 0 0', 1.2);
-    const labelRodapePast = parteNum === 1 ? 'SUBTOTAL PASTELARIA (PARTE 1)' : 'TOTAL GERAL PASTELARIA';
-    p.drawText(labelRodapePast, xInicio + 5, curY - 11, 8, true, '0 0 0');
+    p.drawText('TOTAL GERAL PASTELARIA', xInicio + 5, curY - 11, 8, true, '0 0 0');
 
-    let sumTotalColsParte = 0;
-    cols.forEach((col, idx) => {
+    colunasPastelariaUnica.forEach((col, idx) => {
       const cx = xInicio + wNomeColPast + idx * wColPast;
       p.drawLine(cx, curY, cx, curY - 15, '0.5 0.5 0.5', 0.5);
       const totCol = dados.totaisColunasPastelaria?.[col.id] || 0;
-      sumTotalColsParte += totCol;
       if (totCol > 0) {
         const stc = String(totCol);
         const posX = cx + wColPast / 2 - stc.length * 2.2;
@@ -1113,42 +1101,41 @@ export function gerarPdfGuiaCargaConjunta(params: ParametrosFolhaCargaPdf | stri
     });
 
     p.drawLine(xTotPast, curY, xTotPast, curY - 15, '0 0 0', 1.2);
-    const valRodapeGeral = parteNum === 1 ? sumTotalColsParte : (dados.totalGeralPastelaria ?? 0);
-    const stTotPastFinal = String(valRodapeGeral);
+    const stTotPastFinal = String(dados.totalGeralPastelaria ?? 0);
     p.drawText(stTotPastFinal, xTotPast + wTotPastCol / 2 - stTotPastFinal.length * 2.3, curY - 11, 8.5, true, '0 0 0');
     curY -= 20;
 
-    // Se for a Parte 2, adiciona Resumo Geral Consolidado e Assinaturas de Expedição
-    if (parteNum === 2) {
-      if (curY - 55 < 30) {
-        p = doc.addPage();
-        curY = 565;
-      }
-
-      p.drawLine(xInicio, curY, xInicio + wTotalTabela, curY, '0 0 0', 1.2);
-      p.drawLine(xInicio, curY - 18, xInicio + wTotalTabela, curY - 18, '0 0 0', 1.2);
-
-      p.drawText('TOTAL GERAL A BORDO (PADARIA + PASTELARIA)', xInicio + 6, curY - 12.5, 8.5, true, '0 0 0');
-      const grandTotStr = `${dados.totalGeralUnidades ?? dados.totalGeral ?? 0} un.`;
-      p.drawText(grandTotStr, xInicio + wTotalTabela - 75, curY - 12.5, 9.5, true, '0 0 0');
-      curY -= 26;
-
-      const wAssinatura = (wTotalTabela - 20) / 2;
-      p.drawRect(xInicio, curY - 24, wAssinatura, 24, null, '0.3 0.3 0.3');
-      p.drawText('Chefe de Expedição / Fabrico: Visto [                    ]', xInicio + 8, curY - 15, 7, false, '0.2 0.2 0.2');
-
-      p.drawRect(xInicio + wAssinatura + 20, curY - 24, wAssinatura, 24, null, '0.3 0.3 0.3');
-      p.drawText('Conferência dos Condutores: Conferido em Partida [                    ] • Hora: ____ : ____', xInicio + wAssinatura + 16, curY - 15, 6.5, false, '0.2 0.2 0.2');
+    // Resumo Geral Consolidado & Assinaturas de Expedição (sem qualquer texto cortado ou fora das caixas)
+    if (curY - 60 < 25) {
+      p = doc.addPage();
+      curY = 565;
     }
+
+    p.drawLine(xInicio, curY, xInicio + wTotalTabela, curY, '0 0 0', 1.2);
+    p.drawLine(xInicio, curY - 18, xInicio + wTotalTabela, curY - 18, '0 0 0', 1.2);
+
+    p.drawText('TOTAL GERAL A BORDO (PADARIA + PASTELARIA)', xInicio + 6, curY - 12.5, 8.5, true, '0 0 0');
+    const grandTotStr = `${dados.totalGeralUnidades ?? dados.totalGeral ?? 0} un.`;
+    p.drawText(grandTotStr, xInicio + wTotalTabela - 75, curY - 12.5, 9.5, true, '0 0 0');
+    curY -= 26;
+
+    const wAssinatura = (wTotalTabela - 20) / 2;
+    const boxH = 30;
+    // Caixa 1: Expedição / Fabrico
+    p.drawRect(xInicio, curY - boxH, wAssinatura, boxH, null, '0.3 0.3 0.3');
+    p.drawText('Chefe de Expedição / Fabrico:', xInicio + 8, curY - 11, 7.5, true, '0 0 0');
+    p.drawText('Visto Expedição: [                                                ]', xInicio + 8, curY - 22, 7, false, '0.3 0.3 0.3');
+
+    // Caixa 2: Conferência dos Condutores (perfeitamente alinhada e contida no contentor)
+    const c2X = xInicio + wAssinatura + 20;
+    p.drawRect(c2X, curY - boxH, wAssinatura, boxH, null, '0.3 0.3 0.3');
+    p.drawText('Conferência dos Condutores:', c2X + 8, curY - 11, 7.5, true, '0 0 0');
+    p.drawText('Conferido em Partida: [                          ]  •  Hora: ____ : ____', c2X + 8, curY - 22, 7, false, '0.3 0.3 0.3');
   }
 
-  // 3. Folha 3: Pastelaria Parte 1 (Colunas 1 a 9)
+  // 3. Folha 3: Pastelaria Completa (1 Página com Resumo Geral e Assinaturas)
   p = doc.addPage();
-  renderizarTabelaPastelaria(colunasPastelariaP1, 1);
-
-  // 4. Folha 4: Pastelaria Parte 2 (Colunas 10 a 18 + Assinaturas)
-  p = doc.addPage();
-  renderizarTabelaPastelaria(colunasPastelariaP2, 2);
+  renderizarTabelaPastelaria();
 
   return doc.toBuffer();
 }

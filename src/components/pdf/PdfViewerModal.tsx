@@ -46,6 +46,15 @@ export interface LinhaArtigoFabrico {
   qtd_encomendas?: number;
 }
 
+function extrairApenasNomeRota(rotaOuNome: string, numeroRota?: number): string {
+  if (numeroRota && numeroRota >= 1 && numeroRota <= 20) {
+    return `ROTA ${numeroRota}`;
+  }
+  let limpo = (rotaOuNome || '').replace(/\s*[\u2014\u2013\-\(].*$/, '').trim();
+  if (!limpo && numeroRota) return `ROTA ${numeroRota}`;
+  return (limpo || 'ROTA').toUpperCase();
+}
+
 export interface PdfViewerModalProps {
   tipo: 'folha_carga' | 'comprovativo_b2b' | 'folha_fabrico' | 'guia_carga_conjunta';
   dadosGuiaConjunta?: DadosGuiaConjunta;
@@ -1777,14 +1786,8 @@ export function PdfViewerModal({
                 const colunasPadariaP1 = colunasPadaria.slice(0, 17);
                 const colunasPadariaP2 = colunasPadaria.slice(17, 34);
 
-                const colunasPastelariaP1 = colunasPastelaria.slice(0, 9);
-                const colunasPastelariaP2 = colunasPastelaria.slice(9, 18);
-
                 const subtotalGeralPadariaP1 = colunasPadariaP1.reduce((acc, col) => acc + (dadosGuiaConjunta.totaisColunasPadaria?.[col.id] || 0), 0);
                 const subtotalGeralPadariaP2 = colunasPadariaP2.reduce((acc, col) => acc + (dadosGuiaConjunta.totaisColunasPadaria?.[col.id] || 0), 0);
-
-                const subtotalGeralPastP1 = colunasPastelariaP1.reduce((acc, col) => acc + (dadosGuiaConjunta.totaisColunasPastelaria?.[col.id] || 0), 0);
-                const subtotalGeralPastP2 = colunasPastelariaP2.reduce((acc, col) => acc + (dadosGuiaConjunta.totaisColunasPastelaria?.[col.id] || 0), 0);
 
                 const gruposPadaria = (dadosGuiaConjunta.gruposRotasGrelha || []).filter((g) => (g.totalPadariaRota || 0) > 0);
                 const gruposPastelaria = (dadosGuiaConjunta.gruposRotasGrelha || []).filter((g) => (g.totalPastelariaRota || 0) > 0);
@@ -1792,12 +1795,12 @@ export function PdfViewerModal({
                 return (
                   <div className="space-y-8">
                     {/* ============================================================== */}
-                    {/* FOLHA 1: PADARIA - PARTE 1 DE 2 (COLUNAS 1 A 17)                */}
+                    {/* FOLHA 1: PADARIA - PARTE 1 DE 2                                */}
                     {/* ============================================================== */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between border-b-2 border-stone-800 pb-1">
                         <h2 className="text-xs sm:text-sm font-black text-stone-900 uppercase tracking-wide flex items-center gap-1.5">
-                          <span>🥖 1. SECÇÃO PADARIA (PARTE 1 DE 2: COLUNAS 1 A 17)</span>
+                          <span>🥖 1. SECÇÃO PADARIA (PARTE 1 DE 2)</span>
                         </h2>
                         <span className="text-xs font-bold text-stone-800 font-mono">
                           Subtotal P1: {subtotalGeralPadariaP1} un.
@@ -1817,8 +1820,8 @@ export function PdfViewerModal({
                                   className="p-0.5 text-center font-bold border-r border-stone-300 w-8 min-w-[34px] max-w-[42px] align-bottom bg-white"
                                   title={col.label}
                                 >
-                                  <div className="h-28 flex items-end justify-center pb-1">
-                                    <span className="[writing-mode:vertical-rl] rotate-180 text-[9px] print:text-[8.5px] font-black tracking-tight whitespace-nowrap text-stone-900 leading-tight">
+                                  <div className="h-28 flex items-end justify-center pb-2 pt-2 overflow-hidden">
+                                    <span className="[writing-mode:vertical-rl] rotate-180 text-[9px] print:text-[8.5px] font-black tracking-tight whitespace-nowrap text-stone-900 leading-tight block max-h-24">
                                       {col.label}
                                     </span>
                                   </div>
@@ -1843,7 +1846,7 @@ export function PdfViewerModal({
                                   {/* Linha Cabeçalho da Rota com Totais da Parte 1 */}
                                   <tr className="bg-stone-100/90 font-black border-t-2 border-b border-stone-700 text-stone-950">
                                     <td className="py-1 px-1.5 sticky left-0 bg-stone-100/95 z-10 border-r border-stone-400 font-black uppercase text-xs print:text-[10px] print:static">
-                                      {grupo.rotaNome.replace(/\s*[-—].*$/, '').trim().toUpperCase()}
+                                      {extrairApenasNomeRota(grupo.rotaNome, grupo.numeroRota)}
                                     </td>
                                     {colunasPadariaP1.map((col) => {
                                       const q = grupo.totaisPadaria?.[col.id] || 0;
@@ -1938,7 +1941,7 @@ export function PdfViewerModal({
 
                       <div className="flex items-center justify-between border-b-2 border-stone-800 pb-1">
                         <h2 className="text-xs sm:text-sm font-black text-stone-900 uppercase tracking-wide flex items-center gap-1.5">
-                          <span>🥖 1. SECÇÃO PADARIA (PARTE 2 DE 2: COLUNAS 18 A 34)</span>
+                          <span>🥖 1. SECÇÃO PADARIA (PARTE 2 DE 2)</span>
                         </h2>
                         <span className="text-xs font-bold text-stone-800 font-mono">
                           Total Padaria: {dadosGuiaConjunta.totalGeralPadaria ?? 0} un.
@@ -1958,8 +1961,8 @@ export function PdfViewerModal({
                                   className="p-0.5 text-center font-bold border-r border-stone-300 w-8 min-w-[34px] max-w-[42px] align-bottom bg-white"
                                   title={col.label}
                                 >
-                                  <div className="h-28 flex items-end justify-center pb-1">
-                                    <span className="[writing-mode:vertical-rl] rotate-180 text-[9px] print:text-[8.5px] font-black tracking-tight whitespace-nowrap text-stone-900 leading-tight">
+                                  <div className="h-28 flex items-end justify-center pb-2 pt-2 overflow-hidden">
+                                    <span className="[writing-mode:vertical-rl] rotate-180 text-[9px] print:text-[8.5px] font-black tracking-tight whitespace-nowrap text-stone-900 leading-tight block max-h-24">
                                       {col.label}
                                     </span>
                                   </div>
@@ -1982,7 +1985,7 @@ export function PdfViewerModal({
                                   {/* Linha Cabeçalho da Rota com Total Geral Padaria */}
                                   <tr className="bg-stone-100/90 font-black border-t-2 border-b border-stone-700 text-stone-950">
                                     <td className="py-1 px-1.5 sticky left-0 bg-stone-100/95 z-10 border-r border-stone-400 font-black uppercase text-xs print:text-[10px] print:static">
-                                      {grupo.rotaNome.replace(/\s*[-—].*$/, '').trim().toUpperCase()}
+                                      {extrairApenasNomeRota(grupo.rotaNome, grupo.numeroRota)}
                                     </td>
                                     {colunasPadariaP2.map((col) => {
                                       const q = grupo.totaisPadaria?.[col.id] || 0;
@@ -2062,148 +2065,7 @@ export function PdfViewerModal({
                     </div>
 
                     {/* ============================================================== */}
-                    {/* FOLHA 3: PASTELARIA - PARTE 1 DE 2 (COLUNAS 1 A 9)              */}
-                    {/* ============================================================== */}
-                    <div
-                      className="print-break-page space-y-2 pt-6 print:pt-0"
-                      style={{ pageBreakBefore: 'always', breakBefore: 'page' }}
-                    >
-                      {/* Mini-cabeçalho de Impressão */}
-                      <div className="hidden print:flex justify-between items-center border-b border-stone-800 pb-1 mb-2 text-[10px] font-bold text-stone-700">
-                        <span>PADARIA DA VILA • GUIA OFICIAL DE CARGA CONJUNTA</span>
-                        <span>Data: {dadosGuiaConjunta.data || dataFormatada}</span>
-                        <span>2. SECÇÃO PASTELARIA (PARTE 1 DE 2)</span>
-                      </div>
-
-                      <div className="flex items-center justify-between border-b-2 border-stone-800 pb-1">
-                        <h2 className="text-xs sm:text-sm font-black text-stone-900 uppercase tracking-wide flex items-center gap-1.5">
-                          <span>🧁 2. SECÇÃO PASTELARIA FINA (PARTE 1 DE 2: COLUNAS 1 A 9)</span>
-                        </h2>
-                        <span className="text-xs font-bold text-stone-800 font-mono">
-                          Subtotal P1: {subtotalGeralPastP1} un.
-                        </span>
-                      </div>
-
-                      <div className="overflow-x-auto print:overflow-visible border border-stone-400 bg-white">
-                        <table className="w-full text-xs print:text-[10.5px] border-collapse">
-                          <thead>
-                            <tr className="bg-white text-stone-900 border-b-2 border-stone-800">
-                              <th className="py-1 px-1.5 text-left font-black w-52 min-w-[190px] max-w-[220px] sticky left-0 bg-white z-10 border-r border-stone-400 print:static">
-                                Rota / Paragem B2B
-                              </th>
-                              {colunasPastelariaP1.map((col) => (
-                                <th
-                                  key={col.id}
-                                  className="p-1 text-center font-bold border-r border-stone-300 w-16 min-w-[55px] max-w-[70px] align-bottom bg-white"
-                                  title={col.label}
-                                >
-                                  <div className="h-28 flex items-end justify-center pb-1">
-                                    <span className="[writing-mode:vertical-rl] rotate-180 text-[10px] print:text-[9.5px] font-black tracking-tight whitespace-nowrap text-stone-900 leading-tight">
-                                      {col.label}
-                                    </span>
-                                  </div>
-                                </th>
-                              ))}
-                              <th className="py-1 px-1.5 text-right font-black border-l-2 border-stone-800 bg-white w-16 min-w-[55px]">
-                                SUBTOTAL P1
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {gruposPastelaria.map((grupo) => {
-                              const linhasComPastelaria = (grupo.linhas || []).filter((l) => {
-                                const totLinhaGeral = colunasPastelaria.reduce((acc, c) => acc + (l.quantidades?.[c.id] || 0), 0);
-                                return totLinhaGeral > 0;
-                              });
-
-                              const totGrupoP1 = colunasPastelariaP1.reduce((acc, c) => acc + (grupo.totaisPastelaria?.[c.id] || 0), 0);
-
-                              return (
-                                <React.Fragment key={grupo.carrinhaId}>
-                                  {/* Linha Cabeçalho da Rota com Totais da Parte 1 */}
-                                  <tr className="bg-stone-100/90 font-black border-t-2 border-b border-stone-700 text-stone-950">
-                                    <td className="py-1 px-1.5 sticky left-0 bg-stone-100/95 z-10 border-r border-stone-400 font-black uppercase text-xs print:text-[10.5px] print:static">
-                                      {grupo.rotaNome.replace(/\s*[-—].*$/, '').trim().toUpperCase()}
-                                    </td>
-                                    {colunasPastelariaP1.map((col) => {
-                                      const q = grupo.totaisPastelaria?.[col.id] || 0;
-                                      return (
-                                        <td
-                                          key={col.id}
-                                          className="py-1 px-1 text-center font-mono text-xs print:text-[10.5px] font-black border-r border-stone-300 bg-stone-50/70"
-                                        >
-                                          {q > 0 ? q : '-'}
-                                        </td>
-                                      );
-                                    })}
-                                    <td className="py-1 px-1.5 text-right font-mono font-black border-l-2 border-stone-800 text-xs print:text-[10.5px] bg-stone-100">
-                                      {totGrupoP1}
-                                    </td>
-                                  </tr>
-
-                                  {/* Linhas Filhas: Porta a Porta, B2B, Encomendas */}
-                                  {linhasComPastelaria.map((linha, lIdx) => {
-                                    const totLinhaP1 = colunasPastelariaP1.reduce((acc, c) => acc + (linha.quantidades?.[c.id] || 0), 0);
-                                    const isBase = linha.tipo === 'rota_base';
-                                    const nomeExibicaoLinha = isBase ? 'Porta a Porta' : linha.nomeExibicao;
-
-                                    return (
-                                      <tr
-                                        key={linha.id || lIdx}
-                                        className="border-b border-stone-200 hover:bg-stone-50/50 bg-white"
-                                      >
-                                        <td className="py-1 px-1.5 sticky left-0 bg-white z-10 border-r border-stone-300 truncate max-w-[220px] text-stone-900 print:static">
-                                          <span className={isBase ? 'font-bold text-stone-800 text-xs print:text-[10.5px]' : 'text-stone-900 text-xs print:text-[10.5px]'}>
-                                            {nomeExibicaoLinha}
-                                          </span>
-                                        </td>
-                                        {colunasPastelariaP1.map((col) => {
-                                          const q = linha.quantidades?.[col.id] || 0;
-                                          return (
-                                            <td
-                                              key={col.id}
-                                              className={`py-1 px-1 text-center font-mono text-xs print:text-[10.5px] border-r border-stone-200 ${
-                                                q > 0 ? 'font-black text-stone-950' : 'text-stone-300'
-                                              }`}
-                                            >
-                                              {q > 0 ? q : '-'}
-                                            </td>
-                                          );
-                                        })}
-                                        <td className="py-1 px-1.5 text-right font-mono font-bold text-xs print:text-[10.5px] border-l-2 border-stone-800 text-stone-950">
-                                          {totLinhaP1 > 0 ? totLinhaP1 : '-'}
-                                        </td>
-                                      </tr>
-                                    );
-                                  })}
-                                </React.Fragment>
-                              );
-                            })}
-                          </tbody>
-                          <tfoot>
-                            <tr className="bg-white text-stone-950 font-black border-t-2 border-b-2 border-stone-900 print:bg-white print:text-black">
-                              <td className="py-1.5 px-2 uppercase text-xs print:text-[10.5px] tracking-wider sticky left-0 bg-white text-stone-950 font-black border-r border-stone-400 print:static print:bg-white print:text-black">
-                                SUBTOTAL PASTELARIA (PARTE 1)
-                              </td>
-                              {colunasPastelariaP1.map((col) => (
-                                <td
-                                  key={col.id}
-                                  className="py-1.5 px-1 text-center font-mono border-r border-stone-300 text-xs print:text-[10.5px] font-black text-stone-950 bg-white print:bg-white print:text-black"
-                                >
-                                  {dadosGuiaConjunta.totaisColunasPastelaria?.[col.id] || 0}
-                                </td>
-                              ))}
-                              <td className="py-1.5 px-1.5 text-right font-mono border-l-2 border-stone-900 text-stone-950 text-xs print:text-[10.5px] font-black bg-white print:bg-white print:text-black">
-                                {subtotalGeralPastP1}
-                              </td>
-                            </tr>
-                          </tfoot>
-                        </table>
-                      </div>
-                    </div>
-
-                    {/* ============================================================== */}
-                    {/* FOLHA 4: PASTELARIA - PARTE 2 DE 2 (COLUNAS 10 A 18)             */}
+                    {/* FOLHA 3: SECÇÃO PASTELARIA FINA (FOLHA ÚNICA CONSOLIDADA)      */}
                     {/* ============================================================== */}
                     <div
                       className="print-break-page space-y-3 pt-6 print:pt-0"
@@ -2213,12 +2075,12 @@ export function PdfViewerModal({
                       <div className="hidden print:flex justify-between items-center border-b border-stone-800 pb-1 mb-2 text-[10px] font-bold text-stone-700">
                         <span>PADARIA DA VILA • GUIA OFICIAL DE CARGA CONJUNTA</span>
                         <span>Data: {dadosGuiaConjunta.data || dataFormatada}</span>
-                        <span>2. SECÇÃO PASTELARIA (PARTE 2 DE 2)</span>
+                        <span>2. SECÇÃO PASTELARIA FINA</span>
                       </div>
 
                       <div className="flex items-center justify-between border-b-2 border-stone-800 pb-1">
                         <h2 className="text-xs sm:text-sm font-black text-stone-900 uppercase tracking-wide flex items-center gap-1.5">
-                          <span>🧁 2. SECÇÃO PASTELARIA FINA (PARTE 2 DE 2: COLUNAS 10 A 18)</span>
+                          <span>🧁 2. SECÇÃO PASTELARIA FINA</span>
                         </h2>
                         <span className="text-xs font-bold text-stone-800 font-mono">
                           Total Pastelaria: {dadosGuiaConjunta.totalGeralPastelaria ?? 0} un.
@@ -2226,27 +2088,27 @@ export function PdfViewerModal({
                       </div>
 
                       <div className="overflow-x-auto print:overflow-visible border border-stone-400 bg-white">
-                        <table className="w-full text-xs print:text-[10.5px] border-collapse">
+                        <table className="w-full text-xs print:text-[10px] border-collapse">
                           <thead>
                             <tr className="bg-white text-stone-900 border-b-2 border-stone-800">
-                              <th className="py-1 px-1.5 text-left font-black w-52 min-w-[190px] max-w-[220px] sticky left-0 bg-white z-10 border-r border-stone-400 print:static">
+                              <th className="py-1 px-1.5 text-left font-black w-48 min-w-[170px] max-w-[190px] sticky left-0 bg-white z-10 border-r border-stone-400 print:static">
                                 Rota / Paragem B2B
                               </th>
-                              {colunasPastelariaP2.map((col) => (
+                              {colunasPastelaria.map((col) => (
                                 <th
                                   key={col.id}
-                                  className="p-1 text-center font-bold border-r border-stone-300 w-16 min-w-[55px] max-w-[70px] align-bottom bg-white"
+                                  className="p-0.5 text-center font-bold border-r border-stone-300 w-8 min-w-[32px] max-w-[40px] align-bottom bg-white"
                                   title={col.label}
                                 >
-                                  <div className="h-28 flex items-end justify-center pb-1">
-                                    <span className="[writing-mode:vertical-rl] rotate-180 text-[10px] print:text-[9.5px] font-black tracking-tight whitespace-nowrap text-stone-900 leading-tight">
+                                  <div className="h-28 flex items-end justify-center pb-2 pt-2 overflow-hidden">
+                                    <span className="[writing-mode:vertical-rl] rotate-180 text-[8.5px] print:text-[8px] font-black tracking-tight whitespace-nowrap text-stone-900 leading-tight block max-h-24">
                                       {col.label}
                                     </span>
                                   </div>
                                 </th>
                               ))}
-                              <th className="py-1 px-1.5 text-right font-black border-l-2 border-stone-800 bg-white w-16 min-w-[55px]">
-                                TOTAL PASTELARIA
+                              <th className="py-1 px-1.5 text-right font-black border-l-2 border-stone-800 bg-white w-14 min-w-[48px]">
+                                TOTAL
                               </th>
                             </tr>
                           </thead>
@@ -2261,21 +2123,21 @@ export function PdfViewerModal({
                                 <React.Fragment key={grupo.carrinhaId}>
                                   {/* Linha Cabeçalho da Rota com Total Geral Pastelaria */}
                                   <tr className="bg-stone-100/90 font-black border-t-2 border-b border-stone-700 text-stone-950">
-                                    <td className="py-1 px-1.5 sticky left-0 bg-stone-100/95 z-10 border-r border-stone-400 font-black uppercase text-xs print:text-[10.5px] print:static">
-                                      {grupo.rotaNome.replace(/\s*[-—].*$/, '').trim().toUpperCase()}
+                                    <td className="py-1 px-1.5 sticky left-0 bg-stone-100/95 z-10 border-r border-stone-400 font-black uppercase text-xs print:text-[10px] print:static">
+                                      {extrairApenasNomeRota(grupo.rotaNome, grupo.numeroRota)}
                                     </td>
-                                    {colunasPastelariaP2.map((col) => {
+                                    {colunasPastelaria.map((col) => {
                                       const q = grupo.totaisPastelaria?.[col.id] || 0;
                                       return (
                                         <td
                                           key={col.id}
-                                          className="py-1 px-1 text-center font-mono text-xs print:text-[10.5px] font-black border-r border-stone-300 bg-stone-50/70"
+                                          className="py-1 px-0.5 text-center font-mono text-xs print:text-[10px] font-black border-r border-stone-300 bg-stone-50/70"
                                         >
                                           {q > 0 ? q : '-'}
                                         </td>
                                       );
                                     })}
-                                    <td className="py-1 px-1.5 text-right font-mono font-black border-l-2 border-stone-800 text-xs print:text-[10.5px] bg-stone-100">
+                                    <td className="py-1 px-1.5 text-right font-mono font-black border-l-2 border-stone-800 text-xs print:text-[10px] bg-stone-100">
                                       {grupo.totalPastelariaRota}
                                     </td>
                                   </tr>
@@ -2291,17 +2153,17 @@ export function PdfViewerModal({
                                         key={linha.id || lIdx}
                                         className="border-b border-stone-200 hover:bg-stone-50/50 bg-white"
                                       >
-                                        <td className="py-1 px-1.5 sticky left-0 bg-white z-10 border-r border-stone-300 truncate max-w-[220px] text-stone-900 print:static">
-                                          <span className={isBase ? 'font-bold text-stone-800 text-xs print:text-[10.5px]' : 'text-stone-900 text-xs print:text-[10.5px]'}>
+                                        <td className="py-0.5 px-1.5 sticky left-0 bg-white z-10 border-r border-stone-300 truncate max-w-[190px] text-stone-900 print:static">
+                                          <span className={isBase ? 'font-bold text-stone-800 text-xs print:text-[10px]' : 'text-stone-900 text-xs print:text-[10px]'}>
                                             {nomeExibicaoLinha}
                                           </span>
                                         </td>
-                                        {colunasPastelariaP2.map((col) => {
+                                        {colunasPastelaria.map((col) => {
                                           const q = linha.quantidades?.[col.id] || 0;
                                           return (
                                             <td
                                               key={col.id}
-                                              className={`py-1 px-1 text-center font-mono text-xs print:text-[10.5px] border-r border-stone-200 ${
+                                              className={`py-0.5 px-0.5 text-center font-mono text-xs print:text-[10px] border-r border-stone-200 ${
                                                 q > 0 ? 'font-black text-stone-950' : 'text-stone-300'
                                               }`}
                                             >
@@ -2309,7 +2171,7 @@ export function PdfViewerModal({
                                             </td>
                                           );
                                         })}
-                                        <td className="py-1 px-1.5 text-right font-mono font-bold text-xs print:text-[10.5px] border-l-2 border-stone-800 text-stone-950">
+                                        <td className="py-0.5 px-1.5 text-right font-mono font-bold text-xs print:text-[10px] border-l-2 border-stone-800 text-stone-950">
                                           {totLinhaGeral}
                                         </td>
                                       </tr>
@@ -2321,18 +2183,18 @@ export function PdfViewerModal({
                           </tbody>
                           <tfoot>
                             <tr className="bg-white text-stone-950 font-black border-t-2 border-b-2 border-stone-900 print:bg-white print:text-black">
-                              <td className="py-1.5 px-2 uppercase text-xs print:text-[10.5px] tracking-wider sticky left-0 bg-white text-stone-950 font-black border-r border-stone-400 print:static print:bg-white print:text-black">
+                              <td className="py-1.5 px-2 uppercase text-xs print:text-[10px] tracking-wider sticky left-0 bg-white text-stone-950 font-black border-r border-stone-400 print:static print:bg-white print:text-black">
                                 TOTAL GERAL PASTELARIA
                               </td>
-                              {colunasPastelariaP2.map((col) => (
+                              {colunasPastelaria.map((col) => (
                                 <td
                                   key={col.id}
-                                  className="py-1.5 px-1 text-center font-mono border-r border-stone-300 text-xs print:text-[10.5px] font-black text-stone-950 bg-white print:bg-white print:text-black"
+                                  className="py-1 px-0.5 text-center font-mono border-r border-stone-300 text-xs print:text-[10px] font-black text-stone-950 bg-white print:bg-white print:text-black"
                                 >
                                   {dadosGuiaConjunta.totaisColunasPastelaria?.[col.id] || 0}
                                 </td>
                               ))}
-                              <td className="py-1.5 px-1.5 text-right font-mono border-l-2 border-stone-900 text-stone-950 text-xs print:text-[10.5px] font-black bg-white print:bg-white print:text-black">
+                              <td className="py-1.5 px-1.5 text-right font-mono border-l-2 border-stone-900 text-stone-950 text-xs print:text-[10px] font-black bg-white print:bg-white print:text-black">
                                 {dadosGuiaConjunta.totalGeralPastelaria}
                               </td>
                             </tr>
@@ -2341,24 +2203,24 @@ export function PdfViewerModal({
                       </div>
 
                       {/* Resumo Consolidado Final */}
-                      <div className="p-3 bg-white border-2 border-stone-900 rounded-xl flex items-center justify-between text-xs font-black mt-4">
+                      <div className="p-2.5 bg-white border-2 border-stone-900 rounded-lg flex items-center justify-between text-xs font-black mt-3">
                         <span className="uppercase tracking-wider">TOTAL GERAL A BORDO (PADARIA + PASTELARIA)</span>
-                        <span className="text-base font-mono font-black text-stone-950">
+                        <span className="text-sm font-mono font-black text-stone-950">
                           {dadosGuiaConjunta.totalGeralUnidades ?? dadosGuiaConjunta.totalGeral ?? 0} un.
                         </span>
                       </div>
 
                       {/* Bloco de Assinaturas de Conferência */}
                       <div className="grid grid-cols-2 gap-4 pt-2">
-                        <div className="border border-stone-400 p-2.5 rounded-lg text-center bg-white">
+                        <div className="border border-stone-400 p-2 rounded-lg text-center bg-white">
                           <span className="text-[10px] font-bold text-stone-700 block uppercase">Conferido por (Expedição / Fabrico)</span>
-                          <div className="h-8 border-b border-dashed border-stone-400 mt-2"></div>
-                          <span className="text-[9px] text-stone-500 block mt-1">Nome legível e rubrica</span>
+                          <div className="h-7 border-b border-dashed border-stone-400 mt-1"></div>
+                          <span className="text-[9px] text-stone-500 block mt-0.5">Nome legível e rubrica</span>
                         </div>
-                        <div className="border border-stone-400 p-2.5 rounded-lg text-center bg-white">
+                        <div className="border border-stone-400 p-2 rounded-lg text-center bg-white">
                           <span className="text-[10px] font-bold text-stone-700 block uppercase">Recebido pelos Motoristas / Distribuição</span>
-                          <div className="h-8 border-b border-dashed border-stone-400 mt-2"></div>
-                          <span className="text-[9px] text-stone-500 block mt-1">Rubrica de conferência de carga</span>
+                          <div className="h-7 border-b border-dashed border-stone-400 mt-1"></div>
+                          <span className="text-[9px] text-stone-500 block mt-0.5">Rubrica de conferência de carga</span>
                         </div>
                       </div>
                     </div>

@@ -179,10 +179,11 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
     };
   }, [lojaTrabalhoId]);
 
+  const lojaFabricoPadrao = lojas.find((l) => l.codigo === 'FABRICO' || l.nome.toLowerCase().includes('fabrico')) || LOJAS_MOCK.find((l) => l.codigo === 'FABRICO');
   const idLojaEfetiva = lojaAfetaId || (tipoEntrega === 'levantamento_loja'
     ? lojaPedidoId
-    : (selectedLojaId !== 'todas' ? selectedLojaId : null));
-  const lojaAtual = lojas.find((l) => l.id === idLojaEfetiva) || lojas[0] || LOJAS_MOCK[0];
+    : (selectedLojaId !== 'todas' ? selectedLojaId : (lojaFabricoPadrao?.id || null)));
+  const lojaAtual = lojas.find((l) => l.id === idLojaEfetiva) || (tipoEntrega === 'entrega_domicilio' ? (lojaFabricoPadrao || lojas[0]) : (lojas[0] || LOJAS_MOCK[0]));
 
   // Pesquisa automática de cliente no formulário de pedido
   const handleTelefoneChange = async (tel: string) => {
@@ -285,7 +286,24 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
 
     try {
       let clienteId: string | null = null;
-      const codigoGerado = `ENC-${lojaAtual.codigo}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const lojaFabricoObj = lojas.find((l) => l.codigo === 'FABRICO' || l.nome.toLowerCase().includes('fabrico')) || {
+        id: 'fabbbb00-0000-0000-0000-000000000001',
+        codigo: 'FABRICO',
+        nome: 'Centro de Fabrico',
+        morada: 'Rua dr. Teixeira de Brito nº 8',
+        telefone: '256944321',
+        nif: '501067264',
+        ativo: true,
+      };
+
+      // Se for entrega ao domicílio (carrinha/rota), a encomenda é expedida do Centro de Fabrico!
+      // Se for levantamento em loja, respeita a loja escolhida (que também pode ser o Centro de Fabrico).
+      const lojaEfetiva = tipoEntrega === 'entrega_domicilio'
+        ? lojaFabricoObj
+        : (lojas.find((l) => l.id === (lojaAfetaId || lojaPedidoId)) || lojaAtual || lojaFabricoObj);
+
+      const codigoPrefixo = (lojaEfetiva.codigo || 'FABRICO').toUpperCase();
+      const codigoGerado = `ENC-${codigoPrefixo}-${Math.floor(1000 + Math.random() * 9000)}`;
       let encomendaId = `enc-${Date.now()}`;
       const carrinhaObj = tipoEntrega === 'entrega_domicilio'
         ? (carrinhas.find((c) => c.id === carrinhaSelecionadaId) || carrinhas[0])
@@ -296,13 +314,7 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
 
       if (supabase) {
         // 1. Resolver UUID da Loja e Carrinha
-        const { data: lojaDb } = await supabase
-          .from('lojas')
-          .select('id')
-          .eq('codigo', lojaAtual.codigo)
-          .maybeSingle();
-
-        const lojaIdFinal = lojaAfetaId || lojaDb?.id || lojaAtual.id;
+        const lojaIdFinal = lojaEfetiva.id;
 
         let carrinhaIdFinal: string | null = null;
         if (tipoEntrega === 'entrega_domicilio' && carrinhaObj) {
@@ -435,8 +447,8 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
         id: encomendaId,
         numero_sequencial: encomendas.length + 1,
         codigo: codigoGerado,
-        loja_id: lojaAtual.id,
-        loja_nome: lojaAtual.nome,
+        loja_id: lojaEfetiva.id,
+        loja_nome: lojaEfetiva.nome,
         cliente: novoClienteObj,
         tipo: tipoEntrega,
         canal_origem: canalOrigem,
@@ -461,8 +473,8 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
         utilizador_id: currentUser.id,
         utilizador_nome: currentUser.nome,
         utilizador_role: currentUser.role,
-        loja_id: lojaAtual.id,
-        loja_nome: lojaAtual.nome,
+        loja_id: lojaEfetiva.id,
+        loja_nome: lojaEfetiva.nome,
         painel: 'encomendas',
         acao: 'Registo de Encomenda',
         detalhes: `Registado pedido com ${qtdTotalArtigos} artigo(s) (${resumoArtigos}). Modalidade: ${tipoEntrega === 'entrega_domicilio' ? `Entrega ao Domicílio (${carrinhaObj?.rota || carrinhaObj?.identificador || 'Rota'})` : 'Levantamento no Balcão'}. Agendado para ${dataAgendamento} às ${horaAgendamento}.`,

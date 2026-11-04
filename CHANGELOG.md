@@ -42,6 +42,23 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.43] - 2026-11-04
+
+### Fixed & Operational (Ajustes de Conformidade Visual, Pastelaria em 1 Página e Identificador FABRICO)
+- **Folha de Fabrico (Conformidade de Contentores e Margens)**:
+  - Eliminado qualquer transbordo de texto nos cartões KPI globais e caixas de resumo (`TOTAL ENCOMENDAS`, `TOTAL A PRODUZIR`, `PADARIA`, `PASTELARIA`). O posicionamento das legendas e unidades foi tornado dinâmico e contido estritamente dentro da largura de 125pt com margem interna de segurança.
+- **Guia Conjunta de Carga (Pastelaria Fina em 1 Página Consolidada)**:
+  - A secção de Pastelaria Fina foi refatorada de 2 partes (Folhas 3 e 4) para **1 única página consolidada** (Folha 3) tanto no PDF impresso/enviado por email como no visualizador web (`PdfViewerModal.tsx`), contendo as 18 colunas de especialidades de pastelaria, linha de Total Geral Pastelaria, Total Geral a Bordo (Padaria + Pastelaria) e caixas de conferência/assinatura. O PDF totaliza agora exatamente 3 páginas (2 de Padaria e 1 de Pastelaria).
+- **Cabeçalhos Verticais e Títulos Limpos**:
+  - Aumentada a altura útil dos cabeçalhos para 82pt e limitado o texto a 16 caracteres com início a 18pt abaixo da margem superior, eliminando cortes nas palavras dos artigos verticais.
+  - Removida qualquer menção a "COLUNAS X A Y" ou "PARTES" em títulos de secção, apresentando cabeçalhos limpos e profissionais.
+- **Rodapé e Caixas de Assinatura**:
+  - Corrigido o alinhamento da caixa e do texto de "Conferência dos Condutores", evitando textos cortados ou fora dos limites do contentor.
+- **Centro de Fabrico como Loja de Origem para Entregas de Rota**:
+  - Encomendas para rotas de carrinha/entrega ao domicílio são agora obrigatoriamente associadas à loja "Centro de Fabrico" (`codigo: FABRICO`, `id: fabbbb00-0000-0000-0000-000000000001`), gerando identificadores no formato `ENC-FABRICO-xxxx` e corrigindo encomendas pré-existentes na base de dados.
+- **Sanitização Estrita dos Nomes de Rota**:
+  - Assegurado que as linhas com o nome da rota apresentam estritamente `ROTA 1`, `ROTA 2`, etc., sem qualquer inclusão do nome do motorista ou da matrícula.
+
 ## [v2.7.42] - 2026-11-04
 
 ### Fixed & Operational (Sanitização Estrita dos Nomes das Rotas na Guia de Carga Conjunta)

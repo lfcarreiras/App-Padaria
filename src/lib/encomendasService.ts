@@ -3464,7 +3464,9 @@ export function calcularDadosGuiaCargaConjunta(
       gruposRotasGrelha.push({
         carrinhaId: car.id,
         numeroRota: numRota,
-        rotaNome: (car.rota || `Rota ${numRota}`).replace(/\s*[-—].*$/, '').trim(),
+        rotaNome: (numRota && numRota >= 1 && numRota <= 20)
+          ? `Rota ${numRota}`
+          : (car.rota || `Rota ${numRota}`).replace(/\s*[\u2014\u2013\-\(].*$/, '').trim(),
         nomeCondutor: car.nome_condutor || '',
         matricula: car.matricula || '',
         linhas: linhasGrelhaRota,
