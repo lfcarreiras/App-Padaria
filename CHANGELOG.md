@@ -42,6 +42,19 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.44] - 2026-11-05
+
+### Fixed & Operational (Correção de Import em Gestão, Mapeamento de Cacete na Guia Conjunta e Eliminação de Assinaturas Duplicadas)
+- **Cockpit de Gestão & Painel Lojas e Rotas**:
+  - Resolvido o erro fatal de execução `ReferenceError: obterDiaSemanaDeData is not defined` ao acionar a Guia Conjunta (Todas as Rotas) através da importação de `obterDiaSemanaDeData` em `src/app/gestao/page.tsx`.
+- **Mapeamento e Inclusão do Artigo "Cacete" na Guia Conjunta de Carga**:
+  - Adicionado `{ id: 'cacete', label: 'Cacete', alias: ['cacete', 'cacetes', 'pão cacete', 'pao cacete'] }` à matriz oficial `COLUNAS_GRELHA_PADARIA` em `src/lib/encomendasService.ts`.
+  - Assegurada a inclusão imediata dos artigos nas quantidades da Base Diária (por exemplo, 20 cacetes na Rota 7), totalizando de forma precisa as colunas de padaria e os subtotais por rota e gerais.
+- **Divisão Dinâmica e Harmónica das Tabelas no PDF & Visualizador Web**:
+  - Dinamizada a divisão das colunas de padaria em `pdfContinuidadeBuilder.ts` e `PdfViewerModal.tsx` (`Math.ceil(colunasPadaria.length / 2)`), garantindo larguras proporcionais exatas sem overflow.
+- **Eliminação de Assinaturas Duplicadas e Limpeza de Páginas Residuais**:
+  - Confinado o bloco legado de assinaturas em `PdfViewerModal.tsx` exclusivamente ao ramo fallback e compactados os espaçamentos de impressão da Folha 3, eliminando a 6ª página residual vazia com caixas repetidas.
+
 ## [v2.7.43] - 2026-11-04
 
 ### Fixed & Operational (Ajustes de Conformidade Visual, Pastelaria em 1 Página e Identificador FABRICO)

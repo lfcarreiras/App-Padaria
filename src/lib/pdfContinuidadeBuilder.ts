@@ -786,25 +786,25 @@ export function gerarPdfGuiaCargaConjunta(params: ParametrosFolhaCargaPdf | stri
 
   // ==============================================================
   // 1. SECÇÃO PADARIA - REPARTIDA POR 2 FOLHAS HORIZONTAIS COM LETRA 8
-  // Total de 34 colunas:
-  // - Parte 1: 17 colunas (0 a 16) + Subtotal P1
-  // - Parte 2: 17 colunas (17 a 33) + Total Geral Padaria
+  // Divisão dinâmica e perfeitamente simétrica das colunas de padaria
   // ==============================================================
-  const colunasPadariaP1 = colunasPadaria.slice(0, 17);
-  const colunasPadariaP2 = colunasPadaria.slice(17, 34);
-
-  const wNomeColPad = 180;
-  const wColPad = 33.5; // 17 * 33.5 = 569.5 pt
-  const wTotPadCol = 48.5; // 180 + 569.5 + 48.5 = 798 pt
-  const xTotPad = xInicio + wNomeColPad + 17 * wColPad; // 22 + 180 + 569.5 = 771.5 pt
+  const p1Count = Math.ceil(colunasPadaria.length / 2);
+  const colunasPadariaP1 = colunasPadaria.slice(0, p1Count);
+  const colunasPadariaP2 = colunasPadaria.slice(p1Count);
 
   const subtotalGeralPadariaP1 = colunasPadariaP1.reduce((acc, col) => acc + (dados.totaisColunasPadaria?.[col.id] || 0), 0);
   const subtotalGeralPadariaP2 = colunasPadariaP2.reduce((acc, col) => acc + (dados.totaisColunasPadaria?.[col.id] || 0), 0);
 
   const gruposPadaria = grupos.filter((g) => (g.totalPadariaRota || 0) > 0);
 
-  // --- FOLHA 1: PADARIA - PARTE 1 DE 2 ---
+  // --- FOLHA 1 & 2: PADARIA (PARTE 1 E PARTE 2) ---
   function desenharCabecalhoPadariaParte(page: PdfPageWriter, startY: number, cols: typeof colunasPadariaP1, parteNum: 1 | 2): number {
+    const numCols = cols.length;
+    const wNomeColPad = 150;
+    const wTotPadCol = 48;
+    const wColPad = (wTotalTabela - wNomeColPad - wTotPadCol) / numCols;
+    const xTotPad = xInicio + wNomeColPad + numCols * wColPad;
+
     page.drawRect(xInicio, startY - 26, wTotalTabela, 26, null, '0 0 0');
     const subtituloParte = parteNum === 1
       ? '1. SECÇÃO PADARIA (PARTE 1 DE 2)'
@@ -839,6 +839,12 @@ export function gerarPdfGuiaCargaConjunta(params: ParametrosFolhaCargaPdf | stri
 
   // Renderizar Tabela de Padaria para uma das metades
   function renderizarTabelaPadaria(cols: typeof colunasPadariaP1, parteNum: 1 | 2) {
+    const numCols = cols.length;
+    const wNomeColPad = 150;
+    const wTotPadCol = 48;
+    const wColPad = (wTotalTabela - wNomeColPad - wTotPadCol) / numCols;
+    const xTotPad = xInicio + wNomeColPad + numCols * wColPad;
+
     let curY = 565;
     curY = desenharCabecalhoPadariaParte(p, curY, cols, parteNum);
 

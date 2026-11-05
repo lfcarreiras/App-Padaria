@@ -54,7 +54,8 @@ import {
   salvarBaseDiariaRecorrente,
   eliminarBaseDiariaRecorrente,
   clienteEmModoFerias,
-  subscreverAlteracoesBasesRecorrentes
+  subscreverAlteracoesBasesRecorrentes,
+  obterDiaSemanaDeData
 } from '../../lib/encomendasService';
 import { 
   ReceiptConfig, 

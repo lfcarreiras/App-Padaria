@@ -1783,8 +1783,9 @@ export function PdfViewerModal({
                 const colunasPadaria = dadosGuiaConjunta.colunasGrelhaPadaria || [];
                 const colunasPastelaria = dadosGuiaConjunta.colunasGrelhaPastelaria || [];
 
-                const colunasPadariaP1 = colunasPadaria.slice(0, 17);
-                const colunasPadariaP2 = colunasPadaria.slice(17, 34);
+                const p1PadariaCount = Math.ceil(colunasPadaria.length / 2);
+                const colunasPadariaP1 = colunasPadaria.slice(0, p1PadariaCount);
+                const colunasPadariaP2 = colunasPadaria.slice(p1PadariaCount);
 
                 const subtotalGeralPadariaP1 = colunasPadariaP1.reduce((acc, col) => acc + (dadosGuiaConjunta.totaisColunasPadaria?.[col.id] || 0), 0);
                 const subtotalGeralPadariaP2 = colunasPadariaP2.reduce((acc, col) => acc + (dadosGuiaConjunta.totaisColunasPadaria?.[col.id] || 0), 0);
@@ -2203,7 +2204,7 @@ export function PdfViewerModal({
                       </div>
 
                       {/* Resumo Consolidado Final */}
-                      <div className="p-2.5 bg-white border-2 border-stone-900 rounded-lg flex items-center justify-between text-xs font-black mt-3">
+                      <div className="p-2.5 print:p-1.5 bg-white border-2 border-stone-900 rounded-lg flex items-center justify-between text-xs font-black mt-3 print:mt-1.5 print:break-inside-avoid">
                         <span className="uppercase tracking-wider">TOTAL GERAL A BORDO (PADARIA + PASTELARIA)</span>
                         <span className="text-sm font-mono font-black text-stone-950">
                           {dadosGuiaConjunta.totalGeralUnidades ?? dadosGuiaConjunta.totalGeral ?? 0} un.
@@ -2211,16 +2212,16 @@ export function PdfViewerModal({
                       </div>
 
                       {/* Bloco de Assinaturas de Conferência */}
-                      <div className="grid grid-cols-2 gap-4 pt-2">
-                        <div className="border border-stone-400 p-2 rounded-lg text-center bg-white">
-                          <span className="text-[10px] font-bold text-stone-700 block uppercase">Conferido por (Expedição / Fabrico)</span>
-                          <div className="h-7 border-b border-dashed border-stone-400 mt-1"></div>
-                          <span className="text-[9px] text-stone-500 block mt-0.5">Nome legível e rubrica</span>
+                      <div className="grid grid-cols-2 gap-4 print:gap-2 pt-2 print:pt-1 print:break-inside-avoid">
+                        <div className="border border-stone-400 p-2 print:p-1 rounded-lg text-center bg-white">
+                          <span className="text-[10px] print:text-[8.5px] font-bold text-stone-700 block uppercase">Conferido por (Expedição / Fabrico)</span>
+                          <div className="h-7 print:h-5 border-b border-dashed border-stone-400 mt-1 print:mt-0.5"></div>
+                          <span className="text-[9px] print:text-[7.5px] text-stone-500 block mt-0.5">Nome legível e rubrica</span>
                         </div>
-                        <div className="border border-stone-400 p-2 rounded-lg text-center bg-white">
-                          <span className="text-[10px] font-bold text-stone-700 block uppercase">Recebido pelos Motoristas / Distribuição</span>
-                          <div className="h-7 border-b border-dashed border-stone-400 mt-1"></div>
-                          <span className="text-[9px] text-stone-500 block mt-0.5">Rubrica de conferência de carga</span>
+                        <div className="border border-stone-400 p-2 print:p-1 rounded-lg text-center bg-white">
+                          <span className="text-[10px] print:text-[8.5px] font-bold text-stone-700 block uppercase">Recebido pelos Motoristas / Distribuição</span>
+                          <div className="h-7 print:h-5 border-b border-dashed border-stone-400 mt-1 print:mt-0.5"></div>
+                          <span className="text-[9px] print:text-[7.5px] text-stone-500 block mt-0.5">Rubrica de conferência de carga</span>
                         </div>
                       </div>
                     </div>
@@ -2370,22 +2371,22 @@ export function PdfViewerModal({
                       </tr>
                     </tfoot>
                   </table>
+
+                  {/* Validação de Expedição e Condutores (Apenas para tabela fallback legada) */}
+                  <div className="grid grid-cols-2 gap-4 pt-3 border-t border-stone-300 text-[10px] print:break-inside-avoid">
+                    <div className="p-2 rounded-xl bg-white border border-stone-300">
+                      <span className="font-bold text-stone-600 block mb-0.5">Chefe de Expedição / Fabrico:</span>
+                      <div className="py-1 text-stone-400 font-mono">Visto Expedição [ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ]</div>
+                      <p className="text-[9px] text-stone-500">Conforme Mapa Oficial de Carga</p>
+                    </div>
+                    <div className="p-2 rounded-xl bg-white border border-stone-300 text-right">
+                      <span className="font-bold text-stone-600 block mb-0.5">Conferência dos Condutores:</span>
+                      <div className="py-1 text-stone-400 font-mono">Conferido em Partida [ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ]</div>
+                      <p className="text-[9px] text-stone-500">Hora de Saída: _____ : _____</p>
+                    </div>
+                  </div>
                 </div>
               )}
-
-              {/* Validação de Expedição e Condutores */}
-              <div className="grid grid-cols-2 gap-4 pt-3 border-t border-stone-300 text-[10px]">
-                <div className="p-2 rounded-xl bg-white border border-stone-300">
-                  <span className="font-bold text-stone-600 block mb-0.5">Chefe de Expedição / Fabrico:</span>
-                  <div className="py-1 text-stone-400 font-mono">Visto Expedição [ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ]</div>
-                  <p className="text-[9px] text-stone-500">Conforme Mapa Oficial de Carga</p>
-                </div>
-                <div className="p-2 rounded-xl bg-white border border-stone-300 text-right">
-                  <span className="font-bold text-stone-600 block mb-0.5">Conferência dos Condutores:</span>
-                  <div className="py-1 text-stone-400 font-mono">Conferido em Partida [ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ]</div>
-                  <p className="text-[9px] text-stone-500">Hora de Saída: _____ : _____</p>
-                </div>
-              </div>
             </div>
           )}
         </div>

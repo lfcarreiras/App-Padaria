@@ -3047,6 +3047,7 @@ export const COLUNAS_GRELHA_PADARIA: ColunaGrelhaProduto[] = [
   { id: 'b_branca_1', label: 'B. branca 1kg', alias: ['broa branca 1 kg', 'broa branca 1kg', 'b. branca 1kg', 'b. branca 1 kg'] },
   { id: 'b_chourico', label: 'B c/ chouriço', alias: ['broa com chouriço', 'bola com chouriço', 'b c/ chouriço', 'broa c/ chouriço', 'bola c/ chouriço', 'b. chourico'] },
   { id: 'broa_mistura', label: 'Broa mistura', alias: ['broa de mistura', 'broa mistura', 'broa de centeio 0,5 kg'] },
+  { id: 'cacete', label: 'Cacete', alias: ['cacete', 'cacetes', 'pão cacete', 'pao cacete'] },
   { id: 'canilha', label: 'Canilha', alias: ['canilha'] },
   { id: 'meia_bola_carne', label: 'Meia bola de carne', alias: ['meia bola de carne', 'meia bola carne', 'bola de carne'] },
   { id: 'mini_pao_centeio', label: 'Mini pão centeio', alias: ['mini pão de centeio', 'mini pão centeio', 'mini pao centeio'] },
