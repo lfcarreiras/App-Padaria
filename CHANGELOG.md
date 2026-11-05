@@ -42,6 +42,15 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.46] - 2026-11-05
+
+### Refined & Operational (Restauro Estrito aos 57 Artigos Oficiais no Supabase, Grelhas e Documentos)
+- **Restauro Estrito dos 57 Artigos Oficiais no Supabase**:
+  - Revertida a tabela `configuracoes_sistema` (`artigos_base_fixa`) no Supabase e `COLUNAS_MAPA_DIARIO_OFICIAL` em `mockData.ts` para conter estritamente os **57 artigos oficiais canónicos**, removendo quaisquer artigos adicionais (`Pão de Cachorro`, `Pão de Hamburguer`, `Baguete`, `Broa Centeio`).
+- **Garantia de Exclusividade dos 57 Artigos em Menus, Grelhas e Documentos**:
+  - `src/app/gestao/page.tsx`: Filtragem estrita de `artigosBaseFixa` e `artigosGrelhaBaseFixa` contra o conjunto oficial `COLUNAS_MAPA_DIARIO_OFICIAL`, garantindo que nenhuma variante não oficial ou chave legada possa entrar na grelha de Base Diária ou menus.
+  - `src/lib/encomendasService.ts`: Alinhadas as colunas da Guia de Carga (`COLUNAS_GRELHA_PADARIA` com 34 colunas e `COLUNAS_GRELHA_PASTELARIA` com 18 colunas) e simplificada a função `identificarColunaGrelha`, assegurando que apenas os 57 artigos canónicos e as suas variantes de escrita oficiais são processados, eliminando fallbacks arbitrários ou variantes externas.
+
 ## [v2.7.45] - 2026-11-05
 
 ### Enhanced & Operational (Mapeamento Universal de Artigos, Aliases Abrangentes e Blindagem contra Omissão na Guia Conjunta)

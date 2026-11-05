@@ -3045,33 +3045,32 @@ export const COLUNAS_GRELHA_PADARIA: ColunaGrelhaProduto[] = [
   { id: 'b_amarela_2', label: 'B. amarela 2 kg', alias: ['broa amarela 2 kg', 'broa amarela 2kg', 'b. amarela 2 kg', 'b. amarela 2kg'] },
   { id: 'b_branca_05', label: 'B. branca 0.5kg', alias: ['broa branca 0,5 kg', 'broa branca 0.5kg', 'b. branca 0.5kg', 'b. branca 0,5kg'] },
   { id: 'b_branca_1', label: 'B. branca 1kg', alias: ['broa branca 1 kg', 'broa branca 1kg', 'b. branca 1kg', 'b. branca 1 kg'] },
-  { id: 'b_chourico', label: 'B c/ chouriço', alias: ['broa com chouriço', 'bola com chouriço', 'b c/ chouriço', 'broa c/ chouriço', 'bola c/ chouriço', 'b. chourico', 'mini broa com chouriço', 'mini broa c/ chouriço', 'bolo c/ sardinhas', 'bolo com sardinhas', 'bolo de sardinhas'] },
-  { id: 'broa_mistura', label: 'Broa mistura', alias: ['broa de mistura', 'broa mistura', 'broa de centeio 0,5 kg', 'broa de centeio', 'broa centeio', 'broinha de mistura', 'broinha mistura', 'broinhas'] },
-  { id: 'cacete', label: 'Cacete', alias: ['cacete', 'cacetes', 'pão cacete', 'pao cacete', 'baguete', 'baguetes'] },
+  { id: 'b_chourico', label: 'B c/ chouriço', alias: ['broa com chouriço', 'bola com chouriço', 'b c/ chouriço', 'broa c/ chouriço', 'bola c/ chouriço', 'b. chourico', 'mini broa com chouriço', 'mini broa c/ chouriço'] },
+  { id: 'broa_mistura', label: 'Broa mistura', alias: ['broa de mistura', 'broa mistura', 'broa de centeio 0,5 kg', 'broa de centeio 0.5kg'] },
+  { id: 'cacete', label: 'Cacete', alias: ['cacete', 'cacetes', 'pão cacete', 'pao cacete'] },
   { id: 'canilha', label: 'Canilha', alias: ['canilha'] },
-  { id: 'meia_bola_carne', label: 'Meia bola de carne', alias: ['meia bola de carne', 'meia bola carne', 'bola de carne', 'bola de carne redonda', 'fatia bola de carne', 'mini bola de carne'] },
+  { id: 'meia_bola_carne', label: 'Meia bola de carne', alias: ['meia bola de carne', 'meia bola carne', 'bola de carne'] },
   { id: 'mini_pao_centeio', label: 'Mini pão centeio', alias: ['mini pão de centeio', 'mini pão centeio', 'mini pao centeio'] },
   { id: 'mini_pao_saloio', label: 'Mini pão saloio', alias: ['mini pão saloio', 'mini pao saloio'] },
   { id: 'padas_centeio', label: 'Padas Centeio', alias: ['padas de centeio', 'padas centeio'] },
   { id: 'padas_normais', label: 'Padas Normais', alias: ['padas normais'] },
-  { id: 'padinhas', label: 'Padinhas', alias: ['padinhas', 'padinhas alfarroba'] },
-  { id: 'pao_7_graos_peq', label: 'P. 7 grãos peq.', alias: ['pão 7 grãos pequeno', 'p. 7 grãos peq.', 'pão 7 grãos', 'p. 7 graos peq.', 'pao 7 graos', 'pão de beterraba', 'pão de beterraba pequeno', 'pao de beterraba', 'pao beterraba'] },
-  { id: 'pao_alfarroba', label: 'Pão alfarroba', alias: ['pão de alfarroba', 'pão alfarroba', 'pao alfarroba', 'pão de alfarroba pequeno', 'pao de alfarroba pequeno'] },
+  { id: 'padinhas', label: 'Padinhas', alias: ['padinhas'] },
+  { id: 'pao_7_graos_peq', label: 'P. 7 grãos peq.', alias: ['pão 7 grãos pequeno', 'p. 7 grãos peq.', 'pão 7 grãos', 'p. 7 graos peq.', 'pao 7 graos'] },
+  { id: 'pao_alfarroba', label: 'Pão alfarroba', alias: ['pão de alfarroba', 'pão alfarroba', 'pao alfarroba'] },
   { id: 'pao_bico', label: 'Pão de bico', alias: ['pão de bico', 'pão bico', 'pao bico'] },
-  { id: 'pao_cachorro', label: 'Pão de cachorro', alias: ['pão de cachorro', 'pão cachorro', 'pao cachorro', 'pão de hamburguer', 'pão de hanburger', 'pao de hamburguer', 'pao de hanburger', 'pão hamburguer', 'pao hamburguer', 'hamburguer', 'hanburger', 'pao cachorro / hamburguer'] },
   { id: 'pao_canela', label: 'Pão de canela', alias: ['pão de canela', 'pão canela', 'pao canela'] },
   { id: 'pao_centeio', label: 'Pão de centeio', alias: ['pão de centeio', 'pão centeio', 'pao centeio'] },
-  { id: 'pao_forma_gr', label: 'Pão de forma Gr.', alias: ['pão de forma grande', 'pão de forma gr.', 'pao de forma gr.', 'pao forma grande', 'pão de forma cereais', 'pao de forma cereais', 'pão cereais fatiado', 'pao cereais fatiado', 'pão de forma', 'pao de forma'] },
+  { id: 'pao_forma_gr', label: 'Pão de forma Gr.', alias: ['pão de forma grande', 'pão de forma gr.', 'pao de forma gr.', 'pao forma grande'] },
   { id: 'pao_forma_corte_fino', label: 'P. F. gr. Corte fino', alias: ['pão de forma grande (corte fino)', 'p. f. gr. corte fino', 'pao de forma corte fino', 'corte fino'] },
   { id: 'pao_forma_peq', label: 'P. forna pequeno', alias: ['pão de forma pequeno', 'p. forna pequeno', 'pão forma pequeno', 'p. forma pequeno', 'pao forma pequeno'] },
   { id: 'pao_leite', label: 'Pão de leite', alias: ['pão de leite', 'pao de leite', 'pão leite'] },
   { id: 'pao_sementes', label: 'Pão sementes', alias: ['pão de sementes', 'pão sementes', 'pao sementes'] },
   { id: 'pao_integral', label: 'Pão integral', alias: ['pão integral', 'pao integral'] },
   { id: 'pao_italiano', label: 'Pão italiano', alias: ['pão italiano', 'pao italiano'] },
-  { id: 'pao_normal', label: 'Pão normal', alias: ['pão normal', 'pao normal', 'carcaça', 'carcaças', 'pão mistura', 'pao mistura', 'pão da mealhada', 'pao da mealhada', 'pãezinhos - tasquinha', 'paezinhos - tasquinha', 'tasquinha', 'pão de alho', 'pao de alho'] },
+  { id: 'pao_normal', label: 'Pão normal', alias: ['pão normal', 'pao normal', 'carcaça', 'carcaças'] },
   { id: 'pao_saloio', label: 'Pão saloio', alias: ['pão saloio', 'pao saloio'] },
   { id: 'tosta', label: 'Tosta', alias: ['tosta', 'tostas'] },
-  { id: 'triga_milha_03', label: 'Triga milha 0.3kg', alias: ['triga milha 0,3 kg', 'triga milha 0.3kg', 'triga milha 0,3kg', 'triga milha'] },
+  { id: 'triga_milha_03', label: 'Triga milha 0.3kg', alias: ['triga milha 0,3 kg', 'triga milha 0.3kg', 'triga milha 0,3kg'] },
   { id: 'triga_milha_05', label: 'Triga milha 0.5kg', alias: ['triga milha 0,5 kg', 'triga milha 0.5kg', 'triga milha 0,5kg'] },
   { id: 'triga_milha_1', label: 'Triga milha1 kg', alias: ['triga milha 1 kg', 'triga milha 1kg', 'triga milha1 kg', 'triga milha 1,0 kg'] },
   { id: 'triga_milha_saloio', label: 'Tri. milha Saloio', alias: ['triga milha saloio', 'tri. milha saloio', 'triga saloio'] },
@@ -3080,22 +3079,22 @@ export const COLUNAS_GRELHA_PADARIA: ColunaGrelhaProduto[] = [
 export const COLUNAS_GRELHA_PASTELARIA: ColunaGrelhaProduto[] = [
   { id: 'croiss_choc', label: 'Croiss. Choc.', alias: ['croissant de chocolate', 'croiss. choc.', 'croissant choc', 'croissant chocolate'] },
   { id: 'croiss_simples', label: 'Croiss. Simples', alias: ['croissant simples', 'croiss. simples'] },
-  { id: 'fatia_pizza', label: 'Fatia Pizza', alias: ['fatia de pizza', 'fatia pizza', 'pizza grande', 'pizza média', 'pizza media', 'pizza pequena', 'tabuleiro de pizza'] },
+  { id: 'fatia_pizza', label: 'Fatia Pizza', alias: ['fatia de pizza', 'fatia pizza'] },
   { id: 'lanche_choco', label: 'Lanche Choco.', alias: ['lanche de chocolate', 'lanche choco.', 'lanche choc', 'lanche chocolate'] },
   { id: 'lanche_fiambre', label: 'Lanche Fiambre', alias: ['lanche de fiambre', 'lanche fiambre'] },
   { id: 'lanche_misto', label: 'Lanche Misto', alias: ['lanche misto'] },
   { id: 'meia_lua', label: 'Meia Lua', alias: ['meia lua'] },
-  { id: 'merendas', label: 'Merendas', alias: ['merendas', 'merenda', 'mini quiche', 'quiche', 'quiches'] },
+  { id: 'merendas', label: 'Merendas', alias: ['merendas', 'merenda'] },
   { id: 'pao_chourico', label: 'Pão c/ Chouriço', alias: ['pão com chouriço', 'pão c/ chouriço', 'pao com chourico'] },
   { id: 'pao_croissant', label: 'Pão Croissant', alias: ['pão croissant', 'pao croissant'] },
   { id: 'pao_pizza', label: 'Pão Pizza', alias: ['pão pizza', 'pao pizza'] },
-  { id: 'pasteis', label: 'Pasteis', alias: ['pasteis', 'pastéis', 'pastel recheado', 'pastéis recheados', 'pasteis recheados', 'pasteis miniatura kg', 'tarte de fruta', 'tartes de fruta', 'pudim', 'semi-frio', 'semifrio', 'telha', 'torre profiteroles'] },
+  { id: 'pasteis', label: 'Pasteis', alias: ['pasteis', 'pastéis'] },
   { id: 'pastel_nata', label: 'Pastel de Nata', alias: ['pastel de nata', 'nata', 'natas'] },
-  { id: 'pastel_miniatura', label: 'Pastel Miniatura', alias: ['pastel miniatura', 'miniaturas', 'pasteis miniatura', 'pastel miniatura uni', 'almendrado', 'almendrados', 'brigadeiro', 'brigadeiros', 'chá hungaro', 'cha hungaro', 'sortido', 'sortidos', 'fatia de bolo', 'fatia pão de ló', 'fatia pao de lo', 'crocante de ovo', 'castanhas doces', 'cavacas', 'melindres', 'sonhos', 'rabanadas', 'broas de mel', 'cupcakes', 'ovo de páscoa', 'ovo de pascoa'] },
+  { id: 'pastel_miniatura', label: 'Pastel Miniatura', alias: ['pastel miniatura', 'miniaturas', 'pasteis miniatura'] },
   { id: 'regueifa_canela', label: 'Regueifa. Canela', alias: ['regueifa de canela', 'regueifa. canela', 'regueifa canela'] },
-  { id: 'regueifa_coco', label: 'Regueifa de Côco', alias: ['regueifa de côco', 'regueifa de coco', 'regueifa coco', 'regueifa côco', 'pão de deus', 'pao de deus'] },
-  { id: 'regueifa_doce', label: 'Regueifa Doce', alias: ['regueifa doce', 'regueifa branca', 'regueifa miniatura', 'pão doce', 'pao doce', 'fogaça', 'fogaca', 'rosca', 'rosca de amêndoa', 'rosca de amendoa', 'panettone'] },
-  { id: 'tranca_chocolate', label: 'Trança Chocolate', alias: ['trança de chocolate', 'trança chocolate', 'trança de creme', 'trança regueifa branca', 'trança de amendoa', 'trança de amêndoa', 'tranca de amendoa', 'trança folhada frutos secos', 'trança folhada', 'tranca folhada', 'trança', 'trancas'] },
+  { id: 'regueifa_coco', label: 'Regueifa de Côco', alias: ['regueifa de côco', 'regueifa de coco', 'regueifa coco', 'regueifa côco'] },
+  { id: 'regueifa_doce', label: 'Regueifa Doce', alias: ['regueifa doce', 'regueifa branca'] },
+  { id: 'tranca_chocolate', label: 'Trança Chocolate', alias: ['trança de chocolate', 'trança chocolate', 'trança de creme', 'trança regueifa branca'] },
 ];
 
 export function identificarColunaGrelha(artigoNome: string): { coluna: ColunaGrelhaProduto; setor: 'padaria' | 'pastelaria' } | null {
@@ -3141,27 +3140,6 @@ export function identificarColunaGrelha(artigoNome: string): { coluna: ColunaGre
         return { coluna: c, setor: 'pastelaria' };
       }
     }
-  }
-
-  // 5. Fallback semântico protetivo para que nenhum artigo da padaria/pastelaria fique de fora da grelha nem perca quantidades
-  const ePadaria = norm.includes('pao') || norm.includes('broa') || norm.includes('pada') ||
-    norm.includes('triga') || norm.includes('cacete') || norm.includes('baguete') ||
-    norm.includes('tosta') || norm.includes('carcaca') || norm.includes('bico') ||
-    norm.includes('centeio') || norm.includes('leite') || norm.includes('sementes') ||
-    norm.includes('integral') || norm.includes('saloio') || norm.includes('italiano');
-  if (ePadaria) {
-    const colPad = COLUNAS_GRELHA_PADARIA.find(c => c.id === 'pao_normal') || COLUNAS_GRELHA_PADARIA[0];
-    return { coluna: colPad, setor: 'padaria' };
-  }
-
-  const ePastelaria = norm.includes('bolo') || norm.includes('croissant') || norm.includes('lanche') ||
-    norm.includes('pastel') || norm.includes('regueifa') || norm.includes('tranca') ||
-    norm.includes('doce') || norm.includes('torta') || norm.includes('tarte') ||
-    norm.includes('pizza') || norm.includes('quiche') || norm.includes('folhad') ||
-    norm.includes('fatia') || norm.includes('merenda') || norm.includes('creme');
-  if (ePastelaria) {
-    const colPast = COLUNAS_GRELHA_PASTELARIA.find(c => c.id === 'pastel_miniatura') || COLUNAS_GRELHA_PASTELARIA[0];
-    return { coluna: colPast, setor: 'pastelaria' };
   }
 
   return null;

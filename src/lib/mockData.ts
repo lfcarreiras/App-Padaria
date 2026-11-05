@@ -192,10 +192,6 @@ export const COLUNAS_MAPA_DIARIO_OFICIAL: string[] = [
   "Merendas",
   "Pão com Chouriço",
   "Pão de Bico",
-  "Pão de Cachorro",
-  "Pão de Hamburguer",
-  "Baguete",
-  "Broa Centeio",
   "Canilha",
   "Tosta",
   "Cacete"

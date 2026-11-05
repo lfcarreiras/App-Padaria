@@ -339,24 +339,10 @@ export default function AdminPage() {
         const bfCarregada = carregarBaseFixaCarrinhas();
         if (Array.isArray(bfCarregada)) setBaseFixaCarrinhas(bfCarregada);
         const artsGuardados = carregarArtigosBaseFixa();
-        const setCombinado = new Set<string>((Array.isArray(artsGuardados) ? artsGuardados : []).map((p) => String(p || '').trim()).filter(Boolean));
-        (bfCarregada || []).forEach((bf) => {
-          if (!bf) return;
-          const mapa = bf?.quantidades_por_produto || bf?.quantidades || {};
-          Object.keys(mapa).forEach((prod) => {
-            const n = String(prod || '').trim();
-            if (n) setCombinado.add(n);
-          });
-          if (bf?.quantidades_semanais) {
-            Object.values(bf.quantidades_semanais).forEach((m) => {
-              Object.keys(m || {}).forEach((prod) => {
-                const n = String(prod || '').trim();
-                if (n) setCombinado.add(n);
-              });
-            });
-          }
-        });
-        setArtigosBaseFixa(Array.from(setCombinado));
+        const artigosOficiaisSet = new Set(COLUNAS_MAPA_DIARIO_OFICIAL);
+        const listaOficial57 = (Array.isArray(artsGuardados) && artsGuardados.length > 0 ? artsGuardados : COLUNAS_MAPA_DIARIO_OFICIAL)
+          .filter((a) => artigosOficiaisSet.has(a));
+        setArtigosBaseFixa(listaOficial57.length > 0 ? listaOficial57 : [...COLUNAS_MAPA_DIARIO_OFICIAL]);
         const b2b = carregarClientesEmpresariaisB2B();
         if (Array.isArray(b2b)) setClientesB2B(b2b);
         sincronizarClientesB2BComSupabase().then((res) => {
@@ -413,7 +399,9 @@ export default function AdminPage() {
 
   // Artigos visíveis na grelha de Base Fixa com pesquisa em tempo real e ordenação
   const artigosGrelhaBaseFixa = useMemo(() => {
-    const todos = (artigosBaseFixa && artigosBaseFixa.length > 0) ? artigosBaseFixa : (COLUNAS_MAPA_DIARIO_OFICIAL || []);
+    const oficiaisSet = new Set(COLUNAS_MAPA_DIARIO_OFICIAL);
+    const todos = ((artigosBaseFixa && artigosBaseFixa.length > 0) ? artigosBaseFixa : COLUNAS_MAPA_DIARIO_OFICIAL)
+      .filter((nome) => oficiaisSet.has(nome));
     let filtrados = todos.filter((nome) => {
       if (!filtroArtigoBaseFixa.trim()) return true;
       return nome.toLowerCase().includes(filtroArtigoBaseFixa.toLowerCase().trim());
@@ -687,6 +675,12 @@ export default function AdminPage() {
   const handleAdicionarArtigoBaseFixa = (nomeRaw: string) => {
     const nomeLimpo = nomeRaw.trim();
     if (!nomeLimpo) return;
+    const artigosOficiaisSet = new Set(COLUNAS_MAPA_DIARIO_OFICIAL);
+    if (!artigosOficiaisSet.has(nomeLimpo)) {
+      setFeedbackBaseFixa('Apenas os 57 artigos oficiais da Padaria são permitidos.');
+      setTimeout(() => setFeedbackBaseFixa(null), 3000);
+      return;
+    }
     if (!artigosGrelhaBaseFixa.includes(nomeLimpo)) {
       const novaListaArtigos = [...artigosGrelhaBaseFixa, nomeLimpo];
       setArtigosBaseFixa(novaListaArtigos);
