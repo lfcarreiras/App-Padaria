@@ -42,6 +42,25 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.45] - 2026-11-05
+
+### Enhanced & Operational (Mapeamento Universal de Artigos, Aliases Abrangentes e Blindagem contra Omissão na Guia Conjunta)
+- **Mapeamento Exaustivo de Artigos da Padaria e Pastelaria**:
+  - Adicionadas correspondências e aliases sistemáticos em `COLUNAS_GRELHA_PADARIA` e `COLUNAS_GRELHA_PASTELARIA` para cobrir todos os artigos do catálogo oficial (136 produtos), incluindo:
+    - `Baguete` associada à coluna `Cacete`;
+    - `Broa Centeio`, `Broa de Centeio`, `Broinha de Mistura` associadas à coluna `Broa mistura`;
+    - `Pão de Hamburguer`, `Pão de Hanburger` associados à coluna `Pão de cachorro`;
+    - `Pão de Forma Cereais`, `Pão Cereais Fatiado` associados à coluna `Pão de forma Gr.`;
+    - `Pão Mistura`, `Pão da Mealhada`, `Pãezinhos - Tasquinha`, `Pão de Alho` associados à coluna `Pão normal`;
+    - `Pão de Beterraba` associado à coluna `P. 7 grãos peq.`;
+    - `Bolo c/ Sardinhas` associado à coluna `B c/ chouriço`;
+    - Variantes de Bola de Carne (`Bola de Carne Redonda`, `Fatia Bola de Carne`, `Mini Bola de Carne`) unificadas em `Meia bola de carne`;
+    - Especialidades de Pastelaria (`Trança de Amêndoa`, `Trança Folhada`, `Regueifa Miniatura`, `Pão Doce`, `Fogaça`, `Pão de Deus`, `Pizzas`, `Mini Quiche`, `Pasteis Recheados`, `Almendrado`, `Brigadeiros`, `Chá Húngaro`, `Sortido`) associadas de forma transparente às colunas adequadas.
+- **Blindagem Semântica Preventiva em `identificarColunaGrelha`**:
+  - Implementado mecanismo de salvaguarda semântica por heurística de categoria/setor. Se qualquer novo produto ou artigo personalizado for inserido futuramente na Base Diária ou Encomendas, nunca é descartado nem fica com quantidades omitidas na Guia Conjunta: é integrado e totalizado de forma fiável no setor respetivo.
+- **Alinhamento da Base Diária Oficial**:
+  - Atualizada a lista oficial `artigos_base_fixa` no Supabase (`configuracoes_sistema`) e `COLUNAS_MAPA_DIARIO_OFICIAL` em `mockData.ts` (passando a 61 artigos pré-configurados), assegurando que artigos como `Pão de Cachorro`, `Pão de Hamburguer`, `Baguete` e `Broa Centeio` constam nativamente das opções disponíveis.
+
 ## [v2.7.44] - 2026-11-05
 
 ### Fixed & Operational (Correção de Import em Gestão, Mapeamento de Cacete na Guia Conjunta e Eliminação de Assinaturas Duplicadas)
