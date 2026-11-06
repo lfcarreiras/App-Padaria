@@ -169,39 +169,61 @@ export default function ProducaoPage() {
   const [lojaIdFiltroFabrico, setLojaIdFiltroFabrico] = useState<string>('todas');
   const [ajustesAdhoc, setAjustesAdhoc] = useState<Record<string, number>>({});
 
-  // Carregar dados iniciais
+  // Carregar dados iniciais: sincronização total de todas as tabelas do Supabase em paralelo
   useEffect(() => {
     async function carregar() {
-      const [dados, ljs, cars, prods] = await Promise.all([
-        carregarEncomendasSupabase(),
-        carregarLojasSupabase(),
-        carregarCarrinhasSupabase(),
-        carregarProdutosSupabase(),
-      ]);
-      setEncomendas(dados);
-      if (ljs && ljs.length > 0) setLojas(ljs);
-      if (cars && cars.length > 0) setCarrinhas(cars);
-      if (prods && prods.length > 0) setProdutos(prods);
-      setBaseFixaCarrinhas(carregarBaseFixaCarrinhas());
-      carregarBaseFixaCarrinhasSupabase().then((bfs) => {
-        if (bfs && bfs.length > 0) {
+      try {
+        const [
+          dados,
+          ljs,
+          cars,
+          prods,
+          bfs,
+          b2b,
+          bases,
+          adhoc
+        ] = await Promise.all([
+          carregarEncomendasSupabase(),
+          carregarLojasSupabase(),
+          carregarCarrinhasSupabase(),
+          carregarProdutosSupabase(),
+          carregarBaseFixaCarrinhasSupabase(),
+          sincronizarClientesB2BComSupabase(),
+          carregarBasesDiariasRecorrentes(),
+          carregarAjustesAdhocSupabase(),
+        ]);
+        if (Array.isArray(dados)) setEncomendas(dados);
+        if (Array.isArray(ljs) && ljs.length > 0) setLojas(ljs);
+        if (Array.isArray(cars) && cars.length > 0) setCarrinhas(cars);
+        if (Array.isArray(prods) && prods.length > 0) setProdutos(prods);
+        if (Array.isArray(bfs) && bfs.length > 0) {
           setBaseFixaCarrinhas(bfs);
           if (typeof window !== 'undefined') {
             localStorage.setItem('padaria_base_fixa_carrinhas_v4', JSON.stringify(bfs));
           }
-          setVersaoDados((v) => v + 1);
         }
-      });
-      setClientesB2B(carregarClientesEmpresariaisB2B());
-      sincronizarClientesB2BComSupabase().then((res) => {
-        if (res && res.length > 0) setClientesB2B(res);
-      });
-      carregarBasesDiariasRecorrentes().then((bases) => {
-        if (Array.isArray(bases)) setBasesRecorrentes(bases);
-      });
-      carregarAjustesAdhocSupabase().then((adhoc) => {
-        if (adhoc && Object.keys(adhoc).length > 0) setAjustesAdhoc(adhoc);
-      });
+        if (Array.isArray(b2b) && b2b.length > 0) {
+          setClientesB2B(b2b);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('padaria_clientes_b2b_v2', JSON.stringify(b2b));
+          }
+        }
+        if (Array.isArray(bases) && bases.length > 0) {
+          setBasesRecorrentes(bases);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('padaria_bases_diarias_recorrentes_v1', JSON.stringify(bases));
+          }
+        }
+        if (adhoc && Object.keys(adhoc).length > 0) {
+          setAjustesAdhoc(adhoc);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('padaria_ajustes_adhoc_v1', JSON.stringify(adhoc));
+          }
+        }
+        setVersaoDados((v) => v + 1);
+      } catch (err) {
+        console.error('Erro na sincronização inicial do Supabase em Produção:', err);
+      }
     }
     carregar();
 

@@ -12,8 +12,12 @@ import {
   carregarCarrinhasSupabase,
   carregarProdutosSupabase,
   subscreverAlteracoesCarrinhas,
+  subscreverAlteracoesBaseFixa,
+  subscreverAlteracoesAjustesAdhoc,
   subscreverAlteracoesEncomendas,
   carregarBaseFixaCarrinhas,
+  carregarBaseFixaCarrinhasSupabase,
+  carregarAjustesAdhocSupabase,
   carregarArtigosBaseFixa,
   carregarClientesEmpresariaisB2B,
   sincronizarClientesB2BComSupabase,
@@ -99,6 +103,7 @@ export default function EntregasPage() {
   const [clientesB2B, setClientesB2B] = useState<ClienteEmpresarialB2B[]>([]);
   // Bases Diárias Recorrentes (Porta-a-Porta & Modo Férias)
   const [basesRecorrentes, setBasesRecorrentes] = useState<BaseDiariaRecorrente[]>([]);
+  const [ajustesAdhoc, setAjustesAdhoc] = useState<Record<string, number>>({});
   const [modalFeriasBase, setModalFeriasBase] = useState<BaseDiariaRecorrente | null>(null);
   const [feriasInicio, setFeriasInicio] = useState<string>('');
   const [feriasFim, setFeriasFim] = useState<string>('');
@@ -132,23 +137,52 @@ export default function EntregasPage() {
 
   useEffect(() => {
     async function carregar() {
-      const [dados, ljs, cars, prods, bRec] = await Promise.all([
-        carregarEncomendasSupabase(),
-        carregarLojasSupabase(),
-        carregarCarrinhasSupabase(),
-        carregarProdutosSupabase(),
-        carregarBasesDiariasRecorrentes(),
-      ]);
-      setEncomendas(dados);
-      if (ljs && ljs.length > 0) setLojas(ljs);
-      if (cars && cars.length > 0) setCarrinhas(cars);
-      if (prods && prods.length > 0) setProdutos(prods);
-      setBaseFixaCarrinhas(carregarBaseFixaCarrinhas());
-      setClientesB2B(carregarClientesEmpresariaisB2B());
-      if (bRec && bRec.length > 0) setBasesRecorrentes(bRec);
-      sincronizarClientesB2BComSupabase().then((res) => {
-        if (res && res.length > 0) setClientesB2B(res);
-      });
+      try {
+        const [
+          dados,
+          ljs,
+          cars,
+          prods,
+          bRec,
+          bfs,
+          b2b,
+          adhoc
+        ] = await Promise.all([
+          carregarEncomendasSupabase(),
+          carregarLojasSupabase(),
+          carregarCarrinhasSupabase(),
+          carregarProdutosSupabase(),
+          carregarBasesDiariasRecorrentes(),
+          carregarBaseFixaCarrinhasSupabase(),
+          sincronizarClientesB2BComSupabase(),
+          carregarAjustesAdhocSupabase(),
+        ]);
+        if (Array.isArray(dados)) setEncomendas(dados);
+        if (Array.isArray(ljs) && ljs.length > 0) setLojas(ljs);
+        if (Array.isArray(cars) && cars.length > 0) setCarrinhas(cars);
+        if (Array.isArray(prods) && prods.length > 0) setProdutos(prods);
+        if (Array.isArray(bRec) && bRec.length > 0) setBasesRecorrentes(bRec);
+        if (Array.isArray(bfs) && bfs.length > 0) {
+          setBaseFixaCarrinhas(bfs);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('padaria_base_fixa_carrinhas_v4', JSON.stringify(bfs));
+          }
+        }
+        if (Array.isArray(b2b) && b2b.length > 0) {
+          setClientesB2B(b2b);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('padaria_clientes_b2b_v2', JSON.stringify(b2b));
+          }
+        }
+        if (adhoc && Object.keys(adhoc).length > 0) {
+          setAjustesAdhoc(adhoc);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('padaria_ajustes_adhoc_v1', JSON.stringify(adhoc));
+          }
+        }
+      } catch (err) {
+        console.error('Erro na sincronização inicial do Supabase em Entregas:', err);
+      }
     }
     carregar();
 
@@ -161,6 +195,12 @@ export default function EntregasPage() {
     const unsubCarrinhas = subscreverAlteracoesCarrinhas((cars) => {
       setCarrinhas(cars);
     });
+    const unsubBaseFixa = subscreverAlteracoesBaseFixa((bfs) => {
+      setBaseFixaCarrinhas(bfs);
+    });
+    const unsubAjustes = subscreverAlteracoesAjustesAdhoc((novos) => {
+      if (novos) setAjustesAdhoc(novos);
+    });
     const unsubEncomendas = subscreverAlteracoesEncomendas((encs) => {
       setEncomendas(encs);
     });
@@ -169,6 +209,8 @@ export default function EntregasPage() {
       unsubB2B();
       unsubBases();
       unsubCarrinhas();
+      unsubBaseFixa();
+      unsubAjustes();
       unsubEncomendas();
     };
   }, []);
@@ -177,8 +219,14 @@ export default function EntregasPage() {
   // As 7 rotas e carros servem toda a operação central de Arouca (Rota 8 desativada)
   const carrinhasDaLoja = carrinhas.filter((c) => c.rota !== 'Rota 8' && c.identificador !== 'Rota 8' && c.numero !== 8);
 
-  // Data operacional de hoje (AAAA-MM-DD) e Dia da Semana
-  const hoje = new Date().toISOString().split('T')[0];
+  // Data operacional oficial de hoje (AAAA-MM-DD - Fuso Europe/Lisbon) e Dia da Semana
+  const agoraLisboaEnt = new Date();
+  const hoje = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Lisbon',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(agoraLisboaEnt);
   const diaSemanaHoje = obterDiaSemanaDeData(hoje);
   const nomesDiaSemana: Record<string, string> = {
     seg: 'SEGUNDA-FEIRA',

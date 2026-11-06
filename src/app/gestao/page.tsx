@@ -44,6 +44,7 @@ import {
   carregarBaseFixaCarrinhasSupabase,
   salvarBaseFixaCarrinhas,
   carregarArtigosBaseFixa,
+  carregarArtigosBaseFixaSupabase,
   salvarArtigosBaseFixa,
   carregarClientesEmpresariaisB2B,
   salvarClientesEmpresariaisB2B,
@@ -317,7 +318,20 @@ export default function AdminPage() {
   useEffect(() => {
     async function carregar() {
       try {
-        const [encs, clis, prods, ljs, cars, pfs, logs] = await Promise.all([
+        const [
+          encs,
+          clis,
+          prods,
+          ljs,
+          cars,
+          pfs,
+          logs,
+          bfs,
+          b2b,
+          bases,
+          adhoc,
+          arts
+        ] = await Promise.all([
           carregarEncomendasSupabase(),
           carregarClientesSupabase(),
           carregarProdutosSupabase(),
@@ -325,6 +339,11 @@ export default function AdminPage() {
           carregarCarrinhasSupabase(),
           carregarPerfisAcessoSupabase(),
           carregarLogsAuditoriaSupabase(),
+          carregarBaseFixaCarrinhasSupabase(),
+          sincronizarClientesB2BComSupabase(),
+          carregarBasesDiariasRecorrentes(),
+          carregarAjustesAdhocSupabase(),
+          carregarArtigosBaseFixaSupabase(),
         ]);
         if (Array.isArray(encs)) setEncomendas(encs);
         if (Array.isArray(clis) && clis.length) setClientes(clis);
@@ -336,27 +355,36 @@ export default function AdminPage() {
         }
         if (Array.isArray(pfs) && pfs.length) setPerfis(pfs);
         if (Array.isArray(logs) && logs.length) setLogsAuditoria(logs);
-        setReceiptConfig(getReceiptConfig());
-        const bfCarregada = carregarBaseFixaCarrinhas();
-        if (Array.isArray(bfCarregada)) setBaseFixaCarrinhas(bfCarregada);
-        carregarBaseFixaCarrinhasSupabase().then((bfs) => {
-          if (bfs && bfs.length > 0) {
-            setBaseFixaCarrinhas(bfs);
-            if (typeof window !== 'undefined') {
-              localStorage.setItem('padaria_base_fixa_carrinhas_v4', JSON.stringify(bfs));
-            }
+        if (Array.isArray(bfs) && bfs.length > 0) {
+          setBaseFixaCarrinhas(bfs);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('padaria_base_fixa_carrinhas_v4', JSON.stringify(bfs));
           }
-        });
-        const artsGuardados = carregarArtigosBaseFixa();
+        }
+        if (Array.isArray(b2b) && b2b.length > 0) {
+          setClientesB2B(b2b);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('padaria_clientes_b2b_v2', JSON.stringify(b2b));
+          }
+        }
+        if (Array.isArray(bases) && bases.length > 0) {
+          setBasesRecorrentes(bases);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('padaria_bases_diarias_recorrentes_v1', JSON.stringify(bases));
+          }
+        }
+        if (adhoc && Object.keys(adhoc).length > 0) {
+          setAjustesAdhoc(adhoc);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('padaria_ajustes_adhoc_v1', JSON.stringify(adhoc));
+          }
+        }
+        setReceiptConfig(getReceiptConfig());
+
         const artigosOficiaisSet = new Set(COLUNAS_MAPA_DIARIO_OFICIAL);
-        const listaOficial57 = (Array.isArray(artsGuardados) && artsGuardados.length > 0 ? artsGuardados : COLUNAS_MAPA_DIARIO_OFICIAL)
+        const listaOficial57 = (Array.isArray(arts) && arts.length > 0 ? arts : COLUNAS_MAPA_DIARIO_OFICIAL)
           .filter((a) => artigosOficiaisSet.has(a));
         setArtigosBaseFixa(listaOficial57.length > 0 ? listaOficial57 : [...COLUNAS_MAPA_DIARIO_OFICIAL]);
-        const b2b = carregarClientesEmpresariaisB2B();
-        if (Array.isArray(b2b)) setClientesB2B(b2b);
-        sincronizarClientesB2BComSupabase().then((res) => {
-          if (res && res.length > 0) setClientesB2B(res);
-        });
       } catch (err) {
         console.error('Erro no carregamento inicial de dados em gestao:', err);
       }
