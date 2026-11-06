@@ -41,6 +41,7 @@ import {
   carregarLogsAuditoriaSupabase,
   reiniciarLogsAuditoriaParaMock,
   carregarBaseFixaCarrinhas,
+  carregarBaseFixaCarrinhasSupabase,
   salvarBaseFixaCarrinhas,
   carregarArtigosBaseFixa,
   salvarArtigosBaseFixa,
@@ -338,6 +339,14 @@ export default function AdminPage() {
         setReceiptConfig(getReceiptConfig());
         const bfCarregada = carregarBaseFixaCarrinhas();
         if (Array.isArray(bfCarregada)) setBaseFixaCarrinhas(bfCarregada);
+        carregarBaseFixaCarrinhasSupabase().then((bfs) => {
+          if (bfs && bfs.length > 0) {
+            setBaseFixaCarrinhas(bfs);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('padaria_base_fixa_carrinhas_v4', JSON.stringify(bfs));
+            }
+          }
+        });
         const artsGuardados = carregarArtigosBaseFixa();
         const artigosOficiaisSet = new Set(COLUNAS_MAPA_DIARIO_OFICIAL);
         const listaOficial57 = (Array.isArray(artsGuardados) && artsGuardados.length > 0 ? artsGuardados : COLUNAS_MAPA_DIARIO_OFICIAL)
@@ -853,7 +862,12 @@ export default function AdminPage() {
 
   const abrirGuiaCargaConjuntaPdf = () => {
     try {
-      const dataAlvo = new Date().toISOString().split('T')[0];
+      const dataAlvo = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/Lisbon',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(new Date());
       const dados = calcularDadosGuiaCargaConjunta(
         dataAlvo,
         carrinhas,

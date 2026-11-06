@@ -754,8 +754,8 @@ export function gerarPdfGuiaCargaConjunta(params: ParametrosFolhaCargaPdf | stri
     dataFormatada = params.dataFormatada;
     diaSemana = params.diaSemana || 'seg';
     carrinhas = params.carrinhas && params.carrinhas.length > 0 ? params.carrinhas : CARRINHAS_MOCK;
-    baseFixaCarrinhas = params.baseFixaCarrinhas || BASE_FIXA_CARRINHAS_INICIAL;
-    clientesB2B = params.clientesB2B || CLIENTES_EMPRESARIAIS_B2B_INICIAIS;
+    baseFixaCarrinhas = params.baseFixaCarrinhas && params.baseFixaCarrinhas.length > 0 ? params.baseFixaCarrinhas : BASE_FIXA_CARRINHAS_INICIAL;
+    clientesB2B = params.clientesB2B && params.clientesB2B.length > 0 ? params.clientesB2B : CLIENTES_EMPRESARIAIS_B2B_INICIAIS;
     basesRecorrentes = params.basesRecorrentes || [];
     encomendas = params.encomendas || [];
     produtos = params.produtos && params.produtos.length > 0 ? params.produtos : PRODUTOS_MOCK;

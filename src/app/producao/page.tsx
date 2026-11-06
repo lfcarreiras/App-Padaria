@@ -11,6 +11,7 @@ import {
   carregarProdutosSupabase,
   carregarCarrinhasSupabase,
   carregarBaseFixaCarrinhas,
+  carregarBaseFixaCarrinhasSupabase,
   carregarClientesEmpresariaisB2B,
   carregarAjustesAdhoc,
   carregarAjustesAdhocSupabase,
@@ -182,6 +183,15 @@ export default function ProducaoPage() {
       if (cars && cars.length > 0) setCarrinhas(cars);
       if (prods && prods.length > 0) setProdutos(prods);
       setBaseFixaCarrinhas(carregarBaseFixaCarrinhas());
+      carregarBaseFixaCarrinhasSupabase().then((bfs) => {
+        if (bfs && bfs.length > 0) {
+          setBaseFixaCarrinhas(bfs);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('padaria_base_fixa_carrinhas_v4', JSON.stringify(bfs));
+          }
+          setVersaoDados((v) => v + 1);
+        }
+      });
       setClientesB2B(carregarClientesEmpresariaisB2B());
       sincronizarClientesB2BComSupabase().then((res) => {
         if (res && res.length > 0) setClientesB2B(res);
@@ -261,12 +271,22 @@ export default function ProducaoPage() {
 
   const lojaAtual = lojas.find((l) => l.id === selectedLojaId) || lojas[0] || LOJAS_MOCK[0];
 
-  // Datas de referência
-  const hoje = new Date().toISOString().split('T')[0];
-  const dHoje = new Date();
-  const dAmanha = new Date(dHoje);
-  dAmanha.setDate(dHoje.getDate() + 1);
-  const amanha = dAmanha.toISOString().split('T')[0];
+  // Datas de referência oficiais (Fuso horário Portugal Continental Europe/Lisbon)
+  const agoraLisboa = new Date();
+  const hoje = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Lisbon',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(agoraLisboa);
+
+  const dHojeLisboa = new Date(agoraLisboa.toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
+  dHojeLisboa.setDate(dHojeLisboa.getDate() + 1);
+  const amanha = new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(dHojeLisboa);
   const diaSemanaHoje = obterDiaSemanaDeData(hoje);
 
   const nomesDiaSemana: Record<string, string> = {
