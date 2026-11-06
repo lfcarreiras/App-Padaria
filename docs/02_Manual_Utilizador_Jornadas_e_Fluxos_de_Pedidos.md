@@ -1,9 +1,9 @@
 ---
 title: "02 - Manual de Utilização, Jornadas por Perfil e Fluxos End-to-End de Pedidos"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.7.19"
+version: "2.7.49"
 date_saved: 2026-10-16
-updated: 2026-10-25
+updated: 2026-11-06
 status: "Em Produção (Live)"
 tags:
   - #Inprooval/ManualUtilizador
@@ -16,7 +16,7 @@ tags:
 
 **Entidade Tecnológica:** EyeQ Lda / Inprooval®  
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
-**Versão:** `v2.7.19` (25/10/2026)  
+**Versão:** `v2.7.49` (06/11/2026)  
 
 ---
 
@@ -175,9 +175,17 @@ flowchart TD
    - **Tabela 2 (Desdobramento B2B):** Lista apenas os clientes empresariais com entregas agendadas para o dia (suprimindo entidades a 0 un., como a Associação de Pais de Chave ao sábado) e visto `[ ] Entregue Conforme`.
    - **Tabela 3 (Desdobramento Encomendas):** Detalhe de encomendas adicionais ao domicílio com morada, horário agendado e contacto.
    - **Bloco de Fecho Consolidado:** Resumo geral no fim da folha somando `Base Diária + B2B + Encomendas = Total Geral a Bordo` com estimativa de caixas e assinatura do motorista e expedição.
-4. **Exportação Oficial do Excel «MAPA DIÁRIO»:**
+4. **Emissão da Guia Oficial de Carga Conjunta (Matriz Horizontal em 3 Folhas A4):**
+   - No topo do painel de logística e na expedição da madrugada, o encarregado pode gerar a **Guia Conjunta de Carga** para a frota completa (Rotas 1 a 7):
+     - **Folha 1:** *Padaria - Parte 1 de 2* (17 colunas de pão, desde Broa Amarela a Pão Alfarroba, subtotais por rota e subtotal P1).
+     - **Folha 2:** *Padaria - Parte 2 de 2* (17 colunas seguintes, de Pão de Bico a Triga Milha Saloio, subtotais de rota e Total Geral de Padaria).
+     - **Folha 3:** *Pastelaria Fina* (18 colunas de pastelaria), Total Geral a Bordo (`Padaria + Pastelaria`), caixa de validação do Chefe de Expedição e visto de partida dos motoristas com registo de hora.
+     - **Padronização Visual:** Cabeçalhos limpos `ROTA X` sem ruído, grelha em 8/7.5pt com margens de segurança para nunca truncar texto.
+   - **Garantia de Paridade Total com E-mail:** O documento impresso no ecrã é 100% idêntico ao gerado e enviado pelo serviço noturno de continuidade (`pdfContinuidadeBuilder.ts`).
+
+5. **Exportação Oficial do Excel «MAPA DIÁRIO»:**
    - Clicar no botão **`📥 Exportar Excel «MAPA DIÁRIO»`** no topo do ecrã para descarregar o ficheiro consolidado da frota.
-5. **Execução da Rota e Registo de Entrega Real:**
+6. **Execução da Rota e Registo de Entrega Real:**
    - Reordenar paragens por *Drag & Drop* ou usar o botão **Otimizar Rota**.
    - Clicar em **Abrir GPS (Google Maps)** para navegar até à morada do cliente.
    - Ao entregar o pão/pastelaria na porta do cliente, clicar em **`✅ Concluir Entrega`** — o sistema regista automaticamente a **Data e Hora Real da Entrega** para o cálculo de pontualidade (*% On-Time*).

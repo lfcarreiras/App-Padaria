@@ -1,9 +1,9 @@
 ---
 title: "01 - Dossier Técnico e Evolução Arquitetural da Solução"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.7.19"
+version: "2.7.49"
 date_saved: 2026-10-16
-updated: 2026-10-25
+updated: 2026-11-06
 status: "Em Produção (Live)"
 tags:
   - #Inprooval/DossierTecnico
@@ -17,7 +17,7 @@ tags:
 
 **Entidade Tecnológica:** EyeQ Lda / Inprooval®  
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
-**Versão Atual em Produção:** `v2.7.19` (25/10/2026)  
+**Versão Atual em Produção:** `v2.7.49` (06/11/2026)  
 **Repositório & CI/CD:** GitHub (`lfcarreiras/App-Padaria`) $\to$ Vercel Production  
 
 ---
@@ -261,11 +261,48 @@ A plataforma foi auditada pelos **7 Agentes Especialistas do Inprooval® Bulletp
 
 ---
 
+### 4.6. Sprints 11 a 15 — Guia Conjunta Horizontal, Fabrico Dedicado e Sincronização Total Supabase (`v2.7.20` $\to$ `v2.7.49`)
+
+Entre 26 de Outubro e 6 de Novembro de 2026, a Inprooval® implementou a maior vaga de refinamento operacional e consolidação de dados da plataforma:
+
+1. **Guia Oficial de Carga Conjunta (Matriz Horizontal de Todas as Rotas 1 a 7):**
+   * **Problema:** A visualização anterior num único bloco condensava dezenas de colunas em letras minúsculas e ilegíveis para a equipa da expedição da madrugada.
+   * **Solução de Engenharia:** Criação de um layout A4 Landscape estritamente repartido em 3 folhas padronizadas com tamanho de letra 8/7.5pt e margens de segurança para impedir qualquer corte de texto:
+     * **Folha 1:** *1. Secção Padaria (Parte 1 de 2)* — 17 primeiras colunas de pão (desde Broa Amarela a Pão Alfarroba), subtotais por rota e subtotal geral P1.
+     * **Folha 2:** *1. Secção Padaria (Parte 2 de 2)* — 17 colunas seguintes (Pão de Bico até Triga Milha Saloio), subtotais de rota e Total Geral de Padaria.
+     * **Folha 3:** *2. Secção Pastelaria Fina* — 18 colunas de pastelaria, total geral a bordo (`Padaria + Pastelaria`), caixa de validação do Chefe de Expedição/Fabrico e visto de partida dos condutores com hora.
+     * **Higienização de Rótulos:** Cabeçalho das rotas limpo no formato estrito `ROTA X` (removendo condutores e matrículas da matriz de carga para máxima clareza).
+
+2. **Folha de Fabrico Oficial Discriminada por Encomenda:**
+   * **Isolamento de Encomendas:** Quando o utilizador filtra por encomendas, o sistema imprime exclusivamente as encomendas ativas dos clientes, omitindo as quantidades de base fixa e B2B que pertencem à expedição de carrinhas.
+   * **Quebras Limpas e Identificação:** Agrupamento por loja com quebra de página A4 forçada (`break-before: page`), vistos de controlo `[ ] Pronto / Embalado` e suporte integral ao Centro de Fabrico como entidade de emissão (`ENC-FABRICO-xxxx`).
+
+3. **Sincronização Total Paralela no Arranque via Supabase (`Promise.all`):**
+   * **Eliminação de Divergências:** Nas versões anteriores, a app arrancava a ler bases fixas de carrinha do `localStorage`, enquanto o serviço de email lia da base de dados Supabase, gerando números desencontrados quando o utilizador alterava valores noutro posto.
+   * **Arquitetura Unificada:** Tanto em `/producao`, como em `/gestao` e `/entregas`, o arranque executa um `Promise.all` direto que descarrega em paralelo as 8 tabelas centrais: `encomendas`, `lojas`, `carrinhas`, `produtos`, `bases_fixas_carrinhas`, `clientes_empresariais`, `bases_diarias_recorrentes` e `ajustes_producao`. A memória e a cache local são atualizadas instantaneamente e alimentadas em tempo real pelas subscrições Supabase.
+
+4. **Motor de Continuidade de Negócio (BCP) Réplica 100% da Aplicação:**
+   * O endpoint `/api/cron/continuidade-negocio` corre diariamente às 00h15 (fuso `Europe/Lisbon`).
+   * Gera em memória através de `pdfContinuidadeBuilder.ts` os dois buffers PDF nativos (`Folha_Fabrico_DD-MM-AAAA.pdf` e `Guia_Carga_Conjunta_DD-MM-AAAA.pdf`), aplicando rigorosamente a mesma partição em 3 folhas, as mesmas fórmulas e os mesmos 57 artigos canónicos da interface web, disparando por Resend API com autenticação `CRON_SECRET`.
+
+5. **Persistência Central da Configuração de Talão Térmico (`ReceiptConfig`):**
+   * A parametrização do talão de venda rápida (slogan, NIF, morada, mensagem de rodapé, formato 80mm vs 58mm) passou a ser persistida na tabela `configuracoes_sistema` da Supabase sob a chave `configuracao_talao`, garantindo propagação imediata a todos os balcões e caixas registadoras.
+
+6. **Harmonização Semântica dos 57 Artigos Canónicos:**
+   * Mapeamento integral nas grelhas, eliminação de variantes secundárias no catálogo e correção de gralhas históricas (`P. forma pequeno`, `Triga milha 1 kg`, `Regueifa Canela`).
+
+---
+
 ## 5. Registo de Retrofits, Descontinuações e Simplificações Arquiteturais (Deprecation & Retrofit Ledger)
 
 Como parte da disciplina de **Living Documentation** mantida pelo Agente 7 do Inprooval Swarm, todas as decisões de descontinuação, retrofit ou eliminação de componentes ocorridas ao longo do projeto encontram-se rigorosamente auditadas abaixo:
 
 | Componente / Funcionalidade | Estado | Versão de Corte | Motivo da Decisão de Engenharia & Retrofit | Substituto Técnico / Solução Adotada |
+| **Carregamento Local Desfasado (`carregarBaseFixaCarrinhas()` local)** | ❌ **Eliminada** | `v2.7.47` | Dependência de `localStorage` no arranque causava divergência entre a app e o email de continuidade. | `carregarBaseFixaCarrinhasSupabase()` integrado no `Promise.all` no arranque de todos os cockpits. |
+| **Grelha de Carga Vertical Condensada** | 🔄 **Retrofitted** | `v2.7.44` | Tabela de carga única numa folha tornava a letra minúscula e ilegível para a expedição. | Guia de Carga Conjunta repartida em 3 folhas A4 Landscape (17 + 17 colunas Padaria + 18 colunas Pastelaria). |
+| **Gralhas de Nomes de Produtos nas Grelhas** | 🔄 **Retrofitted** | `v2.7.49` | Nomes como *P. forna pequeno* ou *Triga milha1 kg* causavam ruído visual e desvios de pesquisa. | Nomenclatura semântica canónica alinhada com os 57 artigos oficiais do Supabase. |
+| **Configuração Local de Talão (`app_receipt_config` puro)** | 🔄 **Retrofitted** | `v2.7.49` | Alterações de NIF ou cabeçalho de talão feitas na gestão não chegavam aos computadores de balcão. | Sincronização bidirecional persistida na tabela `configuracoes_sistema` do Supabase. |
+
 | :--- | :---: | :---: | :--- | :--- |
 | **Camada de Tradução Estática (`normalizarNomeArtigoCanonico`)** | ❌ **Eliminada** | `v2.7.17` | Dicionários estáticos no cliente geravam `ReferenceError`, divergência semântica e complexidade desnecessária. | Consumo 100% direto dos 57 nomes canónicos consolidados na base de dados Supabase com higienização elementar (`.trim()`). |
 | **Rotas Secretas Ofuscadas (`/g9d0e2f...`)** | ❌ **Eliminada** | `v2.7.2` | Criavam atrito de navegação, incompatibilidade com atalhos e falsa sensação de segurança por obscuridade. | Implantação do subdomínio oficial `app.padariadavila.com` com cabeçalhos HTTP OWASP, bloqueio anti-indexação e Route Guards por sessão. |

@@ -1,9 +1,9 @@
 ---
 title: "03 - Manual do Administrador, Parametrizações e Fórmulas de Indicadores do Cockpit de Gestão"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.7.19"
+version: "2.7.49"
 date_saved: 2026-10-18
-updated: 2026-10-25
+updated: 2026-11-06
 status: "Em Produção (Live)"
 tags:
   - #Inprooval/ManualAdmin
@@ -17,7 +17,7 @@ tags:
 **Entidade Tecnológica:** EyeQ Lda / Inprooval®  
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
 **Rota de Acesso:** `/gestao` (Exclusivo para Perfil **Administrador / Gerência**)  
-**Versão:** `v2.7.19` (25/10/2026)  
+**Versão:** `v2.7.49` (06/11/2026)  
 
 ---
 
@@ -154,7 +154,10 @@ Esta aba centraliza toda a parametrização operacional e logística da *Padaria
 
 ## 4. Aba 3: Base de Dados, Catálogo Canónico & Importação Massiva (`database`)
 
-1. **Catálogo Canónico Consolidado & Consumo Direto Supabase (`v2.7.17`):**
+1. **Catálogo Canónico Oficial de 57 Artigos & Consumo Direto Supabase (`v2.7.49`):**
+   - Consolidação estrita nos **57 artigos canónicos oficiais** da Padaria da Vila, sem duplicações ou variantes residuais.
+   - Correção e higienização semântica de nomenclaturas (*P. forma pequeno*, *Triga milha 1 kg*, *Regueifa Canela*).
+   - Carregamento inicial em paralelo de todas as tabelas no arranque de qualquer cockpit (`Promise.all`), eliminando desfasamentos entre postos.
    - Eliminação de dicionários estáticos de tradução no código frontend (`normalizarNomeArtigoCanonico`); a plataforma consome diretamente a lista oficial de **57 artigos canónicos consolidados** da base de dados Supabase (ex.: *Pão Saloio*, *Broa Amarela 1 kg*, *Lanche Misto*).
    - Botão **«+ Novo Artigo»** posicionado diretamente no cabeçalho do Catálogo de Artigos.
    - Pesquisa em tempo real por nome, filtro por Categoria (`Padaria` / `Pastelaria`), Unidade (`unidade` / `kg`) e Estado (`Ativo` / `Inativo`).
@@ -179,7 +182,11 @@ Garante **rastreabilidade total (Accountability)** de todas as operações reali
 
 ---
 
-## 6. Aba 5: Configurador do Talão Térmico (`talao`)
+## 6. Aba 5: Configurador do Talão Térmico e Persistência Central Supabase (`talao`)
+
+Permite personalizar o layout do talão impresso nas lojas sem necessidade de intervenção técnica:
+- **Persistência Central no Supabase (`configuracoes_sistema` - `v2.7.49`):** Todos os parâmetros do talão (slogan, NIF, morada, mensagem de rodapé, formato 80mm vs 58mm) são persistidos centralmente na tabela `configuracoes_sistema` da Supabase sob a chave `configuracao_talao`. Isto garante que qualquer alteração feita no Cockpit de Gestão é descarregada e propagada imediatamente para todos os balcões e caixas registadoras no arranque, mantendo fallback de alta disponibilidade em `localStorage`.
+- **Configuração Individual por Loja Física:** Seletor de loja física (`Geral (Todas as Lojas)` ou loja específica), permitindo que cada balcão apresente os seus dados locais ou herde os valores globais corporativos.
 
 Permite personalizar o layout do talão impresso nas lojas sem necessidade de intervenção técnica:
 - **Configuração Individual por Loja Física (`v2.3.4`):** Seletor de loja física (`Geral (Todas as Lojas)` ou loja específica), permitindo que cada loja tenha o seu próprio cabeçalho comercial, telefone, morada, NIF e mensagem de rodapé, com fallback transparente para a configuração global.
