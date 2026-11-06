@@ -3062,7 +3062,7 @@ export const COLUNAS_GRELHA_PADARIA: ColunaGrelhaProduto[] = [
   { id: 'pao_centeio', label: 'Pão de centeio', alias: ['pão de centeio', 'pão centeio', 'pao centeio'] },
   { id: 'pao_forma_gr', label: 'Pão de forma Gr.', alias: ['pão de forma grande', 'pão de forma gr.', 'pao de forma gr.', 'pao forma grande'] },
   { id: 'pao_forma_corte_fino', label: 'P. F. gr. Corte fino', alias: ['pão de forma grande (corte fino)', 'p. f. gr. corte fino', 'pao de forma corte fino', 'corte fino'] },
-  { id: 'pao_forma_peq', label: 'P. forna pequeno', alias: ['pão de forma pequeno', 'p. forna pequeno', 'pão forma pequeno', 'p. forma pequeno', 'pao forma pequeno'] },
+  { id: 'pao_forma_peq', label: 'P. forma pequeno', alias: ['pão de forma pequeno', 'p. forma pequeno', 'pão forma pequeno', 'p. forna pequeno', 'pao forma pequeno'] },
   { id: 'pao_leite', label: 'Pão de leite', alias: ['pão de leite', 'pao de leite', 'pão leite'] },
   { id: 'pao_sementes', label: 'Pão sementes', alias: ['pão de sementes', 'pão sementes', 'pao sementes'] },
   { id: 'pao_integral', label: 'Pão integral', alias: ['pão integral', 'pao integral'] },
@@ -3072,7 +3072,7 @@ export const COLUNAS_GRELHA_PADARIA: ColunaGrelhaProduto[] = [
   { id: 'tosta', label: 'Tosta', alias: ['tosta', 'tostas'] },
   { id: 'triga_milha_03', label: 'Triga milha 0.3kg', alias: ['triga milha 0,3 kg', 'triga milha 0.3kg', 'triga milha 0,3kg'] },
   { id: 'triga_milha_05', label: 'Triga milha 0.5kg', alias: ['triga milha 0,5 kg', 'triga milha 0.5kg', 'triga milha 0,5kg'] },
-  { id: 'triga_milha_1', label: 'Triga milha1 kg', alias: ['triga milha 1 kg', 'triga milha 1kg', 'triga milha1 kg', 'triga milha 1,0 kg'] },
+  { id: 'triga_milha_1', label: 'Triga milha 1 kg', alias: ['triga milha 1 kg', 'triga milha 1kg', 'triga milha1 kg', 'triga milha 1,0 kg'] },
   { id: 'triga_milha_saloio', label: 'Tri. milha Saloio', alias: ['triga milha saloio', 'tri. milha saloio', 'triga saloio'] },
 ];
 
@@ -3091,7 +3091,7 @@ export const COLUNAS_GRELHA_PASTELARIA: ColunaGrelhaProduto[] = [
   { id: 'pasteis', label: 'Pasteis', alias: ['pasteis', 'pastéis'] },
   { id: 'pastel_nata', label: 'Pastel de Nata', alias: ['pastel de nata', 'nata', 'natas'] },
   { id: 'pastel_miniatura', label: 'Pastel Miniatura', alias: ['pastel miniatura', 'miniaturas', 'pasteis miniatura'] },
-  { id: 'regueifa_canela', label: 'Regueifa. Canela', alias: ['regueifa de canela', 'regueifa. canela', 'regueifa canela'] },
+  { id: 'regueifa_canela', label: 'Regueifa Canela', alias: ['regueifa de canela', 'regueifa canela', 'regueifa. canela'] },
   { id: 'regueifa_coco', label: 'Regueifa de Côco', alias: ['regueifa de côco', 'regueifa de coco', 'regueifa coco', 'regueifa côco'] },
   { id: 'regueifa_doce', label: 'Regueifa Doce', alias: ['regueifa doce', 'regueifa branca'] },
   { id: 'tranca_chocolate', label: 'Trança Chocolate', alias: ['trança de chocolate', 'trança chocolate', 'trança de creme', 'trança regueifa branca'] },

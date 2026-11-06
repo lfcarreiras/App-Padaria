@@ -380,6 +380,9 @@ export default function AdminPage() {
           }
         }
         setReceiptConfig(getReceiptConfig());
+        carregarConfiguracaoTalaoSupabase().then((cfg) => {
+          if (cfg) setReceiptConfig(cfg);
+        });
 
         const artigosOficiaisSet = new Set(COLUNAS_MAPA_DIARIO_OFICIAL);
         const listaOficial57 = (Array.isArray(arts) && arts.length > 0 ? arts : COLUNAS_MAPA_DIARIO_OFICIAL)
