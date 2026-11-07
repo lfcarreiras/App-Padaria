@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/continuidade-negocio",
       "schedule": "15 0 * * *"
+    },
+    {
+      "path": "/api/cron/sentinela-integridade",
+      "schedule": "20 0 * * *"
     }
   ]
 }
