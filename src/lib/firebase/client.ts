@@ -1,6 +1,6 @@
 ﻿import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage, isSupported, Messaging } from 'firebase/messaging';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '../supabase';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,

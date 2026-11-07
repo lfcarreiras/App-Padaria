@@ -60,12 +60,16 @@ flowchart TD
         CRON20["00h20: Sentinela Noturno"] --> Orion_Run["Orion: Sonda Sintética E2E em Memória"]
         Orion_Run --> Check_All{"Todos os 12 Agentes Verificados?"}
         Check_All -- "Sim (100% Saudável)" --> Email_OK["Envio de Relatório Diário ao Presidente Executivo"]
-        Check_All -- "Anomalia Detetada" --> Auto_Fix["Mitigação Silenciosa ou Escalamento ao Council"]
+        Check_All -- "Anomalia Detetada" --> ALERTA_PRES["1. Report Imediato de Anomalia ao Presidente Executivo"]
+        ALERTA_PRES --> AUTO_HEAL_M4["2. Autocorreção Autónoma pelo Swarm de Agentes"]
+        AUTO_HEAL_M4 --> REPORT_POST["3. Report Pós-Correção ao Presidente\n(Anomalia + Causa-Raiz + Como foi Corrigida)"]
     end
 
-    subgraph T5 ["MOMENTO 5: Memória Coletiva & Governação"]
-        Mnemos_Vault["Mnemos: Registo de Post-Mortems no Obsidian Vault"]
-        Nestor_Gov["Nestor: Orquestração do Conselho de Governação"]
+    subgraph T5 ["MOMENTO 5: Memória Coletiva, Aprendizagem Contínua & Governação"]
+        REPORT_POST --> Mnemos_Learn["4. Mnemos: Registo de Lições Aprendidas no Vault\n(Aprendizagem Contínua Transversal Inprooval)"]
+        Email_OK --> Mnemos_Vault["Mnemos: Arquivo de Sanidade e Métricas no Vault"]
+        Mnemos_Learn --> Nestor_Gov["Nestor: Orquestração do Conselho de Governação"]
+        Mnemos_Vault --> Nestor_Gov
     end
 
     T1 --> T2
@@ -76,7 +80,7 @@ flowchart TD
 
 ---
 
-### O Funil das Decisões (Decision Funnel Architecture)
+### O Funil das Decisões & Ciclo de Aprendizagem Contínua (Decision Funnel Architecture)
 
 ```mermaid
 flowchart TD
@@ -86,10 +90,15 @@ flowchart TD
         F1 --> A_SWARM
     end
 
-    subgraph N2 ["NÍVEL 2: Triagem & Autocorreção Local (Filtro Operacional)"]
-        A_SWARM --> COND1{"Desvio Crítico ou Quebra de Guardrail?"}
-        COND1 -- "Não (Desvio Menor / Correção Mecânica)" --> FIX_AUTO["Autocorreção em Memória / Retry com Backoff"]
-        COND1 -- "Sim (Quebra de Guardrail / Impasse)" --> ESCALA["Escalamento para o Conselho de Governação"]
+    subgraph N2 ["NÍVEL 2: Triagem & Ciclo de Autocorreção Autónoma"]
+        A_SWARM --> COND1{"Anomalia ou Desvio Detetado?"}
+        COND1 -- "Não (100% Conforme)" --> REPORT_NORMAL["Relatório Diário de Saúde ao Presidente Executivo"]
+        COND1 -- "Sim (Anomalia Detetada)" --> REPORT_ANOMALIA["1. Report Imediato de Anomalia ao Presidente Executivo"]
+        REPORT_ANOMALIA --> AUTO_HEAL["2. Autocorreção Autónoma pelo Swarm de Agentes"]
+        AUTO_HEAL --> COND_HEAL{"Autocorreção Concluída com Sucesso?"}
+        COND_HEAL -- "Sim (Resolvido)" --> REPORT_TRIPARTITE["3. Report Pós-Correção ao Presidente\n(Anomalia + Causa-Raiz + Forma como foi Corrigida)"]
+        REPORT_TRIPARTITE --> LEARN_LOOP["4. Mnemos: Registo de Lições Aprendidas no Vault\n(Aprendizagem Contínua em todas as Soluções Inprooval)"]
+        COND_HEAL -- "Não (Impasse Estrutural / Risco)" --> ESCALA["Escalamento para o Conselho de Governação"]
     end
 
     subgraph N3 ["NÍVEL 3: Orquestração do Conselho (Nestor - Moderador)"]
@@ -114,6 +123,17 @@ flowchart TD
         DECISAO -- "Revisão / Rejeição" --> REDIRECT["Devolução ao Swarm com Diretrizes de Refatoração"]
     end
 ```
+
+### Protocolo Mandatório de Tratamento de Anomalias & Aprendizagem Contínua
+
+Sempre que qualquer agente do Swarm ou rotina sentinela intercetar uma anomalia:
+1. **Passo 1 — Report Imediato ao Presidente Executivo:** A anomalia é imediatamente comunicada (via canal interativo ou alerta de prioridade máxima).
+2. **Passo 2 — Autocorreção Autónoma pelo Swarm:** Os agentes especialistas intervêm autonomamente no código ou na configuração para restabelecer a integridade operacional.
+3. **Passo 3 — Comunicação Tripartite Pós-Correção:** O relatório de encerramento contém obrigatoriamente:
+   * **A Anomalia:** Sintoma ou falha detetada;
+   * **A Causa-Raiz:** Diagnóstico técnico do motivo da falha;
+   * **A Forma de Correção:** Explicação detalhada da solução ou patch aplicado.
+4. **Passo 4 — Registo de Lições Aprendidas (Mnemos):** Transcrição mandatória para o `Playbook_Arquitetural_e_Licoes_Aprendidas.md` e disseminação como padrão transversal em todas as soluções digitais da Inprooval, garantindo que o ecossistema aprende continuamente e nunca repete o mesmo erro.
 
 ---
 
