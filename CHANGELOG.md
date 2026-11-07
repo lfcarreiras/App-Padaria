@@ -42,6 +42,28 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.50] - 2026-11-07
+
+### Fixed & Bulletproof (Correção de Mapeamento Semântico de Regueifa Doce e Trança de Chocolate na Guia Conjunta & Relatório Noturno Orion por E-mail)
+- **Correção da Causa-Raiz das Quantidades de Regueifa Doce e Trança Chocolate**:
+  - src/lib/encomendasService.ts: Removido 'regueifa branca' dos aliases de regueifa_doce (onde estava a contaminar o total com 19 un. no sábado e 20 un. no domingo).
+  - Removidos 'trança de creme' e 'trança regueifa branca' dos aliases de tranca_chocolate (onde estavam a inflacionar a coluna com 7 un. no sábado e 35 un. no domingo).
+  - Refinada a função identificarColunaGrelha: eliminada a correspondência bidirecional an.includes(norm) para prevenir falsos positivos em palavras curtas ou produtos genéricos; correspondência por inclusão estrita a norm.includes(an) com an.length >= 5.
+  - Validação estrita dos totais consolidados para os dias 07/11 (Sábado) e 08/11 (Domingo):
+    - 07/11 (Sábado): Regueifa Doce = 15 un. (estabilizada de 34); Trança Chocolate = 15 un. (estabilizada de 22).
+    - 08/11 (Domingo): Regueifa Doce = 8 un. (estabilizada de 28); Trança Chocolate = 8 un. (estabilizada de 43).
+  - Paridade total garantida entre a visualização na app (PdfViewerModal.tsx) e os cadernos PDF anexados ao e-mail de continuidade (pdfContinuidadeBuilder.ts).
+- **Relatório Noturno do Sentinela Orion por E-mail (Inprooval Swarm)**:
+  - src/app/api/cron/sentinela-integridade/route.ts: Configurado o envio diário do relatório de auditoria noturna de saúde e sanidade (00h20) para luis.carreiras@inprooval.pt via Resend API, cobrindo os 5 dias solicitados de monitorização ativa sem interrupções mesmo em estado 100% saudável.
+
+## [v2.7.49] - 2026-11-07
+
+### Added (Seleção Livre de Local de Levantamento de Encomendas em Todos os Balcões e Centro de Fabrico)
+- **Independência de Levantamento por Balcão**:
+  - src/app/encomendas/page.tsx: Removido o bloqueio rígido que forçava a loja de levantamento à loja onde o utilizador tinha sessão iniciada. O operador pode agora criar uma encomenda num balcão e assignar o levantamento a qualquer outra loja ou centro de fabrico livremente.
+  - O seletor de loja de levantamento identifica (Balcão Atual) para orientação e grava loja_pedido_id de forma fidedigna.
+  - src/components/ThermalReceipt.tsx: Destacada a indicação clara do local de levantamento no talão térmico.
+
 ## [v2.7.46] - 2026-11-05
 
 ### Refined & Operational (Restauro Estrito aos 57 Artigos Oficiais no Supabase, Grelhas e Documentos)

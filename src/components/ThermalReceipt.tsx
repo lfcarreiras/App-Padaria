@@ -155,6 +155,15 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
               <p className="text-[11px] break-words">{t.receiptCustomer}: <b>{encomenda.cliente?.nome || 'Cliente'}</b></p>
               <p className="text-[11px]">{t.receiptPhone}: <b>{encomenda.cliente?.telefone || '—'}</b></p>
 
+              {encomenda.tipo === 'levantamento_loja' && (
+                <div className="mt-1 pt-1 border-t border-dotted border-gray-400 text-[10.5px]">
+                  <p className="font-bold">LEVANTAMENTO EM LOJA:</p>
+                  <p className="break-words font-black text-[11px] uppercase">
+                    {encomenda.loja_nome || loja?.nome || 'Loja de Levantamento'}
+                  </p>
+                </div>
+              )}
+
               {encomenda.tipo === 'entrega_domicilio' && (
                 <div className="mt-1 pt-1 border-t border-dotted border-gray-400 text-[10.5px]">
                   <p className="font-bold">{t.receiptDeliveryAddress}:</p>

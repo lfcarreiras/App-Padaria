@@ -180,9 +180,9 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
   }, [lojaTrabalhoId]);
 
   const lojaFabricoPadrao = lojas.find((l) => l.codigo === 'FABRICO' || l.nome.toLowerCase().includes('fabrico')) || LOJAS_MOCK.find((l) => l.codigo === 'FABRICO');
-  const idLojaEfetiva = lojaAfetaId || (tipoEntrega === 'levantamento_loja'
+  const idLojaEfetiva = tipoEntrega === 'levantamento_loja'
     ? lojaPedidoId
-    : (selectedLojaId !== 'todas' ? selectedLojaId : (lojaFabricoPadrao?.id || null)));
+    : (selectedLojaId !== 'todas' ? selectedLojaId : (lojaAfetaId || lojaFabricoPadrao?.id || null));
   const lojaAtual = lojas.find((l) => l.id === idLojaEfetiva) || (tipoEntrega === 'entrega_domicilio' ? (lojaFabricoPadrao || lojas[0]) : (lojas[0] || LOJAS_MOCK[0]));
 
   // Pesquisa automática de cliente no formulário de pedido
@@ -297,10 +297,17 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
       };
 
       // Se for entrega ao domicílio (carrinha/rota), a encomenda é expedida do Centro de Fabrico!
-      // Se for levantamento em loja, respeita a loja escolhida (que também pode ser o Centro de Fabrico).
+      // Se for levantamento em loja, respeita rigorosamente a loja escolhida para levantamento (lojaPedidoId).
       const lojaEfetiva = tipoEntrega === 'entrega_domicilio'
         ? lojaFabricoObj
-        : (lojas.find((l) => l.id === (lojaAfetaId || lojaPedidoId)) || lojaAtual || lojaFabricoObj);
+        : (lojas.find((l) => l.id === lojaPedidoId) || lojaAtual || lojaFabricoObj);
+
+      // Identificar se o atendimento foi feito num balcão diferente do de levantamento
+      const lojaBalcaoRegisto = lojaAfetaId ? lojas.find((l) => l.id === lojaAfetaId) : null;
+      const notaRegistoBalcao = (lojaBalcaoRegisto && lojaBalcaoRegisto.id !== lojaEfetiva.id)
+        ? `[Registado no balcão: ${lojaBalcaoRegisto.nome}]`
+        : '';
+      const notasFinais = [notaRegistoBalcao, notasGerais.trim()].filter(Boolean).join(' ');
 
       const codigoPrefixo = (lojaEfetiva.codigo || 'FABRICO').toUpperCase();
       const codigoGerado = `ENC-${codigoPrefixo}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -371,7 +378,7 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
           estado: 'pendente',
           estado_pagamento: 'pago',
           total: 0,
-          notas_cliente: notasGerais.trim() || null,
+          notas_cliente: notasFinais || null,
         };
 
         let { data: encDb, error: errEnc } = await supabase
@@ -458,7 +465,7 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
         hora_agendamento: horaAgendamento,
         estado: 'pendente',
         total: 0,
-        notas_cliente: notasGerais.trim() || undefined,
+        notas_cliente: notasFinais || undefined,
         itens: [...carrinho],
         criado_em: new Date().toISOString(),
       };
@@ -683,8 +690,8 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
     );
   });
 
-  // Filtros de Encomendas (Isolamento Estrito de Loja para não-admins)
-  const idLojaFiltro = lojaAfetaId || (selectedLojaId !== 'todas' ? selectedLojaId : null);
+  // Filtros de Encomendas (Permite alternar entre loja afeta e outras lojas no histórico)
+  const idLojaFiltro = selectedLojaId !== 'todas' ? selectedLojaId : null;
   const encomendasFiltradas = idLojaFiltro
     ? encomendas.filter((e) => e.loja_id === idLojaFiltro)
     : encomendas;
@@ -939,29 +946,35 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
                 {/* Loja de Levantamento (quando selecionado Levantamento em Loja) */}
                 {tipoEntrega === 'levantamento_loja' && (
                   <div className="bg-amber-50/70 p-3 rounded-xl border border-amber-200">
-                    <label className="block text-[11px] font-bold text-amber-950 mb-1 flex items-center gap-1.5">
-                      <Store className="h-3.5 w-3.5 text-amber-700" />
-                      Loja de Levantamento *
-                    </label>
-                    {lojaAfetaId ? (
-                      <div className="w-full px-3 py-2 text-xs bg-white rounded-lg border border-amber-300 font-bold text-gray-900 flex items-center justify-between">
-                        <span>{lojas.find((l) => l.id === lojaAfetaId)?.nome || lojaAfetaId}</span>
-                        <span className="text-[10px] text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-200">
-                          Loja Afeta
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-[11px] font-bold text-amber-950 flex items-center gap-1.5">
+                        <Store className="h-3.5 w-3.5 text-amber-700" />
+                        Loja de Levantamento *
+                      </label>
+                      {lojaAfetaId && (
+                        <span className="text-[10px] font-semibold text-amber-800 bg-amber-100/90 px-2 py-0.5 rounded border border-amber-200">
+                          Balcão Atual: {lojas.find((l) => l.id === lojaAfetaId)?.nome || 'Esta Loja'}
                         </span>
-                      </div>
-                    ) : (
-                      <select
-                        value={lojaPedidoId}
-                        onChange={(e) => setLojaPedidoId(e.target.value)}
-                        className="w-full px-3 py-2 text-xs bg-white rounded-lg border border-amber-300 font-bold text-gray-900 focus:outline-hidden focus:border-amber-500 cursor-pointer"
-                      >
-                        {lojas.map((l) => (
+                      )}
+                    </div>
+                    <select
+                      value={lojaPedidoId}
+                      onChange={(e) => setLojaPedidoId(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-white rounded-lg border border-amber-300 font-bold text-gray-900 focus:outline-hidden focus:border-amber-500 cursor-pointer"
+                    >
+                      {lojas.map((l) => {
+                        const isCurrentStore = l.id === lojaAfetaId;
+                        return (
                           <option key={l.id} value={l.id}>
-                            {l.nome}
+                            {l.nome} {isCurrentStore ? '(Balcão Atual)' : ''}
                           </option>
-                        ))}
-                      </select>
+                        );
+                      })}
+                    </select>
+                    {lojaAfetaId && lojaPedidoId !== lojaAfetaId && (
+                      <p className="text-[10px] text-amber-800 font-medium mt-1.5 bg-amber-100/70 p-1.5 rounded border border-amber-200/80">
+                        📍 O cliente levantará a encomenda na <b>{lojas.find((l) => l.id === lojaPedidoId)?.nome}</b>. O pedido será encaminhado para a respetiva loja.
+                      </p>
                     )}
                   </div>
                 )}
@@ -1250,25 +1263,21 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
             {/* Barra de Filtros do Histórico: Seletor de Loja, Pesquisa e Seletor de Período / Calendário */}
             <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-2xs space-y-3">
               <div className="flex flex-col md:flex-row items-center gap-3">
-                {/* Seletor de Loja (exclusivamente no Histórico de Encomendas) */}
+                {/* Seletor de Loja (no Histórico de Encomendas) */}
                 <div className="flex items-center gap-1.5 bg-stone-50 px-3 py-2 rounded-xl border border-gray-200 shadow-2xs w-full md:w-auto shrink-0">
                   <Store className="h-4 w-4 text-bakery-600 shrink-0" />
-                  {lojaAfetaId ? (
-                    <span className="text-xs font-black text-gray-900 whitespace-nowrap">
-                      {lojas.find((l) => l.id === lojaAfetaId)?.nome || lojaAfetaId}
-                    </span>
-                  ) : (
-                    <select
-                      value={selectedLojaId}
-                      onChange={(e) => setSelectedLojaId(e.target.value)}
-                      className="text-xs font-bold text-gray-900 bg-transparent focus:outline-hidden cursor-pointer w-full"
-                    >
-                      <option value="todas">{t.allStores}</option>
-                      {lojas.map((l) => (
-                        <option key={l.id} value={l.id}>{l.nome}</option>
-                      ))}
-                    </select>
-                  )}
+                  <select
+                    value={selectedLojaId}
+                    onChange={(e) => setSelectedLojaId(e.target.value)}
+                    className="text-xs font-bold text-gray-900 bg-transparent focus:outline-hidden cursor-pointer w-full"
+                  >
+                    <option value="todas">Todas as Lojas (Visão Geral)</option>
+                    {lojas.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.nome} {l.id === lojaAfetaId ? '(Meu Balcão)' : ''}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="relative flex-1 w-full">

@@ -1,38 +1,40 @@
 {
-  "name": "app-encomendas-padaria",
-  "version": "2.7.49",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "typecheck": "node node_modules/typescript/bin/tsc --project tsconfig.json --noEmit",
-    "swarm:audit": "node scripts/bulletproof-post-commit.mjs",
-    "swarm:check": "node scripts/check-pending-swarm.mjs",
-    "swarm:done": "node scripts/bulletproof-complete.mjs"
-  },
-  "dependencies": {
-    "@supabase/ssr": "^0.5.1",
-    "@supabase/supabase-js": "^2.45.6",
-    "clsx": "^2.1.1",
-    "lucide-react": "^0.453.0",
-    "next": "^14.2.15",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "tailwind-merge": "^2.5.4",
-    "xlsx": "^0.18.5",
-    "@react-pdf/renderer": "^3.4.4",
-    "@orama/orama": "^3.1.18",
-    "@trigger.dev/sdk": "^3.3.17"
-  },
-  "devDependencies": {
-    "@types/node": "^20.17.0",
-    "@types/react": "^18.3.11",
-    "@types/react-dom": "^18.3.1",
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.47",
-    "tailwindcss": "^3.4.14",
-    "typescript": "^5.6.3"
-  }
+    "name":  "app-encomendas-padaria",
+    "version": "2.7.50",
+    "private":  true,
+    "scripts":  {
+                    "dev":  "next dev",
+                    "build":  "next build",
+                    "start":  "next start",
+                    "lint":  "next lint",
+                    "typecheck":  "node node_modules/typescript/bin/tsc --project tsconfig.json --noEmit",
+                    "swarm:audit":  "node scripts/bulletproof-post-commit.mjs",
+                    "swarm:check":  "node scripts/check-pending-swarm.mjs",
+                    "swarm:done":  "node scripts/bulletproof-complete.mjs"
+                },
+    "dependencies":  {
+                         "@supabase/ssr":  "^0.5.1",
+                         "@supabase/supabase-js":  "^2.45.6",
+                         "clsx":  "^2.1.1",
+                         "lucide-react":  "^0.453.0",
+                         "next":  "^14.2.15",
+                         "react":  "^18.3.1",
+                         "react-dom":  "^18.3.1",
+                         "tailwind-merge":  "^2.5.4",
+                         "xlsx":  "^0.18.5",
+                         "@react-pdf/renderer":  "^3.4.4",
+                         "@orama/orama":  "^3.1.18",
+                         "@trigger.dev/sdk":  "^3.3.17",
+                         "firebase":  "^10.13.0",
+                         "firebase-admin":  "^12.6.0"
+                     },
+    "devDependencies":  {
+                            "@types/node":  "^20.17.0",
+                            "@types/react":  "^18.3.11",
+                            "@types/react-dom":  "^18.3.1",
+                            "autoprefixer":  "^10.4.20",
+                            "postcss":  "^8.4.47",
+                            "tailwindcss":  "^3.4.14",
+                            "typescript":  "^5.6.3"
+                        }
 }

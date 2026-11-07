@@ -3093,8 +3093,8 @@ export const COLUNAS_GRELHA_PASTELARIA: ColunaGrelhaProduto[] = [
   { id: 'pastel_miniatura', label: 'Pastel Miniatura', alias: ['pastel miniatura', 'miniaturas', 'pasteis miniatura'] },
   { id: 'regueifa_canela', label: 'Regueifa Canela', alias: ['regueifa de canela', 'regueifa canela', 'regueifa. canela'] },
   { id: 'regueifa_coco', label: 'Regueifa de Côco', alias: ['regueifa de côco', 'regueifa de coco', 'regueifa coco', 'regueifa côco'] },
-  { id: 'regueifa_doce', label: 'Regueifa Doce', alias: ['regueifa doce', 'regueifa branca'] },
-  { id: 'tranca_chocolate', label: 'Trança Chocolate', alias: ['trança de chocolate', 'trança chocolate', 'trança de creme', 'trança regueifa branca'] },
+  { id: 'regueifa_doce', label: 'Regueifa Doce', alias: ['regueifa doce', 'regueifa tradicional doce'] },
+  { id: 'tranca_chocolate', label: 'Trança Chocolate', alias: ['trança de chocolate', 'trança chocolate', 'tranca de chocolate', 'tranca chocolate', 'trança choc', 'tranca choc'] },
 ];
 
 export function identificarColunaGrelha(artigoNome: string): { coluna: ColunaGrelhaProduto; setor: 'padaria' | 'pastelaria' } | null {
@@ -3122,21 +3122,21 @@ export function identificarColunaGrelha(artigoNome: string): { coluna: ColunaGre
     }
   }
 
-  // 3. Correspondência por inclusão em Padaria
+  // 3. Correspondência por inclusão em Padaria (norm.includes(an), an com comprimento >= 5)
   for (const c of COLUNAS_GRELHA_PADARIA) {
     for (const a of c.alias) {
       const an = a.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      if (an.length > 4 && (norm.includes(an) || an.includes(norm))) {
+      if (an.length >= 5 && norm.includes(an)) {
         return { coluna: c, setor: 'padaria' };
       }
     }
   }
 
-  // 4. Correspondência por inclusão em Pastelaria
+  // 4. Correspondência por inclusão em Pastelaria (norm.includes(an), an com comprimento >= 5)
   for (const c of COLUNAS_GRELHA_PASTELARIA) {
     for (const a of c.alias) {
       const an = a.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      if (an.length > 4 && (norm.includes(an) || an.includes(norm))) {
+      if (an.length >= 5 && norm.includes(an)) {
         return { coluna: c, setor: 'pastelaria' };
       }
     }
