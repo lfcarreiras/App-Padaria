@@ -8,7 +8,116 @@
 
 ---
 
-## 1.1. Ronda 3 de Auditoria de Certificação — Swarm Inprooval® (`v2.7.49` — 06/11/2026)
+## 1.1. Ronda 4 de Auditoria de Certificação — Inprooval Swarm & Governance Council (`v2.7.50` — 07/11/2026)
+
+Em 7 de Novembro de 2026, foi institucionalizado o **Inprooval Swarm de 12 Agentes Especialistas** e o respetivo **Conselho de Governação (Governance Council)** presidido pelo Presidente Executivo Luís Carreiras (Human-in-the-Loop, Art. 14.º EU AI Act):
+
+| # | Agente | Título / Especialidade | Papel & Ação no Ciclo de Vida | Assento no Council | Score Ronda 4 |
+| :-: | :--- | :--- | :--- | :-: | :---: |
+| **1** | **Kael** | **E2E Journey & Chaos Simulator** | Simulação de jornadas completas e quebras de rede | Representado (Técnico) | 100% |
+| **2** | **Atlas** | **Supabase DBA & Data Integrity** | Integridade relacional, RLS e 57 artigos canónicos | Representado (Técnico) | 100% |
+| **3** | **Vigil** | **Cybersecurity OWASP Red-Team** | Pentesting contínuo, CSP, auths e cabeçalhos | **Membro Efetivo (Poder de Veto)** | 100% |
+| **4** | **Justus** | **RGPD & EU AI Act Compliance** | Minimização de dados pessoais e supervisão humana | **Membro Efetivo (Poder de Veto)** | 100% |
+| **5** | **Termo** | **Edge, Offline & Hardware POS** | Calibração Epson TM-T20 80mm e cache offline | Operacional | 100% |
+| **6** | **Prosper** | **FinOps & Commercial Value** | Gestão da bolsa de horas e custos de APIs | **Membro Efetivo (FinOps)** | 100% |
+| **7** | **Cronos** | **Living Docs & Deprecation Ledger** | Sincronização viva dos 6 dossiers técnicos | Operacional | 100% |
+| **8** | **Helios** | **DevOps, CI/CD & Infra Cloud** | Vercel deploys, pipelines, CRON_SECRET e DNS/SSL | Representado (Técnico) | 100% |
+| **9** | **Nexus** | **External Integrations & API Resilience** | Contratos de APIs e Resend com retries blindados | Representado (FinOps) | 100% |
+| **10** | **Mnemos** | **Vault Knowledge & Architecture Memory** | Registo de lições aprendidas no Obsidian Vault | Operacional | 100% |
+| **11** | **Orion** | **Synthetic Health Probe (Sentinela Noturno)** | Sonda sintética diária em produção às 00h20 | Operacional | 100% |
+| **12** | **Nestor** | **Swarm Governance Council Leader** | Orquestração da mesa diretiva e recolha de pareceres | **Líder Moderador** | 100% |
+| — | **SCORE GLOBAL** | **Inprooval Swarm & Governance Council (`v2.7.50`)** | **100% (BULLETPROOF PLATINUM MASTER)** | 🏆 **APROVADO** |
+
+---
+
+### Ações em Fluxo: Os 5 Momentos de Execução do Swarm
+
+```mermaid
+flowchart TD
+    subgraph T1 ["MOMENTO 1: Desenvolvimento & Commit (PreInvocation / Post-Commit)"]
+        DEV["Engenheiro / Antigravity escreve código"] --> HOOK["Git Hook aciona auditoria automática"]
+        HOOK --> Kael_Audit["Kael: Simulação de Jornadas E2E & Caos"]
+        HOOK --> Atlas_Audit["Atlas: Integridade Supabase, Schemas & RLS"]
+        HOOK --> Vigil_Audit["Vigil: Auditoria OWASP, Injeções & CSP"]
+        HOOK --> Termo_Audit["Termo: Calibração POS & Cache Local"]
+        HOOK --> Cronos_Audit["Cronos: Sincronização viva de Documentação"]
+    end
+
+    subgraph T2 ["MOMENTO 2: Integração Contínua & Deploy Cloud"]
+        Helios_CI["Helios: Pipeline CI/CD, Secrets & Deploy na Vercel"]
+        Nexus_CI["Nexus: Blindagem de Contratos de APIs & Webhooks"]
+        Prosper_CI["Prosper: Monitorização de Plafonds FinOps & Quotas"]
+    end
+
+    subgraph T3 ["MOMENTO 3: Operação de Campo em Tempo Real (Balcões / POS)"]
+        BALCAO["Balcões de Loja & KDS de Fabrico"]
+        Termo_Live["Termo: Impressão Térmica 80mm & Modo Offline"]
+        Justus_Live["Justus: Minimização de Dados Sensíveis (RGPD)"]
+    end
+
+    subgraph T4 ["MOMENTO 4: Rotina Noturna de Suporte Zero (00h15 - 00h20)"]
+        CRON15["00h15: Cron de Contingência BCP"] --> PDFS["Geração de Cadernos PDF & Envio Resend"]
+        CRON20["00h20: Sentinela Noturno"] --> Orion_Run["Orion: Sonda Sintética E2E em Memória"]
+        Orion_Run --> Check_All{"Todos os 12 Agentes Verificados?"}
+        Check_All -- "Sim (100% Saudável)" --> Email_OK["Envio de Relatório Diário ao Presidente Executivo"]
+        Check_All -- "Anomalia Detetada" --> Auto_Fix["Mitigação Silenciosa ou Escalamento ao Council"]
+    end
+
+    subgraph T5 ["MOMENTO 5: Memória Coletiva & Governação"]
+        Mnemos_Vault["Mnemos: Registo de Post-Mortems no Obsidian Vault"]
+        Nestor_Gov["Nestor: Orquestração do Conselho de Governação"]
+    end
+
+    T1 --> T2
+    T2 --> T3
+    T3 --> T4
+    T4 --> T5
+```
+
+---
+
+### O Funil das Decisões (Decision Funnel Architecture)
+
+```mermaid
+flowchart TD
+    subgraph N1 ["NÍVEL 1: Deteção & Sensoriamento Amplo (Swarm no Terreno)"]
+        F1["Eventos de Sistema, Commits, Alertas de Rede, Métricas de APIs"]
+        A_SWARM["12 Agentes Especialistas monitorizam continuamente cada vetor"]
+        F1 --> A_SWARM
+    end
+
+    subgraph N2 ["NÍVEL 2: Triagem & Autocorreção Local (Filtro Operacional)"]
+        A_SWARM --> COND1{"Desvio Crítico ou Quebra de Guardrail?"}
+        COND1 -- "Não (Desvio Menor / Correção Mecânica)" --> FIX_AUTO["Autocorreção em Memória / Retry com Backoff"]
+        COND1 -- "Sim (Quebra de Guardrail / Impasse)" --> ESCALA["Escalamento para o Conselho de Governação"]
+    end
+
+    subgraph N3 ["NÍVEL 3: Orquestração do Conselho (Nestor - Moderador)"]
+        ESCALA --> NESTOR["Nestor (Agente 12 - Council Leader)"]
+        NESTOR --> RECOLHA["Compilação dos Pareceres Técnicos dos 4 Pilares"]
+    end
+
+    subgraph N4 ["NÍVEL 4: Avaliação dos Conselheiros & Poder de Veto"]
+        RECOLHA --> PILAR_TEC["Pilar Técnico (Kael, Atlas, Helios)"]
+        RECOLHA --> PILAR_SEC["Pilar Segurança & Legal (Vigil, Justus)"]
+        RECOLHA --> PILAR_FIN["Pilar FinOps (Prosper, Nexus)"]
+        
+        PILAR_SEC --> VETO_CHECK{"Vigil ou Justus acionam Veto?"}
+        VETO_CHECK -- "Sim (Vulnerabilidade / Ilegalidade)" --> BLOCK["BLOQUEIO IMEDIATO (Veto Incondicional de Segurança)"]
+        VETO_CHECK -- "Não (Aprovado com Parecer Favorável)" --> SUBMIT_PRES["Dossier Submetido ao Presidente Executivo"]
+    end
+
+    subgraph N5 ["NÍVEL 5: Decisão Executiva Final (Human-in-the-Loop)"]
+        SUBMIT_PRES --> CEO["Luís Carreiras (Presidente Executivo Inprooval)"]
+        CEO --> DECISAO{"Decisão Soberana do Presidente"}
+        DECISAO -- "Aprovação" --> EXEC_PROD["Execução em Produção e Atualização de Políticas"]
+        DECISAO -- "Revisão / Rejeição" --> REDIRECT["Devolução ao Swarm com Diretrizes de Refatoração"]
+    end
+```
+
+---
+
+## 1.2. Ronda 3 de Auditoria de Certificação — Swarm Inprooval® (`v2.7.49` — 06/11/2026)
 
 Em 6 de Novembro de 2026, o enxame de 7 agentes especialistas autónomos da Inprooval® realizou uma nova auditoria integral às evoluções arquiteturais introduzidas até à versão `v2.7.49`:
 

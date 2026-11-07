@@ -1,4 +1,5 @@
-﻿import admin from 'firebase-admin';
+﻿import { initializeApp, getApps, cert, App } from 'firebase-admin/app';
+import { getMessaging } from 'firebase-admin/messaging';
 
 export const isFirebaseAdminConfigured = Boolean(
   process.env.FIREBASE_PROJECT_ID &&
@@ -6,24 +7,29 @@ export const isFirebaseAdminConfigured = Boolean(
   process.env.FIREBASE_PRIVATE_KEY
 );
 
-if (!admin.apps.length && isFirebaseAdminConfigured) {
+let adminApp: App | null = null;
+
+if (isFirebaseAdminConfigured) {
   try {
     const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
-    admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey,
-      }),
-    });
+    adminApp = !getApps().length
+      ? initializeApp({
+          credential: cert({
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+            privateKey,
+          }),
+        })
+      : getApps()[0];
+
     console.info('[Firebase Admin] Inicializado com sucesso para projeto:', process.env.FIREBASE_PROJECT_ID);
   } catch (err) {
     console.error('[Firebase Admin] Erro de inicialização:', err);
   }
 }
 
-export const firebaseAdmin = admin;
+export { adminApp };
 
 export interface SendPushParams {
   tokens: string[];
@@ -51,12 +57,14 @@ export async function sendOperationalPushNotification(
     return { successCount: 0, failureCount: 0, invalidTokens: [] };
   }
 
-  if (!isFirebaseAdminConfigured || !admin.apps.length) {
+  if (!isFirebaseAdminConfigured || !adminApp) {
     console.warn('[Firebase Admin] Tentativa de envio sem credenciais configuradas.');
     return { successCount: 0, failureCount: tokens.length, invalidTokens: [] };
   }
 
   try {
+    const messaging = getMessaging(adminApp);
+
     const payload = {
       tokens,
       notification: {
@@ -80,7 +88,7 @@ export async function sendOperationalPushNotification(
       },
     };
 
-    const response = await admin.messaging().sendEachForMulticast(payload);
+    const response = await messaging.sendEachForMulticast(payload);
 
     const invalidTokens: string[] = [];
     response.responses.forEach((resp, idx) => {
