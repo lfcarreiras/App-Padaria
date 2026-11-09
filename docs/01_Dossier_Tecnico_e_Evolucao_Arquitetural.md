@@ -1,9 +1,9 @@
----
+﻿---
 title: "01 - Dossier Técnico e Evolução Arquitetural da Solução"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.7.49"
+version: "2.7.51"
 date_saved: 2026-10-16
-updated: 2026-11-06
+updated: 2026-11-09
 status: "Em Produção (Live)"
 tags:
   - #Inprooval/DossierTecnico

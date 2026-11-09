@@ -40,24 +40,32 @@ import { OriginBadge } from '../../components/InproovalBadges';
 import { buscarEncomendasOramaSync } from '../../lib/oramaSearch';
 import { correspondePesquisaArtigo } from '../../lib/fuzzySearch';
 
-export default function EntregaLojaPage({ embedded = false }: { embedded?: boolean; [key: string]: any } = {}) {
+export default function EntregaLojaPage(props: any) {
+  const embedded = Boolean(props?.embedded);
   const router = useRouter();
   const { t } = useTranslation();
   const { podeEditar, podeLer, usuario, cockpitAtivo, loading, lojaTrabalhoId, obterRotaInicial } = useAuth();
   const currentUser = usuario || { id: 'user-balcao', nome: 'Marta Santos (Operador Balcão)', role: 'atendente' };
-  const temPermissaoEdicao = podeEditar('loja');
+  const isPadeiroOuFabrico =
+    currentUser.role === 'padeiro_pasteleiro' ||
+    currentUser.role === 'operador_padaria' ||
+    currentUser.role === 'operador_pastelaria' ||
+    cockpitAtivo === 'producao' ||
+    embedded;
+
+  const temPermissaoEdicao = podeEditar('loja') || (isPadeiroOuFabrico && (podeEditar('producao') || podeLer('producao')));
   const configMarca = obterConfiguracaoMarca();
 
   // Route Guard estrito para Cockpit de Loja / Balcão
   useEffect(() => {
-    if (!loading && usuario && !podeLer('loja')) {
+    if (!embedded && !loading && usuario && !podeLer('loja') && !isPadeiroOuFabrico) {
       router.replace(obterRotaInicial(usuario, cockpitAtivo));
     }
-  }, [loading, usuario, cockpitAtivo, router, podeLer, obterRotaInicial]);
+  }, [loading, usuario, cockpitAtivo, router, podeLer, obterRotaInicial, embedded, isPadeiroOuFabrico]);
 
-  // Isolamento estrito de Loja por utilizador (se não for admin e tiver loja afeta)
-  const lojaAfetaId = (usuario?.role !== 'admin' && (usuario?.loja_id || lojaTrabalhoId)) || null;
-  const [selectedLojaId, setSelectedLojaId] = useState<string>(lojaAfetaId || 'todas');
+  // Isolamento estrito de Loja: Se for admin ou utilizador de fabrico/padeiro, tem visão global de todas as lojas
+  const lojaAfetaId = (usuario?.role !== 'admin' && !isPadeiroOuFabrico && (usuario?.loja_id || lojaTrabalhoId)) || null;
+  const [selectedLojaId, setSelectedLojaId] = useState<string>(isPadeiroOuFabrico ? 'todas' : (lojaAfetaId || 'todas'));
   const [lojas, setLojas] = useState<Loja[]>(LOJAS_MOCK);
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
   const [filtroEstado, setFiltroEstado] = useState<'pendentes' | 'concluidos' | 'todos'>('pendentes');
@@ -69,10 +77,10 @@ export default function EntregaLojaPage({ embedded = false }: { embedded?: boole
   const [dataPersonalizada, setDataPersonalizada] = useState('');
 
   useEffect(() => {
-    if (lojaAfetaId) {
+    if (lojaAfetaId && !isPadeiroOuFabrico) {
       setSelectedLojaId(lojaAfetaId);
     }
-  }, [lojaAfetaId]);
+  }, [lojaAfetaId, isPadeiroOuFabrico]);
 
   useEffect(() => {
     async function carregar() {

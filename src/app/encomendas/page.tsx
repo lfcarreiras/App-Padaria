@@ -57,24 +57,32 @@ import { OriginBadge, SectorBadge } from '../../components/InproovalBadges';
 import { buscarArtigosOramaSync } from '../../lib/oramaSearch';
 import { OramaQuickSearchModal } from '../../components/OramaQuickSearchModal';
 
-export default function EncomendasPage({ embedded = false }: { embedded?: boolean; [key: string]: any } = {}) {
+export default function EncomendasPage(props: any) {
+  const embedded = Boolean(props?.embedded);
   const router = useRouter();
   const { t, language } = useTranslation();
   const { podeEditar, podeLer, usuario, cockpitAtivo, loading, lojaTrabalhoId, obterRotaInicial } = useAuth();
   const currentUser = usuario || { id: 'user-balcao', nome: 'Marta Santos (Operador Balcão)', role: 'atendente' };
-  const temPermissaoEdicao = podeEditar('encomendas');
+  const isPadeiroOuFabrico =
+    currentUser.role === 'padeiro_pasteleiro' ||
+    currentUser.role === 'operador_padaria' ||
+    currentUser.role === 'operador_pastelaria' ||
+    cockpitAtivo === 'producao' ||
+    embedded;
+
+  const temPermissaoEdicao = podeEditar('encomendas') || (isPadeiroOuFabrico && (podeEditar('producao') || podeLer('producao')));
   const configMarca = obterConfiguracaoMarca();
 
   // Route Guard estrito para Cockpit de Encomendas
   useEffect(() => {
-    if (!loading && usuario && !podeLer('encomendas')) {
+    if (!embedded && !loading && usuario && !podeLer('encomendas') && !isPadeiroOuFabrico) {
       router.replace(obterRotaInicial(usuario, cockpitAtivo));
     }
-  }, [loading, usuario, cockpitAtivo, router, podeLer, obterRotaInicial]);
+  }, [loading, usuario, cockpitAtivo, router, podeLer, obterRotaInicial, embedded, isPadeiroOuFabrico]);
 
-  // Isolamento estrito de Loja por utilizador (se não for admin e tiver loja afeta)
-  const lojaAfetaId = (usuario?.role !== 'admin' && (usuario?.loja_id || lojaTrabalhoId)) || null;
-  const [selectedLojaId, setSelectedLojaId] = useState<string>(lojaAfetaId || 'todas');
+  // Isolamento estrito de Loja: Se for admin ou utilizador de fabrico/padeiro, tem visão global de todas as lojas
+  const lojaAfetaId = (usuario?.role !== 'admin' && !isPadeiroOuFabrico && (usuario?.loja_id || lojaTrabalhoId)) || null;
+  const [selectedLojaId, setSelectedLojaId] = useState<string>(isPadeiroOuFabrico ? 'todas' : (lojaAfetaId || 'todas'));
   const [activeTab, setActiveTab] = useState<'novo' | 'clientes' | 'historico'>('novo');
 
   // Dados Globais
@@ -124,11 +132,11 @@ export default function EncomendasPage({ embedded = false }: { embedded?: boolea
 
   // Sincronizar Loja predefinida com a Loja atribuída ao utilizador ou escolhida no Login
   useEffect(() => {
-    if (lojaAfetaId) {
+    if (lojaAfetaId && !isPadeiroOuFabrico) {
       setLojaPedidoId(lojaAfetaId);
       setSelectedLojaId(lojaAfetaId);
     }
-  }, [lojaAfetaId]);
+  }, [lojaAfetaId, isPadeiroOuFabrico]);
 
   // Carregamento Inicial
   useEffect(() => {

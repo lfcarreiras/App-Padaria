@@ -28,6 +28,7 @@ import {
   salvarPerfilAcessoDb,
   eliminarPerfilAcessoDb,
   carregarMatrizPermissoesCargos,
+  carregarMatrizPermissoesCargosSupabase,
   salvarMatrizPermissoesCargos,
   obterPermissoesCargo,
   MATRIZ_PERMISSOES_CARGOS_PADRAO,
@@ -330,7 +331,8 @@ export default function AdminPage() {
           b2b,
           bases,
           adhoc,
-          arts
+          arts,
+          matrizCargos
         ] = await Promise.all([
           carregarEncomendasSupabase(),
           carregarClientesSupabase(),
@@ -344,7 +346,11 @@ export default function AdminPage() {
           carregarBasesDiariasRecorrentes(),
           carregarAjustesAdhocSupabase(),
           carregarArtigosBaseFixaSupabase(),
+          carregarMatrizPermissoesCargosSupabase(),
         ]);
+        if (matrizCargos && typeof matrizCargos === 'object') {
+          setMatrizPermissoes(matrizCargos);
+        }
         if (Array.isArray(encs)) setEncomendas(encs);
         if (Array.isArray(clis) && clis.length) setClientes(clis);
         if (Array.isArray(prods) && prods.length) setProdutos(prods);
@@ -426,7 +432,13 @@ export default function AdminPage() {
       if (adhoc && Object.keys(adhoc).length > 0) setAjustesAdhoc(adhoc);
     });
 
+    const handleMatrizAtualizada = () => {
+      setMatrizPermissoes(carregarMatrizPermissoesCargos());
+    };
+    window.addEventListener('app_matriz_cargos_atualizada', handleMatrizAtualizada);
+
     return () => {
+      window.removeEventListener('app_matriz_cargos_atualizada', handleMatrizAtualizada);
       unsubB2B();
       unsubClientes();
       unsubBases();

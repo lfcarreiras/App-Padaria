@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React from 'react';
 import Link from 'next/link';
@@ -45,18 +45,18 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId = 'todas', onSele
   const allLinks: { href: string; label: string; icon: any; panel: PainelApp; aliases?: string[] }[] = [
     { href: getSecretUrl('encomendas'), label: t.navEncomendas, icon: ShoppingBag, panel: 'encomendas', aliases: ['/encomendas', '/balcao', getSecretUrl('loja')] },
     { href: getSecretUrl('producao'), label: t.navProducao, icon: ChefHat, panel: 'producao', aliases: ['/producao'] },
-    { href: getSecretUrl('loja'), label: language === 'pt' ? 'BalcÃ£o' : 'Counter', icon: Store, panel: 'loja', aliases: ['/loja'] },
+    { href: getSecretUrl('loja'), label: language === 'pt' ? 'Balcão' : 'Counter', icon: Store, panel: 'loja', aliases: ['/loja'] },
     { href: getSecretUrl('entregas'), label: language === 'pt' ? 'Entregas' : 'Deliveries', icon: Truck, panel: 'entregas', aliases: ['/entregas'] },
     { href: getSecretUrl('gestao'), label: t.navGestao, icon: BarChart3, panel: 'gestao', aliases: ['/gestao'] },
   ];
 
   // Filtrar estritamente pelo perfil do utilizador (RBAC) e pelo Cockpit ativo
   const links = allLinks.filter((item) => {
-    // 1. O utilizador tem de ter permissÃ£o no perfil (sem_acesso Ã© estritamente ocultado)
+    // 1. O utilizador tem de ter permissão no perfil (sem_acesso é estritamente ocultado)
     const nivel = getNivelAcesso(item.panel);
     if (nivel === 'sem_acesso') return false;
 
-    // 2. Se entrou com cockpit especÃ­fico, filtrar apenas os mÃ³dulos desse cockpit
+    // 2. Se entrou com cockpit específico, filtrar apenas os módulos desse cockpit
     if (cockpitAtivo === 'loja') {
       return item.panel === 'encomendas' || item.panel === 'loja';
     }
@@ -101,7 +101,7 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId = 'todas', onSele
                   {cockpitAtivo === 'loja' ? (
                     <>
                       <Store className="h-3 w-3 text-slate-500 shrink-0" />
-                      <span>{lojaTrabalhoNome || 'Loja FÃ­sica'}</span>
+                      <span>{lojaTrabalhoNome || 'Loja Física'}</span>
                     </>
                   ) : cockpitAtivo === 'producao' ? (
                     <>
@@ -111,12 +111,12 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId = 'todas', onSele
                   ) : cockpitAtivo === 'carrinhas' ? (
                     <>
                       <Truck className="h-3 w-3 text-slate-500 shrink-0" />
-                      <span>Carrinhas & DistribuiÃ§Ã£o</span>
+                      <span>Carrinhas & Distribuição</span>
                     </>
                   ) : (
                     <>
                       <Settings className="h-3 w-3 text-slate-500 shrink-0" />
-                      <span>Cockpit de GestÃ£o</span>
+                      <span>Gestão</span>
                     </>
                   )}
                 </span>
@@ -125,7 +125,7 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId = 'todas', onSele
           </Link>
         </div>
 
-        {/* Links de NavegaÃ§Ã£o Principal - Sem barras de navegaÃ§Ã£o horizontal */}
+        {/* Links de Navegação Principal - Sem barras de navegação horizontal */}
         <nav className="flex items-center gap-1 sm:gap-1.5 flex-nowrap">
           {links.map((item) => {
             const Icon = item.icon;
@@ -164,12 +164,12 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId = 'todas', onSele
           })}
         </nav>
 
-        {/* Ãrea do Utilizador & Idioma */}
+        {/* Área do Utilizador & Idioma */}
         <div className="flex items-center gap-1.5 sm:gap-2 pl-1 sm:pl-2 border-l border-gray-200 shrink-0">
           {isOnline ? (
             <span
               className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0"
-              title="LigaÃ§Ã£o em tempo real ativa"
+              title="Ligação em tempo real ativa"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
               <span>Ligado</span>
@@ -177,7 +177,7 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId = 'todas', onSele
           ) : (
             <span
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 shrink-0"
-              title="Sem ligaÃ§Ã£o Ã  Internet â€” A operar em modo Cache Offline Resiliente"
+              title="Sem ligação à Internet — A operar em modo Cache Offline Resiliente"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
               <span>Offline (Cache)</span>
@@ -234,7 +234,7 @@ export const Navbar: React.FC<NavbarProps> = ({ selectedLojaId = 'todas', onSele
             type="button"
             onClick={() => setLanguage(language === 'pt' ? 'en' : 'pt')}
             className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition border border-gray-200 shrink-0"
-            title={language === 'pt' ? 'Mudar para InglÃªs' : 'Switch to Portuguese'}
+            title={language === 'pt' ? 'Mudar para Inglês' : 'Switch to Portuguese'}
           >
             <Globe className="h-3.5 w-3.5 text-bakery-600 shrink-0" />
             <span className="text-[11px] font-bold">{language === 'pt' ? 'PT' : 'EN'}</span>

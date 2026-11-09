@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { PerfilUtilizador, NivelAcesso, CockpitSelecionado } from '../types';
-import { carregarPerfisAcessoSupabase, carregarLojasSupabase } from './encomendasService';
+import { carregarPerfisAcessoSupabase, carregarLojasSupabase, carregarMatrizPermissoesCargosSupabase } from './encomendasService';
 import { LOJAS_MOCK } from './mockData';
 import { getSecretUrl } from './secretRoutes';
 
@@ -70,7 +70,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const sessao = JSON.parse(stored);
           if (sessao && sessao.id) {
             setUsuario(sessao);
-            // Sincronizar em background com os perfis mais recentes do Supabase
+            // Sincronizar em background com os perfis e matriz mais recentes do Supabase
+            await carregarMatrizPermissoesCargosSupabase();
             const perfis = await carregarPerfisAcessoSupabase();
             const perfilAtualizado = perfis.find((p) => p.id === sessao.id);
             if (perfilAtualizado && perfilAtualizado.ativo) {
@@ -180,6 +181,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, message: 'Indique o utilizador e a palavra-passe.' };
     }
 
+    await carregarMatrizPermissoesCargosSupabase();
     const perfis = await carregarPerfisAcessoSupabase();
 
     // Procurar por email, telefone, nome ou id

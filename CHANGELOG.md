@@ -42,6 +42,23 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.51] - 2026-11-09
+
+### Fixed & Bulletproof (Erradicação de Aliases e Correspondência Canónica 1:1, Permissões do Centro de Fabrico, Sincronização Cross-Device da Matriz de Cargos e Correção de Mojibake na Navbar)
+- **Erradicação de Aliases e Correspondência Canónica 1:1 na Guia de Carga Conjunta**:
+  - `src/lib/encomendasService.ts`: Desassociado 'broa de centeio 0,5 kg' de `broa_mistura` e criada a coluna dedicada `{ id: 'b_centeio_05', label: 'B. centeio 0.5kg' }`.
+  - Refatorado o algoritmo `identificarColunaGrelha`: eliminada a correspondência por substring/inclusão parcial flexível (passos 3 e 4), garantindo correspondência estrita 1:1 com os nomes canónicos do catálogo da padaria no Supabase.
+- **Permissões Amplas no Cockpit de Fabrico para Padeiro / Pasteleiro**:
+  - `src/app/encomendas/page.tsx` & `src/app/loja/page.tsx`: Configurado para que os utilizadores com cargo de padeiro/pasteleiro (ou quando a operar dentro do Cockpit de Fabrico `embedded`) tenham permissões de visualização e edição desbloqueadas para todas as lojas (`selectedLojaId = 'todas'`), sem isolamento compulsivo a um único balcão e sem redirecionamentos indevidos.
+- **Sincronização em Tempo Real Cross-Device da Matriz de Permissões de Cargo**:
+  - Diagnóstico e resolução da causa-raiz: As permissões editadas pelo Administrador Geral eram gravadas no Supabase (`000000002` e `000000000`), mas a função `carregarMatrizPermissoesCargosSupabase` não era chamada no arranque nem em `carregarPerfisAcessoSupabase`, e a normalização de perfil sobrescrevia as permissões com a cache vazia local (`localStorage`).
+  - `src/lib/encomendasService.ts`: `carregarMatrizPermissoesCargosSupabase` passa a consultar sempre a base de dados em tempo real; `normalizarPerfil` preserva as permissões gravadas no registo de utilizador (`p.acesso_...`) e utiliza a matriz sincronizada como base de cargo.
+  - `src/app/gestao/page.tsx`: Adicionado carregamento de `carregarMatrizPermissoesCargosSupabase` no `Promise.all` e subscrição ao evento `app_matriz_cargos_atualizada`.
+  - `src/lib/authContext.tsx`: Sincronização obrigatória da matriz de cargos no arranque da sessão e no processo de login.
+- **Eliminação de Mojibake e Correção de Cabeçalho na Navbar**:
+  - `src/components/Navbar.tsx`: Corrigido o cabeçalho do cockpit de gestão de `Cockpit de GestÃ£o` para **`Gestão`** (eliminando o termo "Cockpit de" e acertando a ortografia).
+  - Varredura e higienização integral de todas as sequências mojibake em `src/components/Navbar.tsx` (`Balcão`, `Loja Física`, `Carrinhas & Distribuição`, `Navegação`, `Área`, `Ligação`, `Inglês`, etc.) em Português de Portugal limpo.
+
 ## [v2.7.50] - 2026-11-07
 
 ### Fixed & Bulletproof (Correção de Mapeamento Semântico de Regueifa Doce e Trança de Chocolate na Guia Conjunta & Relatório Noturno Orion por E-mail)

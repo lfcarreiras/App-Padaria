@@ -1368,6 +1368,30 @@ export function carregarMatrizPermissoesCargos(): Record<Role, PermissoesCargo> 
 }
 
 export async function carregarMatrizPermissoesCargosSupabase(): Promise<Record<Role, PermissoesCargo>> {
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('clientes')
+        .select('notas_entrega')
+        .eq('telefone', CONFIG_MATRIZ_PHONE_KEY)
+        .maybeSingle();
+
+      if (!error && data && data.notas_entrega) {
+        const parsed = JSON.parse(data.notas_entrega);
+        if (parsed && typeof parsed === 'object') {
+          const fullMatriz = { ...MATRIZ_PERMISSOES_CARGOS_PADRAO, ...parsed };
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(MATRIZ_CARGOS_STORAGE_KEY, JSON.stringify(fullMatriz));
+          }
+          return fullMatriz;
+        }
+      }
+    } catch (err) {
+      console.warn('Erro ao carregar matriz de permissões do Supabase, tentando cache local:', err);
+    }
+  }
+
+  // Fallback para cache local apenas se offline ou erro
   if (typeof window !== 'undefined') {
     const cached = localStorage.getItem(MATRIZ_CARGOS_STORAGE_KEY);
     if (cached) {
@@ -1378,29 +1402,6 @@ export async function carregarMatrizPermissoesCargosSupabase(): Promise<Record<R
         }
       } catch (e) {}
     }
-  }
-
-  if (!supabase) return { ...MATRIZ_PERMISSOES_CARGOS_PADRAO };
-
-  try {
-    const { data } = await supabase
-      .from('clientes')
-      .select('notas_entrega')
-      .eq('telefone', CONFIG_MATRIZ_PHONE_KEY)
-      .maybeSingle();
-
-    if (data && data.notas_entrega) {
-      const parsed = JSON.parse(data.notas_entrega);
-      if (parsed && typeof parsed === 'object') {
-        const fullMatriz = { ...MATRIZ_PERMISSOES_CARGOS_PADRAO, ...parsed };
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(MATRIZ_CARGOS_STORAGE_KEY, JSON.stringify(fullMatriz));
-        }
-        return fullMatriz;
-      }
-    }
-  } catch (err) {
-    console.warn('Usando matriz de permissões predefinida:', err);
   }
 
   return { ...MATRIZ_PERMISSOES_CARGOS_PADRAO };
@@ -1471,12 +1472,13 @@ export async function salvarMatrizPermissoesCargos(
   }
 }
 
-export function normalizarPerfil(p: any): PerfilUtilizador {
+export function normalizarPerfil(p: any, matrizOverride?: Record<Role, PermissoesCargo>): PerfilUtilizador {
   let role: Role = p.role || 'atendente';
   if (role === 'operador_padaria' || role === 'operador_pastelaria') {
     role = 'padeiro_pasteleiro';
   }
-  const permPadrao = obterPermissoesCargo(role);
+  const matrizAtual = matrizOverride || carregarMatrizPermissoesCargos();
+  const permCargo = matrizAtual[role] || MATRIZ_PERMISSOES_CARGOS_PADRAO[role] || MATRIZ_PERMISSOES_CARGOS_PADRAO.atendente;
 
   // Normalizar IDs legados de loja para UUIDs canónicos
   let lojaId = p.loja_id;
@@ -1484,12 +1486,12 @@ export function normalizarPerfil(p: any): PerfilUtilizador {
   else if (lojaId === 'loja-2') lojaId = '778dae33-00ea-4ae7-8e36-e1f5fb067dab';
   else if (lojaId === 'loja-3') lojaId = '4d475863-af72-4349-bd4a-66eb7a90304b';
 
-  // As permissões aos 5 cockpits são estritamente governadas pela Matriz de Cargos (RBAC)
-  const acessoEnc = permPadrao.acesso_encomendas;
-  const acessoLoja = permPadrao.acesso_loja;
-  const acessoProd = permPadrao.acesso_producao;
-  const acessoEnt = permPadrao.acesso_entregas;
-  const acessoGest = permPadrao.acesso_gestao;
+  // Se o utilizador já tem permissões salvas na BD, preservá-las; senão adotar as permissões da matriz do seu cargo
+  const acessoEnc = p.acesso_encomendas !== undefined ? p.acesso_encomendas : permCargo.acesso_encomendas;
+  const acessoLoja = p.acesso_loja !== undefined ? p.acesso_loja : permCargo.acesso_loja;
+  const acessoProd = p.acesso_producao !== undefined ? p.acesso_producao : permCargo.acesso_producao;
+  const acessoEnt = p.acesso_entregas !== undefined ? p.acesso_entregas : permCargo.acesso_entregas;
+  const acessoGest = p.acesso_gestao !== undefined ? p.acesso_gestao : permCargo.acesso_gestao;
 
   return {
     id: p.id || `user-${Date.now()}`,
@@ -1626,6 +1628,9 @@ export const PERFIS_INICIAIS: PerfilUtilizador[] = [
 const CONFIG_PHONE_KEY = '000000000';
 
 export async function carregarPerfisAcessoSupabase(): Promise<PerfilUtilizador[]> {
+  // Sincronizar em simultâneo com a matriz de cargos atualizada para mantermos as permissões mais frescas
+  const matrizAtual = await carregarMatrizPermissoesCargosSupabase().catch(() => MATRIZ_PERMISSOES_CARGOS_PADRAO);
+
   // 1. Tentar carregar sempre de Supabase primeiro para sincronização cross-device em tempo real
   if (supabase) {
     try {
@@ -1638,7 +1643,7 @@ export async function carregarPerfisAcessoSupabase(): Promise<PerfilUtilizador[]
       if (!error && data && data.notas_entrega) {
         const parsed = JSON.parse(data.notas_entrega);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const normalizados = parsed.map(normalizarPerfil);
+          const normalizados = parsed.map((p) => normalizarPerfil(p, matrizAtual));
           if (typeof window !== 'undefined') {
             localStorage.setItem('app_perfis_utilizadores', JSON.stringify(normalizados));
           }
@@ -1657,13 +1662,13 @@ export async function carregarPerfisAcessoSupabase(): Promise<PerfilUtilizador[]
       try {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map(normalizarPerfil);
+          return parsed.map((p) => normalizarPerfil(p, matrizAtual));
         }
       } catch (e) {}
     }
   }
 
-  return PERFIS_INICIAIS.map(normalizarPerfil);
+  return PERFIS_INICIAIS.map((p) => normalizarPerfil(p, matrizAtual));
 }
 
 export async function salvarTodosPerfisSupabase(perfis: PerfilUtilizador[]) {
@@ -3046,7 +3051,8 @@ export const COLUNAS_GRELHA_PADARIA: ColunaGrelhaProduto[] = [
   { id: 'b_branca_05', label: 'B. branca 0.5kg', alias: ['broa branca 0,5 kg', 'broa branca 0.5kg', 'b. branca 0.5kg', 'b. branca 0,5kg'] },
   { id: 'b_branca_1', label: 'B. branca 1kg', alias: ['broa branca 1 kg', 'broa branca 1kg', 'b. branca 1kg', 'b. branca 1 kg'] },
   { id: 'b_chourico', label: 'B c/ chouriço', alias: ['broa com chouriço', 'bola com chouriço', 'b c/ chouriço', 'broa c/ chouriço', 'bola c/ chouriço', 'b. chourico', 'mini broa com chouriço', 'mini broa c/ chouriço'] },
-  { id: 'broa_mistura', label: 'Broa mistura', alias: ['broa de mistura', 'broa mistura', 'broa de centeio 0,5 kg', 'broa de centeio 0.5kg'] },
+  { id: 'b_centeio_05', label: 'B. centeio 0.5kg', alias: ['broa de centeio 0,5 kg', 'broa de centeio 0.5kg', 'b. centeio 0.5kg', 'b. centeio 0,5kg', 'broa centeio 0,5 kg', 'broa centeio 0.5kg'] },
+  { id: 'broa_mistura', label: 'Broa mistura', alias: ['broa de mistura', 'broa mistura', 'broinha de mistura'] },
   { id: 'cacete', label: 'Cacete', alias: ['cacete', 'cacetes', 'pão cacete', 'pao cacete'] },
   { id: 'canilha', label: 'Canilha', alias: ['canilha'] },
   { id: 'meia_bola_carne', label: 'Meia bola de carne', alias: ['meia bola de carne', 'meia bola carne', 'bola de carne'] },
@@ -3104,7 +3110,7 @@ export function identificarColunaGrelha(artigoNome: string): { coluna: ColunaGre
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .replace(/\s+/g, ' ');
 
-  // 1. Correspondência exata em Padaria
+  // 1. Correspondência exata em Padaria (Canónica 1:1 sem contaminação semântica)
   for (const c of COLUNAS_GRELHA_PADARIA) {
     if (c.label.toLowerCase() === safeArtigoNome.toLowerCase()) return { coluna: c, setor: 'padaria' };
     for (const a of c.alias) {
@@ -3113,32 +3119,12 @@ export function identificarColunaGrelha(artigoNome: string): { coluna: ColunaGre
     }
   }
 
-  // 2. Correspondência exata em Pastelaria
+  // 2. Correspondência exata em Pastelaria (Canónica 1:1 sem contaminação semântica)
   for (const c of COLUNAS_GRELHA_PASTELARIA) {
     if (c.label.toLowerCase() === safeArtigoNome.toLowerCase()) return { coluna: c, setor: 'pastelaria' };
     for (const a of c.alias) {
       const an = a.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       if (norm === an) return { coluna: c, setor: 'pastelaria' };
-    }
-  }
-
-  // 3. Correspondência por inclusão em Padaria (norm.includes(an), an com comprimento >= 5)
-  for (const c of COLUNAS_GRELHA_PADARIA) {
-    for (const a of c.alias) {
-      const an = a.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      if (an.length >= 5 && norm.includes(an)) {
-        return { coluna: c, setor: 'padaria' };
-      }
-    }
-  }
-
-  // 4. Correspondência por inclusão em Pastelaria (norm.includes(an), an com comprimento >= 5)
-  for (const c of COLUNAS_GRELHA_PASTELARIA) {
-    for (const a of c.alias) {
-      const an = a.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      if (an.length >= 5 && norm.includes(an)) {
-        return { coluna: c, setor: 'pastelaria' };
-      }
     }
   }
 
