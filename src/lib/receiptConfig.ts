@@ -95,9 +95,11 @@ export function saveReceiptConfig(config: ReceiptConfig, lojaId?: string): void 
         valor: config,
         atualizado_em: new Date().toISOString()
       }, { onConflict: 'chave' })
-      .then(() => {})
-      .catch((err) => {
-        console.error('Erro ao persistir configuração do talão no Supabase:', err);
-      });
+      .then(
+        () => {},
+        (err: any) => {
+          console.error('Erro ao persistir configuração do talão no Supabase:', err);
+        }
+      );
   }
 }

@@ -1,7 +1,7 @@
-﻿---
+---
 title: "01 - Dossier Técnico e Evolução Arquitetural da Solução"
 project: "Padaria da Vila (União Panificadora Central Arouquense, Lda)"
-version: "2.7.51"
+version: "2.7.52"
 date_saved: 2026-10-16
 updated: 2026-11-09
 status: "Em Produção (Live)"
@@ -17,7 +17,7 @@ tags:
 
 **Entidade Tecnológica:** EyeQ Lda / Inprooval®  
 **Cliente:** Padaria da Vila (*União Panificadora Central Arouquense, Lda*)  
-**Versão Atual em Produção:** `v2.7.49` (06/11/2026)  
+**Versão Atual em Produção:** `v2.7.52` (09/11/2026)  
 **Repositório & CI/CD:** GitHub (`lfcarreiras/App-Padaria`) $\to$ Vercel Production  
 
 ---

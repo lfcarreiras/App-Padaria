@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '../../components/Navbar';
 import { ThermalReceipt } from '../../components/ThermalReceipt';
+import { carregarConfiguracaoTalaoSupabase } from '../../lib/receiptConfig';
 import { LOJAS_MOCK, PRODUTOS_MOCK, CARRINHAS_MOCK } from '../../lib/mockData';
 import { supabase } from '../../lib/supabase';
 import { 
@@ -163,6 +164,7 @@ export default function EncomendasPage(props: any) {
         setCarrinhas(cars);
         setCarrinhaSelecionadaId(cars[0].id);
       }
+      carregarConfiguracaoTalaoSupabase(lojaTrabalhoId || undefined).catch(() => {});
       setCarregando(false);
     }
     carregar();

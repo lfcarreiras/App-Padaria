@@ -42,6 +42,19 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.52] - 2026-11-09
+
+### Fixed & Bulletproof (Network-First Arquitetural, Precedência Estrita Supabase > Cache Local e Sincronização de Talões Térmicos nos Balcões)
+- **Precedência Estrita Supabase > LocalStorage em `parseEncomendasFromDb`**:
+  - `src/lib/encomendasService.ts`: Corrigida inversão onde `localEstadosItens[item.id]` suplantava o `item.estado_producao` do Supabase. O Supabase assume agora prioridade absoluta (`item.estado_producao || localEstadosItens[item.id] || 'pendente'`).
+  - Adicionada sincronização bidirecional automática: cada resposta do Supabase atualiza de imediato a cache local (`padaria_estado_itens_v1` e `padaria_obs_producao_v1`) para manter a contingência offline fiel à base central.
+- **Precedência e Atualização no Portal do Cliente (`/encomendar`)**:
+  - `src/app/encomendar/page.tsx`: Corrigida precedência na consolidação das encomendas do cliente, assegurando que o estado alterado na fábrica pelo padeiro se reflete imediatamente no ecrã do cliente e atualiza a sua cache local.
+- **Sincronização de Configuração do Talão Térmico nos Balcões (`/encomendas` e `/loja`)**:
+  - `src/app/encomendas/page.tsx` & `src/app/loja/page.tsx`: Adicionada invocação de `carregarConfiguracaoTalaoSupabase` no ciclo de vida inicial dos cockpits, garantindo que as definições de largura de papel (80mm vs 58mm), dados fiscais e mensagens são descarregadas centralmente do Supabase e propagadas para a cache local do dispositivo.
+  - `src/components/ThermalReceipt.tsx`: Integrada revalidação assíncrona automática ao abrir o modal do talão térmico.
+  - `src/lib/receiptConfig.ts`: Tipagem defensiva `PromiseLike` corrigida para `supabase.from().upsert().then()`.
+
 ## [v2.7.51] - 2026-11-09
 
 ### Fixed & Bulletproof (Erradicação de Aliases e Correspondência Canónica 1:1, Permissões do Centro de Fabrico, Sincronização Cross-Device da Matriz de Cargos e Correção de Mojibake na Navbar)

@@ -333,7 +333,7 @@ export default function EncomendarClientePage() {
             encDb.itens && encDb.itens.length > 0
               ? encDb.itens.map((it, idx) => ({
                   ...it,
-                  estado_producao: estadosItensLocal[it.id] || it.estado_producao,
+                  estado_producao: it.estado_producao || estadosItensLocal[it.id] || 'pendente',
                   produto_nome:
                     it.produto_nome && it.produto_nome !== 'Artigo de Padaria/Pastelaria'
                       ? it.produto_nome
@@ -341,7 +341,7 @@ export default function EncomendarClientePage() {
                 }))
               : (localMatch?.itens || []).map((it) => ({
                   ...it,
-                  estado_producao: estadosItensLocal[it.id] || it.estado_producao,
+                  estado_producao: it.estado_producao || estadosItensLocal[it.id] || 'pendente',
                 }));
 
           mapaCombinado.set(encDb.codigo, {
@@ -358,10 +358,23 @@ export default function EncomendarClientePage() {
               observacoes_producao: encLocal.observacoes_producao || obsProdLocal[encLocal.id],
               itens: (encLocal.itens || []).map((it) => ({
                 ...it,
-                estado_producao: estadosItensLocal[it.id] || it.estado_producao,
+                estado_producao: it.estado_producao || estadosItensLocal[it.id] || 'pendente',
               })),
             });
           }
+        }
+
+        if (typeof window !== 'undefined') {
+          try {
+            for (const enc of mapaCombinado.values()) {
+              for (const it of enc.itens) {
+                if (it.estado_producao) {
+                  estadosItensLocal[it.id] = it.estado_producao;
+                }
+              }
+            }
+            localStorage.setItem('padaria_estado_itens_v1', JSON.stringify(estadosItensLocal));
+          } catch {}
         }
 
         setMinhasEncomendas(Array.from(mapaCombinado.values()));

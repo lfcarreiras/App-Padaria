@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '../../components/Navbar';
 import { ThermalReceipt } from '../../components/ThermalReceipt';
+import { carregarConfiguracaoTalaoSupabase } from '../../lib/receiptConfig';
 import { LOJAS_MOCK } from '../../lib/mockData';
 import { 
   carregarEncomendasSupabase, 
@@ -90,6 +91,8 @@ export default function EntregaLojaPage(props: any) {
       ]);
       setEncomendas(dados);
       if (ljs && ljs.length > 0) setLojas(ljs);
+      const lojaAlvoConfig = lojaAfetaId || (selectedLojaId !== 'todas' ? selectedLojaId : undefined);
+      carregarConfiguracaoTalaoSupabase(lojaAlvoConfig).catch(() => {});
     }
     carregar();
 

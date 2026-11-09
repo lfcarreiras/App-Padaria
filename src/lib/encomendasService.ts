@@ -40,7 +40,7 @@ export function parseEncomendasFromDb(data: any[]): Encomenda[] {
     } catch (e) {}
   }
 
-  return data.map((row, index) => {
+  const parsed = data.map((row, index) => {
     const cliente = row.clientes || {};
     const loja = row.lojas || {};
     const carrinha = row.carrinhas || {};
@@ -60,9 +60,10 @@ export function parseEncomendasFromDb(data: any[]): Encomenda[] {
         .replace(/\[AUTO_RECOVERY\]\s*/gi, '')
         .trim();
       const estadoItemFinal: EstadoProducaoItem =
-        item.estado_producao === 'recusado' || temTagRecusado || localEstadosItens[item.id] === 'recusado'
+        item.estado_producao === 'recusado' || temTagRecusado
           ? 'recusado'
-          : (localEstadosItens[item.id] || item.estado_producao || 'pendente');
+          : (item.estado_producao || localEstadosItens[item.id] || 'pendente');
+      localEstadosItens[item.id] = estadoItemFinal;
 
       const nomeFallbackPortal =
         !todosAutoRecovery && portalMatch?.itens?.[idx]?.produto_nome
@@ -87,7 +88,7 @@ export function parseEncomendasFromDb(data: any[]): Encomenda[] {
       itens = portalMatch.itens.map((it) => ({
         ...it,
         encomenda_id: row.id,
-        estado_producao: localEstadosItens[it.id] || it.estado_producao || 'pendente',
+        estado_producao: it.estado_producao || localEstadosItens[it.id] || 'pendente',
       }));
     } else if (itens.length === 0 && row.notas_cliente && row.notas_cliente.includes('[ITENS_BACKUP:')) {
       try {
@@ -161,12 +162,18 @@ export function parseEncomendasFromDb(data: any[]): Encomenda[] {
     }
 
     // Extrair Observações de Produção se presentes em notas_cliente ([OBS_PROD:...])
-    let obsProducaoExtraida: string | undefined = localObsProducao[row.id];
+    let obsProducaoExtraida: string | undefined = undefined;
     if (row.notas_cliente) {
       const matchObsProd = row.notas_cliente.match(/\[OBS_PROD:([\s\S]*?)\]/i);
       if (matchObsProd && matchObsProd[1]) {
         obsProducaoExtraida = matchObsProd[1].trim();
       }
+    }
+    if (!obsProducaoExtraida) {
+      obsProducaoExtraida = localObsProducao[row.id];
+    }
+    if (obsProducaoExtraida) {
+      localObsProducao[row.id] = obsProducaoExtraida;
     }
 
     const notasLimpa = row.notas_cliente
@@ -217,6 +224,15 @@ export function parseEncomendasFromDb(data: any[]): Encomenda[] {
       criado_em: row.criado_em,
     };
   });
+
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(ESTADO_ITENS_FALLBACK_KEY, JSON.stringify(localEstadosItens));
+      localStorage.setItem(OBS_PRODUCAO_FALLBACK_KEY, JSON.stringify(localObsProducao));
+    } catch {}
+  }
+
+  return parsed;
 }
 
 const OFFLINE_ENCOMENDAS_CACHE_KEY = 'padaria_encomendas_cache_v1';

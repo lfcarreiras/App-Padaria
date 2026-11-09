@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Encomenda, Loja } from '../types';
 import { Printer, X, QrCode } from 'lucide-react';
-import { ReceiptConfig, getReceiptConfig } from '../lib/receiptConfig';
+import { ReceiptConfig, getReceiptConfig, carregarConfiguracaoTalaoSupabase } from '../lib/receiptConfig';
 import { useTranslation } from '../lib/i18n';
 import { obterConfiguracaoMarca } from '../lib/tinaContent';
 
@@ -17,13 +17,18 @@ interface ThermalReceiptProps {
 
 export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja, config, onClose }) => {
   const { t, language } = useTranslation();
-  const cfg = config || getReceiptConfig(encomenda.loja_id || loja?.id);
+  const [cfg, setCfg] = useState<ReceiptConfig>(() => config || getReceiptConfig(encomenda.loja_id || loja?.id));
   const tinaMarca = obterConfiguracaoMarca();
   const [montado, setMontado] = useState(false);
 
   useEffect(() => {
     setMontado(true);
-  }, []);
+    if (!config) {
+      carregarConfiguracaoTalaoSupabase(encomenda.loja_id || loja?.id).then((freshCfg) => {
+        if (freshCfg) setCfg(freshCfg);
+      }).catch(() => {});
+    }
+  }, [config, encomenda.loja_id, loja?.id]);
 
   const handlePrint = () => {
     const existing = document.getElementById('dynamic-thermal-page-size');
