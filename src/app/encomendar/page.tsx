@@ -31,7 +31,9 @@ import {
   Cliente, 
   Encomenda, 
   TipoEntrega, 
-  ClienteEmpresarialB2B 
+  ClienteEmpresarialB2B,
+  BaseDiariaRecorrente,
+  DiaSemana
 } from '../../types';
 import { obterConfiguracaoMarca } from '../../lib/tinaContent';
 import { correspondePesquisaArtigo } from '../../lib/fuzzySearch';
@@ -366,18 +368,20 @@ export default function EncomendarClientePage() {
 
         if (typeof window !== 'undefined') {
           try {
-            for (const enc of mapaCombinado.values()) {
+            mapaCombinado.forEach((enc) => {
               for (const it of enc.itens) {
                 if (it.estado_producao) {
                   estadosItensLocal[it.id] = it.estado_producao;
                 }
               }
-            }
+            });
             localStorage.setItem('padaria_estado_itens_v1', JSON.stringify(estadosItensLocal));
           } catch {}
         }
 
-        setMinhasEncomendas(Array.from(mapaCombinado.values()));
+        const listaFinal: Encomenda[] = [];
+        mapaCombinado.forEach((v) => listaFinal.push(v));
+        setMinhasEncomendas(listaFinal);
       } catch (err) {
         console.error('Erro ao buscar encomendas do cliente:', err);
       } finally {
