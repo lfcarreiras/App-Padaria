@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { gerarEmailContinuidadeHTML, gerarEmailContinuidadeTexto } from '@/lib/emailContinuidadeTemplate';
 import { gerarPdfFolhaFabricoLojas, gerarPdfGuiaCargaConjunta } from '@/lib/pdfContinuidadeBuilder';
-import { executarSentinelaIntegridade } from '@/app/api/cron/sentinela-integridade/route';
+import { executarSentinelaIntegridade } from '@/lib/sentinelaOrionService';
 import {
   carregarLojasSupabase,
   carregarCarrinhasSupabase,
