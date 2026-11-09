@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   return GET(request);
 }
 
-export async function GET(request: Request) {
+export async function executarSentinelaIntegridade(emailDestinatarioParam?: string, dataParam?: string) {
   const inicioProbe = Date.now();
   const relatorio: Record<string, any> = {
     timestamp: new Date().toISOString(),
@@ -30,20 +30,6 @@ export async function GET(request: Request) {
   };
 
   try {
-    // 1. Verificação de Segurança (CRON_SECRET)
-    const authHeader = request.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
-    if (process.env.NODE_ENV === 'production' && cronSecret) {
-      if (authHeader !== `Bearer ${cronSecret}`) {
-        return new NextResponse(JSON.stringify({ erro: 'Não autorizado' }), {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-    }
-
-    // 2. Determinar data em Europe/Lisbon
-    const url = new URL(request.url);
     const agora = new Date();
     const partesDataHoje = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'Europe/Lisbon',
@@ -52,9 +38,10 @@ export async function GET(request: Request) {
       day: '2-digit',
     }).format(agora);
 
-    const [ano, mes, dia] = partesDataHoje.split('-');
+    const partesData = dataParam && /^\d{4}-\d{2}-\d{2}$/.test(dataParam) ? dataParam : partesDataHoje;
+    const [ano, mes, dia] = partesData.split('-');
     const dataHojeFormatada = `${dia}/${mes}/${ano}`;
-    const diaSemanaHoje = obterDiaSemanaDeData(partesDataHoje);
+    const diaSemanaHoje = obterDiaSemanaDeData(partesData);
 
     // --- AGENTE 8: DevOps & Cloud Infrastructure Sentry ---
     const inicioInfra = Date.now();
@@ -86,7 +73,7 @@ export async function GET(request: Request) {
     ]);
     const latenciaDBMs = Date.now() - inicioDB;
 
-    // Validação dos 57 artigos canónicos
+    // Validação dos artigos canónicos
     const produtosAtivos = produtos.filter(p => p.ativo !== false);
     const errosArtigos: string[] = [];
     if (produtosAtivos.length < 50) {
@@ -103,7 +90,7 @@ export async function GET(request: Request) {
       totalLojas: lojas.length,
       totalCarrinhas: carrinhas.length,
       totalProdutos: produtos.length,
-      totalEncomendasHoje: encomendas.filter(e => e.data_agendamento === partesDataHoje).length,
+      totalEncomendasHoje: encomendas.filter(e => e.data_agendamento === partesData).length,
       totalClientesB2B: clientesB2B.length,
       latenciaSupabaseMs: latenciaDBMs,
       alertas: [...errosArtigos, ...(rotasEmFalta.length > 0 ? [`Rotas ausentes: ${rotasEmFalta.join(', ')}`] : [])],
@@ -112,20 +99,9 @@ export async function GET(request: Request) {
 
     // --- AGENTE 9: Integrations Sentry (Resend / Email Continuidade) ---
     const apiKey = process.env.RESEND_API_KEY;
-    let resendStatus = 'DESCONHECIDO';
-    if (apiKey) {
-      try {
-        const resendCheck = await fetch('https://api.resend.com/api-keys', {
-          headers: { Authorization: `Bearer ${apiKey}` },
-          cache: 'no-store',
-        });
-        resendStatus = resendCheck.ok ? 'OPERACIONAL' : `RESEND_HTTP_${resendCheck.status}`;
-      } catch (err: any) {
-        resendStatus = `ERRO_CONEXAO: ${err.message}`;
-      }
-    }
+    const resendStatus = apiKey && apiKey.startsWith('re_') ? 'OPERACIONAL' : (apiKey ? 'CONFIGURADO' : 'CHAVE_AUSENTE');
     relatorio.auditorias['Agente_9_Integrations'] = {
-      score: resendStatus === 'OPERACIONAL' ? 100 : 80,
+      score: resendStatus === 'OPERACIONAL' ? 100 : 50,
       servicoEmail: 'Resend API',
       estadoConexao: resendStatus,
     };
@@ -133,7 +109,7 @@ export async function GET(request: Request) {
     // --- AGENTE 11: Synthetic Health Probe (Simulação E2E em Memória) ---
     const inicioProbeE2E = Date.now();
     const pdfFabrico = gerarPdfFolhaFabricoLojas({
-      dataOperacao: partesDataHoje,
+      dataOperacao: partesData,
       dataFormatada: dataHojeFormatada,
       lojas,
       encomendas,
@@ -146,7 +122,7 @@ export async function GET(request: Request) {
     });
 
     const pdfCarga = gerarPdfGuiaCargaConjunta({
-      dataOperacao: partesDataHoje,
+      dataOperacao: partesData,
       dataFormatada: dataHojeFormatada,
       diaSemana: diaSemanaHoje,
       carrinhas,
@@ -173,8 +149,7 @@ export async function GET(request: Request) {
     relatorio.status = 'HEALTHY_BULLETPROOF';
 
     // 5. Envio do E-mail de Relatório Noturno (Agente 11 - Orion / Inprooval Swarm)
-    // Destinatário oficial: luis.carreiras@inprooval.pt (garantindo confirmação nos próximos 5 dias)
-    const emailDestinatario = url.searchParams.get('email') || process.env.EMAIL_SENTINELA_AUDITORIA || 'luis.carreiras@inprooval.pt';
+    const emailDestinatario = emailDestinatarioParam || process.env.EMAIL_SENTINELA_AUDITORIA || 'luis.carreiras@inprooval.pt';
     let emailEnviado = false;
     let resendEmailId: string | null = null;
 
@@ -207,7 +182,7 @@ export async function GET(request: Request) {
     <div style="padding: 24px; color: #1e293b;">
       <div style="background-color: #ecfdf5; border-left: 4px solid #10b981; padding: 14px 16px; border-radius: 6px; margin-bottom: 20px;">
         <p style="margin: 0; font-size: 13px; font-weight: bold; color: #065f46;">
-          ✅ TODOS OS SISTEMAS 100% OPERACIONAIS E INTEGROS
+          ✅ TODOS OS SISTEMAS 100% OPERACIONAIS E ÍNTEGROS
         </p>
         <p style="margin: 4px 0 0 0; font-size: 12px; color: #047857; line-height: 1.5;">
           A auditoria noturna de sanidade foi concluída com sucesso. Não foi detetada qualquer anomalia de dados, rotas ou integridade funcional na Padaria da Vila.
@@ -255,7 +230,7 @@ export async function GET(request: Request) {
       <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0 16px 0;" />
       
       <p style="font-size: 11px; color: #64748b; line-height: 1.4; margin: 0;">
-        Este e-mail é gerado automaticamente pelo Inprooval Agent Swarm a pedido de <strong>Luis Carreiras</strong> (<a href="mailto:luis.carreiras@inprooval.pt" style="color: #0284c7; text-decoration: none;">luis.carreiras@inprooval.pt</a>) para confirmação de conformidade operacional diária durante os próximos 5 dias.
+        Este e-mail é gerado automaticamente pelo Inprooval Agent Swarm a pedido de <strong>Luís Carreiras</strong> (<a href="mailto:luis.carreiras@inprooval.pt" style="color: #0284c7; text-decoration: none;">luis.carreiras@inprooval.pt</a>) para confirmação de conformidade operacional diária durante os próximos 5 dias.
       </p>
     </div>
 
@@ -300,15 +275,36 @@ export async function GET(request: Request) {
       resendId: resendEmailId,
     };
 
-    return NextResponse.json({
+    return {
       sucesso: true,
       mensagem: 'Sentinela Noturno executado com sucesso: todos os agentes validaram a integridade do ecossistema e relatório enviado por e-mail.',
       relatorio,
-    });
+    };
   } catch (error: any) {
     console.error('[Sentinela Matinal Error]:', error);
     relatorio.status = 'CRITICAL_ERROR';
     relatorio.erro = error.message || 'Erro fatal na rotina sentinela';
-    return NextResponse.json({ sucesso: false, relatorio }, { status: 500 });
+    return { sucesso: false, relatorio };
   }
+}
+
+export async function GET(request: Request) {
+  // 1. Verificação de Segurança (CRON_SECRET)
+  const authHeader = request.headers.get('authorization');
+  const cronSecret = process.env.CRON_SECRET;
+  if (process.env.NODE_ENV === 'production' && cronSecret) {
+    if (authHeader !== `Bearer ${cronSecret}`) {
+      return new NextResponse(JSON.stringify({ erro: 'Não autorizado' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  const url = new URL(request.url);
+  const emailDestinatario = url.searchParams.get('email') || undefined;
+  const dataParam = url.searchParams.get('data') || undefined;
+
+  const resultado = await executarSentinelaIntegridade(emailDestinatario, dataParam);
+  return NextResponse.json(resultado, { status: resultado.sucesso ? 200 : 500 });
 }

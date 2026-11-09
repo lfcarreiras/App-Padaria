@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { gerarEmailContinuidadeHTML, gerarEmailContinuidadeTexto } from '@/lib/emailContinuidadeTemplate';
 import { gerarPdfFolhaFabricoLojas, gerarPdfGuiaCargaConjunta } from '@/lib/pdfContinuidadeBuilder';
+import { executarSentinelaIntegridade } from '@/app/api/cron/sentinela-integridade/route';
 import {
   carregarLojasSupabase,
   carregarCarrinhasSupabase,
@@ -152,6 +153,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ sucesso: false, erro: data }, { status: resendResponse.status });
     }
 
+    // 6. Encadeamento Automático do Sentinela Noturno Orion
+    // Garante a execução do Sentinela Noturno mesmo em contas Vercel com limite de 1 cron job
+    let sentinelaResultado: any = null;
+    try {
+      sentinelaResultado = await executarSentinelaIntegridade();
+    } catch (sentinelaErr: any) {
+      console.warn('[Sentinela Encadeado Warning]:', sentinelaErr.message);
+    }
+
     return NextResponse.json({
       sucesso: true,
       mensagem: `E-mail de continuidade de negócio disparado com sucesso às 00h15 com 2 anexos PDF para a data ${dataHojeFormatada}.`,
@@ -160,6 +170,7 @@ export async function GET(request: Request) {
       bcc: emailsBcc,
       dataOperacao: dataHojeFormatada,
       anexos: [nomeFicheiroFabrico, nomeFicheiroCarga],
+      sentinelaOrion: sentinelaResultado,
     });
   } catch (error: any) {
     console.error('[Continuidade Cron Fatal Error]:', error);

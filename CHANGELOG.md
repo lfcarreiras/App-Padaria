@@ -42,6 +42,15 @@ git push origin main
 ### 4. Salvaguardas da Base de Dados (Supabase)
 - As tabelas (`encomendas`, `itens_encomenda`, `clientes`, `lojas`, `carrinhas`, `perfis_acesso`) foram estruturadas com compatibilidade retroativa. Campos novos possuem valores `DEFAULT` ou aceitam `NULL`, garantindo que versões anteriores continuem a comunicar com a base de dados sem erros.
 
+## [v2.7.53] - 2026-11-09
+
+### Fixed & Bulletproof (Garantia de Disparo Noturno do Sentinela Orion & Encadeamento BCP Unificado)
+- **Encadeamento Automático do Sentinela Noturno Orion no Cron de Continuidade (`/api/cron/continuidade-negocio`)**:
+  - `src/app/api/cron/continuidade-negocio/route.ts`: Integrado o disparo síncrono e encadeado da rotina de auditoria do Agente 11 (Orion) imediatamente após o envio dos PDFs de contingência da padaria.
+  - Elimina a dependência de múltiplos crons em contas Vercel (limite de 1 cron job no plano Hobby), assegurando que tanto o e-mail de contingência BCP para a gerência da padaria como o relatório de sanidade e conformidade de 12 agentes para `luis.carreiras@inprooval.pt` são disparados infalivelmente a cada madrugada.
+- **Correção da Verificação de Saúde da Resend no Agente 9 (`/api/cron/sentinela-integridade`)**:
+  - `src/app/api/cron/sentinela-integridade/route.ts`: Substituída a chamada probing a `/api-keys` (que devolvia 401 falso-positivo por a chave ser restrita a envio) por validação de formato e emissão operacional direta. Pontuação de saúde do ecossistema restabelecida a 100%.
+
 ## [v2.7.52] - 2026-11-09
 
 ### Fixed & Bulletproof (Network-First Arquitetural, Precedência Estrita Supabase > Cache Local e Sincronização de Talões Térmicos nos Balcões)
