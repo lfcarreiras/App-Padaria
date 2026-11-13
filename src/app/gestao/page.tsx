@@ -621,8 +621,13 @@ export default function AdminPage() {
     const semanaModal = (clienteB2BEmEdicao.quantidades_semanais || clienteB2BEmEdicao.quantidades_semana || {}) as Record<string, Record<string, number>>;
     const mapaDia = { ...(semanaModal[diaSemanaB2B] || {}) };
     
-    const parsed = typeof valor === 'string' ? parseFloat(valor.replace(',', '.')) : valor;
-    const novoValor = isNaN(parsed) ? 0 : Math.round(parsed * 10) / 10;
+    const isKg = obterUnidadeArtigo(prodNome) === 'kg';
+    let valStr = typeof valor === 'string' ? valor.replace(',', '.') : String(valor);
+    if (!isKg) {
+      valStr = valStr.replace(/\D/g, '');
+    }
+    const parsed = parseFloat(valStr);
+    const novoValor = isNaN(parsed) ? 0 : isKg ? Math.round(parsed * 10) / 10 : Math.round(parsed);
     if (isNaN(novoValor) || novoValor <= 0) {
       delete mapaDia[prodNome];
     } else {
@@ -681,8 +686,13 @@ export default function AdminPage() {
   };
 
   const handleAlterarQtdBaseFixa = (carrinhaId: string, carrinhaNome: string, dia: DiaSemana, produtoNome: string, valor: number | string) => {
-    const num = typeof valor === 'string' ? parseFloat(valor.replace(',', '.')) : Number(valor);
-    const qtdLimpa = isNaN(num) ? 0 : Math.max(0, Math.round(num * 10) / 10);
+    const isKg = obterUnidadeArtigo(produtoNome) === 'kg';
+    let valStr = typeof valor === 'string' ? valor.replace(',', '.') : String(valor);
+    if (!isKg) {
+      valStr = valStr.replace(/\D/g, '');
+    }
+    const num = parseFloat(valStr);
+    const qtdLimpa = isNaN(num) ? 0 : Math.max(0, isKg ? Math.round(num * 10) / 10 : Math.round(num));
     const novaLista = [...baseFixaCarrinhas];
     const idx = novaLista.findIndex((b) => b?.carrinha_id === carrinhaId || b?.carrinha_nome === carrinhaNome);
     if (idx >= 0) {
@@ -1088,8 +1098,13 @@ export default function AdminPage() {
   };
 
   const handleAlterarQtdClienteB2B = (clienteId: string, dia: DiaSemana, produtoNome: string, valor: number | string) => {
-    const num = typeof valor === 'string' ? parseFloat(valor.replace(',', '.')) : Number(valor);
-    const qtdLimpa = isNaN(num) ? 0 : Math.max(0, Math.round(num * 10) / 10);
+    const isKg = obterUnidadeArtigo(produtoNome) === 'kg';
+    let valStr = typeof valor === 'string' ? valor.replace(',', '.') : String(valor);
+    if (!isKg) {
+      valStr = valStr.replace(/\D/g, '');
+    }
+    const num = parseFloat(valStr);
+    const qtdLimpa = isNaN(num) ? 0 : Math.max(0, isKg ? Math.round(num * 10) / 10 : Math.round(num));
     const novaLista = clientesB2B.map((cli) => {
       if (cli.id !== clienteId) return cli;
       const semanaAtual = cli.quantidades_semanais || cli.quantidades_semana || ({} as Record<DiaSemana, Record<string, number>>);
@@ -3285,15 +3300,21 @@ export default function AdminPage() {
                           </td>
                           {carrinhasBaseDiaria.map((c) => {
                             const valQtd = obterQtdBaseCarrinha(c.id, diaSemanaBaseFixa, prodNome);
+                            const isKg = obterUnidadeArtigo(prodNome) === 'kg';
                             return (
                               <td key={c.id} className="py-1.5 px-3 text-center">
                                 <input
                                   type="number"
                                   min={0}
-                                  step="0.1"
-                                  inputMode="decimal"
+                                  step={isKg ? "0.1" : "1"}
+                                  inputMode={isKg ? "decimal" : "numeric"}
                                   value={valQtd === 0 ? '' : valQtd}
-                                  placeholder="0"
+                                  placeholder={isKg ? "0.0" : "0"}
+                                  onKeyDown={(e) => {
+                                    if (!isKg && (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E')) {
+                                      e.preventDefault();
+                                    }
+                                  }}
                                   onChange={(e) =>
                                     handleAlterarQtdBaseFixa(
                                       c.id,
@@ -3566,28 +3587,37 @@ export default function AdminPage() {
                                 </span>
                               ) : (
                                 <div className="flex flex-wrap gap-1.5">
-                                  {entries.map(([prodNome, qtd]) => (
-                                    <div
-                                      key={prodNome}
-                                      className="inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-0.5 text-[11px]"
-                                    >
-                                      <span className="font-bold text-indigo-950">{prodNome}:</span>
-                                      <input
-                                        type="number"
-                                        min={0}
-                                        step="0.1"
-                                        inputMode="decimal"
-                                        value={qtd}
-                                        onChange={(e) =>
-                                          handleAlterarQtdClienteB2B(cli.id, diaSemanaB2B, prodNome, e.target.value)
-                                        }
-                                        className="w-16 text-center bg-white border border-indigo-300 rounded font-mono font-black text-indigo-900 px-1 py-0.5 text-[11px]"
-                                      />
-                                      <span className="text-[10px] text-indigo-700 font-bold">
-                                        {obterUnidadeArtigo(prodNome)}
-                                      </span>
-                                    </div>
-                                  ))}
+                                  {entries.map(([prodNome, qtd]) => {
+                                    const isKg = obterUnidadeArtigo(prodNome) === 'kg';
+                                    return (
+                                      <div
+                                        key={prodNome}
+                                        className="inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-0.5 text-[11px]"
+                                      >
+                                        <span className="font-bold text-indigo-950">{prodNome}:</span>
+                                        <input
+                                          type="number"
+                                          min={0}
+                                          step={isKg ? "0.1" : "1"}
+                                          inputMode={isKg ? "decimal" : "numeric"}
+                                          value={qtd}
+                                          placeholder={isKg ? "0.0" : "0"}
+                                          onKeyDown={(e) => {
+                                            if (!isKg && (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E')) {
+                                              e.preventDefault();
+                                            }
+                                          }}
+                                          onChange={(e) =>
+                                            handleAlterarQtdClienteB2B(cli.id, diaSemanaB2B, prodNome, e.target.value)
+                                          }
+                                          className="w-16 text-center bg-white border border-indigo-300 rounded font-mono font-black text-indigo-900 px-1 py-0.5 text-[11px]"
+                                        />
+                                        <span className="text-[10px] text-indigo-700 font-bold">
+                                          {obterUnidadeArtigo(prodNome)}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               )}
                             </td>
@@ -6391,19 +6421,31 @@ export default function AdminPage() {
                             Qtd / Dia:
                           </span>
                           <div className="flex items-center gap-1.5">
-                            <input
-                              type="number"
-                              min={0}
-                              step="0.1"
-                              inputMode="decimal"
-                              value={qtdAtual === 0 ? '' : qtdAtual}
-                              placeholder="0"
-                              onChange={(e) => handleDefinirQtdArtigoB2BModal(art.nome, e.target.value)}
-                              className="w-16 text-center py-1 px-1.5 rounded-lg border border-stone-300 bg-white font-mono font-black text-indigo-950 text-xs focus:border-indigo-500 focus:outline-hidden"
-                            />
-                            <span className="text-[11px] font-bold text-stone-600 min-w-5">
-                              {art.unidade_medida === 'kg' || art.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.'}
-                            </span>
+                            {(() => {
+                              const isKg = art.unidade_medida === 'kg' || art.unidade?.toLowerCase().includes('kg');
+                              return (
+                                <>
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    step={isKg ? "0.1" : "1"}
+                                    inputMode={isKg ? "decimal" : "numeric"}
+                                    value={qtdAtual === 0 ? '' : qtdAtual}
+                                    placeholder={isKg ? "0.0" : "0"}
+                                    onKeyDown={(e) => {
+                                      if (!isKg && (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E')) {
+                                        e.preventDefault();
+                                      }
+                                    }}
+                                    onChange={(e) => handleDefinirQtdArtigoB2BModal(art.nome, e.target.value)}
+                                    className="w-16 text-center py-1 px-1.5 rounded-lg border border-stone-300 bg-white font-mono font-black text-indigo-950 text-xs focus:border-indigo-500 focus:outline-hidden"
+                                  />
+                                  <span className="text-[11px] font-bold text-stone-600 min-w-5">
+                                    {isKg ? 'kg' : 'un.'}
+                                  </span>
+                                </>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>
@@ -6729,36 +6771,51 @@ export default function AdminPage() {
                             {prod.nome}
                           </span>
                           <div className="flex items-center gap-1 shrink-0">
-                            <input
-                              type="number"
-                              min={0}
-                              step="0.1"
-                              inputMode="decimal"
-                              value={qtd === 0 ? '' : qtd}
-                              placeholder="0"
-                              onChange={(e) => {
-                                const raw = e.target.value.replace(',', '.');
-                                const num = raw === '' ? 0 : parseFloat(raw);
-                                const val = isNaN(num) ? 0 : Math.max(0, Math.round(num * 10) / 10);
-                                const mapaDia = { ...(sem[diaSemanaBaseRecorrenteModal] || {}) };
-                                if (val <= 0) {
-                                  delete mapaDia[prod.nome];
-                                } else {
-                                  mapaDia[prod.nome] = val;
-                                }
-                                setBaseRecorrenteEmEdicao({
-                                  ...baseRecorrenteEmEdicao,
-                                  quantidades_semanais: {
-                                    ...sem,
-                                    [diaSemanaBaseRecorrenteModal]: mapaDia,
-                                  },
-                                });
-                              }}
-                              className="w-16 text-center py-0.5 px-1 rounded border border-gray-300 font-mono font-bold text-teal-950 text-xs"
-                            />
-                            <span className="text-[10px] font-bold text-stone-500 min-w-4">
-                              {prod.unidade_medida === 'kg' || prod.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un'}
-                            </span>
+                            {(() => {
+                              const isKg = prod.unidade_medida === 'kg' || prod.unidade?.toLowerCase().includes('kg');
+                              return (
+                                <>
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    step={isKg ? "0.1" : "1"}
+                                    inputMode={isKg ? "decimal" : "numeric"}
+                                    value={qtd === 0 ? '' : qtd}
+                                    placeholder={isKg ? "0.0" : "0"}
+                                    onKeyDown={(e) => {
+                                      if (!isKg && (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E')) {
+                                        e.preventDefault();
+                                      }
+                                    }}
+                                    onChange={(e) => {
+                                      let raw = e.target.value.replace(',', '.');
+                                      if (!isKg) {
+                                        raw = raw.replace(/\D/g, '');
+                                      }
+                                      const num = raw === '' ? 0 : parseFloat(raw);
+                                      const val = isNaN(num) ? 0 : Math.max(0, isKg ? Math.round(num * 10) / 10 : Math.round(num));
+                                      const mapaDia = { ...(sem[diaSemanaBaseRecorrenteModal] || {}) };
+                                      if (val <= 0) {
+                                        delete mapaDia[prod.nome];
+                                      } else {
+                                        mapaDia[prod.nome] = val;
+                                      }
+                                      setBaseRecorrenteEmEdicao({
+                                        ...baseRecorrenteEmEdicao,
+                                        quantidades_semanais: {
+                                          ...sem,
+                                          [diaSemanaBaseRecorrenteModal]: mapaDia,
+                                        },
+                                      });
+                                    }}
+                                    className="w-16 text-center py-0.5 px-1 rounded border border-gray-300 font-mono font-bold text-teal-950 text-xs"
+                                  />
+                                  <span className="text-[10px] font-bold text-stone-500 min-w-4">
+                                    {isKg ? 'kg' : 'un'}
+                                  </span>
+                                </>
+                              );
+                            })()}
                           </div>
                         </div>
                       );

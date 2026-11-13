@@ -87,6 +87,7 @@ interface ItemCarrinhoCliente {
   categoria: string;
   quantidade: number;
   unidade?: string;
+  unidade_medida?: string;
   preco: number;
   emoji: string;
   notas: string;
@@ -509,11 +510,14 @@ export default function EncomendarClientePage() {
 
   const atualizarQuantidadeItem = (itemId: string, novaQtd: number) => {
     setCarrinho((prev) =>
-      prev.map((item) =>
-        item.id === itemId
-          ? { ...item, quantidade: Math.max(0, Math.round(novaQtd * 10) / 10) }
-          : item
-      )
+      prev.map((item) => {
+        if (item.id === itemId) {
+          const isKg = item.unidade === 'kg' || item.unidade_medida === 'kg';
+          const finalVal = isKg ? Math.max(0, Math.round(novaQtd * 10) / 10) : Math.max(0, Math.floor(novaQtd));
+          return { ...item, quantidade: finalVal };
+        }
+        return item;
+      })
     );
   };
 
@@ -526,12 +530,13 @@ export default function EncomendarClientePage() {
       prev
         .map((item) => {
           if (item.id === itemId) {
-            const nova = Math.round((item.quantidade + delta) * 10) / 10;
-            return { ...item, quantidade: nova };
+            const isKg = item.unidade === 'kg' || item.unidade_medida === 'kg';
+            const nova = isKg ? Math.round((item.quantidade + delta) * 10) / 10 : Math.round(item.quantidade + delta);
+            return nova > 0 ? { ...item, quantidade: nova } : null;
           }
           return item;
         })
-        .filter((item) => item.quantidade > 0)
+        .filter(Boolean) as ItemCarrinhoCliente[]
     );
   };
 
@@ -2057,24 +2062,45 @@ export default function EncomendarClientePage() {
                       {/* Botão de Adição / Contador */}
                       {itemNoCarrinho ? (
                         <div className="flex items-center justify-between gap-1 bg-amber-50 border border-amber-300 rounded-xl p-1">
-                          <input
-                            type="number"
-                            step="0.1"
-                            min="0.1"
-                            inputMode="decimal"
-                            value={itemNoCarrinho.quantidade === 0 ? '' : itemNoCarrinho.quantidade}
-                            onChange={(e) => {
-                              const val = e.target.value.replace(',', '.');
-                              const num = val === '' ? 0 : parseFloat(val);
-                              if (!isNaN(num) && num >= 0) {
-                                atualizarQuantidadeItem(itemNoCarrinho.id, num);
-                              }
-                            }}
-                            className="w-16 px-1.5 py-1 text-center font-bold text-xs bg-white border border-amber-300 rounded-lg focus:ring-1 focus:ring-amber-500 font-mono"
-                          />
-                          <span className="text-[11px] font-bold text-amber-900 pr-1">
-                            {itemNoCarrinho.unidade === 'kg' ? 'kg' : 'un.'}
-                          </span>
+                          {(() => {
+                            const isKg = itemNoCarrinho.unidade === 'kg' || itemNoCarrinho.unidade_medida === 'kg' || prod.unidade === 'kg' || prod.unidade_medida === 'kg';
+                            return (
+                              <>
+                                <input
+                                  type="number"
+                                  step={isKg ? "0.1" : "1"}
+                                  min={isKg ? "0.1" : "1"}
+                                  inputMode={isKg ? "decimal" : "numeric"}
+                                  value={itemNoCarrinho.quantidade === 0 ? '' : itemNoCarrinho.quantidade}
+                                  placeholder={isKg ? "0.0" : "1"}
+                                  onKeyDown={(e) => {
+                                    if (!isKg && (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E')) {
+                                      e.preventDefault();
+                                    }
+                                  }}
+                                  onChange={(e) => {
+                                    let val = e.target.value.replace(',', '.');
+                                    if (!isKg) {
+                                      val = val.replace(/\D/g, '');
+                                    }
+                                    if (val === '') {
+                                      atualizarQuantidadeItem(itemNoCarrinho.id, 0);
+                                      return;
+                                    }
+                                    const num = parseFloat(val);
+                                    if (!isNaN(num) && num >= 0) {
+                                      const finalVal = isKg ? Math.round(num * 10) / 10 : Math.floor(num);
+                                      atualizarQuantidadeItem(itemNoCarrinho.id, finalVal);
+                                    }
+                                  }}
+                                  className="w-16 px-1.5 py-1 text-center font-bold text-xs bg-white border border-amber-300 rounded-lg focus:ring-1 focus:ring-amber-500 font-mono"
+                                />
+                                <span className="text-[11px] font-bold text-amber-900 pr-1">
+                                  {isKg ? 'kg' : 'un.'}
+                                </span>
+                              </>
+                            );
+                          })()}
                           <button
                             type="button"
                             onClick={() => removerItemCarrinho(itemNoCarrinho.id)}
@@ -2380,24 +2406,45 @@ export default function EncomendarClientePage() {
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-xl border border-stone-200">
                               <label className="text-[10px] font-bold text-stone-500 uppercase">Qtd:</label>
-                              <input
-                                type="number"
-                                step="0.1"
-                                min="0.1"
-                                inputMode="decimal"
-                                value={item.quantidade === 0 ? '' : item.quantidade}
-                                onChange={(e) => {
-                                  const val = e.target.value.replace(',', '.');
-                                  const num = val === '' ? 0 : parseFloat(val);
-                                  if (!isNaN(num) && num >= 0) {
-                                    atualizarQuantidadeItem(item.id, num);
-                                  }
-                                }}
-                                className="w-16 px-1.5 py-0.5 text-center font-bold text-xs bg-white border border-stone-300 rounded font-mono"
-                              />
-                              <span className="text-[11px] font-bold text-stone-600">
-                                {item.unidade === 'kg' ? 'kg' : 'un.'}
-                              </span>
+                              {(() => {
+                                const isKg = item.unidade === 'kg' || item.unidade_medida === 'kg';
+                                return (
+                                  <>
+                                    <input
+                                      type="number"
+                                      step={isKg ? "0.1" : "1"}
+                                      min={isKg ? "0.1" : "1"}
+                                      inputMode={isKg ? "decimal" : "numeric"}
+                                      value={item.quantidade === 0 ? '' : item.quantidade}
+                                      placeholder={isKg ? "0.0" : "1"}
+                                      onKeyDown={(e) => {
+                                        if (!isKg && (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E')) {
+                                          e.preventDefault();
+                                        }
+                                      }}
+                                      onChange={(e) => {
+                                        let val = e.target.value.replace(',', '.');
+                                        if (!isKg) {
+                                          val = val.replace(/\D/g, '');
+                                        }
+                                        if (val === '') {
+                                          atualizarQuantidadeItem(item.id, 0);
+                                          return;
+                                        }
+                                        const num = parseFloat(val);
+                                        if (!isNaN(num) && num >= 0) {
+                                          const finalVal = isKg ? Math.round(num * 10) / 10 : Math.floor(num);
+                                          atualizarQuantidadeItem(item.id, finalVal);
+                                        }
+                                      }}
+                                      className="w-16 px-1.5 py-0.5 text-center font-bold text-xs bg-white border border-stone-300 rounded font-mono"
+                                    />
+                                    <span className="text-[11px] font-bold text-stone-600">
+                                      {isKg ? 'kg' : 'un.'}
+                                    </span>
+                                  </>
+                                );
+                              })()}
                               <button
                                 type="button"
                                 onClick={() => removerItemCarrinho(item.id)}

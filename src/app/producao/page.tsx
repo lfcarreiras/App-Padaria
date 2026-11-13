@@ -577,7 +577,7 @@ export default function ProducaoPage() {
       if (quantidade > 0) {
         const prodRef = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
         const cat: 'padaria' | 'pastelaria' = prodRef?.categoria || (artigo.toLowerCase().includes('bolo') || artigo.toLowerCase().includes('croissant') ? 'pastelaria' : 'padaria');
-        const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
+        const unid = prodRef?.unidade_medida === 'kg' || prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
         const artigoCanonico = artigo.trim();
         mapaItens.set(artigoCanonico, {
           quantidade,
@@ -597,7 +597,7 @@ export default function ProducaoPage() {
           if (quantidade > 0) {
             const prodRef = produtos.find((p) => p.nome.toLowerCase() === artigo.toLowerCase());
             const cat = prodRef?.categoria || (artigo.toLowerCase().includes('bolo') || artigo.toLowerCase().includes('croissant') ? 'pastelaria' : 'padaria');
-            const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
+            const unid = prodRef?.unidade_medida === 'kg' || prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
             const atual = mapaItens.get(artigo);
             if (atual) {
               atual.quantidade += quantidade;

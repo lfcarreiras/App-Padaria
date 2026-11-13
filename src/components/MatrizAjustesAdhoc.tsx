@@ -182,9 +182,14 @@ export function MatrizAjustesAdhoc({
     if (valorStr.trim() === '') {
       await removerAjusteAdhoc(chave);
     } else {
-      const parsed = parseFloat(valorStr.replace(',', '.'));
+      const isKg = obterUnidadeArtigo(produtoNome) === 'kg';
+      let val = valorStr.replace(',', '.');
+      if (!isKg) {
+        val = val.replace(/\D/g, '');
+      }
+      const parsed = parseFloat(val);
       if (!isNaN(parsed)) {
-        const arredondado = Math.round(Math.max(0, parsed) * 10) / 10;
+        const arredondado = isKg ? Math.round(Math.max(0, parsed) * 10) / 10 : Math.round(Math.max(0, parsed));
         await salvarAjusteAdhoc(chave, arredondado);
       }
     }
@@ -224,9 +229,14 @@ export function MatrizAjustesAdhoc({
     if (valorStr.trim() === '') {
       await removerAjusteAdhoc(chave);
     } else {
-      const parsed = parseFloat(valorStr.replace(',', '.'));
+      const isKg = obterUnidadeArtigo(produtoNome) === 'kg';
+      let val = valorStr.replace(',', '.');
+      if (!isKg) {
+        val = val.replace(/\D/g, '');
+      }
+      const parsed = parseFloat(val);
       if (!isNaN(parsed)) {
-        const arredondado = Math.round(Math.max(0, parsed) * 10) / 10;
+        const arredondado = isKg ? Math.round(Math.max(0, parsed) * 10) / 10 : Math.round(Math.max(0, parsed));
         await salvarAjusteAdhoc(chave, arredondado);
       }
     }
@@ -563,6 +573,7 @@ export function MatrizAjustesAdhoc({
                           const valorEfetivo = temAdhoc && valorAdhoc !== undefined ? valorAdhoc : baselineVal;
                           totalLinha7Dias += valorEfetivo;
 
+                          const isKg = obterUnidadeArtigo(produtoNome) === 'kg';
                           return (
                             <td
                               key={col.dataIso}
@@ -574,9 +585,14 @@ export function MatrizAjustesAdhoc({
                                 <input
                                   type="number"
                                   min="0"
-                                  step="0.1"
-                                  inputMode="decimal"
+                                  step={isKg ? "0.1" : "1"}
+                                  inputMode={isKg ? "decimal" : "numeric"}
                                   value={valorEfetivo}
+                                  onKeyDown={(e) => {
+                                    if (!isKg && (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E')) {
+                                      e.preventDefault();
+                                    }
+                                  }}
                                   onChange={(e) =>
                                     handleAlterarBaseAdhoc(
                                       col.dataIso,
@@ -772,6 +788,8 @@ export function MatrizAjustesAdhoc({
                                     const valorEfetivo = temAdhoc ? Number(ajustesAdhoc[chave]) : baselineVal;
                                     totalArtigo7Dias += valorEfetivo;
 
+                                    const isKg = obterUnidadeArtigo(artigo) === 'kg';
+
                                     return (
                                       <td
                                         key={col.dataIso}
@@ -783,9 +801,14 @@ export function MatrizAjustesAdhoc({
                                           <input
                                             type="number"
                                             min="0"
-                                            step="0.1"
-                                            inputMode="decimal"
+                                            step={isKg ? "0.1" : "1"}
+                                            inputMode={isKg ? "decimal" : "numeric"}
                                             value={valorEfetivo}
+                                            onKeyDown={(e) => {
+                                              if (!isKg && (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E')) {
+                                                e.preventDefault();
+                                              }
+                                            }}
                                             onChange={(e) =>
                                               handleAlterarB2BAdhoc(
                                                 col.dataIso,

@@ -267,7 +267,9 @@ export default function EncomendasPage(props: any) {
     setCarrinho((prev) =>
       prev.map((item) => {
         if (item.id === itemId) {
-          return { ...item, quantidade: Math.max(0, Math.round(novaQtd * 10) / 10) };
+          const isKg = item.unidade === 'kg' || item.unidade_medida === 'kg';
+          const finalVal = isKg ? Math.max(0, Math.round(novaQtd * 10) / 10) : Math.max(0, Math.floor(novaQtd));
+          return { ...item, quantidade: finalVal };
         }
         return item;
       })
@@ -283,7 +285,8 @@ export default function EncomendasPage(props: any) {
       prev
         .map((item) => {
           if (item.id === itemId) {
-            const nova = Math.round((item.quantidade + delta) * 10) / 10;
+            const isKg = item.unidade === 'kg' || item.unidade_medida === 'kg';
+            const nova = isKg ? Math.round((item.quantidade + delta) * 10) / 10 : Math.round(item.quantidade + delta);
             return nova > 0 ? { ...item, quantidade: nova } : null;
           }
           return item;
@@ -1147,7 +1150,8 @@ export default function EncomendasPage(props: any) {
                   ) : (
                     <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                       {carrinho.map((item) => {
-                        const isKg = item.unidade === 'kg' || item.unidade_medida === 'kg';
+                        const prodRef = produtos.find((p) => p.id === item.produto_id || p.nome?.trim().toLowerCase() === item.produto_nome?.trim().toLowerCase());
+                        const isKg = item.unidade === 'kg' || item.unidade_medida === 'kg' || prodRef?.unidade_medida === 'kg' || prodRef?.unidade?.toLowerCase().includes('kg');
                         return (
                           <div key={item.id} className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 text-xs space-y-1.5">
                             <div className="flex items-center justify-between font-bold text-gray-900">
@@ -1166,20 +1170,29 @@ export default function EncomendasPage(props: any) {
                                 </label>
                                 <input
                                   type="number"
-                                  step="0.1"
-                                  min="0.1"
-                                  inputMode="decimal"
+                                  step={isKg ? "0.1" : "1"}
+                                  min={isKg ? "0.1" : "1"}
+                                  inputMode={isKg ? "decimal" : "numeric"}
                                   value={item.quantidade === 0 ? '' : item.quantidade}
-                                  placeholder="0.0"
+                                  placeholder={isKg ? "0.0" : "1"}
+                                  onKeyDown={(e) => {
+                                    if (!isKg && (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E')) {
+                                      e.preventDefault();
+                                    }
+                                  }}
                                   onChange={(e) => {
-                                    const val = e.target.value.replace(',', '.');
+                                    let val = e.target.value.replace(',', '.');
+                                    if (!isKg) {
+                                      val = val.replace(/\D/g, '');
+                                    }
                                     if (val === '') {
                                       atualizarQuantidadeItem(item.id, 0);
                                       return;
                                     }
                                     const num = parseFloat(val);
                                     if (!isNaN(num) && num >= 0) {
-                                      atualizarQuantidadeItem(item.id, num);
+                                      const finalVal = isKg ? Math.round(num * 10) / 10 : Math.floor(num);
+                                      atualizarQuantidadeItem(item.id, finalVal);
                                     }
                                   }}
                                   className="w-20 px-2 py-1 text-center font-bold font-mono text-xs bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-bakery-500 focus:border-bakery-500"
@@ -2208,7 +2221,7 @@ export default function EncomendasPage(props: any) {
 
                 <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                   {encomendaEmEdicao.itens.map((item, idx) => {
-                    const prodRef = produtos.find((p) => p.id === item.produto_id || p.nome.toLowerCase() === item.produto_nome.toLowerCase());
+                    const prodRef = produtos.find((p) => p.id === item.produto_id || p.nome?.trim().toLowerCase() === item.produto_nome?.trim().toLowerCase());
                     const isKg = item.unidade === 'kg' || item.unidade_medida === 'kg' || prodRef?.unidade_medida === 'kg' || prodRef?.unidade?.toLowerCase().includes('kg');
                     return (
                       <div key={item.id || idx} className="p-2.5 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between gap-2">
@@ -2217,18 +2230,33 @@ export default function EncomendasPage(props: any) {
                           <label className="text-[10px] font-bold text-stone-500 uppercase">Qtd:</label>
                           <input
                             type="number"
-                            step="0.1"
-                            min="0.1"
-                            inputMode="decimal"
+                            step={isKg ? "0.1" : "1"}
+                            min={isKg ? "0.1" : "1"}
+                            inputMode={isKg ? "decimal" : "numeric"}
                             value={item.quantidade === 0 ? '' : item.quantidade}
-                            placeholder="0.0"
+                            placeholder={isKg ? "0.0" : "1"}
+                            onKeyDown={(e) => {
+                              if (!isKg && (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E')) {
+                                e.preventDefault();
+                              }
+                            }}
                             onChange={(e) => {
-                              const val = e.target.value.replace(',', '.');
-                              const num = val === '' ? 0 : parseFloat(val);
-                              if (!isNaN(num) && num >= 0) {
-                                const arredondado = Math.round(num * 10) / 10;
+                              let val = e.target.value.replace(',', '.');
+                              if (!isKg) {
+                                val = val.replace(/\D/g, '');
+                              }
+                              if (val === '') {
                                 const novos = encomendaEmEdicao.itens.map((it, i) =>
-                                  i === idx ? { ...it, quantidade: arredondado, unidade: isKg ? 'kg' : 'un', unidade_medida: isKg ? 'kg' : 'un' } : it
+                                  i === idx ? { ...it, quantidade: 0, unidade: isKg ? 'kg' : 'un', unidade_medida: isKg ? 'kg' : 'un' } : it
+                                );
+                                setEncomendaEmEdicao({ ...encomendaEmEdicao, itens: novos });
+                                return;
+                              }
+                              const num = parseFloat(val);
+                              if (!isNaN(num) && num >= 0) {
+                                const finalVal = isKg ? Math.round(num * 10) / 10 : Math.floor(num);
+                                const novos = encomendaEmEdicao.itens.map((it, i) =>
+                                  i === idx ? { ...it, quantidade: finalVal, unidade: isKg ? 'kg' : 'un', unidade_medida: isKg ? 'kg' : 'un' } : it
                                 );
                                 setEncomendaEmEdicao({ ...encomendaEmEdicao, itens: novos });
                               }
