@@ -70,6 +70,8 @@ export function parseEncomendasFromDb(data: any[]): Encomenda[] {
           ? portalMatch.itens[idx].produto_nome
           : undefined;
 
+      const unidadeFinal = item.produtos?.unidade_medida || item.produtos?.unidade || item.unidade || item.unidade_medida || 'un';
+
       return {
         id: item.id,
         encomenda_id: row.id,
@@ -77,6 +79,8 @@ export function parseEncomendasFromDb(data: any[]): Encomenda[] {
         produto_nome: item.produtos?.nome || item.produto_nome || nomeFallbackPortal || 'Artigo de Padaria/Pastelaria',
         setor: item.setor || 'padaria',
         quantidade: Number(item.quantidade) || 1,
+        unidade: unidadeFinal,
+        unidade_medida: unidadeFinal,
         preco_unitario: Number(item.preco_unitario) || 0,
         notas_personalizacao: notasLimpaItem || undefined,
         estado_producao: estadoItemFinal,
@@ -285,7 +289,7 @@ export async function carregarEncomendasSupabase(): Promise<Encomenda[]> {
           preco_unitario,
           notas_personalizacao,
           estado_producao,
-          produtos(id, nome)
+          produtos(id, nome, unidade, unidade_medida)
         )
       `)
       .order('criado_em', { ascending: false });
@@ -896,12 +900,14 @@ export async function carregarProdutosSupabase(): Promise<Produto[]> {
   return data || [];
 }
 
-export async function salvarProdutoDb(produto: Partial<Produto> & { nome: string; categoria: any; unidade?: any; ativo?: boolean }) {
+export async function salvarProdutoDb(produto: Partial<Produto> & { nome: string; categoria: any; unidade?: any; unidade_medida?: any; ativo?: boolean }) {
   if (!supabase) return null;
+  const unidMedida = produto.unidade_medida || (produto.unidade === 'kg' ? 'kg' : 'un');
   const payload: any = {
     nome: formatarNomeEntidade(produto.nome),
     categoria: produto.categoria,
-    unidade: produto.unidade || 'unidade',
+    unidade: produto.unidade || (unidMedida === 'kg' ? 'kg' : 'unidade'),
+    unidade_medida: unidMedida,
     ativo: produto.ativo !== undefined ? produto.ativo : true,
     preco: 0,
   };
@@ -1286,11 +1292,13 @@ export async function upsertProdutosEmLote(produtos: any[]) {
         .ilike('nome', p.nome.trim())
         .maybeSingle();
 
+      const unidMedida = p.unidade_medida || (p.unidade === 'kg' ? 'kg' : 'un');
       const payload = {
         nome: p.nome.trim(),
         preco: Number(p.preco) || 0,
         categoria: p.categoria === 'pastelaria' ? 'pastelaria' : 'padaria',
-        unidade: p.unidade || 'unidade',
+        unidade: p.unidade || (unidMedida === 'kg' ? 'kg' : 'unidade'),
+        unidade_medida: unidMedida,
         ativo: p.ativo !== undefined ? Boolean(p.ativo) : true,
       };
 
@@ -3620,7 +3628,7 @@ export function calcularPoolFabricoConsolidada(params: ParametrosCalculoFabricoC
           ? 'pastelaria'
           : 'padaria'
       );
-      const unid = prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
+      const unid = prodRef?.unidade_medida === 'kg' || prodRef?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.';
       mapa[chave] = {
         produto_nome: prodRef?.nome || nome.trim(),
         setor,
@@ -3797,7 +3805,10 @@ export function calcularPoolFabricoConsolidada(params: ParametrosCalculoFabricoC
 
     return {
       ...item,
-      quantidade_total: qtdFiltrada,
+      quantidade_total: Math.round(qtdFiltrada * 10) / 10,
+      qtd_bases_diarias: Math.round(base * 10) / 10,
+      qtd_clientes_b2b: Math.round(b2b * 10) / 10,
+      qtd_encomendas: Math.round(enc * 10) / 10,
     };
   });
 

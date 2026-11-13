@@ -192,11 +192,12 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
                     <p className="font-bold uppercase tracking-wider text-[10.5px] mb-1">{t.receiptBakerySection}</p>
                     {itensPadaria.map((item) => {
                       const isRecusado = item.estado_producao === 'recusado';
+                      const isKg = item.unidade === 'kg' || item.unidade_medida === 'kg';
                       return (
                         <div key={item.id} className="mb-1 text-[11px]">
                           <div className="flex justify-between items-center gap-1 pr-1">
                             <span className={`font-bold ${isRecusado ? 'line-through opacity-70' : ''}`}>
-                              {item.quantidade}x {item.produto_nome}
+                              {item.quantidade} {isKg ? 'kg' : 'x'} {item.produto_nome}
                             </span>
                             {isRecusado && (
                               <span className="text-[9px] font-black uppercase border border-black px-1 shrink-0">
@@ -218,11 +219,12 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
                     <p className="font-bold uppercase tracking-wider text-[10.5px] mb-1">{t.receiptPastrySection}</p>
                     {itensPastelaria.map((item) => {
                       const isRecusado = item.estado_producao === 'recusado';
+                      const isKg = item.unidade === 'kg' || item.unidade_medida === 'kg';
                       return (
                         <div key={item.id} className="mb-1 text-[11px]">
                           <div className="flex justify-between items-center gap-1 pr-1">
                             <span className={`font-bold ${isRecusado ? 'line-through opacity-70' : ''}`}>
-                              {item.quantidade}x {item.produto_nome}
+                              {item.quantidade} {isKg ? 'kg' : 'x'} {item.produto_nome}
                             </span>
                             {isRecusado && (
                               <span className="text-[9px] font-black uppercase border border-black px-1 shrink-0">
@@ -247,11 +249,12 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
                 <p className="font-bold uppercase tracking-wider text-[10.5px] mb-1">{t.receiptAllItemsSection}</p>
                 {todosItens.map((item) => {
                   const isRecusado = item.estado_producao === 'recusado';
+                  const isKg = item.unidade === 'kg' || item.unidade_medida === 'kg';
                   return (
                     <div key={item.id} className="mb-1 text-[11px]">
                       <div className="flex justify-between items-center gap-1 pr-1">
                         <span className={`font-bold ${isRecusado ? 'line-through opacity-70' : ''}`}>
-                          {item.quantidade}x {item.produto_nome}
+                          {item.quantidade} {isKg ? 'kg' : 'x'} {item.produto_nome}
                         </span>
                         {isRecusado && (
                           <span className="text-[9px] font-black uppercase border border-black px-1 shrink-0">
@@ -275,9 +278,14 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
               <div className="flex justify-between items-center text-xs font-bold uppercase border-t border-b border-black py-1 pr-1">
                 <span>{t.totalItems}:</span>
                 <span className="font-black">
-                  {encomenda.itens
-                    .filter((item: any) => item.estado_producao !== 'recusado')
-                    .reduce((acc: number, item: any) => acc + item.quantidade, 0)} un.
+                  {(() => {
+                    const itensAtivos = encomenda.itens.filter((item: any) => item.estado_producao !== 'recusado');
+                    const totalUn = Math.round(itensAtivos.filter((i: any) => i.unidade !== 'kg' && i.unidade_medida !== 'kg').reduce((acc: number, i: any) => acc + (Number(i.quantidade) || 0), 0) * 10) / 10;
+                    const totalKg = Math.round(itensAtivos.filter((i: any) => i.unidade === 'kg' || i.unidade_medida === 'kg').reduce((acc: number, i: any) => acc + (Number(i.quantidade) || 0), 0) * 10) / 10;
+                    if (totalUn > 0 && totalKg > 0) return `${totalUn} un. + ${totalKg} kg`;
+                    if (totalKg > 0) return `${totalKg} kg`;
+                    return `${totalUn} un.`;
+                  })()}
                 </span>
               </div>
             </div>

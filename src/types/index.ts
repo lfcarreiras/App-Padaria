@@ -42,7 +42,8 @@ export interface Produto {
   nome: string;
   categoria: CategoriaProduto;
   preco?: number;
-  unidade: 'unidade' | 'kg' | 'cento';
+  unidade: 'unidade' | 'un' | 'kg' | 'cento' | string;
+  unidade_medida?: 'un' | 'kg' | 'unidade' | string;
   tempo_preparo_minutos?: number;
   ativo: boolean;
 }
@@ -68,6 +69,8 @@ export interface ItemEncomenda {
   produto_nome: string;
   setor: SetorProducao;
   quantidade: number;
+  unidade?: string;
+  unidade_medida?: string;
   preco_unitario?: number;
   notas_personalizacao?: string;
   estado_producao: EstadoProducaoItem;

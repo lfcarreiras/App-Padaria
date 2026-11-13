@@ -86,6 +86,7 @@ interface ItemCarrinhoCliente {
   nome: string;
   categoria: string;
   quantidade: number;
+  unidade?: string;
   preco: number;
   emoji: string;
   notas: string;
@@ -481,11 +482,12 @@ export default function EncomendarClientePage() {
 
   // Ações do Carrinho
   const adicionarAoCarrinho = (prod: Produto) => {
+    const unid = prod.unidade_medida || (prod.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un');
     setCarrinho((prev) => {
       const existe = prev.find((item) => item.produtoId === prod.id || item.nome === prod.nome);
       if (existe) {
         return prev.map((item) =>
-          item.id === existe.id ? { ...item, quantidade: item.quantidade + 1 } : item
+          item.id === existe.id ? { ...item, quantidade: Math.round((item.quantidade + 1) * 10) / 10 } : item
         );
       }
       return [
@@ -496,6 +498,7 @@ export default function EncomendarClientePage() {
           nome: prod.nome,
           categoria: prod.categoria,
           quantidade: 1,
+          unidade: unid,
           preco: prod.preco || 0,
           emoji: '',
           notas: '',
@@ -504,10 +507,30 @@ export default function EncomendarClientePage() {
     });
   };
 
+  const atualizarQuantidadeItem = (itemId: string, novaQtd: number) => {
+    setCarrinho((prev) =>
+      prev.map((item) =>
+        item.id === itemId
+          ? { ...item, quantidade: Math.max(0, Math.round(novaQtd * 10) / 10) }
+          : item
+      )
+    );
+  };
+
+  const removerItemCarrinho = (itemId: string) => {
+    setCarrinho((prev) => prev.filter((item) => item.id !== itemId));
+  };
+
   const alterarQuantidade = (itemId: string, delta: number) => {
     setCarrinho((prev) =>
       prev
-        .map((item) => (item.id === itemId ? { ...item, quantidade: item.quantidade + delta } : item))
+        .map((item) => {
+          if (item.id === itemId) {
+            const nova = Math.round((item.quantidade + delta) * 10) / 10;
+            return { ...item, quantidade: nova };
+          }
+          return item;
+        })
         .filter((item) => item.quantidade > 0)
     );
   };
@@ -519,7 +542,11 @@ export default function EncomendarClientePage() {
   };
 
   const totalArtigosCarrinho = useMemo(() => {
-    return carrinho.reduce((acc, curr) => acc + curr.quantidade, 0);
+    const totalUn = Math.round(carrinho.filter((i) => i.unidade !== 'kg').reduce((acc, curr) => acc + (Number(curr.quantidade) || 0), 0) * 10) / 10;
+    const totalKg = Math.round(carrinho.filter((i) => i.unidade === 'kg').reduce((acc, curr) => acc + (Number(curr.quantidade) || 0), 0) * 10) / 10;
+    if (totalUn > 0 && totalKg > 0) return `${totalUn} un. + ${totalKg} kg`;
+    if (totalKg > 0) return `${totalKg} kg`;
+    return `${totalUn} un.`;
   }, [carrinho]);
 
   // Filtro de Produtos
@@ -2029,23 +2056,32 @@ export default function EncomendarClientePage() {
 
                       {/* Botão de Adição / Contador */}
                       {itemNoCarrinho ? (
-                        <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl p-1">
-                          <button
-                            type="button"
-                            onClick={() => alterarQuantidade(itemNoCarrinho.id, -1)}
-                            className="h-6 w-6 rounded-lg bg-white border border-amber-300 text-amber-900 flex items-center justify-center font-bold text-xs hover:bg-amber-100"
-                          >
-                            <Minus className="h-3 w-3" />
-                          </button>
-                          <span className="text-xs font-black text-amber-950 font-mono">
-                            {itemNoCarrinho.quantidade}
+                        <div className="flex items-center justify-between gap-1 bg-amber-50 border border-amber-300 rounded-xl p-1">
+                          <input
+                            type="number"
+                            step="0.1"
+                            min="0.1"
+                            inputMode="decimal"
+                            value={itemNoCarrinho.quantidade === 0 ? '' : itemNoCarrinho.quantidade}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(',', '.');
+                              const num = val === '' ? 0 : parseFloat(val);
+                              if (!isNaN(num) && num >= 0) {
+                                atualizarQuantidadeItem(itemNoCarrinho.id, num);
+                              }
+                            }}
+                            className="w-16 px-1.5 py-1 text-center font-bold text-xs bg-white border border-amber-300 rounded-lg focus:ring-1 focus:ring-amber-500 font-mono"
+                          />
+                          <span className="text-[11px] font-bold text-amber-900 pr-1">
+                            {itemNoCarrinho.unidade === 'kg' ? 'kg' : 'un.'}
                           </span>
                           <button
                             type="button"
-                            onClick={() => alterarQuantidade(itemNoCarrinho.id, 1)}
-                            className="h-6 w-6 rounded-lg bg-white border border-amber-300 text-amber-900 flex items-center justify-center font-bold text-xs hover:bg-amber-100"
+                            onClick={() => removerItemCarrinho(itemNoCarrinho.id)}
+                            className="p-1 rounded-md text-amber-700 hover:text-red-600 transition cursor-pointer"
+                            title="Remover"
                           >
-                            <Plus className="h-3 w-3" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </div>
                       ) : (
@@ -2332,31 +2368,43 @@ export default function EncomendarClientePage() {
                       {carrinho.map((item) => (
                         <div key={item.id} className="p-3 bg-stone-50 rounded-2xl border border-stone-100 text-xs space-y-2">
                           <div className="flex items-center justify-between font-bold text-stone-900">
-                            <span className="flex items-center gap-1.5">
+                            <span className="flex items-center gap-1.5 truncate pr-2">
                               <span>{item.emoji}</span>
-                              <span>{item.nome}</span>
+                              <span className="truncate">{item.nome}</span>
                             </span>
-                            <span className="font-mono text-amber-900 bg-amber-100 px-2 py-0.5 rounded-lg font-black">
-                              {item.quantidade} un.
+                            <span className="font-mono text-amber-900 bg-amber-100 px-2 py-0.5 rounded-lg font-black shrink-0">
+                              {item.quantidade} {item.unidade === 'kg' ? 'kg' : 'un.'}
                             </span>
                           </div>
 
                           <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-xl border border-stone-200">
+                            <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-xl border border-stone-200">
+                              <label className="text-[10px] font-bold text-stone-500 uppercase">Qtd:</label>
+                              <input
+                                type="number"
+                                step="0.1"
+                                min="0.1"
+                                inputMode="decimal"
+                                value={item.quantidade === 0 ? '' : item.quantidade}
+                                onChange={(e) => {
+                                  const val = e.target.value.replace(',', '.');
+                                  const num = val === '' ? 0 : parseFloat(val);
+                                  if (!isNaN(num) && num >= 0) {
+                                    atualizarQuantidadeItem(item.id, num);
+                                  }
+                                }}
+                                className="w-16 px-1.5 py-0.5 text-center font-bold text-xs bg-white border border-stone-300 rounded font-mono"
+                              />
+                              <span className="text-[11px] font-bold text-stone-600">
+                                {item.unidade === 'kg' ? 'kg' : 'un.'}
+                              </span>
                               <button
                                 type="button"
-                                onClick={() => alterarQuantidade(item.id, -1)}
-                                className="h-5 w-5 rounded text-stone-600 hover:text-stone-900 flex items-center justify-center font-bold"
+                                onClick={() => removerItemCarrinho(item.id)}
+                                className="p-1 rounded-md text-stone-400 hover:text-red-500 transition ml-0.5 cursor-pointer"
+                                title="Remover artigo"
                               >
-                                <Minus className="h-3 w-3" />
-                              </button>
-                              <span className="font-black text-xs min-w-4 text-center">{item.quantidade}</span>
-                              <button
-                                type="button"
-                                onClick={() => alterarQuantidade(item.id, 1)}
-                                className="h-5 w-5 rounded text-stone-600 hover:text-stone-900 flex items-center justify-center font-bold"
-                              >
-                                <Plus className="h-3 w-3" />
+                                <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             </div>
 
@@ -2376,8 +2424,8 @@ export default function EncomendarClientePage() {
                   {/* Resumo de Quantidades */}
                   <div className="pt-3 border-t border-stone-100 space-y-1.5">
                     <div className="flex justify-between text-sm font-black text-stone-900">
-                      <span>Total de Unidades a Encomendar:</span>
-                      <span className="text-base text-amber-700 font-mono">{totalArtigosCarrinho} un.</span>
+                      <span>Total de Artigos a Encomendar:</span>
+                      <span className="text-base text-amber-700 font-mono">{totalArtigosCarrinho}</span>
                     </div>
                     <p className="text-[10px] text-stone-400">
                       Pode acompanhar o estado da sua encomenda (Encomendado, Em Produção, Em Distribuição ou Entregue) no menu «As Minhas Encomendas».

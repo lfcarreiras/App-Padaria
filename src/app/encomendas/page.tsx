@@ -234,12 +234,13 @@ export default function EncomendasPage(props: any) {
 
   // Funções do Carrinho
   const adicionarAoCarrinho = (prod: Produto) => {
+    const unid = prod.unidade_medida || (prod.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un');
     setCarrinho((prev) => {
       const existente = prev.find((item) => item.produto_id === prod.id);
       if (existente) {
         return prev.map((item) =>
           item.produto_id === prod.id
-            ? { ...item, quantidade: item.quantidade + 1 }
+            ? { ...item, quantidade: Math.round((item.quantidade + 1) * 10) / 10 }
             : item
         );
       }
@@ -252,6 +253,8 @@ export default function EncomendasPage(props: any) {
           produto_nome: prod.nome,
           setor: prod.categoria === 'padaria' ? 'padaria' : 'pastelaria',
           quantidade: 1,
+          unidade: unid,
+          unidade_medida: unid,
           preco_unitario: prod.preco,
           estado_producao: 'pendente',
           notas_personalizacao: '',
@@ -260,12 +263,27 @@ export default function EncomendasPage(props: any) {
     });
   };
 
+  const atualizarQuantidadeItem = (itemId: string, novaQtd: number) => {
+    setCarrinho((prev) =>
+      prev.map((item) => {
+        if (item.id === itemId) {
+          return { ...item, quantidade: Math.max(0, Math.round(novaQtd * 10) / 10) };
+        }
+        return item;
+      })
+    );
+  };
+
+  const removerItemCarrinho = (itemId: string) => {
+    setCarrinho((prev) => prev.filter((item) => item.id !== itemId));
+  };
+
   const alterarQuantidade = (itemId: string, delta: number) => {
     setCarrinho((prev) =>
       prev
         .map((item) => {
           if (item.id === itemId) {
-            const nova = item.quantidade + delta;
+            const nova = Math.round((item.quantidade + delta) * 10) / 10;
             return nova > 0 ? { ...item, quantidade: nova } : null;
           }
           return item;
@@ -856,23 +874,31 @@ export default function EncomendasPage(props: any) {
 
               {/* Grelha de Produtos (Sem preços - foco na quantidade e artigo) */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {produtosFiltrados.map((prod) => (
-                  <button
-                    key={prod.id}
-                    onClick={() => adicionarAoCarrinho(prod)}
-                    className="flex flex-col text-left p-3.5 rounded-2xl bg-white border border-gray-200 shadow-2xs hover:border-bakery-400 hover:shadow-xs transition group"
-                  >
-                    <div className="mb-2">
-                      <SectorBadge setor={prod.categoria} />
-                    </div>
-                    <h4 className="text-xs font-bold text-gray-900 group-hover:text-bakery-700 line-clamp-2">
-                      {prod.nome}
-                    </h4>
-                    <span className="text-[11px] font-bold text-bakery-700 mt-auto pt-2 uppercase">
-                      + Adicionar
-                    </span>
-                  </button>
-                ))}
+                {produtosFiltrados.map((prod) => {
+                  const isKg = prod.unidade_medida === 'kg' || prod.unidade?.toLowerCase().includes('kg');
+                  return (
+                    <button
+                      key={prod.id}
+                      onClick={() => adicionarAoCarrinho(prod)}
+                      className="flex flex-col text-left p-3.5 rounded-2xl bg-white border border-gray-200 shadow-2xs hover:border-bakery-400 hover:shadow-xs transition group"
+                    >
+                      <div className="mb-2 flex items-center justify-between gap-1">
+                        <SectorBadge setor={prod.categoria} />
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${
+                          isKg ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-stone-100 text-stone-600 border border-stone-200'
+                        }`}>
+                          {isKg ? 'Kg' : 'Un.'}
+                        </span>
+                      </div>
+                      <h4 className="text-xs font-bold text-gray-900 group-hover:text-bakery-700 line-clamp-2">
+                        {prod.nome}
+                      </h4>
+                      <span className="text-[11px] font-bold text-bakery-700 mt-auto pt-2 uppercase">
+                        + Adicionar
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -1120,42 +1146,68 @@ export default function EncomendasPage(props: any) {
                     </p>
                   ) : (
                     <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                      {carrinho.map((item) => (
-                        <div key={item.id} className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 text-xs space-y-1.5">
-                          <div className="flex items-center justify-between font-bold text-gray-900">
-                            <span>{item.produto_nome}</span>
-                            <span className="text-xs text-stone-600 font-bold">{item.quantidade} un.</span>
-                          </div>
-
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => alterarQuantidade(item.id, -1)}
-                                className="h-6 w-6 rounded-md bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-100"
-                              >
-                                <Minus className="h-3 w-3" />
-                              </button>
-                              <span className="font-black text-xs">{item.quantidade}</span>
-                              <button
-                                type="button"
-                                onClick={() => alterarQuantidade(item.id, 1)}
-                                className="h-6 w-6 rounded-md bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-100"
-                              >
-                                <Plus className="h-3 w-3" />
-                              </button>
+                      {carrinho.map((item) => {
+                        const isKg = item.unidade === 'kg' || item.unidade_medida === 'kg';
+                        return (
+                          <div key={item.id} className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 text-xs space-y-1.5">
+                            <div className="flex items-center justify-between font-bold text-gray-900">
+                              <span className="truncate pr-2">{item.produto_nome}</span>
+                              <span className={`text-xs font-black shrink-0 px-1.5 py-0.5 rounded ${
+                                isKg ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-stone-200 text-stone-700'
+                              }`}>
+                                {item.quantidade} {isKg ? 'kg' : 'un.'}
+                              </span>
                             </div>
 
-                            <input
-                              type="text"
-                              value={item.notas_personalizacao || ''}
-                              onChange={(e) => atualizarNotaItem(item.id, e.target.value)}
-                              placeholder="Personalização (frase no bolo, etc.)"
-                              className="w-44 text-[11px] px-2 py-1 bg-white border border-gray-200 rounded-md"
-                            />
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-1.5">
+                                <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">
+                                  Qtd:
+                                </label>
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  min="0.1"
+                                  inputMode="decimal"
+                                  value={item.quantidade === 0 ? '' : item.quantidade}
+                                  placeholder="0.0"
+                                  onChange={(e) => {
+                                    const val = e.target.value.replace(',', '.');
+                                    if (val === '') {
+                                      atualizarQuantidadeItem(item.id, 0);
+                                      return;
+                                    }
+                                    const num = parseFloat(val);
+                                    if (!isNaN(num) && num >= 0) {
+                                      atualizarQuantidadeItem(item.id, num);
+                                    }
+                                  }}
+                                  className="w-20 px-2 py-1 text-center font-bold font-mono text-xs bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-bakery-500 focus:border-bakery-500"
+                                />
+                                <span className="text-[11px] font-bold text-stone-600">
+                                  {isKg ? 'kg' : 'un.'}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => removerItemCarrinho(item.id)}
+                                  className="p-1 rounded-md text-stone-400 hover:text-red-500 hover:bg-red-50 transition ml-1 cursor-pointer"
+                                  title="Remover artigo do pedido"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+
+                              <input
+                                type="text"
+                                value={item.notas_personalizacao || ''}
+                                onChange={(e) => atualizarNotaItem(item.id, e.target.value)}
+                                placeholder="Personalização (frase no bolo, etc.)"
+                                className="w-40 sm:w-48 text-[11px] px-2 py-1 bg-white border border-gray-200 rounded-md focus:border-bakery-500 focus:outline-hidden"
+                              />
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -1164,8 +1216,14 @@ export default function EncomendasPage(props: any) {
                 <div className="border-t border-gray-100 pt-3">
                   <div className="flex items-center justify-between text-base font-black text-gray-900 pt-1">
                     <span>{t.totalItems}:</span>
-                    <span className="text-xl text-bakery-700">
-                      {carrinho.reduce((acc, i) => acc + i.quantidade, 0)} un.
+                    <span className="text-xl text-bakery-700 font-mono font-black">
+                      {(() => {
+                        const totalUn = Math.round(carrinho.filter((i) => i.unidade !== 'kg' && i.unidade_medida !== 'kg').reduce((acc, i) => acc + (Number(i.quantidade) || 0), 0) * 10) / 10;
+                        const totalKg = Math.round(carrinho.filter((i) => i.unidade === 'kg' || i.unidade_medida === 'kg').reduce((acc, i) => acc + (Number(i.quantidade) || 0), 0) * 10) / 10;
+                        if (totalUn > 0 && totalKg > 0) return `${totalUn} un. + ${totalKg} kg`;
+                        if (totalKg > 0) return `${totalKg} kg`;
+                        return `${totalUn} un.`;
+                      })()}
                     </span>
                   </div>
                 </div>
@@ -2111,12 +2169,13 @@ export default function EncomendasPage(props: any) {
                       onClick={() => {
                         const prodEscolhido = produtos.find((p) => p.id === (produtoAdicionalId || produtos[0]?.id));
                         if (!prodEscolhido) return;
+                        const unid = prodEscolhido.unidade_medida || (prodEscolhido.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un');
                         const idxExistente = encomendaEmEdicao.itens.findIndex(
                           (it) => it.produto_id === prodEscolhido.id
                         );
                         if (idxExistente >= 0) {
                           const novos = encomendaEmEdicao.itens.map((it, idx) =>
-                            idx === idxExistente ? { ...it, quantidade: it.quantidade + 1 } : it
+                            idx === idxExistente ? { ...it, quantidade: Math.round((it.quantidade + 1) * 10) / 10 } : it
                           );
                           setEncomendaEmEdicao({ ...encomendaEmEdicao, itens: novos });
                         } else {
@@ -2127,6 +2186,8 @@ export default function EncomendasPage(props: any) {
                             produto_nome: prodEscolhido.nome,
                             setor: prodEscolhido.categoria === 'padaria' ? 'padaria' : 'pastelaria',
                             quantidade: 1,
+                            unidade: unid,
+                            unidade_medida: unid,
                             preco_unitario: 0,
                             estado_producao: 'pendente',
                             notas_personalizacao: '',
@@ -2146,54 +2207,56 @@ export default function EncomendasPage(props: any) {
                 </div>
 
                 <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {encomendaEmEdicao.itens.map((item, idx) => (
-                    <div key={item.id || idx} className="p-2.5 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between gap-2">
-                      <span className="font-bold text-gray-900">{item.produto_nome}</span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const novaQtd = Math.max(1, item.quantidade - 1);
-                            const novos = encomendaEmEdicao.itens.map((it, i) =>
-                              i === idx ? { ...it, quantidade: novaQtd } : it
-                            );
-                            setEncomendaEmEdicao({ ...encomendaEmEdicao, itens: novos });
-                          }}
-                          className="h-6 w-6 rounded-md bg-white border border-gray-200 flex items-center justify-center font-bold"
-                        >
-                          -
-                        </button>
-                        <span className="font-mono font-bold w-6 text-center">{item.quantidade}</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const novos = encomendaEmEdicao.itens.map((it, i) =>
-                              i === idx ? { ...it, quantidade: it.quantidade + 1 } : it
-                            );
-                            setEncomendaEmEdicao({ ...encomendaEmEdicao, itens: novos });
-                          }}
-                          className="h-6 w-6 rounded-md bg-white border border-gray-200 flex items-center justify-center font-bold"
-                        >
-                          +
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (encomendaEmEdicao.itens.length <= 1) {
-                              alert('A encomenda deve ter pelo menos um artigo.');
-                              return;
-                            }
-                            const novos = encomendaEmEdicao.itens.filter((_, i) => i !== idx);
-                            setEncomendaEmEdicao({ ...encomendaEmEdicao, itens: novos });
-                          }}
-                          className="p-1 rounded-md text-red-500 hover:bg-red-50"
-                          title="Remover artigo"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                  {encomendaEmEdicao.itens.map((item, idx) => {
+                    const prodRef = produtos.find((p) => p.id === item.produto_id || p.nome.toLowerCase() === item.produto_nome.toLowerCase());
+                    const isKg = item.unidade === 'kg' || item.unidade_medida === 'kg' || prodRef?.unidade_medida === 'kg' || prodRef?.unidade?.toLowerCase().includes('kg');
+                    return (
+                      <div key={item.id || idx} className="p-2.5 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between gap-2">
+                        <span className="font-bold text-gray-900 truncate pr-2">{item.produto_nome}</span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <label className="text-[10px] font-bold text-stone-500 uppercase">Qtd:</label>
+                          <input
+                            type="number"
+                            step="0.1"
+                            min="0.1"
+                            inputMode="decimal"
+                            value={item.quantidade === 0 ? '' : item.quantidade}
+                            placeholder="0.0"
+                            onChange={(e) => {
+                              const val = e.target.value.replace(',', '.');
+                              const num = val === '' ? 0 : parseFloat(val);
+                              if (!isNaN(num) && num >= 0) {
+                                const arredondado = Math.round(num * 10) / 10;
+                                const novos = encomendaEmEdicao.itens.map((it, i) =>
+                                  i === idx ? { ...it, quantidade: arredondado, unidade: isKg ? 'kg' : 'un', unidade_medida: isKg ? 'kg' : 'un' } : it
+                                );
+                                setEncomendaEmEdicao({ ...encomendaEmEdicao, itens: novos });
+                              }
+                            }}
+                            className="w-20 px-2 py-1 text-center font-bold font-mono text-xs bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-bakery-500 focus:border-bakery-500"
+                          />
+                          <span className="text-xs font-bold text-stone-600 min-w-5">
+                            {isKg ? 'kg' : 'un.'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (encomendaEmEdicao.itens.length <= 1) {
+                                alert('A encomenda deve ter pelo menos um artigo.');
+                                return;
+                              }
+                              const novos = encomendaEmEdicao.itens.filter((_, i) => i !== idx);
+                              setEncomendaEmEdicao({ ...encomendaEmEdicao, itens: novos });
+                            }}
+                            className="p-1 rounded-md text-red-500 hover:bg-red-50 ml-1 cursor-pointer"
+                            title="Remover artigo"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 

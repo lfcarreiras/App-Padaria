@@ -352,10 +352,16 @@ export default function CmsFrontofficeReplicaPage() {
     });
   };
 
+  const definirQtdCarrinho = (id: string, novaQtd: number) => {
+    setCarrinho((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, quantidade: Math.max(0, Math.round(novaQtd * 10) / 10) } : item))
+    );
+  };
+
   const alterarQtdCarrinho = (id: string, delta: number) => {
     setCarrinho((prev) =>
       prev
-        .map((item) => (item.id === id ? { ...item, quantidade: Math.max(1, item.quantidade + delta) } : item))
+        .map((item) => (item.id === id ? { ...item, quantidade: Math.max(1, Math.round((item.quantidade + delta) * 10) / 10) } : item))
         .filter((item) => item.quantidade > 0)
     );
   };
@@ -1300,25 +1306,28 @@ export default function CmsFrontofficeReplicaPage() {
                               </div>
 
                               <div className="flex items-center gap-1.5 shrink-0">
-                                <button
-                                  type="button"
-                                  onClick={() => alterarQtdCarrinho(item.id, -1)}
-                                  className="p-1 rounded bg-white border border-gray-200 hover:bg-gray-100 font-bold cursor-pointer"
-                                >
-                                  <Minus className="h-3 w-3" />
-                                </button>
-                                <span className="font-black w-5 text-center">{item.quantidade}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => alterarQtdCarrinho(item.id, 1)}
-                                  className="p-1 rounded bg-white border border-gray-200 hover:bg-gray-100 font-bold cursor-pointer"
-                                >
-                                  <Plus className="h-3 w-3" />
-                                </button>
+                                <label className="text-[10px] font-bold text-gray-500 uppercase">Qtd:</label>
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  min="0.1"
+                                  inputMode="decimal"
+                                  value={item.quantidade === 0 ? '' : item.quantidade}
+                                  onChange={(e) => {
+                                    const val = e.target.value.replace(',', '.');
+                                    const num = val === '' ? 0 : parseFloat(val);
+                                    if (!isNaN(num) && num >= 0) {
+                                      definirQtdCarrinho(item.id, num);
+                                    }
+                                  }}
+                                  className="w-16 px-1.5 py-0.5 text-center font-bold text-xs bg-white border border-gray-300 rounded font-mono"
+                                />
+                                <span className="text-[11px] font-bold text-gray-600">un.</span>
                                 <button
                                   type="button"
                                   onClick={() => removerDoCarrinho(item.id)}
                                   className="p-1 rounded text-red-500 hover:bg-red-50 ml-1 cursor-pointer"
+                                  title="Remover"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </button>

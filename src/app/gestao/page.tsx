@@ -621,7 +621,8 @@ export default function AdminPage() {
     const semanaModal = (clienteB2BEmEdicao.quantidades_semanais || clienteB2BEmEdicao.quantidades_semana || {}) as Record<string, Record<string, number>>;
     const mapaDia = { ...(semanaModal[diaSemanaB2B] || {}) };
     
-    const novoValor = typeof valor === 'string' ? parseInt(valor, 10) : valor;
+    const parsed = typeof valor === 'string' ? parseFloat(valor.replace(',', '.')) : valor;
+    const novoValor = isNaN(parsed) ? 0 : Math.round(parsed * 10) / 10;
     if (isNaN(novoValor) || novoValor <= 0) {
       delete mapaDia[prodNome];
     } else {
@@ -664,6 +665,12 @@ export default function AdminPage() {
     });
   }, [basesRecorrentes, filtroRotaBaseRecorrente, filtroBuscaBaseRecorrente, filtroEstadoBaseRecorrente]);
 
+  const obterUnidadeArtigo = (nomeArtigo: string) => {
+    const nomeLimpo = (nomeArtigo || '').trim().toLowerCase();
+    const p = produtos.find((item) => item.nome.trim().toLowerCase() === nomeLimpo);
+    return p?.unidade_medida === 'kg' || p?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un';
+  };
+
   const obterQtdBaseCarrinha = (carrinhaId: string, dia: DiaSemana, prodNome: string): number => {
     const reg = (baseFixaCarrinhas || []).find((b) => b?.carrinha_id === carrinhaId || b?.carrinha_nome === carrinhaId);
     if (!reg) return 0;
@@ -673,8 +680,9 @@ export default function AdminPage() {
     return 0;
   };
 
-  const handleAlterarQtdBaseFixa = (carrinhaId: string, carrinhaNome: string, dia: DiaSemana, produtoNome: string, valor: number) => {
-    const qtdLimpa = Math.max(0, Math.floor(Number(valor) || 0));
+  const handleAlterarQtdBaseFixa = (carrinhaId: string, carrinhaNome: string, dia: DiaSemana, produtoNome: string, valor: number | string) => {
+    const num = typeof valor === 'string' ? parseFloat(valor.replace(',', '.')) : Number(valor);
+    const qtdLimpa = isNaN(num) ? 0 : Math.max(0, Math.round(num * 10) / 10);
     const novaLista = [...baseFixaCarrinhas];
     const idx = novaLista.findIndex((b) => b?.carrinha_id === carrinhaId || b?.carrinha_nome === carrinhaNome);
     if (idx >= 0) {
@@ -1079,8 +1087,9 @@ export default function AdminPage() {
     setTimeout(() => setFeedbackBaseFixa(null), 3500);
   };
 
-  const handleAlterarQtdClienteB2B = (clienteId: string, dia: DiaSemana, produtoNome: string, valor: number) => {
-    const qtdLimpa = Math.max(0, Math.floor(Number(valor) || 0));
+  const handleAlterarQtdClienteB2B = (clienteId: string, dia: DiaSemana, produtoNome: string, valor: number | string) => {
+    const num = typeof valor === 'string' ? parseFloat(valor.replace(',', '.')) : Number(valor);
+    const qtdLimpa = isNaN(num) ? 0 : Math.max(0, Math.round(num * 10) / 10);
     const novaLista = clientesB2B.map((cli) => {
       if (cli.id !== clienteId) return cli;
       const semanaAtual = cli.quantidades_semanais || cli.quantidades_semana || ({} as Record<DiaSemana, Record<string, number>>);
@@ -1732,7 +1741,12 @@ export default function AdminPage() {
   const handleSalvarEdicaoProdutoModal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!produtoEmEdicaoModal || !produtoEmEdicaoModal.nome?.trim()) return;
-    const salvo = await salvarProdutoDb(produtoEmEdicaoModal as any);
+    const unidMedida = produtoEmEdicaoModal.unidade_medida || (produtoEmEdicaoModal.unidade === 'kg' ? 'kg' : 'un');
+    const salvo = await salvarProdutoDb({
+      ...produtoEmEdicaoModal,
+      unidade: produtoEmEdicaoModal.unidade || (unidMedida === 'kg' ? 'kg' : 'unidade'),
+      unidade_medida: unidMedida,
+    } as any);
     if (salvo) {
       const prods = await carregarProdutosSupabase();
       setProdutos(prods);
@@ -1850,11 +1864,13 @@ export default function AdminPage() {
       alert('O nome do produto é obrigatório.');
       return;
     }
+    const unidMedida = novoProduto.unidade === 'kg' ? 'kg' : 'un';
     const salvo = await salvarProdutoDb({
       nome: novoProduto.nome.trim(),
       preco: 0,
       categoria: novoProduto.categoria,
       unidade: novoProduto.unidade,
+      unidade_medida: unidMedida,
       ativo: true
     });
     if (salvo) {
@@ -3274,6 +3290,8 @@ export default function AdminPage() {
                                 <input
                                   type="number"
                                   min={0}
+                                  step="0.1"
+                                  inputMode="decimal"
                                   value={valQtd === 0 ? '' : valQtd}
                                   placeholder="0"
                                   onChange={(e) =>
@@ -3282,7 +3300,7 @@ export default function AdminPage() {
                                       c.identificador || c.nome,
                                       diaSemanaBaseFixa,
                                       prodNome,
-                                      Number(e.target.value)
+                                      e.target.value
                                     )
                                   }
                                   className={`w-20 text-center py-1 px-2 rounded-lg border font-mono text-xs font-bold focus:outline-hidden ${
@@ -3295,7 +3313,7 @@ export default function AdminPage() {
                             );
                           })}
                           <td className="py-2 px-3 text-right font-mono font-black text-sm text-blue-900 bg-blue-50/40">
-                            {somaLinha > 0 ? `${somaLinha} un.` : '—'}
+                            {somaLinha > 0 ? `${Math.round(somaLinha * 10) / 10} ${obterUnidadeArtigo(prodNome)}` : '—'}
                           </td>
                           <td className="py-1.5 px-3 text-right">
                             <div className="flex items-center justify-end gap-1">
@@ -3557,19 +3575,24 @@ export default function AdminPage() {
                                       <input
                                         type="number"
                                         min={0}
+                                        step="0.1"
+                                        inputMode="decimal"
                                         value={qtd}
                                         onChange={(e) =>
-                                          handleAlterarQtdClienteB2B(cli.id, diaSemanaB2B, prodNome, Number(e.target.value))
+                                          handleAlterarQtdClienteB2B(cli.id, diaSemanaB2B, prodNome, e.target.value)
                                         }
-                                        className="w-14 text-center bg-white border border-indigo-300 rounded font-mono font-black text-indigo-900 px-1 py-0.5 text-[11px]"
+                                        className="w-16 text-center bg-white border border-indigo-300 rounded font-mono font-black text-indigo-900 px-1 py-0.5 text-[11px]"
                                       />
+                                      <span className="text-[10px] text-indigo-700 font-bold">
+                                        {obterUnidadeArtigo(prodNome)}
+                                      </span>
                                     </div>
                                   ))}
                                 </div>
                               )}
                             </td>
                             <td className="py-2.5 px-3 text-right font-mono font-black text-indigo-900">
-                              {totalCliDia} un.
+                              {Math.round(totalCliDia * 10) / 10} un.
                             </td>
                             <td className="py-2.5 px-3 text-right">
                               <div className="flex items-center justify-end gap-1">
@@ -6013,8 +6036,15 @@ export default function AdminPage() {
                 <div>
                   <label className="block font-bold text-gray-700 mb-1">Unidade de Medida</label>
                   <select
-                    value={produtoEmEdicaoModal.unidade || 'unidade'}
-                    onChange={(e) => setProdutoEmEdicaoModal({ ...produtoEmEdicaoModal, unidade: e.target.value })}
+                    value={produtoEmEdicaoModal.unidade_medida || (produtoEmEdicaoModal.unidade === 'kg' ? 'kg' : 'unidade')}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setProdutoEmEdicaoModal({
+                        ...produtoEmEdicaoModal,
+                        unidade: val,
+                        unidade_medida: val === 'kg' ? 'kg' : 'un',
+                      });
+                    }}
                     className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-bold"
                   >
                     <option value="unidade">Unidade (un.)</option>
@@ -6360,34 +6390,20 @@ export default function AdminPage() {
                           <span className="text-[10px] font-bold text-stone-500 uppercase">
                             Qtd / Dia:
                           </span>
-                          <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => handleDefinirQtdArtigoB2BModal(art.nome, Math.max(0, qtdAtual - 1))}
-                              disabled={qtdAtual <= 0}
-                              className={`h-7 w-7 rounded-lg border flex items-center justify-center font-bold text-xs transition ${
-                                qtdAtual > 0
-                                  ? 'bg-white border-indigo-300 text-indigo-900 hover:bg-indigo-100 cursor-pointer'
-                                  : 'bg-stone-100 border-stone-200 text-stone-300 cursor-not-allowed'
-                              }`}
-                            >
-                              <Minus className="h-3 w-3" />
-                            </button>
+                          <div className="flex items-center gap-1.5">
                             <input
                               type="number"
                               min={0}
+                              step="0.1"
+                              inputMode="decimal"
                               value={qtdAtual === 0 ? '' : qtdAtual}
                               placeholder="0"
                               onChange={(e) => handleDefinirQtdArtigoB2BModal(art.nome, e.target.value)}
-                              className="w-14 text-center py-1 px-1 rounded-lg border border-stone-300 bg-white font-mono font-black text-indigo-950 text-xs focus:border-indigo-500 focus:outline-hidden"
+                              className="w-16 text-center py-1 px-1.5 rounded-lg border border-stone-300 bg-white font-mono font-black text-indigo-950 text-xs focus:border-indigo-500 focus:outline-hidden"
                             />
-                            <button
-                              type="button"
-                              onClick={() => handleDefinirQtdArtigoB2BModal(art.nome, qtdAtual + 1)}
-                              className="h-7 w-7 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center font-bold text-xs shadow-2xs transition cursor-pointer"
-                            >
-                              <Plus className="h-3 w-3" />
-                            </button>
+                            <span className="text-[11px] font-bold text-stone-600 min-w-5">
+                              {art.unidade_medida === 'kg' || art.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un.'}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -6712,29 +6728,38 @@ export default function AdminPage() {
                           <span className="font-bold text-gray-800 text-[11px] truncate pr-1" title={prod.nome}>
                             {prod.nome}
                           </span>
-                          <input
-                            type="number"
-                            min={0}
-                            value={qtd === 0 ? '' : qtd}
-                            placeholder="0"
-                            onChange={(e) => {
-                              const val = Math.max(0, Math.floor(Number(e.target.value) || 0));
-                              const mapaDia = { ...(sem[diaSemanaBaseRecorrenteModal] || {}) };
-                              if (val <= 0) {
-                                delete mapaDia[prod.nome];
-                              } else {
-                                mapaDia[prod.nome] = val;
-                              }
-                              setBaseRecorrenteEmEdicao({
-                                ...baseRecorrenteEmEdicao,
-                                quantidades_semanais: {
-                                  ...sem,
-                                  [diaSemanaBaseRecorrenteModal]: mapaDia,
-                                },
-                              });
-                            }}
-                            className="w-14 text-center py-0.5 px-1 rounded border border-gray-300 font-mono font-bold text-teal-950 text-xs"
-                          />
+                          <div className="flex items-center gap-1 shrink-0">
+                            <input
+                              type="number"
+                              min={0}
+                              step="0.1"
+                              inputMode="decimal"
+                              value={qtd === 0 ? '' : qtd}
+                              placeholder="0"
+                              onChange={(e) => {
+                                const raw = e.target.value.replace(',', '.');
+                                const num = raw === '' ? 0 : parseFloat(raw);
+                                const val = isNaN(num) ? 0 : Math.max(0, Math.round(num * 10) / 10);
+                                const mapaDia = { ...(sem[diaSemanaBaseRecorrenteModal] || {}) };
+                                if (val <= 0) {
+                                  delete mapaDia[prod.nome];
+                                } else {
+                                  mapaDia[prod.nome] = val;
+                                }
+                                setBaseRecorrenteEmEdicao({
+                                  ...baseRecorrenteEmEdicao,
+                                  quantidades_semanais: {
+                                    ...sem,
+                                    [diaSemanaBaseRecorrenteModal]: mapaDia,
+                                  },
+                                });
+                              }}
+                              className="w-16 text-center py-0.5 px-1 rounded border border-gray-300 font-mono font-bold text-teal-950 text-xs"
+                            />
+                            <span className="text-[10px] font-bold text-stone-500 min-w-4">
+                              {prod.unidade_medida === 'kg' || prod.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un'}
+                            </span>
+                          </div>
                         </div>
                       );
                     })}

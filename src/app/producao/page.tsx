@@ -1451,7 +1451,12 @@ export default function ProducaoPage() {
                       }`}
                     >
                       <div>
-                        <p className="text-xl font-black font-mono">{item.quantidade_total}</p>
+                        <p className="text-xl font-black font-mono">
+                          {item.quantidade_total}{' '}
+                          <span className="text-xs font-bold text-stone-500 uppercase">
+                            {item.unidade || 'un.'}
+                          </span>
+                        </p>
                         <p className="text-xs font-bold leading-tight truncate mt-0.5" title={item.produto_nome}>
                           {item.produto_nome}
                         </p>

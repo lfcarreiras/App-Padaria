@@ -2373,6 +2373,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "padaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 60,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2383,6 +2384,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "padaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 60,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2393,6 +2395,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "padaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 60,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2403,6 +2406,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "padaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 60,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2412,7 +2416,8 @@ export const PRODUTOS_MOCK: Produto[] = [
     "nome": "Pão de Sementes",
     "categoria": "padaria",
     "preco": 0,
-    "unidade": "unidade",
+    "unidade": "kg",
+    "unidade_medida": "kg",
     "tempo_preparo_minutos": 60,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2422,7 +2427,8 @@ export const PRODUTOS_MOCK: Produto[] = [
     "nome": "Pão Croissant",
     "categoria": "pastelaria",
     "preco": 0,
-    "unidade": "unidade",
+    "unidade": "kg",
+    "unidade_medida": "kg",
     "tempo_preparo_minutos": 90,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2433,6 +2439,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "padaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 60,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2443,6 +2450,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "padaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 60,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2453,6 +2461,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "padaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 60,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2463,6 +2472,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "padaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 60,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2473,6 +2483,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "padaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 60,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2483,6 +2494,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "padaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 60,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2493,6 +2505,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "padaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 60,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2503,6 +2516,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "padaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 60,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2513,6 +2527,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "padaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 60,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2523,6 +2538,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "padaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 60,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2533,6 +2549,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "padaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 60,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2543,6 +2560,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "padaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 60,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2553,6 +2571,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "padaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 60,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2563,6 +2582,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "padaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 60,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2573,6 +2593,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "padaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 60,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2583,6 +2604,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "pastelaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 90,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2593,6 +2615,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "pastelaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 90,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2603,6 +2626,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "pastelaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 90,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2613,6 +2637,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "pastelaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 90,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2623,6 +2648,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "pastelaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 90,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2633,6 +2659,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "pastelaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 90,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2643,6 +2670,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "pastelaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 90,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2653,6 +2681,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "pastelaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 90,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2663,6 +2692,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "pastelaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 90,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2673,6 +2703,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "pastelaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 90,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2683,6 +2714,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "pastelaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 90,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2693,6 +2725,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "pastelaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 90,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2703,6 +2736,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "padaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 60,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2713,6 +2747,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "padaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 60,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2722,7 +2757,8 @@ export const PRODUTOS_MOCK: Produto[] = [
     "nome": "Tosta",
     "categoria": "padaria",
     "preco": 0,
-    "unidade": "unidade",
+    "unidade": "kg",
+    "unidade_medida": "kg",
     "tempo_preparo_minutos": 60,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2733,6 +2769,7 @@ export const PRODUTOS_MOCK: Produto[] = [
     "categoria": "padaria",
     "preco": 0,
     "unidade": "unidade",
+    "unidade_medida": "un",
     "tempo_preparo_minutos": 60,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"
@@ -2742,7 +2779,8 @@ export const PRODUTOS_MOCK: Produto[] = [
     "nome": "Mini Pão Saloio",
     "categoria": "padaria",
     "preco": 0,
-    "unidade": "unidade",
+    "unidade": "kg",
+    "unidade_medida": "kg",
     "tempo_preparo_minutos": 60,
     "ativo": true,
     "criado_em": "2026-10-20T10:00:00.000000+00:00"

@@ -164,6 +164,12 @@ export function MatrizAjustesAdhoc({
     return list;
   }, []);
 
+  const obterUnidadeArtigo = (nomeArtigo: string) => {
+    const nomeLimpo = (nomeArtigo || '').trim().toLowerCase();
+    const p = produtos.find((item) => item.nome.trim().toLowerCase() === nomeLimpo);
+    return p?.unidade_medida === 'kg' || p?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un';
+  };
+
   // Handler de alteração ad-hoc para Base de Rota
   const handleAlterarBaseAdhoc = async (
     dataIso: string,
@@ -176,9 +182,10 @@ export function MatrizAjustesAdhoc({
     if (valorStr.trim() === '') {
       await removerAjusteAdhoc(chave);
     } else {
-      const num = parseInt(valorStr, 10);
-      if (!isNaN(num)) {
-        await salvarAjusteAdhoc(chave, Math.max(0, num));
+      const parsed = parseFloat(valorStr.replace(',', '.'));
+      if (!isNaN(parsed)) {
+        const arredondado = Math.round(Math.max(0, parsed) * 10) / 10;
+        await salvarAjusteAdhoc(chave, arredondado);
       }
     }
     setAjustesAdhoc(carregarAjustesAdhoc());
@@ -217,9 +224,10 @@ export function MatrizAjustesAdhoc({
     if (valorStr.trim() === '') {
       await removerAjusteAdhoc(chave);
     } else {
-      const num = parseInt(valorStr, 10);
-      if (!isNaN(num)) {
-        await salvarAjusteAdhoc(chave, Math.max(0, num));
+      const parsed = parseFloat(valorStr.replace(',', '.'));
+      if (!isNaN(parsed)) {
+        const arredondado = Math.round(Math.max(0, parsed) * 10) / 10;
+        await salvarAjusteAdhoc(chave, arredondado);
       }
     }
     setAjustesAdhoc(carregarAjustesAdhoc());
@@ -566,6 +574,8 @@ export function MatrizAjustesAdhoc({
                                 <input
                                   type="number"
                                   min="0"
+                                  step="0.1"
+                                  inputMode="decimal"
                                   value={valorEfetivo}
                                   onChange={(e) =>
                                     handleAlterarBaseAdhoc(
@@ -582,8 +592,8 @@ export function MatrizAjustesAdhoc({
                                   }`}
                                   title={
                                     temAdhoc
-                                      ? `Ajustado pontualmente para ${col.dataIso}! (Base diária: ${baselineVal} un.)`
-                                      : `Valor de base diária: ${baselineVal} un.`
+                                      ? `Ajustado pontualmente para ${col.dataIso}! (Base diária: ${baselineVal} ${obterUnidadeArtigo(produtoNome)})`
+                                      : `Valor de base diária: ${baselineVal} ${obterUnidadeArtigo(produtoNome)}`
                                   }
                                 />
 
@@ -594,7 +604,7 @@ export function MatrizAjustesAdhoc({
                                       handleReverterBaseAdhoc(col.dataIso, carrinhaAtiva.id, produtoNome)
                                     }
                                     className="p-1 rounded text-stone-400 hover:text-amber-800 hover:bg-amber-200 transition cursor-pointer"
-                                    title={`Reverter para base diária (${baselineVal} un.)`}
+                                    title={`Reverter para base diária (${baselineVal} ${obterUnidadeArtigo(produtoNome)})`}
                                   >
                                     <RotateCcw className="h-3 w-3" />
                                   </button>
@@ -610,7 +620,7 @@ export function MatrizAjustesAdhoc({
                         })}
 
                         <td className="py-2 px-3 text-right font-mono font-black text-stone-900 border-l border-stone-200 bg-inherit">
-                          {totalLinha7Dias} un.
+                          {Math.round(totalLinha7Dias * 10) / 10} {obterUnidadeArtigo(produtoNome)}
                         </td>
                       </tr>
                     );
@@ -773,6 +783,8 @@ export function MatrizAjustesAdhoc({
                                           <input
                                             type="number"
                                             min="0"
+                                            step="0.1"
+                                            inputMode="decimal"
                                             value={valorEfetivo}
                                             onChange={(e) =>
                                               handleAlterarB2BAdhoc(
@@ -789,8 +801,8 @@ export function MatrizAjustesAdhoc({
                                             }`}
                                             title={
                                               temAdhoc
-                                                ? `Ajustado pontualmente para ${col.dataIso}! (Base diária: ${baselineVal} un.)`
-                                                : `Valor base diária: ${baselineVal} un.`
+                                                ? `Ajustado pontualmente para ${col.dataIso}! (Base diária: ${baselineVal} ${obterUnidadeArtigo(artigo)})`
+                                                : `Valor base diária: ${baselineVal} ${obterUnidadeArtigo(artigo)}`
                                             }
                                           />
 
@@ -801,7 +813,7 @@ export function MatrizAjustesAdhoc({
                                                 handleReverterB2BAdhoc(col.dataIso, cli.id, artigo)
                                               }
                                               className="p-0.5 rounded text-stone-400 hover:text-amber-800 hover:bg-amber-200 transition cursor-pointer"
-                                              title={`Reverter para base diária (${baselineVal} un.)`}
+                                              title={`Reverter para base diária (${baselineVal} ${obterUnidadeArtigo(artigo)})`}
                                             >
                                               <RotateCcw className="h-3 w-3" />
                                             </button>
@@ -817,7 +829,7 @@ export function MatrizAjustesAdhoc({
                                   })}
 
                                   <td className="py-2 px-3 text-right font-mono font-black text-purple-950 border-l border-stone-200 bg-inherit">
-                                    {totalArtigo7Dias} un.
+                                    {Math.round(totalArtigo7Dias * 10) / 10} {obterUnidadeArtigo(artigo)}
                                   </td>
                                 </tr>
                               );
