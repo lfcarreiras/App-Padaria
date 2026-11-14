@@ -600,7 +600,7 @@ export default function EncomendarClientePage() {
           clientePorEmailOuTel = {
             id: bMatch.id,
             nome: bMatch.nome,
-            telefone: bMatch.telemovel || bMatch.telefone,
+            telefone: bMatch.telemovel || bMatch.telefone || '',
             email: bMatch.email,
             morada: bMatch.morada,
             ativo: true,
@@ -866,7 +866,7 @@ export default function EncomendarClientePage() {
         clienteEncontrado = {
           id: matchB2B.id,
           nome: matchB2B.nome,
-          telefone: matchB2B.telemovel || matchB2B.telefone,
+          telefone: matchB2B.telemovel || matchB2B.telefone || '',
           email: emailGuardado,
           password: pwdGuardada,
           morada: matchB2B.morada,

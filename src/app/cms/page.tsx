@@ -1436,7 +1436,7 @@ export default function CmsFrontofficeReplicaPage() {
                             enc.canal_origem === 'telefone' ? 'bg-amber-50 text-amber-800 border-amber-200' :
                             'bg-stone-100 text-stone-700 border-stone-200'
                           }`}>
-                            <OriginBadge origem={enc.canal_origem} compact />
+                            <OriginBadge origem={enc.canal_origem || 'telefone'} compact />
                           </span>
                           <span className="text-xs text-gray-600 font-semibold">
                             {enc.data_agendamento} às {enc.hora_agendamento}
