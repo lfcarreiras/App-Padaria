@@ -197,7 +197,7 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
                         <div key={item.id} className="mb-1 text-[11px]">
                           <div className="flex justify-between items-center gap-1 pr-1">
                             <span className={`font-bold ${isRecusado ? 'line-through opacity-70' : ''}`}>
-                              {item.quantidade} {isKg ? 'kg' : 'x'} {item.produto_nome}
+                              {isKg ? `${Number(item.quantidade).toFixed(1)} kg` : `${Math.round(Number(item.quantidade))}x`} {item.produto_nome}
                             </span>
                             {isRecusado && (
                               <span className="text-[9px] font-black uppercase border border-black px-1 shrink-0">
@@ -224,7 +224,7 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
                         <div key={item.id} className="mb-1 text-[11px]">
                           <div className="flex justify-between items-center gap-1 pr-1">
                             <span className={`font-bold ${isRecusado ? 'line-through opacity-70' : ''}`}>
-                              {item.quantidade} {isKg ? 'kg' : 'x'} {item.produto_nome}
+                              {isKg ? `${Number(item.quantidade).toFixed(1)} kg` : `${Math.round(Number(item.quantidade))}x`} {item.produto_nome}
                             </span>
                             {isRecusado && (
                               <span className="text-[9px] font-black uppercase border border-black px-1 shrink-0">
@@ -254,7 +254,7 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
                     <div key={item.id} className="mb-1 text-[11px]">
                       <div className="flex justify-between items-center gap-1 pr-1">
                         <span className={`font-bold ${isRecusado ? 'line-through opacity-70' : ''}`}>
-                          {item.quantidade} {isKg ? 'kg' : 'x'} {item.produto_nome}
+                          {isKg ? `${Number(item.quantidade).toFixed(1)} kg` : `${Math.round(Number(item.quantidade))}x`} {item.produto_nome}
                         </span>
                         {isRecusado && (
                           <span className="text-[9px] font-black uppercase border border-black px-1 shrink-0">
@@ -280,10 +280,10 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ encomenda, loja,
                 <span className="font-black">
                   {(() => {
                     const itensAtivos = encomenda.itens.filter((item: any) => item.estado_producao !== 'recusado');
-                    const totalUn = Math.round(itensAtivos.filter((i: any) => i.unidade !== 'kg' && i.unidade_medida !== 'kg').reduce((acc: number, i: any) => acc + (Number(i.quantidade) || 0), 0) * 10) / 10;
+                    const totalUn = Math.round(itensAtivos.filter((i: any) => i.unidade !== 'kg' && i.unidade_medida !== 'kg').reduce((acc: number, i: any) => acc + (Number(i.quantidade) || 0), 0));
                     const totalKg = Math.round(itensAtivos.filter((i: any) => i.unidade === 'kg' || i.unidade_medida === 'kg').reduce((acc: number, i: any) => acc + (Number(i.quantidade) || 0), 0) * 10) / 10;
-                    if (totalUn > 0 && totalKg > 0) return `${totalUn} un. + ${totalKg} kg`;
-                    if (totalKg > 0) return `${totalKg} kg`;
+                    if (totalUn > 0 && totalKg > 0) return `${totalUn} un. + ${totalKg.toFixed(1)} kg`;
+                    if (totalKg > 0) return `${totalKg.toFixed(1)} kg`;
                     return `${totalUn} un.`;
                   })()}
                 </span>

@@ -306,6 +306,7 @@ export interface ColunaGrelhaProduto {
   id: string;
   label: string;
   alias: string[];
+  unidade?: string;
 }
 
 export interface LinhaGrelhaCarga {
@@ -344,6 +345,11 @@ export interface DadosGuiaConjunta {
   totalGeralPadaria: number;
   totalGeralPastelaria: number;
   totalCaixasEstimadas: number;
+
+  totalGeralKg?: number;
+  totalGeralPadariaKg?: number;
+  totalGeralPastelariaKg?: number;
+  totaisKgPorRota?: Record<string, number>;
 
   rotasCabecalho?: ColunaCabecalhoRota[];
   linhas?: LinhaCargaConjunta[];

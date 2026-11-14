@@ -58,6 +58,9 @@ import {
   eliminarBaseDiariaRecorrente,
   clienteEmModoFerias,
   subscreverAlteracoesBasesRecorrentes,
+  isArtigoVendidoAoKg,
+  formatarQuantidade,
+  formatarQuantidadeComUnidade,
   obterDiaSemanaDeData
 } from '../../lib/encomendasService';
 import { 
@@ -921,7 +924,7 @@ export default function AdminPage() {
     setPdfModalOpen(true);
   };
 
-  const abrirGuiaCargaConjuntaPdf = () => {
+  const abrirGuiaCargaConjuntaPdf = async () => {
     try {
       const dataAlvo = new Intl.DateTimeFormat('en-CA', {
         timeZone: 'Europe/Lisbon',
@@ -929,15 +932,23 @@ export default function AdminPage() {
         month: '2-digit',
         day: '2-digit',
       }).format(new Date());
+
+      // Garantir leitura fresca e direta do Supabase antes de gerar a Guia Conjunta
+      const [encsFrescas, basesFrescas, ajustesFrescos] = await Promise.all([
+        carregarEncomendasSupabase().catch(() => encomendas),
+        carregarBaseFixaCarrinhasSupabase().catch(() => baseFixaCarrinhas),
+        carregarAjustesAdhocSupabase().catch(() => ajustesAdhoc),
+      ]);
+
       const dados = calcularDadosGuiaCargaConjunta(
         dataAlvo,
         carrinhas,
-        baseFixaCarrinhas,
+        basesFrescas && basesFrescas.length > 0 ? basesFrescas : baseFixaCarrinhas,
         clientesB2B,
         basesRecorrentes,
-        encomendas,
+        encsFrescas && encsFrescas.length > 0 ? encsFrescas : encomendas,
         produtos,
-        ajustesAdhoc
+        ajustesFrescos || ajustesAdhoc
       );
       setPdfDadosGuiaConjunta(dados);
       setPdfModalTipo('guia_carga_conjunta');
@@ -3334,7 +3345,7 @@ export default function AdminPage() {
                             );
                           })}
                           <td className="py-2 px-3 text-right font-mono font-black text-sm text-blue-900 bg-blue-50/40">
-                            {somaLinha > 0 ? `${Math.round(somaLinha * 10) / 10} ${obterUnidadeArtigo(prodNome)}` : '—'}
+                            {somaLinha > 0 ? (obterUnidadeArtigo(prodNome) === 'kg' ? `${somaLinha.toFixed(1)} kg` : `${Math.round(somaLinha)} un.`) : '—'}
                           </td>
                           <td className="py-1.5 px-3 text-right">
                             <div className="flex items-center justify-end gap-1">
@@ -3812,7 +3823,7 @@ export default function AdminPage() {
                                 <div className="flex flex-wrap gap-1 max-w-md">
                                   {diasComQtd.map(([d, mapa]) => {
                                     const totalDia = Object.values(mapa).reduce((a, b) => a + (Number(b) || 0), 0);
-                                    const prods = Object.entries(mapa).filter(([, q]) => Number(q) > 0).map(([p, q]) => `${q}x ${p}`).join(', ');
+                                    const prods = Object.entries(mapa).filter(([, q]) => Number(q) > 0).map(([p, q]) => isArtigoVendidoAoKg(p, produtos) ? `${Number(q).toFixed(1)} kg ${p}` : `${Math.round(Number(q))}x ${p}`).join(', ');
                                     return (
                                       <span key={d} className="inline-flex items-center gap-1 bg-white border border-gray-200 px-1.5 py-0.5 rounded text-[10px] text-gray-700" title={prods}>
                                         <b className="uppercase text-teal-700">{d}:</b>

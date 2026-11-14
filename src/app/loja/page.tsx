@@ -14,7 +14,10 @@ import {
   concluirEntregaComTimestampDb,
   alternarTipoEntregaDb,
   registarLogAuditoria,
-  gerarLinkWhatsAppEncomendaPronta
+  gerarLinkWhatsAppEncomendaPronta,
+  isArtigoVendidoAoKg,
+  formatarQuantidade,
+  formatarQuantidadeComUnidade
 } from '../../lib/encomendasService';
 import { Encomenda, TipoEntrega, Loja } from '../../types';
 import { useTranslation } from '../../lib/i18n';
@@ -565,6 +568,7 @@ export default function EntregaLojaPage(props: any) {
                                     <ul className="space-y-1.5">
                                       {enc.itens.map((item) => {
                                         const isRecusado = item.estado_producao === 'recusado';
+                                        const isKg = item.unidade === 'kg' || (item as any).unidade_medida === 'kg' || isArtigoVendidoAoKg(item.produto_nome);
                                         return (
                                           <li
                                             key={item.id}
@@ -573,7 +577,7 @@ export default function EntregaLojaPage(props: any) {
                                             }`}
                                           >
                                             <span>
-                                              <b>{item.quantidade}x</b> {item.produto_nome}
+                                              <b>{isKg ? `${Number(item.quantidade).toFixed(1)} kg` : `${Math.round(Number(item.quantidade))}x`}</b> {item.produto_nome}
                                               {item.notas_personalizacao && (
                                                 <span className="block text-[11px] text-amber-800 italic pl-3">
                                                   » {item.notas_personalizacao}
@@ -603,10 +607,14 @@ export default function EntregaLojaPage(props: any) {
                                   <div className="flex items-center justify-between text-xs pt-1 text-gray-600 font-semibold">
                                     <span>{t.totalItems}:</span>
                                     <span className="font-bold text-gray-900">
-                                      {enc.itens
-                                        .filter((i) => i.estado_producao !== 'recusado')
-                                        .reduce((acc, i) => acc + i.quantidade, 0)}{' '}
-                                      un.
+                                      {(() => {
+                                        const ativos = enc.itens.filter((i) => i.estado_producao !== 'recusado');
+                                        const totUn = Math.round(ativos.filter((i) => i.unidade !== 'kg' && (i as any).unidade_medida !== 'kg' && !isArtigoVendidoAoKg(i.produto_nome)).reduce((acc, i) => acc + (Number(i.quantidade) || 0), 0));
+                                        const totKg = Math.round(ativos.filter((i) => i.unidade === 'kg' || (i as any).unidade_medida === 'kg' || isArtigoVendidoAoKg(i.produto_nome)).reduce((acc, i) => acc + (Number(i.quantidade) || 0), 0) * 10) / 10;
+                                        if (totUn > 0 && totKg > 0) return `${totUn} un. + ${totKg.toFixed(1)} kg`;
+                                        if (totKg > 0) return `${totKg.toFixed(1)} kg`;
+                                        return `${totUn} un.`;
+                                      })()}
                                     </span>
                                   </div>
 

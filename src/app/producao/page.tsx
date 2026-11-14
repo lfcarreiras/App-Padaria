@@ -36,7 +36,10 @@ import {
   salvarObservacoesProducaoDb,
   concluirEntregaComTimestampDb,
   gerarLinkWhatsAppEncomendaPronta,
-  registarLogAuditoria 
+  registarLogAuditoria,
+  isArtigoVendidoAoKg,
+  formatarQuantidade,
+  formatarQuantidadeComUnidade
 } from '../../lib/encomendasService';
 import { 
   Encomenda, 
@@ -526,18 +529,25 @@ export default function ProducaoPage() {
     amanha
   ]);
 
-  const abrirGuiaCargaConjuntaPdf = (dataAlvoParam?: string) => {
+  const abrirGuiaCargaConjuntaPdf = async (dataAlvoParam?: string) => {
     try {
       const dataAlvo = dataAlvoParam || (dataGuiasCarga === 'amanha' ? amanha : hoje);
+      // Garantir leitura fresca e direta do Supabase antes de gerar a Guia Conjunta
+      const [encsFrescas, basesFrescas, ajustesFrescos] = await Promise.all([
+        carregarEncomendasSupabase().catch(() => encomendas),
+        carregarBaseFixaCarrinhasSupabase().catch(() => baseFixaCarrinhas),
+        carregarAjustesAdhocSupabase().catch(() => ajustesAdhoc),
+      ]);
+
       const dadosConjunta = calcularDadosGuiaCargaConjunta(
         dataAlvo,
         carrinhas,
-        baseFixaCarrinhas,
+        basesFrescas && basesFrescas.length > 0 ? basesFrescas : baseFixaCarrinhas,
         clientesB2B,
         basesRecorrentes,
-        encomendas,
+        encsFrescas && encsFrescas.length > 0 ? encsFrescas : encomendas,
         produtos,
-        ajustesAdhoc
+        ajustesFrescos || ajustesAdhoc
       );
       setPdfDadosGuiaConjunta(dadosConjunta);
       setPdfDataReferencia(dataAlvo);
@@ -1320,7 +1330,13 @@ export default function ProducaoPage() {
                     <h3 className="text-sm font-black text-gray-900 flex items-center gap-2">
                       <span>Pool de Produção</span>
                       <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-950 font-bold">
-                        {poolArtigosConsolidada.reduce((acc, p) => acc + p.quantidade_total, 0)} unidades totais
+                        {(() => {
+                          const totUn = Math.round(poolArtigosConsolidada.filter(p => !isArtigoVendidoAoKg(p.produto_nome, produtos) && p.unidade !== 'kg').reduce((acc, p) => acc + p.quantidade_total, 0));
+                          const totKg = Math.round(poolArtigosConsolidada.filter(p => isArtigoVendidoAoKg(p.produto_nome, produtos) || p.unidade === 'kg').reduce((acc, p) => acc + p.quantidade_total, 0) * 10) / 10;
+                          if (totUn > 0 && totKg > 0) return `${totUn} un. + ${totKg.toFixed(1)} kg`;
+                          if (totKg > 0) return `${totKg.toFixed(1)} kg totais`;
+                          return `${totUn} unidades totais`;
+                        })()}
                       </span>
                     </h3>
                     <p className="text-[11px] text-gray-500">
@@ -1441,7 +1457,9 @@ export default function ProducaoPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
-                  {poolArtigosConsolidada.map((item) => (
+                  {poolArtigosConsolidada.map((item) => {
+                    const isKg = item.unidade === 'kg' || isArtigoVendidoAoKg(item.produto_nome, produtos);
+                    return (
                     <div
                       key={item.produto_nome}
                       className={`p-2.5 rounded-xl border text-center transition flex flex-col justify-between ${
@@ -1452,9 +1470,9 @@ export default function ProducaoPage() {
                     >
                       <div>
                         <p className="text-xl font-black font-mono">
-                          {item.quantidade_total}{' '}
+                          {isKg ? Number(item.quantidade_total).toFixed(1) : Math.round(Number(item.quantidade_total))}{' '}
                           <span className="text-xs font-bold text-stone-500 uppercase">
-                            {item.unidade || 'un.'}
+                            {isKg ? 'kg' : (item.unidade || 'un.')}
                           </span>
                         </p>
                         <p className="text-xs font-bold leading-tight truncate mt-0.5" title={item.produto_nome}>
@@ -1468,19 +1486,19 @@ export default function ProducaoPage() {
                           {item.qtd_bases_diarias > 0 && (
                             <div className="flex justify-between">
                               <span className="text-amber-800">Base Diária:</span>
-                              <span className="font-mono font-bold">{item.qtd_bases_diarias}</span>
+                              <span className="font-mono font-bold">{isKg ? Number(item.qtd_bases_diarias).toFixed(1) : Math.round(Number(item.qtd_bases_diarias))}</span>
                             </div>
                           )}
                           {item.qtd_clientes_b2b > 0 && (
                             <div className="flex justify-between">
                               <span className="text-purple-800">Empresarial:</span>
-                              <span className="font-mono font-bold">{item.qtd_clientes_b2b}</span>
+                              <span className="font-mono font-bold">{isKg ? Number(item.qtd_clientes_b2b).toFixed(1) : Math.round(Number(item.qtd_clientes_b2b))}</span>
                             </div>
                           )}
                           {item.qtd_encomendas > 0 && (
                             <div className="flex justify-between">
                               <span className="text-blue-800">Encomendas:</span>
-                              <span className="font-mono font-bold">{item.qtd_encomendas}</span>
+                              <span className="font-mono font-bold">{isKg ? Number(item.qtd_encomendas).toFixed(1) : Math.round(Number(item.qtd_encomendas))}</span>
                             </div>
                           )}
                         </div>
@@ -1488,11 +1506,12 @@ export default function ProducaoPage() {
                         <p className="text-[10px] text-gray-500 font-medium mt-1">
                           {filtroTipologia === 'encomendas'
                             ? `${item.encomendas_count} encomenda(s)`
-                            : `${item.quantidade_total} ${item.unidade || 'un.'}`}
+                            : `${isKg ? Number(item.quantidade_total).toFixed(1) : Math.round(Number(item.quantidade_total))} ${isKg ? 'kg' : (item.unidade || 'un.')}`}
                         </p>
                       )}
                     </div>
-                  ))}
+                  );
+                })}
                 </div>
               )}
             </div>

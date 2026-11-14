@@ -3066,93 +3066,208 @@ export function obterQuantidadeEfetivaClienteB2B(
   return { quantidade: 0, isAdhoc: false };
 }
 
-// ---------------- GUIA DE CARGA CONJUNTA (ROTAS 1 A 7) - GRELHA OFICIAL ---------------- //
+// ---------------- GUIA DE CARGA CONJUNTA (ROTAS 1 A 7) - GRELHA OFICIAL & FORMATAÇÃO ---------------- //
+
+const PRODUTOS_KG_PADRAO = new Set<string>([
+  'bola de frango',
+  'bola de mortadela',
+  'farinha',
+  'fermento de padeiro',
+  'fermento',
+  'mini pao saloio',
+  'padinhas',
+  'padinhas alfarroba',
+  'paezinhos - tasquinha',
+  'pao cereais fatiado',
+  'pao croissant',
+  'pao de sementes',
+  'pao ralado',
+  'pao saloio',
+  'tosta',
+  'almendrado',
+  'bolo de aniversario',
+  'bolo de casamento',
+  'bolo de cenoura',
+  'bolo de comunhao',
+  'bolo rainha',
+  'bolo rei',
+  'bolo rei escangalhado',
+  'bolo rei folhado',
+  'cha hungaro',
+  'fios d\'ovos',
+  'fios dovos',
+  'molotofe',
+  'panettone',
+  'pao de lo',
+  'pao de lo de ovar',
+  'pasteis miniatura kg',
+  'raspas de chocolate',
+  'sonhos',
+  'tarte de fruta',
+  'tartes de fruta',
+  'telha',
+  'torre profiteroles',
+]);
+
+/**
+ * Determina se um artigo é vendido ao peso (kg) ou à unidade (un.).
+ */
+export function isArtigoVendidoAoKg(artigoNomeOuUnidade?: string | null, produtosList?: Produto[]): boolean {
+  if (!artigoNomeOuUnidade) return false;
+  const str = String(artigoNomeOuUnidade).trim().toLowerCase();
+  if (str === 'kg' || str.endsWith(' kg') || str.includes('(kg)') || str === 'quilo' || str === 'quilos') return true;
+
+  if (produtosList && produtosList.length > 0) {
+    const prod = produtosList.find(
+      (p) => (p?.nome || '').toLowerCase() === str || normalizarNomeArtigoCanonico(p?.nome || '') === normalizarNomeArtigoCanonico(str)
+    );
+    if (prod) {
+      const u = (prod.unidade_medida || prod.unidade || '').toLowerCase();
+      return u === 'kg' || u.includes('kg');
+    }
+  }
+
+  const norm = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ');
+  return PRODUTOS_KG_PADRAO.has(norm);
+}
+
+/**
+ * Formata uma quantidade para apresentação:
+ * - Se vendido ao peso (kg): sempre 1 casa decimal (ex: "1.0", "2.5")
+ * - Se vendido à unidade (un.): sempre número inteiro (ex: "1", "10")
+ */
+export function formatarQuantidade(qtd: number | string | null | undefined, isKg: boolean = false): string {
+  const num = Number(qtd) || 0;
+  if (isKg) {
+    return num.toFixed(1);
+  }
+  return Math.round(num).toString();
+}
+
+/**
+ * Formata a quantidade acompanhada da unidade:
+ * Ex: "1.0 kg" ou "1 un."
+ */
+export function formatarQuantidadeComUnidade(
+  qtd: number | string | null | undefined,
+  isKgOuUnidade: boolean | string = false,
+  produtosList?: Produto[]
+): string {
+  const isKg = typeof isKgOuUnidade === 'boolean' ? isKgOuUnidade : isArtigoVendidoAoKg(isKgOuUnidade, produtosList);
+  const formatted = formatarQuantidade(qtd, isKg);
+  return isKg ? `${formatted} kg` : `${formatted} un.`;
+}
 
 export const COLUNAS_GRELHA_PADARIA: ColunaGrelhaProduto[] = [
-  { id: 'b_amarela_05', label: 'B. amarela 0.5kg', alias: ['broa amarela 0,5 kg', 'broa amarela 0.5kg', 'b. amarela 0.5kg', 'b. amarela 0,5kg'] },
-  { id: 'b_amarela_1', label: 'B. amarela 1 kg', alias: ['broa amarela 1 kg', 'broa amarela 1kg', 'b. amarela 1 kg', 'b. amarela 1kg'] },
-  { id: 'b_amarela_2', label: 'B. amarela 2 kg', alias: ['broa amarela 2 kg', 'broa amarela 2kg', 'b. amarela 2 kg', 'b. amarela 2kg'] },
-  { id: 'b_branca_05', label: 'B. branca 0.5kg', alias: ['broa branca 0,5 kg', 'broa branca 0.5kg', 'b. branca 0.5kg', 'b. branca 0,5kg'] },
-  { id: 'b_branca_1', label: 'B. branca 1kg', alias: ['broa branca 1 kg', 'broa branca 1kg', 'b. branca 1kg', 'b. branca 1 kg'] },
-  { id: 'b_chourico', label: 'B c/ chouriço', alias: ['broa com chouriço', 'bola com chouriço', 'b c/ chouriço', 'broa c/ chouriço', 'bola c/ chouriço', 'b. chourico', 'mini broa com chouriço', 'mini broa c/ chouriço'] },
-  { id: 'b_centeio_05', label: 'B. centeio 0.5kg', alias: ['broa de centeio 0,5 kg', 'broa de centeio 0.5kg', 'b. centeio 0.5kg', 'b. centeio 0,5kg', 'broa centeio 0,5 kg', 'broa centeio 0.5kg'] },
-  { id: 'broa_mistura', label: 'Broa mistura', alias: ['broa de mistura', 'broa mistura', 'broinha de mistura'] },
-  { id: 'cacete', label: 'Cacete', alias: ['cacete', 'cacetes', 'pão cacete', 'pao cacete'] },
-  { id: 'canilha', label: 'Canilha', alias: ['canilha'] },
-  { id: 'meia_bola_carne', label: 'Meia bola de carne', alias: ['meia bola de carne', 'meia bola carne', 'bola de carne'] },
-  { id: 'mini_pao_centeio', label: 'Mini pão centeio', alias: ['mini pão de centeio', 'mini pão centeio', 'mini pao centeio'] },
-  { id: 'mini_pao_saloio', label: 'Mini pão saloio', alias: ['mini pão saloio', 'mini pao saloio'] },
-  { id: 'padas_centeio', label: 'Padas Centeio', alias: ['padas de centeio', 'padas centeio'] },
-  { id: 'padas_normais', label: 'Padas Normais', alias: ['padas normais'] },
-  { id: 'padinhas', label: 'Padinhas', alias: ['padinhas'] },
-  { id: 'pao_7_graos_peq', label: 'P. 7 grãos peq.', alias: ['pão 7 grãos pequeno', 'p. 7 grãos peq.', 'pão 7 grãos', 'p. 7 graos peq.', 'pao 7 graos'] },
-  { id: 'pao_alfarroba', label: 'Pão alfarroba', alias: ['pão de alfarroba', 'pão alfarroba', 'pao alfarroba'] },
-  { id: 'pao_bico', label: 'Pão de bico', alias: ['pão de bico', 'pão bico', 'pao bico'] },
-  { id: 'pao_canela', label: 'Pão de canela', alias: ['pão de canela', 'pão canela', 'pao canela'] },
-  { id: 'pao_centeio', label: 'Pão de centeio', alias: ['pão de centeio', 'pão centeio', 'pao centeio'] },
-  { id: 'pao_forma_gr', label: 'Pão de forma Gr.', alias: ['pão de forma grande', 'pão de forma gr.', 'pao de forma gr.', 'pao forma grande'] },
-  { id: 'pao_forma_corte_fino', label: 'P. F. gr. Corte fino', alias: ['pão de forma grande (corte fino)', 'p. f. gr. corte fino', 'pao de forma corte fino', 'corte fino'] },
-  { id: 'pao_forma_peq', label: 'P. forma pequeno', alias: ['pão de forma pequeno', 'p. forma pequeno', 'pão forma pequeno', 'p. forna pequeno', 'pao forma pequeno'] },
-  { id: 'pao_leite', label: 'Pão de leite', alias: ['pão de leite', 'pao de leite', 'pão leite'] },
-  { id: 'pao_sementes', label: 'Pão sementes', alias: ['pão de sementes', 'pão sementes', 'pao sementes'] },
-  { id: 'pao_integral', label: 'Pão integral', alias: ['pão integral', 'pao integral'] },
-  { id: 'pao_italiano', label: 'Pão italiano', alias: ['pão italiano', 'pao italiano'] },
-  { id: 'pao_normal', label: 'Pão normal', alias: ['pão normal', 'pao normal', 'carcaça', 'carcaças'] },
-  { id: 'pao_saloio', label: 'Pão saloio', alias: ['pão saloio', 'pao saloio'] },
-  { id: 'tosta', label: 'Tosta', alias: ['tosta', 'tostas'] },
-  { id: 'triga_milha_03', label: 'Triga milha 0.3kg', alias: ['triga milha 0,3 kg', 'triga milha 0.3kg', 'triga milha 0,3kg'] },
-  { id: 'triga_milha_05', label: 'Triga milha 0.5kg', alias: ['triga milha 0,5 kg', 'triga milha 0.5kg', 'triga milha 0,5kg'] },
-  { id: 'triga_milha_1', label: 'Triga milha 1 kg', alias: ['triga milha 1 kg', 'triga milha 1kg', 'triga milha1 kg', 'triga milha 1,0 kg'] },
-  { id: 'triga_milha_saloio', label: 'Tri. milha Saloio', alias: ['triga milha saloio', 'tri. milha saloio', 'triga saloio'] },
+  { id: 'b_amarela_05', label: 'B. amarela 0.5kg', alias: ['broa amarela 0,5 kg', 'broa amarela 0.5kg', 'b. amarela 0.5kg', 'b. amarela 0,5kg'], unidade: 'un' },
+  { id: 'b_amarela_1', label: 'B. amarela 1 kg', alias: ['broa amarela 1 kg', 'broa amarela 1kg', 'b. amarela 1 kg', 'b. amarela 1kg'], unidade: 'un' },
+  { id: 'b_amarela_2', label: 'B. amarela 2 kg', alias: ['broa amarela 2 kg', 'broa amarela 2kg', 'b. amarela 2 kg', 'b. amarela 2kg'], unidade: 'un' },
+  { id: 'b_branca_05', label: 'B. branca 0.5kg', alias: ['broa branca 0,5 kg', 'broa branca 0.5kg', 'b. branca 0.5kg', 'b. branca 0,5kg'], unidade: 'un' },
+  { id: 'b_branca_1', label: 'B. branca 1kg', alias: ['broa branca 1 kg', 'broa branca 1kg', 'b. branca 1kg', 'b. branca 1 kg'], unidade: 'un' },
+  { id: 'b_chourico', label: 'B c/ chouriço', alias: ['broa com chouriço', 'bola com chouriço', 'b c/ chouriço', 'broa c/ chouriço', 'bola c/ chouriço', 'b. chourico', 'mini broa com chouriço', 'mini broa c/ chouriço'], unidade: 'un' },
+  { id: 'b_centeio_05', label: 'B. centeio 0.5kg', alias: ['broa de centeio 0,5 kg', 'broa de centeio 0.5kg', 'b. centeio 0.5kg', 'b. centeio 0,5kg', 'broa centeio 0,5 kg', 'broa centeio 0.5kg'], unidade: 'un' },
+  { id: 'broa_mistura', label: 'Broa mistura', alias: ['broa de mistura', 'broa mistura', 'broinha de mistura'], unidade: 'un' },
+  { id: 'cacete', label: 'Cacete', alias: ['cacete', 'cacetes', 'pão cacete', 'pao cacete'], unidade: 'un' },
+  { id: 'canilha', label: 'Canilha', alias: ['canilha'], unidade: 'un' },
+  { id: 'meia_bola_carne', label: 'Meia bola carne', alias: ['meia bola de carne', 'meia bola carne', 'bola de carne'], unidade: 'un' },
+  { id: 'bola_carne_redonda', label: 'Bola Carne Red.', alias: ['bola de carne redonda', 'bola carne redonda'], unidade: 'un' },
+  { id: 'bola_frango', label: 'Bola Frango', alias: ['bola de frango', 'bola frango'], unidade: 'kg' },
+  { id: 'bola_mortadela', label: 'Bola Mortadela', alias: ['bola de mortadela', 'bola mortadela'], unidade: 'kg' },
+  { id: 'mini_pao_centeio', label: 'Mini pão centeio', alias: ['mini pão de centeio', 'mini pão centeio', 'mini pao centeio'], unidade: 'un' },
+  { id: 'mini_pao_saloio', label: 'Mini pão saloio', alias: ['mini pão saloio', 'mini pao saloio'], unidade: 'kg' },
+  { id: 'padas_centeio', label: 'Padas Centeio', alias: ['padas de centeio', 'padas centeio'], unidade: 'un' },
+  { id: 'padas_normais', label: 'Padas Normais', alias: ['padas normais'], unidade: 'un' },
+  { id: 'padinhas', label: 'Padinhas', alias: ['padinhas'], unidade: 'kg' },
+  { id: 'padinhas_alfarroba', label: 'Padinhas Alfarroba', alias: ['padinhas alfarroba', 'padinha alfarroba'], unidade: 'kg' },
+  { id: 'pao_7_graos_peq', label: 'P. 7 grãos peq.', alias: ['pão 7 grãos pequeno', 'p. 7 grãos peq.', 'pão 7 grãos', 'p. 7 graos peq.', 'pao 7 graos'], unidade: 'un' },
+  { id: 'pao_alfarroba', label: 'Pão alfarroba', alias: ['pão de alfarroba', 'pão alfarroba', 'pao alfarroba'], unidade: 'un' },
+  { id: 'pao_bico', label: 'Pão de bico', alias: ['pão de bico', 'pão bico', 'pao bico'], unidade: 'un' },
+  { id: 'pao_cachorro', label: 'Pão Cachorro', alias: ['pão de cachorro', 'pao de cachorro', 'pao cachorro', 'pão cachorro'], unidade: 'un' },
+  { id: 'pao_canela', label: 'Pão de canela', alias: ['pão de canela', 'pão canela', 'pao canela'], unidade: 'un' },
+  { id: 'pao_centeio', label: 'Pão de centeio', alias: ['pão de centeio', 'pão centeio', 'pao centeio'], unidade: 'un' },
+  { id: 'pao_forma_gr', label: 'Pão de forma Gr.', alias: ['pão de forma grande', 'pão de forma gr.', 'pao de forma gr.', 'pao forma grande'], unidade: 'un' },
+  { id: 'pao_forma_corte_fino', label: 'P. F. gr. Corte fino', alias: ['pão de forma grande (corte fino)', 'p. f. gr. corte fino', 'pao de forma corte fino', 'corte fino'], unidade: 'un' },
+  { id: 'pao_forma_peq', label: 'P. forma pequeno', alias: ['pão de forma pequeno', 'p. forma pequeno', 'pão forma pequeno', 'p. forna pequeno', 'pao forma pequeno'], unidade: 'un' },
+  { id: 'pao_forma_cereais', label: 'P. Forma Cereais', alias: ['pão de forma cereais', 'pao de forma cereais'], unidade: 'un' },
+  { id: 'pao_hamburguer', label: 'Pão Hamburguer', alias: ['pão de hamburguer', 'pao de hamburguer', 'pao hamburguer', 'pão hamburger', 'pão de hambúrguer', 'pao hamburger'], unidade: 'un' },
+  { id: 'pao_leite', label: 'Pão de leite', alias: ['pão de leite', 'pao de leite', 'pão leite'], unidade: 'un' },
+  { id: 'pao_mealhada', label: 'Pão Mealhada', alias: ['pão da mealhada', 'pao da mealhada', 'pao mealhada', 'pão mealhada'], unidade: 'un' },
+  { id: 'pao_sementes', label: 'Pão sementes', alias: ['pão de sementes', 'pão sementes', 'pao sementes'], unidade: 'kg' },
+  { id: 'pao_integral', label: 'Pão integral', alias: ['pão integral', 'pao integral'], unidade: 'un' },
+  { id: 'pao_italiano', label: 'Pão italiano', alias: ['pão italiano', 'pao italiano'], unidade: 'un' },
+  { id: 'pao_normal', label: 'Pão normal', alias: ['pão normal', 'pao normal', 'carcaça', 'carcaças'], unidade: 'un' },
+  { id: 'pao_saloio', label: 'Pão saloio', alias: ['pão saloio', 'pao saloio'], unidade: 'kg' },
+  { id: 'regueifa_branca', label: 'Regueifa Branca', alias: ['regueifa branca', 'regueifa', 'regueifas brancas'], unidade: 'un' },
+  { id: 'tosta', label: 'Tosta', alias: ['tosta', 'tostas'], unidade: 'kg' },
+  { id: 'triga_milha_03', label: 'Triga milha 0.3kg', alias: ['triga milha 0,3 kg', 'triga milha 0.3kg', 'triga milha 0,3kg'], unidade: 'un' },
+  { id: 'triga_milha_05', label: 'Triga milha 0.5kg', alias: ['triga milha 0,5 kg', 'triga milha 0.5kg', 'triga milha 0,5kg'], unidade: 'un' },
+  { id: 'triga_milha_1', label: 'Triga milha 1 kg', alias: ['triga milha 1 kg', 'triga milha 1kg', 'triga milha1 kg', 'triga milha 1,0 kg'], unidade: 'un' },
+  { id: 'triga_milha_saloio', label: 'Tri. milha Saloio', alias: ['triga milha saloio', 'tri. milha saloio', 'triga saloio'], unidade: 'un' },
 ];
 
 export const COLUNAS_GRELHA_PASTELARIA: ColunaGrelhaProduto[] = [
-  { id: 'croiss_choc', label: 'Croiss. Choc.', alias: ['croissant de chocolate', 'croiss. choc.', 'croissant choc', 'croissant chocolate'] },
-  { id: 'croiss_simples', label: 'Croiss. Simples', alias: ['croissant simples', 'croiss. simples'] },
-  { id: 'fatia_pizza', label: 'Fatia Pizza', alias: ['fatia de pizza', 'fatia pizza'] },
-  { id: 'lanche_choco', label: 'Lanche Choco.', alias: ['lanche de chocolate', 'lanche choco.', 'lanche choc', 'lanche chocolate'] },
-  { id: 'lanche_fiambre', label: 'Lanche Fiambre', alias: ['lanche de fiambre', 'lanche fiambre'] },
-  { id: 'lanche_misto', label: 'Lanche Misto', alias: ['lanche misto'] },
-  { id: 'meia_lua', label: 'Meia Lua', alias: ['meia lua'] },
-  { id: 'merendas', label: 'Merendas', alias: ['merendas', 'merenda'] },
-  { id: 'pao_chourico', label: 'Pão c/ Chouriço', alias: ['pão com chouriço', 'pão c/ chouriço', 'pao com chourico'] },
-  { id: 'pao_croissant', label: 'Pão Croissant', alias: ['pão croissant', 'pao croissant'] },
-  { id: 'pao_pizza', label: 'Pão Pizza', alias: ['pão pizza', 'pao pizza'] },
-  { id: 'pasteis', label: 'Pasteis', alias: ['pasteis', 'pastéis'] },
-  { id: 'pastel_nata', label: 'Pastel de Nata', alias: ['pastel de nata', 'nata', 'natas'] },
-  { id: 'pastel_miniatura', label: 'Pastel Miniatura', alias: ['pastel miniatura', 'miniaturas', 'pasteis miniatura'] },
-  { id: 'regueifa_canela', label: 'Regueifa Canela', alias: ['regueifa de canela', 'regueifa canela', 'regueifa. canela'] },
-  { id: 'regueifa_coco', label: 'Regueifa de Côco', alias: ['regueifa de côco', 'regueifa de coco', 'regueifa coco', 'regueifa côco'] },
-  { id: 'regueifa_doce', label: 'Regueifa Doce', alias: ['regueifa doce', 'regueifa tradicional doce'] },
-  { id: 'tranca_chocolate', label: 'Trança Chocolate', alias: ['trança de chocolate', 'trança chocolate', 'tranca de chocolate', 'tranca chocolate', 'trança choc', 'tranca choc'] },
+  { id: 'croiss_choc', label: 'Croiss. Choc.', alias: ['croissant de chocolate', 'croiss. choc.', 'croissant choc', 'croissant chocolate'], unidade: 'un' },
+  { id: 'croiss_simples', label: 'Croiss. Simples', alias: ['croissant simples', 'croiss. simples'], unidade: 'un' },
+  { id: 'fatia_pizza', label: 'Fatia Pizza', alias: ['fatia de pizza', 'fatia pizza'], unidade: 'un' },
+  { id: 'lanche_choco', label: 'Lanche Choco.', alias: ['lanche de chocolate', 'lanche choco.', 'lanche choc', 'lanche chocolate'], unidade: 'un' },
+  { id: 'lanche_fiambre', label: 'Lanche Fiambre', alias: ['lanche de fiambre', 'lanche fiambre'], unidade: 'un' },
+  { id: 'lanche_misto', label: 'Lanche Misto', alias: ['lanche misto'], unidade: 'un' },
+  { id: 'meia_lua', label: 'Meia Lua', alias: ['meia lua'], unidade: 'un' },
+  { id: 'merendas', label: 'Merendas', alias: ['merendas', 'merenda'], unidade: 'un' },
+  { id: 'pao_chourico', label: 'Pão c/ Chouriço', alias: ['pão com chouriço', 'pão c/ chouriço', 'pao com chourico'], unidade: 'un' },
+  { id: 'pao_croissant', label: 'Pão Croissant', alias: ['pão croissant', 'pao croissant'], unidade: 'kg' },
+  { id: 'pao_deus', label: 'Pão de Deus', alias: ['pão de deus', 'pao de deus'], unidade: 'un' },
+  { id: 'pao_doce', label: 'Pão Doce', alias: ['pão doce', 'pao doce'], unidade: 'un' },
+  { id: 'pao_pizza', label: 'Pão Pizza', alias: ['pão pizza', 'pao pizza'], unidade: 'un' },
+  { id: 'pasteis', label: 'Pasteis', alias: ['pasteis', 'pastéis'], unidade: 'un' },
+  { id: 'pastel_nata', label: 'Pastel de Nata', alias: ['pastel de nata', 'nata', 'natas'], unidade: 'un' },
+  { id: 'pastel_miniatura', label: 'Pastel Miniatura', alias: ['pastel miniatura', 'miniaturas', 'pasteis miniatura'], unidade: 'un' },
+  { id: 'regueifa_canela', label: 'Regueifa Canela', alias: ['regueifa de canela', 'regueifa canela', 'regueifa. canela'], unidade: 'un' },
+  { id: 'regueifa_coco', label: 'Regueifa de Côco', alias: ['regueifa de côco', 'regueifa de coco', 'regueifa coco', 'regueifa côco'], unidade: 'un' },
+  { id: 'regueifa_doce', label: 'Regueifa Doce', alias: ['regueifa doce', 'regueifa tradicional doce'], unidade: 'un' },
+  { id: 'tranca_chocolate', label: 'Trança Chocolate', alias: ['trança de chocolate', 'trança chocolate', 'tranca de chocolate', 'tranca chocolate', 'trança choc', 'tranca choc'], unidade: 'un' },
+  { id: 'tranca_regueifa_branca', label: 'Trança Reg. Branca', alias: ['trança regueifa branca', 'tranca regueifa branca', 'trança de regueifa branca', 'tranca de regueifa branca'], unidade: 'un' },
+  { id: 'tranca_creme', label: 'Trança Creme', alias: ['trança de creme', 'tranca de creme', 'trança creme', 'tranca creme'], unidade: 'un' },
+  { id: 'tranca_amendoa', label: 'Trança Amêndoa', alias: ['trança de amendoa', 'tranca de amendoa', 'trança de amêndoa', 'tranca amendoa', 'tranca amêndoa'], unidade: 'un' },
+  { id: 'tranca_simples', label: 'Trança', alias: ['trança', 'tranca', 'trança simples', 'tranca simples'], unidade: 'un' },
+  { id: 'bolo_aniversario', label: 'Bolo Aniversário', alias: ['bolo de aniversário', 'bolo de aniversario', 'bolo aniversario'], unidade: 'kg' },
+  { id: 'tarte_fruta', label: 'Tarte de Fruta', alias: ['tarte de fruta', 'tartes de fruta'], unidade: 'kg' },
 ];
 
-export function identificarColunaGrelha(artigoNome: string): { coluna: ColunaGrelhaProduto; setor: 'padaria' | 'pastelaria' } | null {
+export function identificarColunaGrelhaEmListas(
+  artigoNome: string,
+  colunasPadaria: ColunaGrelhaProduto[],
+  colunasPastelaria: ColunaGrelhaProduto[]
+): { coluna: ColunaGrelhaProduto; setor: 'padaria' | 'pastelaria' } | null {
   if (!artigoNome) return null;
   const safeArtigoNome = String(artigoNome || '').trim();
   const norm = safeArtigoNome.toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .replace(/\s+/g, ' ');
 
-  // 1. Correspondência exata em Padaria (Canónica 1:1 sem contaminação semântica)
-  for (const c of COLUNAS_GRELHA_PADARIA) {
+  // 1. Correspondência em Padaria
+  for (const c of colunasPadaria) {
     if (c.label.toLowerCase() === safeArtigoNome.toLowerCase()) return { coluna: c, setor: 'padaria' };
-    for (const a of c.alias) {
+    for (const a of (c.alias || [])) {
       const an = a.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       if (norm === an) return { coluna: c, setor: 'padaria' };
     }
   }
 
-  // 2. Correspondência exata em Pastelaria (Canónica 1:1 sem contaminação semântica)
-  for (const c of COLUNAS_GRELHA_PASTELARIA) {
+  // 2. Correspondência em Pastelaria
+  for (const c of colunasPastelaria) {
     if (c.label.toLowerCase() === safeArtigoNome.toLowerCase()) return { coluna: c, setor: 'pastelaria' };
-    for (const a of c.alias) {
+    for (const a of (c.alias || [])) {
       const an = a.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       if (norm === an) return { coluna: c, setor: 'pastelaria' };
     }
   }
 
   return null;
+}
+
+export function identificarColunaGrelha(artigoNome: string): { coluna: ColunaGrelhaProduto; setor: 'padaria' | 'pastelaria' } | null {
+  return identificarColunaGrelhaEmListas(artigoNome, COLUNAS_GRELHA_PADARIA, COLUNAS_GRELHA_PASTELARIA);
 }
 
 export function calcularDadosGuiaCargaConjunta(
@@ -3263,6 +3378,91 @@ export function calcularDadosGuiaCargaConjunta(
     return mapaArtigos.get(nomeCanonico)!;
   };
 
+  const colunasPadariaAtivas: ColunaGrelhaProduto[] = [...COLUNAS_GRELHA_PADARIA];
+  const colunasPastelariaAtivas: ColunaGrelhaProduto[] = [...COLUNAS_GRELHA_PASTELARIA];
+
+  const resolverOuCriarColuna = (artigoNome: string): { coluna: ColunaGrelhaProduto; setor: 'padaria' | 'pastelaria' } => {
+    const match = identificarColunaGrelhaEmListas(artigoNome, colunasPadariaAtivas, colunasPastelariaAtivas);
+    if (match) return match;
+
+    const nomeLimpo = (artigoNome || '').trim();
+    const idSlug = 'dyn_' + nomeLimpo.toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '_')
+      .slice(0, 30);
+
+    const prodRef = produtos.find((p) => (p?.nome || '').toLowerCase() === nomeLimpo.toLowerCase());
+    const isPast = prodRef?.categoria === 'pastelaria' || (
+      nomeLimpo.toLowerCase().includes('bolo') ||
+      nomeLimpo.toLowerCase().includes('croissant') ||
+      nomeLimpo.toLowerCase().includes('nata') ||
+      nomeLimpo.toLowerCase().includes('pastel') ||
+      nomeLimpo.toLowerCase().includes('trança') ||
+      nomeLimpo.toLowerCase().includes('tranca') ||
+      nomeLimpo.toLowerCase().includes('doce') ||
+      nomeLimpo.toLowerCase().includes('queque') ||
+      nomeLimpo.toLowerCase().includes('tarte') ||
+      nomeLimpo.toLowerCase().includes('lanche') ||
+      nomeLimpo.toLowerCase().includes('pizza')
+    );
+    const setor: 'padaria' | 'pastelaria' = isPast ? 'pastelaria' : 'padaria';
+    const isKg = isArtigoVendidoAoKg(nomeLimpo, produtos);
+
+    const novaColuna: ColunaGrelhaProduto = {
+      id: idSlug,
+      label: nomeLimpo,
+      alias: [nomeLimpo.toLowerCase()],
+      unidade: isKg ? 'kg' : 'un',
+    };
+
+    if (setor === 'padaria') {
+      colunasPadariaAtivas.push(novaColuna);
+    } else {
+      colunasPastelariaAtivas.push(novaColuna);
+    }
+
+    return { coluna: novaColuna, setor };
+  };
+
+  // Pré-registo dinâmico de todos os artigos presentes na data alvo (garante que nada é descartado)
+  for (const car of rotasAtivas) {
+    const aliasesCar = obterAliasesCarrinha(car.id);
+    const bf = baseFixaCarrinhas.find((b) => aliasesCar.includes(b.carrinha_id) || obterAliasesCarrinha(b.carrinha_id).some((a) => aliasesCar.includes(a)));
+    const semanaBf = (bf?.quantidades_semanais || bf?.quantidades_semana || (bf?.quantidades as any)?.quantidades_semanais || (bf?.quantidades && typeof bf.quantidades === 'object' && ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'].some((k: string) => k in (bf.quantidades as any)) ? bf.quantidades : {})) as Record<string, Record<string, number>>;
+    const mapaBfDia = semanaBf?.[diaSemanaAlvo] || bf?.quantidades_por_produto || {};
+    Object.keys(mapaBfDia).forEach((art) => { if (art?.trim()) resolverOuCriarColuna(art.trim()); });
+    obterArtigosAjustadosBaseRota(dataAlvo, car.id, ajustesCustom).forEach((art) => { if (art?.trim()) resolverOuCriarColuna(art.trim()); });
+
+    basesRecorrentes
+      .filter((b) => b.ativo && (aliasesCar.includes(b.carrinha_id) || obterAliasesCarrinha(b.carrinha_id).some((a) => aliasesCar.includes(a))) && !clienteEmModoFerias(b, dataAlvo))
+      .forEach((b) => {
+        const mapaDia = b.quantidades_semanais?.[diaSemanaAlvo] || {};
+        Object.keys(mapaDia).forEach((art) => { if (art?.trim()) resolverOuCriarColuna(art.trim()); });
+      });
+
+    const clientesDaRota = clientesB2B.filter((cli) => cli.ativo && (aliasesCar.includes(cli.carrinha_id) || obterAliasesCarrinha(cli.carrinha_id).some((a) => aliasesCar.includes(a))));
+    clientesDaRota.forEach((cli) => {
+      const semanaB2b = (cli.quantidades_semanais || cli.quantidades_semana || {}) as Record<string, Record<string, number>>;
+      const mapaDiaB2b = semanaB2b?.[diaSemanaAlvo] || {};
+      Object.keys(mapaDiaB2b).forEach((art) => { if (art?.trim()) resolverOuCriarColuna(art.trim()); });
+      obterArtigosAjustadosClienteB2B(dataAlvo, cli.id, ajustesCustom).forEach((art) => { if (art?.trim()) resolverOuCriarColuna(art.trim()); });
+    });
+
+    const encsRota = encomendas.filter(
+      (e) => (aliasesCar.includes(e.carrinha_id || '') || obterAliasesCarrinha(e.carrinha_id || '').some((a) => aliasesCar.includes(a))) &&
+             e.data_agendamento === dataAlvo &&
+             e.tipo === 'entrega_domicilio' &&
+             e.estado !== 'cancelado'
+    );
+    encsRota.forEach((e) => {
+      (e.itens || []).forEach((item) => {
+        if (item?.produto_nome?.trim() && Number(item.quantidade) > 0 && item.estado_producao !== 'recusado') {
+          resolverOuCriarColuna(item.produto_nome.trim());
+        }
+      });
+    });
+  }
+
   const gruposRotasGrelha: GrupoRotaGrelha[] = [];
 
   for (let i = 0; i < rotasAtivas.length; i++) {
@@ -3272,8 +3472,8 @@ export function calcularDadosGuiaCargaConjunta(
     const linhasGrelhaRota: LinhaGrelhaCarga[] = [];
     const rotaTotaisPadaria: Record<string, number> = {};
     const rotaTotaisPastelaria: Record<string, number> = {};
-    COLUNAS_GRELHA_PADARIA.forEach((c) => { rotaTotaisPadaria[c.id] = 0; });
-    COLUNAS_GRELHA_PASTELARIA.forEach((c) => { rotaTotaisPastelaria[c.id] = 0; });
+    colunasPadariaAtivas.forEach((c) => { rotaTotaisPadaria[c.id] = 0; });
+    colunasPastelariaAtivas.forEach((c) => { rotaTotaisPastelaria[c.id] = 0; });
 
     // 1. Base Fixa
     const bf = baseFixaCarrinhas.find((b) => aliasesCar.includes(b.carrinha_id) || obterAliasesCarrinha(b.carrinha_id).some((a) => aliasesCar.includes(a)));
@@ -3316,7 +3516,7 @@ export function calcularDadosGuiaCargaConjunta(
         entry.rotas[car.id] = (entry.rotas[car.id] || 0) + quantidade;
         entry.total += quantidade;
 
-        const colMatch = identificarColunaGrelha(artigo);
+        const colMatch = resolverOuCriarColuna(artigo);
         if (colMatch) {
           qtdsBaseLinha[colMatch.coluna.id] = (qtdsBaseLinha[colMatch.coluna.id] || 0) + quantidade;
           totalBaseLinha += quantidade;
@@ -3341,7 +3541,7 @@ export function calcularDadosGuiaCargaConjunta(
             entry.rotas[car.id] = (entry.rotas[car.id] || 0) + quantidade;
             entry.total += quantidade;
 
-            const colMatch = identificarColunaGrelha(artigo);
+            const colMatch = resolverOuCriarColuna(artigo);
             if (colMatch) {
               qtdsBaseLinha[colMatch.coluna.id] = (qtdsBaseLinha[colMatch.coluna.id] || 0) + quantidade;
               totalBaseLinha += quantidade;
@@ -3403,7 +3603,7 @@ export function calcularDadosGuiaCargaConjunta(
           entry.rotas[car.id] = (entry.rotas[car.id] || 0) + quantidade;
           entry.total += quantidade;
 
-          const colMatch = identificarColunaGrelha(artigo);
+          const colMatch = resolverOuCriarColuna(artigo);
           if (colMatch) {
             qtdsCliLinha[colMatch.coluna.id] = (qtdsCliLinha[colMatch.coluna.id] || 0) + quantidade;
             totalCliLinha += quantidade;
@@ -3444,7 +3644,7 @@ export function calcularDadosGuiaCargaConjunta(
           entry.rotas[car.id] = (entry.rotas[car.id] || 0) + quantidade;
           entry.total += quantidade;
 
-          const colMatch = identificarColunaGrelha(item.produto_nome);
+          const colMatch = resolverOuCriarColuna(item.produto_nome);
           if (colMatch) {
             qtdsEncLinha[colMatch.coluna.id] = (qtdsEncLinha[colMatch.coluna.id] || 0) + quantidade;
             totalEncLinha += quantidade;
@@ -3495,10 +3695,10 @@ export function calcularDadosGuiaCargaConjunta(
 
   const totaisColunasPadaria: Record<string, number> = {};
   const totaisColunasPastelaria: Record<string, number> = {};
-  COLUNAS_GRELHA_PADARIA.forEach((c) => {
+  colunasPadariaAtivas.forEach((c) => {
     totaisColunasPadaria[c.id] = gruposRotasGrelha.reduce((acc, g) => acc + (g.totaisPadaria[c.id] || 0), 0);
   });
-  COLUNAS_GRELHA_PASTELARIA.forEach((c) => {
+  colunasPastelariaAtivas.forEach((c) => {
     totaisColunasPastelaria[c.id] = gruposRotasGrelha.reduce((acc, g) => acc + (g.totaisPastelaria[c.id] || 0), 0);
   });
 
@@ -3528,10 +3728,19 @@ export function calcularDadosGuiaCargaConjunta(
   const linhasPadaria: LinhaGuiaConjuntaSecao[] = [];
   const linhasPastelaria: LinhaGuiaConjuntaSecao[] = [];
   let totalGeral = 0;
+  let totalGeralUnidades = 0;
+  let totalGeralKg = 0;
   let totalGeralPadaria = 0;
+  let totalGeralPadariaKg = 0;
   let totalGeralPastelaria = 0;
+  let totalGeralPastelariaKg = 0;
+  const totaisKgPorRota: Record<string, number> = {};
+  rotasAtivas.forEach((r) => {
+    totaisKgPorRota[r.id] = 0;
+  });
 
   for (const l of linhas) {
+    const isKg = l.unidade === 'kg';
     const itemSecao: LinhaGuiaConjuntaSecao = {
       artigo: l.artigo,
       unidade: l.unidade,
@@ -3542,25 +3751,49 @@ export function calcularDadosGuiaCargaConjunta(
     rotasAtivas.forEach((r) => {
       const q = l.rotas[r.id] || 0;
       totaisPorRota[r.id] = (totaisPorRota[r.id] || 0) + q;
+      if (isKg) {
+        totaisKgPorRota[r.id] = (totaisKgPorRota[r.id] || 0) + q;
+      }
     });
     totalGeral += l.total;
 
+    if (isKg) {
+      totalGeralKg += l.total;
+    } else {
+      totalGeralUnidades += l.total;
+    }
+
     if (l.setor === 'pastelaria') {
       linhasPastelaria.push(itemSecao);
-      totalGeralPastelaria += l.total;
+      if (isKg) {
+        totalGeralPastelariaKg += l.total;
+      } else {
+        totalGeralPastelaria += l.total;
+      }
       rotasAtivas.forEach((r) => {
         const q = l.rotas[r.id] || 0;
         totaisPastelariaPorRota[r.id] = (totaisPastelariaPorRota[r.id] || 0) + q;
       });
     } else {
       linhasPadaria.push(itemSecao);
-      totalGeralPadaria += l.total;
+      if (isKg) {
+        totalGeralPadariaKg += l.total;
+      } else {
+        totalGeralPadaria += l.total;
+      }
       rotasAtivas.forEach((r) => {
         const q = l.rotas[r.id] || 0;
         totaisPadariaPorRota[r.id] = (totaisPadariaPorRota[r.id] || 0) + q;
       });
     }
   }
+
+  totalGeralKg = Math.round(totalGeralKg * 10) / 10;
+  totalGeralPadariaKg = Math.round(totalGeralPadariaKg * 10) / 10;
+  totalGeralPastelariaKg = Math.round(totalGeralPastelariaKg * 10) / 10;
+  Object.keys(totaisKgPorRota).forEach((k) => {
+    totaisKgPorRota[k] = Math.round(totaisKgPorRota[k] * 10) / 10;
+  });
 
   const totalCaixasEstimadas = Math.ceil(totalGeral / 25);
   const colunasRotasAtivas = colunasRotas.filter((c) => (totaisPorRota[c.carrinhaId] || 0) > 0);
@@ -3574,17 +3807,21 @@ export function calcularDadosGuiaCargaConjunta(
     totaisPorRota,
     totaisPadariaPorRota,
     totaisPastelariaPorRota,
-    totalGeralUnidades: totalGeral,
+    totaisKgPorRota,
+    totalGeralUnidades,
+    totalGeralKg,
     totalGeralPadaria,
+    totalGeralPadariaKg,
     totalGeralPastelaria,
+    totalGeralPastelariaKg,
     totalCaixasEstimadas,
 
     rotasCabecalho: rotasCabecalhoAtivas.length > 0 ? rotasCabecalhoAtivas : rotasCabecalho,
     linhas,
-    totalGeral,
+    totalGeral: totalGeralUnidades,
 
-    colunasGrelhaPadaria: COLUNAS_GRELHA_PADARIA,
-    colunasGrelhaPastelaria: COLUNAS_GRELHA_PASTELARIA,
+    colunasGrelhaPadaria: colunasPadariaAtivas,
+    colunasGrelhaPastelaria: colunasPastelariaAtivas,
     gruposRotasGrelha,
     totaisColunasPadaria,
     totaisColunasPastelaria,

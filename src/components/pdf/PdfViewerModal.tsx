@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Carrinha, ClienteEmpresarialB2B, DiaSemana, Loja, Encomenda, DadosGuiaConjunta } from '../../types';
-import { obterQuantidadeEfetivaClienteB2B, obterArtigosAjustadosClienteB2B } from '../../lib/encomendasService';
+import { obterQuantidadeEfetivaClienteB2B, obterArtigosAjustadosClienteB2B, isArtigoVendidoAoKg, formatarQuantidade, formatarQuantidadeComUnidade } from '../../lib/encomendasService';
 import { 
   X, 
   Printer, 
@@ -852,20 +852,23 @@ export function PdfViewerModal({
                         </td>
                       </tr>
                     ) : (
-                      itensCarga.map((item, idx) => (
-                        <tr key={idx} className="bg-white border-b border-stone-150">
-                          <td className="py-2.5 px-4 font-bold text-gray-900">{item.nome}</td>
-                          <td className="py-2.5 px-3 text-center capitalize text-gray-600 font-medium">
-                            {item.categoria}
-                          </td>
-                          <td className="py-2.5 px-4 text-right font-mono font-black text-stone-900">
-                            {item.quantidade} {normalizarUnidade(item.unidade)}
-                          </td>
-                          <td className="py-2.5 px-4 text-gray-500">
-                            [ &nbsp; ] Conferido na saída
-                          </td>
-                        </tr>
-                      ))
+                      itensCarga.map((item, idx) => {
+                        const isKg = item.unidade === 'kg' || isArtigoVendidoAoKg(item.nome);
+                        return (
+                          <tr key={idx} className="bg-white border-b border-stone-150">
+                            <td className="py-2.5 px-4 font-bold text-gray-900">{item.nome}</td>
+                            <td className="py-2.5 px-3 text-center capitalize text-gray-600 font-medium">
+                              {item.categoria}
+                            </td>
+                            <td className="py-2.5 px-4 text-right font-mono font-black text-stone-900">
+                              {isKg ? Number(item.quantidade).toFixed(1) : Math.round(Number(item.quantidade))} {isKg ? 'kg' : 'un.'}
+                            </td>
+                            <td className="py-2.5 px-4 text-gray-500">
+                              [ &nbsp; ] Conferido na saída
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                   <tfoot>
@@ -922,17 +925,20 @@ export function PdfViewerModal({
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100">
-                            {cli.itensDoCli.map((item: any, i: number) => (
-                              <tr key={i} className="bg-white border-b border-stone-100">
-                                <td className="py-1.5 px-3 font-semibold text-gray-900">{item.artigo}</td>
-                                <td className="py-1.5 px-3 text-right font-mono font-black text-stone-900">
-                                  {item.quantidade} un.
-                                </td>
-                                <td className="py-1.5 px-3 text-center text-gray-400 text-[11px]">
-                                  [ &nbsp; ] Entregue Conforme
-                                </td>
-                              </tr>
-                            ))}
+                            {cli.itensDoCli.map((item: any, i: number) => {
+                              const isKg = item.unidade === 'kg' || isArtigoVendidoAoKg(item.artigo);
+                              return (
+                                <tr key={i} className="bg-white border-b border-stone-100">
+                                  <td className="py-1.5 px-3 font-semibold text-gray-900">{item.artigo}</td>
+                                  <td className="py-1.5 px-3 text-right font-mono font-black text-stone-900">
+                                    {isKg ? Number(item.quantidade).toFixed(1) : Math.round(Number(item.quantidade))} {isKg ? 'kg' : 'un.'}
+                                  </td>
+                                  <td className="py-1.5 px-3 text-center text-gray-400 text-[11px]">
+                                    [ &nbsp; ] Entregue Conforme
+                                  </td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>
@@ -1001,17 +1007,20 @@ export function PdfViewerModal({
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100">
-                            {enc.itensValidos.map((item: any, itIdx: number) => (
-                              <tr key={itIdx} className="bg-white border-b border-stone-100">
-                                <td className="py-1.5 px-3 font-semibold text-gray-900">{item.produto_nome}</td>
-                                <td className="py-1.5 px-3 text-right font-mono font-black text-stone-900">
-                                  {item.quantidade} {item.unidade}
-                                </td>
-                                <td className="py-1.5 px-3 text-center text-gray-400 text-[11px]">
-                                  [ &nbsp; ] Entregue Conforme
-                                </td>
-                              </tr>
-                            ))}
+                            {enc.itensValidos.map((item: any, itIdx: number) => {
+                              const isKg = item.unidade === 'kg' || isArtigoVendidoAoKg(item.produto_nome);
+                              return (
+                                <tr key={itIdx} className="bg-white border-b border-stone-100">
+                                  <td className="py-1.5 px-3 font-semibold text-gray-900">{item.produto_nome}</td>
+                                  <td className="py-1.5 px-3 text-right font-mono font-black text-stone-900">
+                                    {isKg ? Number(item.quantidade).toFixed(1) : Math.round(Number(item.quantidade))} {isKg ? 'kg' : 'un.'}
+                                  </td>
+                                  <td className="py-1.5 px-3 text-center text-gray-400 text-[11px]">
+                                    [ &nbsp; ] Entregue Conforme
+                                  </td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>
@@ -1164,20 +1173,23 @@ export function PdfViewerModal({
                         );
                       }
 
-                      return linhas.map(([artigo, qtd], i) => (
-                        <tr key={i} className="bg-white border-b border-stone-200">
-                          <td className="py-2 px-3 font-bold text-gray-900">{artigo}</td>
-                          <td className="py-2 px-3 text-right font-mono font-black text-stone-900 text-sm">
-                            {qtd}
-                          </td>
-                          <td className="py-2 px-3 text-center text-gray-600">un.</td>
-                          <td className="py-2 px-3 text-center">
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-stone-800 bg-white px-2 py-0.5 rounded-full border border-stone-400">
-                              <CheckCircle2 className="h-3 w-3 text-emerald-600" /> Conforme
-                            </span>
-                          </td>
-                        </tr>
-                      ));
+                      return linhas.map(([artigo, qtd], i) => {
+                        const isKg = isArtigoVendidoAoKg(artigo);
+                        return (
+                          <tr key={i} className="bg-white border-b border-stone-200">
+                            <td className="py-2 px-3 font-bold text-gray-900">{artigo}</td>
+                            <td className="py-2 px-3 text-right font-mono font-black text-stone-900 text-sm">
+                              {isKg ? Number(qtd).toFixed(1) : Math.round(Number(qtd))}
+                            </td>
+                            <td className="py-2 px-3 text-center text-gray-600">{isKg ? 'kg' : 'un.'}</td>
+                            <td className="py-2 px-3 text-center">
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-stone-800 bg-white px-2 py-0.5 rounded-full border border-stone-400">
+                                <CheckCircle2 className="h-3 w-3 text-emerald-600" /> Conforme
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      });
                     })()}
                   </tbody>
                   <tfoot>
@@ -1442,7 +1454,9 @@ export function PdfViewerModal({
                                       </span>
                                     </td>
                                     <td className="py-2 px-3 text-right font-mono font-black text-stone-950 text-sm">
-                                      {it.quantidade} {normalizarUnidade(it.unidade)}
+                                      {isArtigoVendidoAoKg(it.produto_nome) || it.unidade === 'kg'
+                                        ? `${Number(it.quantidade).toFixed(1)} kg`
+                                        : `${Math.round(Number(it.quantidade))} un.`}
                                     </td>
                                     <td className="py-2 px-3 text-stone-700 text-[11px]">
                                       {it.notas_personalizacao ? (
@@ -1604,7 +1618,9 @@ export function PdfViewerModal({
                         <tr key={idx} className="bg-white border-b border-stone-100">
                           <td className="py-2 px-3 font-bold text-stone-950">{it.produto_nome}</td>
                           <td className="py-2 px-3 text-right font-mono font-black text-stone-950 text-sm">
-                            {it.quantidade_total} {normalizarUnidade(it.unidade)}
+                            {isArtigoVendidoAoKg(it.produto_nome) || it.unidade === 'kg'
+                              ? `${Number(it.quantidade_total).toFixed(1)} kg`
+                              : `${Math.round(Number(it.quantidade_total))} un.`}
                           </td>
                           <td className="py-2 px-3 text-center font-mono font-bold text-stone-700">
                             {it.encomendas_count ? `${it.encomendas_count} enc.` : '-'}
@@ -1668,7 +1684,9 @@ export function PdfViewerModal({
                         <tr key={idx} className="bg-white border-b border-stone-100">
                           <td className="py-2 px-3 font-bold text-stone-950">{it.produto_nome}</td>
                           <td className="py-2 px-3 text-right font-mono font-black text-stone-950 text-sm">
-                            {it.quantidade_total} {normalizarUnidade(it.unidade)}
+                            {isArtigoVendidoAoKg(it.produto_nome) || it.unidade === 'kg'
+                              ? `${Number(it.quantidade_total).toFixed(1)} kg`
+                              : `${Math.round(Number(it.quantidade_total))} un.`}
                           </td>
                           <td className="py-2 px-3 text-center font-mono font-bold text-stone-700">
                             {it.encomendas_count ? `${it.encomendas_count} enc.` : '-'}
@@ -1761,17 +1779,26 @@ export function PdfViewerModal({
               <div className="grid grid-cols-3 gap-3 print:gap-2">
                 <div className="p-2.5 rounded-xl bg-white border border-stone-300">
                   <span className="text-[9px] font-bold text-stone-600 uppercase block">Total Geral a Carga</span>
-                  <span className="text-xl font-black text-stone-950 font-mono">{dadosGuiaConjunta.totalGeralUnidades ?? dadosGuiaConjunta.totalGeral ?? 0} un.</span>
+                  <span className="text-xl font-black text-stone-950 font-mono">
+                    {dadosGuiaConjunta.totalGeralUnidades ?? dadosGuiaConjunta.totalGeral ?? 0} un.
+                    {dadosGuiaConjunta.totalGeralKg && dadosGuiaConjunta.totalGeralKg > 0 ? ` + ${dadosGuiaConjunta.totalGeralKg.toFixed(1)} kg` : ''}
+                  </span>
                   <span className="text-[9px] text-stone-500 block mt-0.5">todas as carrinhas</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-white border border-stone-300">
                   <span className="text-[9px] font-bold text-stone-600 uppercase block">🥖 Padaria</span>
-                  <span className="text-xl font-black text-stone-950 font-mono">{dadosGuiaConjunta.totalGeralPadaria ?? 0} un.</span>
-                  <span className="text-[9px] text-stone-500 block mt-0.5">pães</span>
+                  <span className="text-xl font-black text-stone-950 font-mono">
+                    {dadosGuiaConjunta.totalGeralPadaria ?? 0} un.
+                    {dadosGuiaConjunta.totalGeralPadariaKg && dadosGuiaConjunta.totalGeralPadariaKg > 0 ? ` + ${dadosGuiaConjunta.totalGeralPadariaKg.toFixed(1)} kg` : ''}
+                  </span>
+                  <span className="text-[9px] text-stone-500 block mt-0.5">pães e broas</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-white border border-stone-300">
                   <span className="text-[9px] font-bold text-stone-600 uppercase block">🍰 Pastelaria</span>
-                  <span className="text-xl font-black text-stone-950 font-mono">{dadosGuiaConjunta.totalGeralPastelaria ?? 0} un.</span>
+                  <span className="text-xl font-black text-stone-950 font-mono">
+                    {dadosGuiaConjunta.totalGeralPastelaria ?? 0} un.
+                    {dadosGuiaConjunta.totalGeralPastelariaKg && dadosGuiaConjunta.totalGeralPastelariaKg > 0 ? ` + ${dadosGuiaConjunta.totalGeralPastelariaKg.toFixed(1)} kg` : ''}
+                  </span>
                   <span className="text-[9px] text-stone-500 block mt-0.5">pastelaria</span>
                 </div>
               </div>
@@ -1856,12 +1883,12 @@ export function PdfViewerModal({
                                           key={col.id}
                                           className="py-1 px-0.5 text-center font-mono text-xs print:text-[10px] font-black border-r border-stone-300 bg-stone-50/70"
                                         >
-                                          {q > 0 ? q : '-'}
+                                          {q > 0 ? (col.unidade === 'kg' ? q.toFixed(1) : Math.round(q)) : '-'}
                                         </td>
                                       );
                                     })}
                                     <td className="py-1 px-1.5 text-right font-mono font-black border-l-2 border-stone-800 text-xs print:text-[10px] bg-stone-100">
-                                      {totGrupoP1}
+                                      {totGrupoP1 > 0 ? (Number.isInteger(totGrupoP1) ? totGrupoP1 : totGrupoP1.toFixed(1)) : '-'}
                                     </td>
                                   </tr>
 
@@ -1890,12 +1917,12 @@ export function PdfViewerModal({
                                                 q > 0 ? 'font-black text-stone-950' : 'text-stone-300'
                                               }`}
                                             >
-                                              {q > 0 ? q : '-'}
+                                              {q > 0 ? (col.unidade === 'kg' ? q.toFixed(1) : Math.round(q)) : '-'}
                                             </td>
                                           );
                                         })}
                                         <td className="py-0.5 px-1.5 text-right font-mono font-bold text-xs print:text-[10px] border-l-2 border-stone-800 text-stone-950">
-                                          {totLinhaP1 > 0 ? totLinhaP1 : '-'}
+                                          {totLinhaP1 > 0 ? (Number.isInteger(totLinhaP1) ? totLinhaP1 : totLinhaP1.toFixed(1)) : '-'}
                                         </td>
                                       </tr>
                                     );
@@ -1909,16 +1936,19 @@ export function PdfViewerModal({
                               <td className="py-1.5 px-2 uppercase text-xs print:text-[10px] tracking-wider sticky left-0 bg-white text-stone-950 font-black border-r border-stone-400 print:static print:bg-white print:text-black">
                                 SUBTOTAL PADARIA (PARTE 1)
                               </td>
-                              {colunasPadariaP1.map((col) => (
-                                <td
-                                  key={col.id}
-                                  className="py-1 px-0.5 text-center font-mono border-r border-stone-300 text-xs print:text-[10px] font-black text-stone-950 bg-white print:bg-white print:text-black"
-                                >
-                                  {dadosGuiaConjunta.totaisColunasPadaria?.[col.id] || 0}
-                                </td>
-                              ))}
+                              {colunasPadariaP1.map((col) => {
+                                const val = dadosGuiaConjunta.totaisColunasPadaria?.[col.id] || 0;
+                                return (
+                                  <td
+                                    key={col.id}
+                                    className="py-1 px-0.5 text-center font-mono border-r border-stone-300 text-xs print:text-[10px] font-black text-stone-950 bg-white print:bg-white print:text-black"
+                                  >
+                                    {val > 0 ? (col.unidade === 'kg' ? val.toFixed(1) : Math.round(val)) : 0}
+                                  </td>
+                                );
+                              })}
                               <td className="py-1.5 px-1.5 text-right font-mono border-l-2 border-stone-900 text-stone-950 text-xs print:text-[10px] font-black bg-white print:bg-white print:text-black">
-                                {subtotalGeralPadariaP1}
+                                {subtotalGeralPadariaP1 > 0 ? (Number.isInteger(subtotalGeralPadariaP1) ? subtotalGeralPadariaP1 : subtotalGeralPadariaP1.toFixed(1)) : 0}
                               </td>
                             </tr>
                           </tfoot>
@@ -1946,6 +1976,7 @@ export function PdfViewerModal({
                         </h2>
                         <span className="text-xs font-bold text-stone-800 font-mono">
                           Total Padaria: {dadosGuiaConjunta.totalGeralPadaria ?? 0} un.
+                          {dadosGuiaConjunta.totalGeralPadariaKg && dadosGuiaConjunta.totalGeralPadariaKg > 0 ? ` + ${dadosGuiaConjunta.totalGeralPadariaKg.toFixed(1)} kg` : ''}
                         </span>
                       </div>
 
@@ -1995,12 +2026,12 @@ export function PdfViewerModal({
                                           key={col.id}
                                           className="py-1 px-0.5 text-center font-mono text-xs print:text-[10px] font-black border-r border-stone-300 bg-stone-50/70"
                                         >
-                                          {q > 0 ? q : '-'}
+                                          {q > 0 ? (col.unidade === 'kg' ? q.toFixed(1) : Math.round(q)) : '-'}
                                         </td>
                                       );
                                     })}
                                     <td className="py-1 px-1.5 text-right font-mono font-black border-l-2 border-stone-800 text-xs print:text-[10px] bg-stone-100">
-                                      {grupo.totalPadariaRota}
+                                      {grupo.totalPadariaRota > 0 ? (Number.isInteger(grupo.totalPadariaRota) ? grupo.totalPadariaRota : grupo.totalPadariaRota.toFixed(1)) : '-'}
                                     </td>
                                   </tr>
 
@@ -2029,12 +2060,12 @@ export function PdfViewerModal({
                                                 q > 0 ? 'font-black text-stone-950' : 'text-stone-300'
                                               }`}
                                             >
-                                              {q > 0 ? q : '-'}
+                                              {q > 0 ? (col.unidade === 'kg' ? q.toFixed(1) : Math.round(q)) : '-'}
                                             </td>
                                           );
                                         })}
                                         <td className="py-0.5 px-1.5 text-right font-mono font-bold text-xs print:text-[10px] border-l-2 border-stone-800 text-stone-950">
-                                          {totLinhaGeral}
+                                          {totLinhaGeral > 0 ? (Number.isInteger(totLinhaGeral) ? totLinhaGeral : totLinhaGeral.toFixed(1)) : '-'}
                                         </td>
                                       </tr>
                                     );
@@ -2048,16 +2079,20 @@ export function PdfViewerModal({
                               <td className="py-1.5 px-2 uppercase text-xs print:text-[10px] tracking-wider sticky left-0 bg-white text-stone-950 font-black border-r border-stone-400 print:static print:bg-white print:text-black">
                                 TOTAL GERAL PADARIA
                               </td>
-                              {colunasPadariaP2.map((col) => (
-                                <td
-                                  key={col.id}
-                                  className="py-1 px-0.5 text-center font-mono border-r border-stone-300 text-xs print:text-[10px] font-black text-stone-950 bg-white print:bg-white print:text-black"
-                                >
-                                  {dadosGuiaConjunta.totaisColunasPadaria?.[col.id] || 0}
-                                </td>
-                              ))}
+                              {colunasPadariaP2.map((col) => {
+                                const val = dadosGuiaConjunta.totaisColunasPadaria?.[col.id] || 0;
+                                return (
+                                  <td
+                                    key={col.id}
+                                    className="py-1 px-0.5 text-center font-mono border-r border-stone-300 text-xs print:text-[10px] font-black text-stone-950 bg-white print:bg-white print:text-black"
+                                  >
+                                    {val > 0 ? (col.unidade === 'kg' ? val.toFixed(1) : Math.round(val)) : 0}
+                                  </td>
+                                );
+                              })}
                               <td className="py-1.5 px-1.5 text-right font-mono border-l-2 border-stone-900 text-stone-950 text-xs print:text-[10px] font-black bg-white print:bg-white print:text-black">
-                                {dadosGuiaConjunta.totalGeralPadaria}
+                                {dadosGuiaConjunta.totalGeralPadaria ?? 0}
+                                {dadosGuiaConjunta.totalGeralPadariaKg && dadosGuiaConjunta.totalGeralPadariaKg > 0 ? ` (+${dadosGuiaConjunta.totalGeralPadariaKg.toFixed(1)}kg)` : ''}
                               </td>
                             </tr>
                           </tfoot>
@@ -2085,6 +2120,7 @@ export function PdfViewerModal({
                         </h2>
                         <span className="text-xs font-bold text-stone-800 font-mono">
                           Total Pastelaria: {dadosGuiaConjunta.totalGeralPastelaria ?? 0} un.
+                          {dadosGuiaConjunta.totalGeralPastelariaKg && dadosGuiaConjunta.totalGeralPastelariaKg > 0 ? ` + ${dadosGuiaConjunta.totalGeralPastelariaKg.toFixed(1)} kg` : ''}
                         </span>
                       </div>
 
@@ -2134,12 +2170,12 @@ export function PdfViewerModal({
                                           key={col.id}
                                           className="py-1 px-0.5 text-center font-mono text-xs print:text-[10px] font-black border-r border-stone-300 bg-stone-50/70"
                                         >
-                                          {q > 0 ? q : '-'}
+                                          {q > 0 ? (col.unidade === 'kg' ? q.toFixed(1) : Math.round(q)) : '-'}
                                         </td>
                                       );
                                     })}
                                     <td className="py-1 px-1.5 text-right font-mono font-black border-l-2 border-stone-800 text-xs print:text-[10px] bg-stone-100">
-                                      {grupo.totalPastelariaRota}
+                                      {grupo.totalPastelariaRota > 0 ? (Number.isInteger(grupo.totalPastelariaRota) ? grupo.totalPastelariaRota : grupo.totalPastelariaRota.toFixed(1)) : '-'}
                                     </td>
                                   </tr>
 
@@ -2168,12 +2204,12 @@ export function PdfViewerModal({
                                                 q > 0 ? 'font-black text-stone-950' : 'text-stone-300'
                                               }`}
                                             >
-                                              {q > 0 ? q : '-'}
+                                              {q > 0 ? (col.unidade === 'kg' ? q.toFixed(1) : Math.round(q)) : '-'}
                                             </td>
                                           );
                                         })}
                                         <td className="py-0.5 px-1.5 text-right font-mono font-bold text-xs print:text-[10px] border-l-2 border-stone-800 text-stone-950">
-                                          {totLinhaGeral}
+                                          {totLinhaGeral > 0 ? (Number.isInteger(totLinhaGeral) ? totLinhaGeral : totLinhaGeral.toFixed(1)) : '-'}
                                         </td>
                                       </tr>
                                     );
@@ -2187,16 +2223,20 @@ export function PdfViewerModal({
                               <td className="py-1.5 px-2 uppercase text-xs print:text-[10px] tracking-wider sticky left-0 bg-white text-stone-950 font-black border-r border-stone-400 print:static print:bg-white print:text-black">
                                 TOTAL GERAL PASTELARIA
                               </td>
-                              {colunasPastelaria.map((col) => (
-                                <td
-                                  key={col.id}
-                                  className="py-1 px-0.5 text-center font-mono border-r border-stone-300 text-xs print:text-[10px] font-black text-stone-950 bg-white print:bg-white print:text-black"
-                                >
-                                  {dadosGuiaConjunta.totaisColunasPastelaria?.[col.id] || 0}
-                                </td>
-                              ))}
+                              {colunasPastelaria.map((col) => {
+                                const val = dadosGuiaConjunta.totaisColunasPastelaria?.[col.id] || 0;
+                                return (
+                                  <td
+                                    key={col.id}
+                                    className="py-1 px-0.5 text-center font-mono border-r border-stone-300 text-xs print:text-[10px] font-black text-stone-950 bg-white print:bg-white print:text-black"
+                                  >
+                                    {val > 0 ? (col.unidade === 'kg' ? val.toFixed(1) : Math.round(val)) : 0}
+                                  </td>
+                                );
+                              })}
                               <td className="py-1.5 px-1.5 text-right font-mono border-l-2 border-stone-900 text-stone-950 text-xs print:text-[10px] font-black bg-white print:bg-white print:text-black">
-                                {dadosGuiaConjunta.totalGeralPastelaria}
+                                {dadosGuiaConjunta.totalGeralPastelaria ?? 0}
+                                {dadosGuiaConjunta.totalGeralPastelariaKg && dadosGuiaConjunta.totalGeralPastelariaKg > 0 ? ` (+${dadosGuiaConjunta.totalGeralPastelariaKg.toFixed(1)}kg)` : ''}
                               </td>
                             </tr>
                           </tfoot>
@@ -2208,6 +2248,7 @@ export function PdfViewerModal({
                         <span className="uppercase tracking-wider">TOTAL GERAL A BORDO (PADARIA + PASTELARIA)</span>
                         <span className="text-sm font-mono font-black text-stone-950">
                           {dadosGuiaConjunta.totalGeralUnidades ?? dadosGuiaConjunta.totalGeral ?? 0} un.
+                          {dadosGuiaConjunta.totalGeralKg && dadosGuiaConjunta.totalGeralKg > 0 ? ` + ${dadosGuiaConjunta.totalGeralKg.toFixed(1)} kg` : ''}
                         </span>
                       </div>
 

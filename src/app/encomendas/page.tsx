@@ -1159,7 +1159,7 @@ export default function EncomendasPage(props: any) {
                               <span className={`text-xs font-black shrink-0 px-1.5 py-0.5 rounded ${
                                 isKg ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-stone-200 text-stone-700'
                               }`}>
-                                {item.quantidade} {isKg ? 'kg' : 'un.'}
+                                {isKg ? `${Number(item.quantidade).toFixed(1)} kg` : `${Math.round(Number(item.quantidade))} un.`}
                               </span>
                             </div>
 
@@ -1231,10 +1231,10 @@ export default function EncomendasPage(props: any) {
                     <span>{t.totalItems}:</span>
                     <span className="text-xl text-bakery-700 font-mono font-black">
                       {(() => {
-                        const totalUn = Math.round(carrinho.filter((i) => i.unidade !== 'kg' && i.unidade_medida !== 'kg').reduce((acc, i) => acc + (Number(i.quantidade) || 0), 0) * 10) / 10;
+                        const totalUn = Math.round(carrinho.filter((i) => i.unidade !== 'kg' && i.unidade_medida !== 'kg').reduce((acc, i) => acc + (Number(i.quantidade) || 0), 0));
                         const totalKg = Math.round(carrinho.filter((i) => i.unidade === 'kg' || i.unidade_medida === 'kg').reduce((acc, i) => acc + (Number(i.quantidade) || 0), 0) * 10) / 10;
-                        if (totalUn > 0 && totalKg > 0) return `${totalUn} un. + ${totalKg} kg`;
-                        if (totalKg > 0) return `${totalKg} kg`;
+                        if (totalUn > 0 && totalKg > 0) return `${totalUn} un. + ${totalKg.toFixed(1)} kg`;
+                        if (totalKg > 0) return `${totalKg.toFixed(1)} kg`;
                         return `${totalUn} un.`;
                       })()}
                     </span>
