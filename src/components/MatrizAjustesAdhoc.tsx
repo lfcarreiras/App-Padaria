@@ -17,7 +17,8 @@ import {
   subscreverAlteracoesAjustesAdhoc,
   obterAliasesCarrinha,
   getChaveAdhocBase, 
-  getChaveAdhocB2B
+  getChaveAdhocB2B,
+  isArtigoVendidoAoKg
 } from '../lib/encomendasService';
 import { 
   Calendar, 
@@ -165,9 +166,7 @@ export function MatrizAjustesAdhoc({
   }, []);
 
   const obterUnidadeArtigo = (nomeArtigo: string) => {
-    const nomeLimpo = (nomeArtigo || '').trim().toLowerCase();
-    const p = produtos.find((item) => item.nome.trim().toLowerCase() === nomeLimpo);
-    return p?.unidade_medida === 'kg' || p?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un';
+    return isArtigoVendidoAoKg(nomeArtigo, produtos) ? 'kg' : 'un';
   };
 
   // Handler de alteração ad-hoc para Base de Rota
@@ -182,10 +181,13 @@ export function MatrizAjustesAdhoc({
     if (valorStr.trim() === '') {
       await removerAjusteAdhoc(chave);
     } else {
-      const isKg = obterUnidadeArtigo(produtoNome) === 'kg';
+      const isKg = isArtigoVendidoAoKg(produtoNome, produtos);
       let val = valorStr.replace(',', '.');
       if (!isKg) {
         val = val.replace(/\D/g, '');
+      }
+      if (val.endsWith('.') || val.endsWith(',')) {
+        return;
       }
       const parsed = parseFloat(val);
       if (!isNaN(parsed)) {
@@ -229,10 +231,13 @@ export function MatrizAjustesAdhoc({
     if (valorStr.trim() === '') {
       await removerAjusteAdhoc(chave);
     } else {
-      const isKg = obterUnidadeArtigo(produtoNome) === 'kg';
+      const isKg = isArtigoVendidoAoKg(produtoNome, produtos);
       let val = valorStr.replace(',', '.');
       if (!isKg) {
         val = val.replace(/\D/g, '');
+      }
+      if (val.endsWith('.') || val.endsWith(',')) {
+        return;
       }
       const parsed = parseFloat(val);
       if (!isNaN(parsed)) {
@@ -587,7 +592,8 @@ export function MatrizAjustesAdhoc({
                                   min="0"
                                   step={isKg ? "0.1" : "1"}
                                   inputMode={isKg ? "decimal" : "numeric"}
-                                  value={valorEfetivo}
+                                  value={valorEfetivo === 0 ? '' : valorEfetivo}
+                                  placeholder={isKg ? "0.0" : "0"}
                                   onKeyDown={(e) => {
                                     if (!isKg && (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E')) {
                                       e.preventDefault();
@@ -803,7 +809,8 @@ export function MatrizAjustesAdhoc({
                                             min="0"
                                             step={isKg ? "0.1" : "1"}
                                             inputMode={isKg ? "decimal" : "numeric"}
-                                            value={valorEfetivo}
+                                            value={valorEfetivo === 0 ? '' : valorEfetivo}
+                                  placeholder={isKg ? "0.0" : "0"}
                                             onKeyDown={(e) => {
                                               if (!isKg && (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E')) {
                                                 e.preventDefault();

@@ -3702,6 +3702,10 @@ export function calcularDadosGuiaCargaConjunta(
     totaisColunasPastelaria[c.id] = gruposRotasGrelha.reduce((acc, g) => acc + (g.totaisPastelaria[c.id] || 0), 0);
   });
 
+  // Guia Conjunta Dinâmica: Filtrar estritamente apenas os artigos que têm quantidades não nulas (> 0) na data
+  const colunasGrelhaPadariaComQtd = colunasPadariaAtivas.filter((c) => (totaisColunasPadaria[c.id] || 0) > 0);
+  const colunasGrelhaPastelariaComQtd = colunasPastelariaAtivas.filter((c) => (totaisColunasPastelaria[c.id] || 0) > 0);
+
   const linhas: LinhaCargaConjunta[] = Array.from(mapaArtigos.entries())
     .filter(([_, val]) => val.total > 0)
     .map(([artigo, val]) => ({
@@ -3820,8 +3824,8 @@ export function calcularDadosGuiaCargaConjunta(
     linhas,
     totalGeral: totalGeralUnidades,
 
-    colunasGrelhaPadaria: colunasPadariaAtivas,
-    colunasGrelhaPastelaria: colunasPastelariaAtivas,
+    colunasGrelhaPadaria: colunasGrelhaPadariaComQtd.length > 0 ? colunasGrelhaPadariaComQtd : colunasPadariaAtivas,
+    colunasGrelhaPastelaria: colunasGrelhaPastelariaComQtd.length > 0 ? colunasGrelhaPastelariaComQtd : colunasPastelariaAtivas,
     gruposRotasGrelha,
     totaisColunasPadaria,
     totaisColunasPastelaria,

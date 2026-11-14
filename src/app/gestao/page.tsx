@@ -624,10 +624,13 @@ export default function AdminPage() {
     const semanaModal = (clienteB2BEmEdicao.quantidades_semanais || clienteB2BEmEdicao.quantidades_semana || {}) as Record<string, Record<string, number>>;
     const mapaDia = { ...(semanaModal[diaSemanaB2B] || {}) };
     
-    const isKg = obterUnidadeArtigo(prodNome) === 'kg';
+    const isKg = isArtigoVendidoAoKg(prodNome, produtos);
     let valStr = typeof valor === 'string' ? valor.replace(',', '.') : String(valor);
     if (!isKg) {
       valStr = valStr.replace(/\D/g, '');
+    }
+    if (valStr.endsWith('.') || valStr.endsWith(',')) {
+      return;
     }
     const parsed = parseFloat(valStr);
     const novoValor = isNaN(parsed) ? 0 : isKg ? Math.round(parsed * 10) / 10 : Math.round(parsed);
@@ -674,9 +677,7 @@ export default function AdminPage() {
   }, [basesRecorrentes, filtroRotaBaseRecorrente, filtroBuscaBaseRecorrente, filtroEstadoBaseRecorrente]);
 
   const obterUnidadeArtigo = (nomeArtigo: string) => {
-    const nomeLimpo = (nomeArtigo || '').trim().toLowerCase();
-    const p = produtos.find((item) => item.nome.trim().toLowerCase() === nomeLimpo);
-    return p?.unidade_medida === 'kg' || p?.unidade?.toLowerCase().includes('kg') ? 'kg' : 'un';
+    return isArtigoVendidoAoKg(nomeArtigo, produtos) ? 'kg' : 'un';
   };
 
   const obterQtdBaseCarrinha = (carrinhaId: string, dia: DiaSemana, prodNome: string): number => {
@@ -689,10 +690,13 @@ export default function AdminPage() {
   };
 
   const handleAlterarQtdBaseFixa = (carrinhaId: string, carrinhaNome: string, dia: DiaSemana, produtoNome: string, valor: number | string) => {
-    const isKg = obterUnidadeArtigo(produtoNome) === 'kg';
+    const isKg = isArtigoVendidoAoKg(produtoNome, produtos);
     let valStr = typeof valor === 'string' ? valor.replace(',', '.') : String(valor);
     if (!isKg) {
       valStr = valStr.replace(/\D/g, '');
+    }
+    if (valStr.endsWith('.') || valStr.endsWith(',')) {
+      return;
     }
     const num = parseFloat(valStr);
     const qtdLimpa = isNaN(num) ? 0 : Math.max(0, isKg ? Math.round(num * 10) / 10 : Math.round(num));
@@ -1109,10 +1113,13 @@ export default function AdminPage() {
   };
 
   const handleAlterarQtdClienteB2B = (clienteId: string, dia: DiaSemana, produtoNome: string, valor: number | string) => {
-    const isKg = obterUnidadeArtigo(produtoNome) === 'kg';
+    const isKg = isArtigoVendidoAoKg(produtoNome, produtos);
     let valStr = typeof valor === 'string' ? valor.replace(',', '.') : String(valor);
     if (!isKg) {
       valStr = valStr.replace(/\D/g, '');
+    }
+    if (valStr.endsWith('.') || valStr.endsWith(',')) {
+      return;
     }
     const num = parseFloat(valStr);
     const qtdLimpa = isNaN(num) ? 0 : Math.max(0, isKg ? Math.round(num * 10) / 10 : Math.round(num));
@@ -6433,7 +6440,7 @@ export default function AdminPage() {
                           </span>
                           <div className="flex items-center gap-1.5">
                             {(() => {
-                              const isKg = art.unidade_medida === 'kg' || art.unidade?.toLowerCase().includes('kg');
+                              const isKg = isArtigoVendidoAoKg(art.nome, produtos);
                               return (
                                 <>
                                   <input
@@ -6783,7 +6790,7 @@ export default function AdminPage() {
                           </span>
                           <div className="flex items-center gap-1 shrink-0">
                             {(() => {
-                              const isKg = prod.unidade_medida === 'kg' || prod.unidade?.toLowerCase().includes('kg');
+                              const isKg = isArtigoVendidoAoKg(prod.nome, produtos);
                               return (
                                 <>
                                   <input
@@ -6802,6 +6809,9 @@ export default function AdminPage() {
                                       let raw = e.target.value.replace(',', '.');
                                       if (!isKg) {
                                         raw = raw.replace(/\D/g, '');
+                                      }
+                                      if (raw.endsWith('.') || raw.endsWith(',')) {
+                                        return;
                                       }
                                       const num = raw === '' ? 0 : parseFloat(raw);
                                       const val = isNaN(num) ? 0 : Math.max(0, isKg ? Math.round(num * 10) / 10 : Math.round(num));

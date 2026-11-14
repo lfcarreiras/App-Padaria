@@ -1810,9 +1810,9 @@ export function PdfViewerModal({
                 const colunasPadaria = dadosGuiaConjunta.colunasGrelhaPadaria || [];
                 const colunasPastelaria = dadosGuiaConjunta.colunasGrelhaPastelaria || [];
 
-                const p1PadariaCount = Math.ceil(colunasPadaria.length / 2);
+                const p1PadariaCount = colunasPadaria.length > 18 ? Math.ceil(colunasPadaria.length / 2) : colunasPadaria.length;
                 const colunasPadariaP1 = colunasPadaria.slice(0, p1PadariaCount);
-                const colunasPadariaP2 = colunasPadaria.slice(p1PadariaCount);
+                const colunasPadariaP2 = colunasPadaria.length > 18 ? colunasPadaria.slice(p1PadariaCount) : [];
 
                 const subtotalGeralPadariaP1 = colunasPadariaP1.reduce((acc, col) => acc + (dadosGuiaConjunta.totaisColunasPadaria?.[col.id] || 0), 0);
                 const subtotalGeralPadariaP2 = colunasPadariaP2.reduce((acc, col) => acc + (dadosGuiaConjunta.totaisColunasPadaria?.[col.id] || 0), 0);
@@ -1828,10 +1828,10 @@ export function PdfViewerModal({
                     <div className="space-y-2">
                       <div className="flex items-center justify-between border-b-2 border-stone-800 pb-1">
                         <h2 className="text-xs sm:text-sm font-black text-stone-900 uppercase tracking-wide flex items-center gap-1.5">
-                          <span>🥖 1. SECÇÃO PADARIA (PARTE 1 DE 2)</span>
+                          <span>🥖 1. SECÇÃO PADARIA{colunasPadariaP2.length > 0 ? ' (PARTE 1 DE 2)' : ''}</span>
                         </h2>
                         <span className="text-xs font-bold text-stone-800 font-mono">
-                          Subtotal P1: {subtotalGeralPadariaP1} un.
+                          {colunasPadariaP2.length > 0 ? `Subtotal P1: ${subtotalGeralPadariaP1} un.` : `Total Padaria: ${dadosGuiaConjunta.totalGeralPadaria ?? 0} un.${dadosGuiaConjunta.totalGeralPadariaKg && dadosGuiaConjunta.totalGeralPadariaKg > 0 ? ` + ${dadosGuiaConjunta.totalGeralPadariaKg.toFixed(1)} kg` : ''}`}
                         </span>
                       </div>
 
@@ -1856,7 +1856,7 @@ export function PdfViewerModal({
                                 </th>
                               ))}
                               <th className="py-1 px-1.5 text-right font-black border-l-2 border-stone-800 bg-white w-16 min-w-[52px]">
-                                SUBTOTAL P1
+                                {colunasPadariaP2.length > 0 ? 'SUBTOTAL P1' : 'TOTAL PADARIA'}
                               </th>
                             </tr>
                           </thead>
@@ -1934,7 +1934,7 @@ export function PdfViewerModal({
                           <tfoot>
                             <tr className="bg-white text-stone-950 font-black border-t-2 border-b-2 border-stone-900 print:bg-white print:text-black">
                               <td className="py-1.5 px-2 uppercase text-xs print:text-[10px] tracking-wider sticky left-0 bg-white text-stone-950 font-black border-r border-stone-400 print:static print:bg-white print:text-black">
-                                SUBTOTAL PADARIA (PARTE 1)
+                                {colunasPadariaP2.length > 0 ? 'SUBTOTAL PADARIA (PARTE 1)' : 'TOTAL GERAL PADARIA'}
                               </td>
                               {colunasPadariaP1.map((col) => {
                                 const val = dadosGuiaConjunta.totaisColunasPadaria?.[col.id] || 0;
@@ -1957,12 +1957,13 @@ export function PdfViewerModal({
                     </div>
 
                     {/* ============================================================== */}
-                    {/* FOLHA 2: PADARIA - PARTE 2 DE 2 (COLUNAS 18 A 34)               */}
+                    {/* FOLHA 2: PADARIA - PARTE 2 DE 2 (SE HOUVER MAIS DE 18 ARTIGOS) */}
                     {/* ============================================================== */}
-                    <div
-                      className="print-break-page space-y-2 pt-6 print:pt-0"
-                      style={{ pageBreakBefore: 'always', breakBefore: 'page' }}
-                    >
+                    {colunasPadariaP2.length > 0 && (
+                      <div
+                        className="print-break-page space-y-2 pt-6 print:pt-0"
+                        style={{ pageBreakBefore: 'always', breakBefore: 'page' }}
+                      >
                       {/* Mini-cabeçalho de Impressão */}
                       <div className="hidden print:flex justify-between items-center border-b border-stone-800 pb-1 mb-2 text-[10px] font-bold text-stone-700">
                         <span>PADARIA DA VILA • GUIA OFICIAL DE CARGA CONJUNTA</span>
@@ -2099,6 +2100,7 @@ export function PdfViewerModal({
                         </table>
                       </div>
                     </div>
+                    )}
 
                     {/* ============================================================== */}
                     {/* FOLHA 3: SECÇÃO PASTELARIA FINA (FOLHA ÚNICA CONSOLIDADA)      */}
