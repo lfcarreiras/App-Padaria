@@ -1067,6 +1067,10 @@ export default function ProducaoPage() {
               baseFixaCarrinhas={baseFixaCarrinhas}
               clientesB2B={clientesB2B}
               produtos={produtos}
+              onAjusteSalvo={() => {
+                setAjustesAdhoc(carregarAjustesAdhoc());
+                setVersaoDados((v) => v + 1);
+              }}
             />
           )}
         </div>

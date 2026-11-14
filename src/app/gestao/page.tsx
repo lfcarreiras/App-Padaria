@@ -122,6 +122,108 @@ import { PdfViewerModal, LinhaArtigoCarga } from '../../components/pdf/PdfViewer
 import { FileText, Zap, Mail } from 'lucide-react';
 import { correspondePesquisaArtigo } from '../../lib/fuzzySearch';
 
+function TabelaQuantidadeInput({
+  valor,
+  isKg,
+  unidade,
+  onChange,
+  className = "w-20 text-center py-1 px-2 rounded-lg border font-mono text-xs font-bold focus:outline-hidden",
+  activeClass = "bg-blue-50 border-blue-400 text-blue-950",
+  inactiveClass = "bg-white border-gray-200 text-gray-500",
+  placeholder,
+}: {
+  valor: number;
+  isKg: boolean;
+  unidade?: string;
+  onChange: (val: number) => void;
+  className?: string;
+  activeClass?: string;
+  inactiveClass?: string;
+  placeholder?: string;
+}) {
+  const [localVal, setLocalVal] = useState<string | null>(null);
+
+  const valorExibido = localVal !== null
+    ? localVal
+    : (valor === 0 ? '' : (isKg ? (Number.isInteger(valor) ? String(valor) : valor.toFixed(1)) : String(Math.round(valor))));
+
+  const handleFocus = () => {
+    setLocalVal(valor === 0 ? '' : (isKg ? (Number.isInteger(valor) ? String(valor) : valor.toFixed(1)) : String(Math.round(valor))));
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let raw = e.target.value;
+    if (!isKg) {
+      raw = raw.replace(/\D/g, '');
+    } else {
+      raw = raw.replace(',', '.');
+      const parts = raw.split('.');
+      if (parts.length > 2) {
+        raw = parts[0] + '.' + parts.slice(1).join('');
+      }
+      raw = raw.replace(/[^0-9.]/g, '');
+      if (raw.includes('.')) {
+        const [intPart, decPart] = raw.split('.');
+        raw = intPart + '.' + (decPart ? decPart.slice(0, 1) : '');
+      }
+    }
+    setLocalVal(raw);
+
+    if (raw !== '' && !raw.endsWith('.')) {
+      const num = parseFloat(raw);
+      if (!isNaN(num) && num >= 0) {
+        const finalVal = isKg ? Math.round(num * 10) / 10 : Math.round(num);
+        onChange(finalVal);
+      }
+    }
+  };
+
+  const handleBlur = () => {
+    if (localVal !== null) {
+      const trimmed = localVal.trim();
+      setLocalVal(null);
+      if (trimmed === '') {
+        onChange(0);
+      } else {
+        const num = parseFloat(trimmed);
+        if (!isNaN(num) && num >= 0) {
+          const finalVal = isKg ? Math.round(num * 10) / 10 : Math.round(num);
+          onChange(finalVal);
+        } else {
+          onChange(0);
+        }
+      }
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!isKg && (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E')) {
+      e.preventDefault();
+      return;
+    }
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+    }
+  };
+
+  const isFilled = valor > 0 || (localVal !== null && localVal !== '' && localVal !== '0');
+
+  return (
+    <input
+      type="text"
+      inputMode={isKg ? "decimal" : "numeric"}
+      value={valorExibido}
+      placeholder={placeholder || (isKg ? "0.0" : "0")}
+      onFocus={handleFocus}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      className={`${className} ${isFilled ? activeClass : inactiveClass}`}
+      title={unidade ? `Unidade: ${unidade}` : undefined}
+    />
+  );
+}
+
 export default function AdminPage() {
   const router = useRouter();
   const { t, language } = useTranslation();
@@ -629,9 +731,6 @@ export default function AdminPage() {
     if (!isKg) {
       valStr = valStr.replace(/\D/g, '');
     }
-    if (valStr.endsWith('.') || valStr.endsWith(',')) {
-      return;
-    }
     const parsed = parseFloat(valStr);
     const novoValor = isNaN(parsed) ? 0 : isKg ? Math.round(parsed * 10) / 10 : Math.round(parsed);
     if (isNaN(novoValor) || novoValor <= 0) {
@@ -694,9 +793,6 @@ export default function AdminPage() {
     let valStr = typeof valor === 'string' ? valor.replace(',', '.') : String(valor);
     if (!isKg) {
       valStr = valStr.replace(/\D/g, '');
-    }
-    if (valStr.endsWith('.') || valStr.endsWith(',')) {
-      return;
     }
     const num = parseFloat(valStr);
     const qtdLimpa = isNaN(num) ? 0 : Math.max(0, isKg ? Math.round(num * 10) / 10 : Math.round(num));
@@ -1117,9 +1213,6 @@ export default function AdminPage() {
     let valStr = typeof valor === 'string' ? valor.replace(',', '.') : String(valor);
     if (!isKg) {
       valStr = valStr.replace(/\D/g, '');
-    }
-    if (valStr.endsWith('.') || valStr.endsWith(',')) {
-      return;
     }
     const num = parseFloat(valStr);
     const qtdLimpa = isNaN(num) ? 0 : Math.max(0, isKg ? Math.round(num * 10) / 10 : Math.round(num));
@@ -3321,32 +3414,19 @@ export default function AdminPage() {
                             const isKg = obterUnidadeArtigo(prodNome) === 'kg';
                             return (
                               <td key={c.id} className="py-1.5 px-3 text-center">
-                                <input
-                                  type="number"
-                                  min={0}
-                                  step={isKg ? "0.1" : "1"}
-                                  inputMode={isKg ? "decimal" : "numeric"}
-                                  value={valQtd === 0 ? '' : valQtd}
-                                  placeholder={isKg ? "0.0" : "0"}
-                                  onKeyDown={(e) => {
-                                    if (!isKg && (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E')) {
-                                      e.preventDefault();
-                                    }
-                                  }}
-                                  onChange={(e) =>
+                                <TabelaQuantidadeInput
+                                  valor={valQtd}
+                                  isKg={isKg}
+                                  unidade={obterUnidadeArtigo(prodNome)}
+                                  onChange={(novaQtd) =>
                                     handleAlterarQtdBaseFixa(
                                       c.id,
-                                      c.identificador || c.nome,
+                                      c.identificador || (c as any).nome || '',
                                       diaSemanaBaseFixa,
                                       prodNome,
-                                      e.target.value
+                                      novaQtd
                                     )
                                   }
-                                  className={`w-20 text-center py-1 px-2 rounded-lg border font-mono text-xs font-bold focus:outline-hidden ${
-                                    valQtd > 0
-                                      ? 'bg-blue-50 border-blue-400 text-blue-950'
-                                      : 'bg-white border-gray-200 text-gray-500'
-                                  }`}
                                 />
                               </td>
                             );
@@ -3613,22 +3693,16 @@ export default function AdminPage() {
                                         className="inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-0.5 text-[11px]"
                                       >
                                         <span className="font-bold text-indigo-950">{prodNome}:</span>
-                                        <input
-                                          type="number"
-                                          min={0}
-                                          step={isKg ? "0.1" : "1"}
-                                          inputMode={isKg ? "decimal" : "numeric"}
-                                          value={qtd}
-                                          placeholder={isKg ? "0.0" : "0"}
-                                          onKeyDown={(e) => {
-                                            if (!isKg && (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E')) {
-                                              e.preventDefault();
-                                            }
-                                          }}
-                                          onChange={(e) =>
-                                            handleAlterarQtdClienteB2B(cli.id, diaSemanaB2B, prodNome, e.target.value)
+                                        <TabelaQuantidadeInput
+                                          valor={Number(qtd) || 0}
+                                          isKg={isKg}
+                                          unidade={obterUnidadeArtigo(prodNome)}
+                                          className="w-16 text-center rounded font-mono font-black px-1 py-0.5 text-[11px] border"
+                                          activeClass="bg-white border-indigo-400 text-indigo-950"
+                                          inactiveClass="bg-white border-indigo-200 text-indigo-400"
+                                          onChange={(novaQtd) =>
+                                            handleAlterarQtdClienteB2B(cli.id, diaSemanaB2B, prodNome, novaQtd)
                                           }
-                                          className="w-16 text-center bg-white border border-indigo-300 rounded font-mono font-black text-indigo-900 px-1 py-0.5 text-[11px]"
                                         />
                                         <span className="text-[10px] text-indigo-700 font-bold">
                                           {obterUnidadeArtigo(prodNome)}
@@ -6443,20 +6517,12 @@ export default function AdminPage() {
                               const isKg = isArtigoVendidoAoKg(art.nome, produtos);
                               return (
                                 <>
-                                  <input
-                                    type="number"
-                                    min={0}
-                                    step={isKg ? "0.1" : "1"}
-                                    inputMode={isKg ? "decimal" : "numeric"}
-                                    value={qtdAtual === 0 ? '' : qtdAtual}
-                                    placeholder={isKg ? "0.0" : "0"}
-                                    onKeyDown={(e) => {
-                                      if (!isKg && (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E')) {
-                                        e.preventDefault();
-                                      }
-                                    }}
-                                    onChange={(e) => handleDefinirQtdArtigoB2BModal(art.nome, e.target.value)}
+                                  <TabelaQuantidadeInput
+                                    valor={qtdAtual}
+                                    isKg={isKg}
+                                    unidade={isKg ? 'kg' : 'un.'}
                                     className="w-16 text-center py-1 px-1.5 rounded-lg border border-stone-300 bg-white font-mono font-black text-indigo-950 text-xs focus:border-indigo-500 focus:outline-hidden"
+                                    onChange={(novaQtd) => handleDefinirQtdArtigoB2BModal(art.nome, novaQtd)}
                                   />
                                   <span className="text-[11px] font-bold text-stone-600 min-w-5">
                                     {isKg ? 'kg' : 'un.'}
@@ -6793,28 +6859,12 @@ export default function AdminPage() {
                               const isKg = isArtigoVendidoAoKg(prod.nome, produtos);
                               return (
                                 <>
-                                  <input
-                                    type="number"
-                                    min={0}
-                                    step={isKg ? "0.1" : "1"}
-                                    inputMode={isKg ? "decimal" : "numeric"}
-                                    value={qtd === 0 ? '' : qtd}
-                                    placeholder={isKg ? "0.0" : "0"}
-                                    onKeyDown={(e) => {
-                                      if (!isKg && (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E')) {
-                                        e.preventDefault();
-                                      }
-                                    }}
-                                    onChange={(e) => {
-                                      let raw = e.target.value.replace(',', '.');
-                                      if (!isKg) {
-                                        raw = raw.replace(/\D/g, '');
-                                      }
-                                      if (raw.endsWith('.') || raw.endsWith(',')) {
-                                        return;
-                                      }
-                                      const num = raw === '' ? 0 : parseFloat(raw);
-                                      const val = isNaN(num) ? 0 : Math.max(0, isKg ? Math.round(num * 10) / 10 : Math.round(num));
+                                  <TabelaQuantidadeInput
+                                    valor={qtd}
+                                    isKg={isKg}
+                                    unidade={isKg ? 'kg' : 'un'}
+                                    className="w-16 text-center py-0.5 px-1 rounded border border-gray-300 font-mono font-bold text-teal-950 text-xs"
+                                    onChange={(val) => {
                                       const mapaDia = { ...(sem[diaSemanaBaseRecorrenteModal] || {}) };
                                       if (val <= 0) {
                                         delete mapaDia[prod.nome];
@@ -6829,7 +6879,6 @@ export default function AdminPage() {
                                         },
                                       });
                                     }}
-                                    className="w-16 text-center py-0.5 px-1 rounded border border-gray-300 font-mono font-bold text-teal-950 text-xs"
                                   />
                                   <span className="text-[10px] font-bold text-stone-500 min-w-4">
                                     {isKg ? 'kg' : 'un'}

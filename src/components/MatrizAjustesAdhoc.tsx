@@ -31,8 +31,7 @@ import {
   Info,
   ShieldCheck,
   Filter,
-  RefreshCw,
-  CloudCheck
+  RefreshCw
 } from 'lucide-react';
 
 export interface MatrizAjustesAdhocProps {
@@ -42,6 +41,111 @@ export interface MatrizAjustesAdhocProps {
   produtos?: Produto[];
   onAjusteSalvo?: () => void;
   className?: string;
+}
+
+interface AdhocInputCellProps {
+  valorEfetivo: number;
+  baselineVal: number;
+  temAdhoc: boolean;
+  isKg: boolean;
+  unidade: string;
+  onSalvar: (valorStr: string) => Promise<void>;
+  colorTheme?: 'amber' | 'purple';
+}
+
+function AdhocInputCell({
+  valorEfetivo,
+  baselineVal,
+  temAdhoc,
+  isKg,
+  unidade,
+  onSalvar,
+  colorTheme = 'amber',
+}: AdhocInputCellProps) {
+  const [localVal, setLocalVal] = useState<string | null>(null);
+
+  const valorExibido = localVal !== null
+    ? localVal
+    : (valorEfetivo === 0 ? '' : (isKg ? (Number.isInteger(valorEfetivo) ? String(valorEfetivo) : valorEfetivo.toFixed(1)) : String(Math.round(valorEfetivo))));
+
+  const handleFocus = () => {
+    setLocalVal(valorEfetivo === 0 ? '' : (isKg ? (Number.isInteger(valorEfetivo) ? String(valorEfetivo) : valorEfetivo.toFixed(1)) : String(Math.round(valorEfetivo))));
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let raw = e.target.value;
+    if (!isKg) {
+      raw = raw.replace(/\D/g, '');
+    } else {
+      raw = raw.replace(',', '.');
+      const parts = raw.split('.');
+      if (parts.length > 2) {
+        raw = parts[0] + '.' + parts.slice(1).join('');
+      }
+      raw = raw.replace(/[^0-9.]/g, '');
+      if (raw.includes('.')) {
+        const [intPart, decPart] = raw.split('.');
+        raw = intPart + '.' + (decPart ? decPart.slice(0, 1) : '');
+      }
+    }
+    setLocalVal(raw);
+  };
+
+  const handleCommit = async () => {
+    if (localVal === null) return;
+    const trimmed = localVal.trim();
+    setLocalVal(null);
+
+    if (trimmed === '') {
+      await onSalvar('');
+      return;
+    }
+
+    const num = parseFloat(trimmed);
+    if (isNaN(num) || num < 0) {
+      await onSalvar('');
+      return;
+    }
+
+    const finalNum = isKg ? Math.round(num * 10) / 10 : Math.round(num);
+    await onSalvar(String(finalNum));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!isKg && (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E')) {
+      e.preventDefault();
+      return;
+    }
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+    } else if (e.key === 'Escape') {
+      setLocalVal(null);
+      e.currentTarget.blur();
+    }
+  };
+
+  return (
+    <input
+      type="text"
+      inputMode={isKg ? "decimal" : "numeric"}
+      value={valorExibido}
+      placeholder={isKg ? "0.0" : "0"}
+      onFocus={handleFocus}
+      onChange={handleChange}
+      onBlur={handleCommit}
+      onKeyDown={handleKeyDown}
+      className={`w-14 text-center py-1 px-1 rounded-lg text-xs font-mono font-black border transition ${
+        temAdhoc
+          ? 'bg-amber-50 border-amber-500 text-amber-950 font-black shadow-xs'
+          : `bg-white border-stone-300 text-stone-900 hover:border-${colorTheme}-400`
+      }`}
+      title={
+        temAdhoc
+          ? `Ajustado pontualmente! (Base diária: ${baselineVal} ${unidade})`
+          : `Valor base diária: ${baselineVal} ${unidade}`
+      }
+    />
+  );
 }
 
 export function MatrizAjustesAdhoc({
@@ -186,9 +290,6 @@ export function MatrizAjustesAdhoc({
       if (!isKg) {
         val = val.replace(/\D/g, '');
       }
-      if (val.endsWith('.') || val.endsWith(',')) {
-        return;
-      }
       const parsed = parseFloat(val);
       if (!isNaN(parsed)) {
         const arredondado = isKg ? Math.round(Math.max(0, parsed) * 10) / 10 : Math.round(Math.max(0, parsed));
@@ -235,9 +336,6 @@ export function MatrizAjustesAdhoc({
       let val = valorStr.replace(',', '.');
       if (!isKg) {
         val = val.replace(/\D/g, '');
-      }
-      if (val.endsWith('.') || val.endsWith(',')) {
-        return;
       }
       const parsed = parseFloat(val);
       if (!isNaN(parsed)) {
@@ -587,36 +685,21 @@ export function MatrizAjustesAdhoc({
                               } ${temAdhoc ? 'bg-amber-100/60 ring-1 ring-amber-400/60' : ''}`}
                             >
                               <div className="flex items-center justify-center gap-1">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  step={isKg ? "0.1" : "1"}
-                                  inputMode={isKg ? "decimal" : "numeric"}
-                                  value={valorEfetivo === 0 ? '' : valorEfetivo}
-                                  placeholder={isKg ? "0.0" : "0"}
-                                  onKeyDown={(e) => {
-                                    if (!isKg && (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E')) {
-                                      e.preventDefault();
-                                    }
-                                  }}
-                                  onChange={(e) =>
+                                <AdhocInputCell
+                                  valorEfetivo={valorEfetivo}
+                                  baselineVal={baselineVal}
+                                  temAdhoc={temAdhoc}
+                                  isKg={isKg}
+                                  unidade={obterUnidadeArtigo(produtoNome)}
+                                  onSalvar={(valorStr) =>
                                     handleAlterarBaseAdhoc(
                                       col.dataIso,
                                       carrinhaAtiva.id,
                                       produtoNome,
-                                      e.target.value
+                                      valorStr
                                     )
                                   }
-                                  className={`w-14 text-center py-1 px-1 rounded-lg text-xs font-mono font-black border transition ${
-                                    temAdhoc
-                                      ? 'bg-amber-50 border-amber-500 text-amber-950 font-black shadow-xs'
-                                      : 'bg-white border-stone-300 text-stone-900 hover:border-amber-400'
-                                  }`}
-                                  title={
-                                    temAdhoc
-                                      ? `Ajustado pontualmente para ${col.dataIso}! (Base diária: ${baselineVal} ${obterUnidadeArtigo(produtoNome)})`
-                                      : `Valor de base diária: ${baselineVal} ${obterUnidadeArtigo(produtoNome)}`
-                                  }
+                                  colorTheme="amber"
                                 />
 
                                 {temAdhoc && (
@@ -804,36 +887,21 @@ export function MatrizAjustesAdhoc({
                                         } ${temAdhoc ? 'bg-amber-100/70 ring-1 ring-amber-400' : ''}`}
                                       >
                                         <div className="flex items-center justify-center gap-1">
-                                          <input
-                                            type="number"
-                                            min="0"
-                                            step={isKg ? "0.1" : "1"}
-                                            inputMode={isKg ? "decimal" : "numeric"}
-                                            value={valorEfetivo === 0 ? '' : valorEfetivo}
-                                  placeholder={isKg ? "0.0" : "0"}
-                                            onKeyDown={(e) => {
-                                              if (!isKg && (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E')) {
-                                                e.preventDefault();
-                                              }
-                                            }}
-                                            onChange={(e) =>
+                                          <AdhocInputCell
+                                            valorEfetivo={valorEfetivo}
+                                            baselineVal={baselineVal}
+                                            temAdhoc={temAdhoc}
+                                            isKg={isKg}
+                                            unidade={obterUnidadeArtigo(artigo)}
+                                            onSalvar={(valorStr) =>
                                               handleAlterarB2BAdhoc(
                                                 col.dataIso,
                                                 cli.id,
                                                 artigo,
-                                                e.target.value
+                                                valorStr
                                               )
                                             }
-                                            className={`w-14 text-center py-0.5 px-1 rounded text-xs font-mono font-bold border transition ${
-                                              temAdhoc
-                                                ? 'bg-amber-50 border-amber-500 text-amber-950 font-black'
-                                                : 'bg-white border-stone-300 text-stone-900 hover:border-purple-400'
-                                            }`}
-                                            title={
-                                              temAdhoc
-                                                ? `Ajustado pontualmente para ${col.dataIso}! (Base diária: ${baselineVal} ${obterUnidadeArtigo(artigo)})`
-                                                : `Valor base diária: ${baselineVal} ${obterUnidadeArtigo(artigo)}`
-                                            }
+                                            colorTheme="purple"
                                           />
 
                                           {temAdhoc && (

@@ -58,6 +58,95 @@ import { OriginBadge, SectorBadge } from '../../components/InproovalBadges';
 import { buscarArtigosOramaSync } from '../../lib/oramaSearch';
 import { OramaQuickSearchModal } from '../../components/OramaQuickSearchModal';
 
+function ItemQuantidadeInput({
+  quantidade,
+  isKg,
+  onChange,
+}: {
+  quantidade: number;
+  isKg: boolean;
+  onChange: (val: number) => void;
+}) {
+  const [localVal, setLocalVal] = useState<string | null>(null);
+
+  const valorExibido = localVal !== null
+    ? localVal
+    : (quantidade === 0 ? '' : (isKg ? (Number.isInteger(quantidade) ? String(quantidade) : quantidade.toFixed(1)) : String(Math.round(quantidade))));
+
+  const handleFocus = () => {
+    setLocalVal(quantidade === 0 ? '' : (isKg ? (Number.isInteger(quantidade) ? String(quantidade) : quantidade.toFixed(1)) : String(Math.round(quantidade))));
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let raw = e.target.value;
+    if (!isKg) {
+      raw = raw.replace(/\D/g, '');
+    } else {
+      raw = raw.replace(',', '.');
+      const parts = raw.split('.');
+      if (parts.length > 2) {
+        raw = parts[0] + '.' + parts.slice(1).join('');
+      }
+      raw = raw.replace(/[^0-9.]/g, '');
+      if (raw.includes('.')) {
+        const [intPart, decPart] = raw.split('.');
+        raw = intPart + '.' + (decPart ? decPart.slice(0, 1) : '');
+      }
+    }
+    setLocalVal(raw);
+
+    if (raw !== '' && !raw.endsWith('.')) {
+      const num = parseFloat(raw);
+      if (!isNaN(num) && num >= 0) {
+        const finalVal = isKg ? Math.round(num * 10) / 10 : Math.round(num);
+        onChange(finalVal);
+      }
+    }
+  };
+
+  const handleBlur = () => {
+    if (localVal !== null) {
+      const trimmed = localVal.trim();
+      setLocalVal(null);
+      if (trimmed === '') {
+        onChange(0);
+      } else {
+        const num = parseFloat(trimmed);
+        if (!isNaN(num) && num >= 0) {
+          const finalVal = isKg ? Math.round(num * 10) / 10 : Math.round(num);
+          onChange(finalVal);
+        } else {
+          onChange(0);
+        }
+      }
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!isKg && (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E')) {
+      e.preventDefault();
+      return;
+    }
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+    }
+  };
+
+  return (
+    <input
+      type="text"
+      inputMode={isKg ? "decimal" : "numeric"}
+      value={valorExibido}
+      placeholder={isKg ? "0.0" : "1"}
+      onFocus={handleFocus}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      className="w-20 px-2 py-1 text-center font-bold font-mono text-xs bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-bakery-500 focus:border-bakery-500"
+    />
+  );
+}
+
 export default function EncomendasPage(props: any) {
   const embedded = Boolean(props?.embedded);
   const router = useRouter();
@@ -1168,34 +1257,10 @@ export default function EncomendasPage(props: any) {
                                 <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">
                                   Qtd:
                                 </label>
-                                <input
-                                  type="number"
-                                  step={isKg ? "0.1" : "1"}
-                                  min={isKg ? "0.1" : "1"}
-                                  inputMode={isKg ? "decimal" : "numeric"}
-                                  value={item.quantidade === 0 ? '' : item.quantidade}
-                                  placeholder={isKg ? "0.0" : "1"}
-                                  onKeyDown={(e) => {
-                                    if (!isKg && (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E')) {
-                                      e.preventDefault();
-                                    }
-                                  }}
-                                  onChange={(e) => {
-                                    let val = e.target.value.replace(',', '.');
-                                    if (!isKg) {
-                                      val = val.replace(/\D/g, '');
-                                    }
-                                    if (val === '') {
-                                      atualizarQuantidadeItem(item.id, 0);
-                                      return;
-                                    }
-                                    const num = parseFloat(val);
-                                    if (!isNaN(num) && num >= 0) {
-                                      const finalVal = isKg ? Math.round(num * 10) / 10 : Math.floor(num);
-                                      atualizarQuantidadeItem(item.id, finalVal);
-                                    }
-                                  }}
-                                  className="w-20 px-2 py-1 text-center font-bold font-mono text-xs bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-bakery-500 focus:border-bakery-500"
+                                <ItemQuantidadeInput
+                                  quantidade={item.quantidade}
+                                  isKg={Boolean(isKg)}
+                                  onChange={(novaQtd) => atualizarQuantidadeItem(item.id, novaQtd)}
                                 />
                                 <span className="text-[11px] font-bold text-stone-600">
                                   {isKg ? 'kg' : 'un.'}
@@ -2228,40 +2293,15 @@ export default function EncomendasPage(props: any) {
                         <span className="font-bold text-gray-900 truncate pr-2">{item.produto_nome}</span>
                         <div className="flex items-center gap-1.5 shrink-0">
                           <label className="text-[10px] font-bold text-stone-500 uppercase">Qtd:</label>
-                          <input
-                            type="number"
-                            step={isKg ? "0.1" : "1"}
-                            min={isKg ? "0.1" : "1"}
-                            inputMode={isKg ? "decimal" : "numeric"}
-                            value={item.quantidade === 0 ? '' : item.quantidade}
-                            placeholder={isKg ? "0.0" : "1"}
-                            onKeyDown={(e) => {
-                              if (!isKg && (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E')) {
-                                e.preventDefault();
-                              }
+                          <ItemQuantidadeInput
+                            quantidade={item.quantidade}
+                            isKg={Boolean(isKg)}
+                            onChange={(novaQtd) => {
+                              const novos = encomendaEmEdicao.itens.map((it, i) =>
+                                i === idx ? { ...it, quantidade: novaQtd, unidade: isKg ? 'kg' : 'un', unidade_medida: isKg ? 'kg' : 'un' } : it
+                              );
+                              setEncomendaEmEdicao({ ...encomendaEmEdicao, itens: novos });
                             }}
-                            onChange={(e) => {
-                              let val = e.target.value.replace(',', '.');
-                              if (!isKg) {
-                                val = val.replace(/\D/g, '');
-                              }
-                              if (val === '') {
-                                const novos = encomendaEmEdicao.itens.map((it, i) =>
-                                  i === idx ? { ...it, quantidade: 0, unidade: isKg ? 'kg' : 'un', unidade_medida: isKg ? 'kg' : 'un' } : it
-                                );
-                                setEncomendaEmEdicao({ ...encomendaEmEdicao, itens: novos });
-                                return;
-                              }
-                              const num = parseFloat(val);
-                              if (!isNaN(num) && num >= 0) {
-                                const finalVal = isKg ? Math.round(num * 10) / 10 : Math.floor(num);
-                                const novos = encomendaEmEdicao.itens.map((it, i) =>
-                                  i === idx ? { ...it, quantidade: finalVal, unidade: isKg ? 'kg' : 'un', unidade_medida: isKg ? 'kg' : 'un' } : it
-                                );
-                                setEncomendaEmEdicao({ ...encomendaEmEdicao, itens: novos });
-                              }
-                            }}
-                            className="w-20 px-2 py-1 text-center font-bold font-mono text-xs bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-bakery-500 focus:border-bakery-500"
                           />
                           <span className="text-xs font-bold text-stone-600 min-w-5">
                             {isKg ? 'kg' : 'un.'}
